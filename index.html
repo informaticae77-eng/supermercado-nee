@@ -1,642 +1,1430 @@
-<!DOCTYPE html>
+
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Supermercado NEE Chile</title>
+    <title>Mi Supermercado Pictográfico - Chile NEE</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font Lexend (Accesibilidad y dislexia) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome para íconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti para refuerzo positivo -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Lexend', 'sans-serif'],
+                    },
+                    colors: {
+                        chileRed: '#D52B1E',
+                        chileBlue: '#0039A6',
+                        bill20k: '#E65100',
+                        bill10k: '#0D47A1',
+                        bill5k: '#C62828',
+                        bill2k: '#6A1B9A',
+                        bill1k: '#2E7D32',
+                        coinGold: '#F59E0B',
+                        coinSilver: '#9CA3AF'
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        .money-btn:active { transform: scale(0.92); }
-        .pictogram-card { transition: all 0.2s ease-in-out; }
-        .pictogram-card:hover { transform: translateY(-4px); }
+        body {
+            font-family: 'Lexend', sans-serif;
+            background-color: #F8FAFC;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Foco visible de alto contraste para navegación táctil y de accesibilidad */
+        .touch-focus:focus, .touch-focus:active {
+            outline: 4px solid #2563EB !important;
+            outline-offset: 3px;
+        }
+
+        /* Micro-interacciones para billetes y monedas */
+        .currency-item {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .currency-item:hover {
+            transform: scale(1.05);
+        }
+        .currency-item:active {
+            transform: scale(0.95);
+        }
+
+        /* Personalización de barra de desplazamiento */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #E2E8F0;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94A3B8;
+            border-radius: 8px;
+        }
+
+        /* Animación táctil suave para botones principales */
+        @keyframes pulse-gentle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+        .animate-tactile {
+            animation: pulse-gentle 2.5s infinite ease-in-out;
+        }
     </style>
 </head>
-<body class="bg-amber-50 font-sans min-h-screen flex flex-col justify-between select-none">
+<body class="text-slate-900 bg-slate-100 min-h-screen flex flex-col justify-between">
 
-    <!-- ENCABEZADO PRINCIPAL -->
-    <header class="bg-teal-600 text-white p-4 shadow-lg flex justify-between items-center sticky top-0 z-50">
-        <div class="flex items-center space-x-3 cursor-pointer" onclick="goHome()">
-            <span class="text-4xl">🛒</span>
-            <div>
-                <h1 class="text-2xl font-bold tracking-wide">Supermercado NEE</h1>
-                <p class="text-xs text-teal-100">Aprendiendo a comprar con dinero chileno</p>
+    <!-- BARRA DE NAVEGACIÓN Y CABECERA -->
+    <header class="bg-white border-b-4 border-slate-300 shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-3">
+            
+            <!-- Logo y Título -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="goHome()">
+                <div class="bg-amber-400 p-2.5 rounded-2xl shadow-md border-2 border-amber-500 text-3xl flex items-center justify-center">
+                    🛒
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                        SuperMercado NEE <span class="bg-red-600 text-white text-xs px-2.5 py-0.5 rounded-full uppercase tracking-wider">Chile 🇨🇱</span>
+                    </h1>
+                    <p class="text-xs font-semibold text-slate-500">Aprende a comprar con billetes y monedas chilenas</p>
+                </div>
             </div>
-        </div>
-        <div class="flex items-center space-x-2">
-            <button id="btn-audio-global" onclick="toggleMute()" class="bg-teal-700 hover:bg-teal-800 p-2 rounded-full text-xl border-2 border-teal-300">
-                🔊
-            </button>
-            <button onclick="openPinModal()" class="bg-amber-400 text-teal-900 font-bold px-4 py-2 rounded-xl text-sm border-2 border-amber-300 shadow hover:bg-amber-300 transition">
-                ⚙️ Educador
-            </button>
+
+            <!-- Botones Globales -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                
+                <!-- Botón de Lectura por Voz -->
+                <button onclick="speakText('Bienvenido a Mi Supermercado Pictográfico. Selecciona una opción para empezar.')" 
+                        title="Escuchar audio"
+                        class="bg-sky-100 hover:bg-sky-200 text-sky-800 border-2 border-sky-400 font-bold py-2 px-3 sm:px-4 rounded-xl flex items-center space-x-2 transition-all shadow-sm active:scale-95 touch-focus">
+                    <i class="fa-solid fa-volume-high text-xl"></i>
+                    <span class="hidden sm:inline font-bold text-sm">Voz / Leer</span>
+                </button>
+
+                <!-- Botón del Canasto (Visible solo al estar dentro de un supermercado) -->
+                <button id="headerBasketBtn" onclick="openBasketModal()" class="hidden bg-emerald-500 hover:bg-emerald-600 text-white font-black py-2 px-4 rounded-xl border-b-4 border-emerald-700 flex items-center space-x-2 shadow-md active:scale-95 touch-focus">
+                    <i class="fa-solid fa-basket-shopping text-xl"></i>
+                    <span class="text-base">Mi Canasto</span>
+                    <span id="basketBadge" class="bg-amber-300 text-slate-900 text-sm font-black px-2.5 py-0.5 rounded-full ml-1">0</span>
+                </button>
+
+                <!-- Interruptor de Modo (Niños <-> Educador) -->
+                <button id="modeSwitchBtn" onclick="toggleModePrompt()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 sm:px-4 rounded-xl border-b-4 border-indigo-900 flex items-center space-x-2 shadow-md active:scale-95 touch-focus">
+                    <i id="modeIcon" class="fa-solid fa-user-gear text-lg"></i>
+                    <span id="modeLabel" class="text-sm font-bold">Modo Educador</span>
+                </button>
+            </div>
         </div>
     </header>
 
-    <!-- CONTENIDO PRINCIPAL (MODO NIÑO) -->
-    <main id="app-container" class="max-w-4xl mx-auto p-4 w-full flex-grow">
-        <!-- VISTA 1: SELECCIONAR SUPERMERCADO -->
-        <section id="view-supermarkets" class="block">
-            <h2 class="text-2xl font-extrabold text-teal-800 mb-6 text-center bg-white p-3 rounded-2xl shadow-sm border-2 border-teal-200">
-                1. Elige tu Supermercado 🏬
-            </h2>
-            <div id="supermarkets-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Se llena dinámicamente con JS -->
-            </div>
-        </section>
-
-        <!-- VISTA 2: SELECCIONAR PRODUCTOS Y VER CANASTO -->
-        <section id="view-products" class="hidden">
-            <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-2xl shadow-sm border border-teal-200">
-                <button onclick="goHome()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-4 py-2 rounded-xl border border-gray-400">
-                    ⬅️ Cambiar Supermercado
-                </button>
-                <div id="current-supermarket-title" class="font-bold text-xl text-teal-800"></div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Lista de Productos Disponibles -->
-                <div class="md:col-span-2">
-                    <h3 class="text-xl font-bold text-teal-800 mb-3 flex items-center">
-                        <span class="mr-2">🍎</span> Productos disponibles
-                    </h3>
-                    <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        <!-- Se llena con JS -->
-                    </div>
-                </div>
-
-                <!-- Canasto de Compras -->
-                <div class="bg-white p-4 rounded-2xl shadow-md border-2 border-amber-300 flex flex-col justify-between min-h-[400px]">
-                    <div>
-                        <h3 class="text-xl font-bold text-amber-800 mb-3 border-b-2 border-amber-100 pb-2 flex items-center justify-between">
-                            <span>🧺 Tu Canasto</span>
-                            <span id="basket-count" class="bg-amber-500 text-white text-xs px-2 py-1 rounded-full">0</span>
-                        </h3>
-                        <div id="basket-items" class="space-y-3 max-h-[250px] overflow-y-auto pr-1">
-                            <p class="text-gray-400 text-center italic py-8">Tu canasto está vacío.<br>¡Toca un producto para agregar!</p>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 border-t-2 border-gray-100 pt-3">
-                        <div class="text-lg font-bold text-gray-800 flex justify-between mb-2">
-                            <span>Total:</span>
-                            <span id="basket-total" class="text-teal-700 text-xl">$0</span>
-                        </div>
-                        <button id="btn-checkout" onclick="goCheckout()" disabled class="w-full bg-gray-300 text-gray-500 font-extrabold py-3 rounded-xl text-lg shadow border-2 border-gray-400 transition cursor-not-allowed">
-                            Ir a Pagar 💳
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- VISTA 3: CAJA REGISTRADORA / PAGO CON MONEDAS Y BILLETES -->
-        <section id="view-checkout" class="hidden">
-            <button onclick="backToProducts()" class="mb-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-4 py-2 rounded-xl border border-gray-400">
-                ⬅️ Volver a los productos
-            </button>
-
-            <div class="bg-white p-6 rounded-2xl shadow-xl border-4 border-teal-500">
-                <h2 class="text-2xl font-black text-teal-800 text-center mb-2">Caja Registradora 🛒</h2>
-                <p class="text-center text-gray-600 mb-4">Paga el valor exacto usando el dinero chileno</p>
-
-                <!-- Total a Pagar y Desglose en Dinero Pictográfico -->
-                <div class="bg-amber-100 border-2 border-amber-400 p-4 rounded-2xl mb-6">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-lg font-bold text-amber-900">Total a pagar:</span>
-                        <span id="checkout-total-text" class="text-3xl font-black text-teal-700">$0</span>
-                    </div>
-
-                    <div class="mt-2">
-                        <p class="text-sm font-bold text-amber-800 mb-1">Debes poner en la caja este dinero:</p>
-                        <div id="required-money-visual" class="flex flex-wrap gap-2 items-center min-h-[50px] bg-white p-2 rounded-xl border border-amber-200">
-                            <!-- SVG Billetes/Monedas requeridos -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Área donde el niño coloca su dinero -->
-                <div class="bg-teal-50 border-2 border-teal-300 p-4 rounded-2xl mb-6">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-lg font-bold text-teal-900">Dinero que has puesto:</span>
-                        <span id="user-money-total" class="text-3xl font-black text-teal-700">$0</span>
-                    </div>
-                    <div id="user-money-visual" class="flex flex-wrap gap-2 items-center min-h-[60px] bg-white p-2 rounded-xl border border-teal-200">
-                        <!-- Billetes y monedas colocados -->
-                    </div>
-                    <button onclick="clearUserMoney()" class="mt-2 text-xs text-red-600 underline font-bold">
-                        Quitar todo el dinero
-                    </button>
-                </div>
-
-                <!-- Teclado de Selección de Billetes y Monedas Chilenas -->
-                <div>
-                    <p class="font-bold text-gray-700 mb-2">Toca el dinero para ponerlo en la caja:</p>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                        <button onclick="addMoney(20000)" class="money-btn p-2 bg-amber-50 rounded-xl border-2 border-orange-400 flex flex-col items-center">
-                            <div class="w-full h-12 bg-orange-500 rounded border border-orange-700 flex items-center justify-center text-white font-bold text-sm">$20.000</div>
-                            <span class="text-xs font-bold text-gray-700 mt-1">20 Mil Pesos</span>
-                        </button>
-                        <button onclick="addMoney(10000)" class="money-btn p-2 bg-blue-50 rounded-xl border-2 border-blue-400 flex flex-col items-center">
-                            <div class="w-full h-12 bg-blue-600 rounded border border-blue-800 flex items-center justify-center text-white font-bold text-sm">$10.000</div>
-                            <span class="text-xs font-bold text-gray-700 mt-1">10 Mil Pesos</span>
-                        </button>
-                        <button onclick="addMoney(5000)" class="money-btn p-2 bg-red-50 rounded-xl border-2 border-red-400 flex flex-col items-center">
-                            <div class="w-full h-12 bg-red-600 rounded border border-red-800 flex items-center justify-center text-white font-bold text-sm">$5.000</div>
-                            <span class="text-xs font-bold text-gray-700 mt-1">5 Mil Pesos</span>
-                        </button>
-                        <button onclick="addMoney(2000)" class="money-btn p-2 bg-purple-50 rounded-xl border-2 border-purple-400 flex flex-col items-center">
-                            <div class="w-full h-12 bg-purple-600 rounded border border-purple-800 flex items-center justify-center text-white font-bold text-sm">$2.000</div>
-                            <span class="text-xs font-bold text-gray-700 mt-1">2 Mil Pesos</span>
-                        </button>
-                        <button onclick="addMoney(1000)" class="money-btn p-2 bg-green-50 rounded-xl border-2 border-green-400 flex flex-col items-center">
-                            <div class="w-full h-12 bg-green-600 rounded border border-green-800 flex items-center justify-center text-white font-bold text-sm">$1.000</div>
-                            <span class="text-xs font-bold text-gray-700 mt-1">1 Mil Pesos</span>
-                        </button>
-                        <button onclick="addMoney(500)" class="money-btn p-2 bg-amber-50 rounded-xl border-2 border-amber-400 flex flex-col items-center">
-                            <div class="w-12 h-12 bg-amber-500 rounded-full border-2 border-amber-700 flex items-center justify-center text-white font-bold text-xs">$500</div>
-                            <span class="text-xs font-bold text-gray-700 mt-1">500 Pesos</span>
-                        </button>
-                        <button onclick="addMoney(100)" class="money-btn p-2 bg-yellow-50 rounded-xl border-2 border-yellow-400 flex flex-col items-center">
-                            <div class="w-12 h-12 bg-yellow-400 rounded-full border-2 border-yellow-600 flex items-center justify-center text-yellow-900 font-bold text-xs">$100</div>
-                            <span class="text-xs font-bold text-gray-700 mt-1">100 Pesos</span>
-                        </button>
-                        <button onclick="addMoney(50)" class="money-btn p-2 bg-yellow-50 rounded-xl border-2 border-yellow-300 flex flex-col items-center">
-                            <div class="w-10 h-10 bg-yellow-300 rounded-full border-2 border-yellow-500 flex items-center justify-center text-yellow-900 font-bold text-xs">$50</div>
-                            <span class="text-xs font-bold text-gray-700 mt-1">50 Pesos</span>
-                        </button>
-                        <button onclick="addMoney(10)" class="money-btn p-2 bg-yellow-50 rounded-xl border-2 border-yellow-200 flex flex-col items-center">
-                            <div class="w-8 h-8 bg-yellow-200 rounded-full border border-yellow-400 flex items-center justify-center text-yellow-900 font-bold text-[10px]">$10</div>
-                            <span class="text-xs font-bold text-gray-700 mt-1">10 Pesos</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Botón de Verificación del Pago -->
-                <button onclick="verifyPayment()" class="mt-6 w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-2xl text-xl shadow-lg border-b-4 border-emerald-700 transition">
-                    PAGAR Y COMPROBAR 🎯
-                </button>
-            </div>
-        </section>
-
-        <!-- VISTA 4: PANEL DE ADMINISTRACIÓN / EDUCADOR -->
-        <section id="view-admin" class="hidden bg-white p-6 rounded-2xl shadow-xl border-2 border-teal-500">
-            <div class="flex justify-between items-center mb-6 pb-2 border-b">
-                <h2 class="text-2xl font-bold text-teal-900">Panel de Configuración (Educador / Profesional)</h2>
-                <button onclick="goHome()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-4 py-2 rounded-xl border">
-                    Salir del Panel
-                </button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Agregar / Editar Supermercados -->
-                <div class="bg-teal-50 p-4 rounded-xl border border-teal-200">
-                    <h3 class="text-lg font-bold text-teal-800 mb-3">1. Crear Nuevo Supermercado</h3>
-                    <form id="form-supermarket" onsubmit="saveSupermarket(event)" class="space-y-3">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700">Nombre del Supermercado:</label>
-                            <input type="text" id="sm-name" required class="w-full p-2 border rounded-lg" placeholder="Ej: Lider, Jumbo, Almacén Don Juan">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700">Emoji o Icono:</label>
-                            <input type="text" id="sm-icon" required class="w-full p-2 border rounded-lg" placeholder="Ej: 🏪, 🏬, 🛒">
-                        </div>
-                        <button type="submit" class="w-full bg-teal-600 text-white font-bold py-2 rounded-lg hover:bg-teal-700">
-                            Guardar Supermercado
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Agregar / Editar Productos -->
-                <div class="bg-amber-50 p-4 rounded-xl border border-amber-200">
-                    <h3 class="text-lg font-bold text-amber-800 mb-3">2. Crear Producto para Supermercado</h3>
-                    <form id="form-product" onsubmit="saveProduct(event)" class="space-y-3">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700">Seleccionar Supermercado:</label>
-                            <select id="prod-sm-id" required class="w-full p-2 border rounded-lg">
-                                <!-- Llena con JS -->
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700">Nombre del Producto:</label>
-                            <input type="text" id="prod-name" required class="w-full p-2 border rounded-lg" placeholder="Ej: Leche Entera, Pan Hallulla">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700">Emoji / Pictograma:</label>
-                            <input type="text" id="prod-icon" required class="w-full p-2 border rounded-lg" placeholder="Ej: 🥛, 🍞, 🍎">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700">Precio en Pesos Chilenos (CLP):</label>
-                            <input type="number" id="prod-price" min="10" step="10" required class="w-full p-2 border rounded-lg" placeholder="Ej: 1100">
-                        </div>
-                        <button type="submit" class="w-full bg-amber-600 text-white font-bold py-2 rounded-lg hover:bg-amber-700">
-                            Guardar Producto
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Gestión de Datos de la Escuela -->
-            <div class="mt-8 border-t pt-4">
-                <h3 class="text-lg font-bold text-gray-800 mb-2">Sincronización y Respaldo</h3>
-                <div class="flex flex-wrap gap-3">
-                    <button onclick="exportData()" class="bg-blue-600 text-white font-bold px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
-                        📥 Exportar Configuración (JSON)
-                    </button>
-                    <button onclick="document.getElementById('import-file').click()" class="bg-indigo-600 text-white font-bold px-4 py-2 rounded-lg text-sm hover:bg-indigo-700">
-                        📤 Importar Configuración (JSON)
-                    </button>
-                    <input type="file" id="import-file" onchange="importData(event)" class="hidden" accept=".json">
-                    <button onclick="resetDefaultData()" class="bg-red-600 text-white font-bold px-4 py-2 rounded-lg text-sm hover:bg-red-700">
-                        🔄 Restablecer Datos de Fábrica
-                    </button>
-                </div>
-            </div>
-        </section>
+    <!-- CONTENEDOR PRINCIPAL DE LA VISTA -->
+    <main id="appContainer" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+        <!-- El contenido dinámico se inyecta con JavaScript -->
     </main>
 
-    <!-- MODAL DE PIN DE SEGURIDAD -->
-    <div id="pin-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-xs w-full text-center border-4 border-amber-400">
-            <h3 class="text-xl font-bold text-teal-800 mb-2">Acceso a Educador</h3>
-            <p class="text-xs text-gray-600 mb-4">Ingresa el PIN de seguridad (Por defecto: 1234)</p>
-            <input type="password" id="pin-input" maxlength="4" class="w-full text-center text-3xl font-black border-2 border-teal-500 rounded-xl py-2 mb-4 tracking-widest">
-            <div class="flex space-x-2">
-                <button onclick="closePinModal()" class="w-1/2 bg-gray-200 text-gray-800 font-bold py-2 rounded-xl">Cancelar</button>
-                <button onclick="checkPin()" class="w-1/2 bg-teal-600 text-white font-bold py-2 rounded-xl">Entrar</button>
+    <!-- MODAL DEL CANASTO Y CAJA REGISTRADORA -->
+    <div id="basketModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white w-full max-w-4xl rounded-3xl border-4 border-slate-300 shadow-2xl overflow-hidden my-8 flex flex-col max-h-[90vh]">
+            
+            <!-- Cabecera Modal -->
+            <div class="bg-emerald-600 text-white px-6 py-4 flex justify-between items-center border-b-4 border-emerald-800">
+                <div class="flex items-center space-x-3">
+                    <span class="text-3xl">🧺</span>
+                    <h2 class="text-2xl font-black">Mi Canasto de Compras</h2>
+                </div>
+                <button onclick="closeBasketModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white rounded-full p-2 w-10 h-10 flex items-center justify-center text-xl font-bold border-2 border-white shadow">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Cuerpo del Modal -->
+            <div class="p-6 overflow-y-auto flex-1 space-y-6">
+                
+                <!-- Lista de Productos en el Canasto -->
+                <div id="basketItemsList" class="space-y-4">
+                    <!-- Productos dinámicos -->
+                </div>
+
+                <!-- Resumen de Total y Pictogramas de Dinero Requerido -->
+                <div id="basketSummaryBox" class="bg-amber-50 border-4 border-amber-300 rounded-2xl p-5 space-y-4 shadow-sm">
+                    <div class="flex justify-between items-center border-b-2 border-amber-200 pb-3">
+                        <span class="text-xl font-black text-slate-700">TOTAL A PAGAR:</span>
+                        <span id="basketTotalCLP" class="text-3xl font-black text-emerald-700">$0</span>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-extrabold text-amber-900 uppercase tracking-wide flex items-center gap-2">
+                                <i class="fa-solid fa-money-bill-wave"></i> Dinero exacto en Billetes y Monedas Chilenas:
+                            </span>
+                            <button onclick="speakBasketTotalText()" class="text-xs bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold px-3 py-1 rounded-lg flex items-center gap-1">
+                                <i class="fa-solid fa-volume-high"></i> Escuchar Total
+                            </button>
+                        </div>
+                        <div id="basketCurrencyBreakdown" class="flex flex-wrap gap-3 items-center justify-start bg-white p-4 rounded-xl border-2 border-amber-200 min-h-[80px]">
+                            <!-- Pictogramas del total -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Práctica Interactiva de Pago en Caja -->
+                <div class="bg-indigo-50 border-4 border-indigo-200 rounded-2xl p-5 space-y-4">
+                    <h3 class="text-lg font-black text-indigo-900 flex items-center gap-2">
+                        <i class="fa-solid fa-cash-register text-2xl text-indigo-600"></i>
+                        Práctica de Pago en la Caja
+                    </h3>
+                    <p class="text-sm text-indigo-800 font-medium">
+                        Toca los billetes y monedas para juntar el dinero necesario y presiona <strong>"¡Pagar en la Caja!"</strong>.
+                    </p>
+
+                    <!-- Dinero entregado por el estudiante -->
+                    <div class="bg-white p-4 rounded-xl border-2 border-indigo-300 flex flex-wrap justify-between items-center gap-2">
+                        <div>
+                            <span class="text-xs font-bold text-slate-500 block">Has entregado en la caja:</span>
+                            <span id="userPaidTotal" class="text-2xl font-black text-indigo-700">$0</span>
+                        </div>
+                        <button onclick="resetUserPayment()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold px-3 py-1.5 rounded-lg text-xs border border-rose-300">
+                            🔄 Devolver Dinero
+                        </button>
+                    </div>
+
+                    <!-- Bandeja de Dinero para Seleccionar -->
+                    <div class="space-y-2">
+                        <span class="text-xs font-bold text-indigo-900 uppercase">Toca el dinero para ponerlo en la caja:</span>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2" id="paymentMoneyTray">
+                            <!-- Botones de billetes y monedas -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pie del Modal -->
+            <div class="bg-slate-100 px-6 py-4 border-t-2 border-slate-300 flex flex-wrap justify-between items-center gap-3">
+                <button onclick="clearBasket()" class="text-rose-600 hover:text-rose-800 font-bold text-sm underline px-2 py-1">
+                    Vaciar Canasto
+                </button>
+                <div class="flex space-x-3">
+                    <button onclick="closeBasketModal()" class="bg-slate-300 hover:bg-slate-400 text-slate-800 font-extrabold px-5 py-3 rounded-xl border-b-4 border-slate-500">
+                        Seguir Comprando
+                    </button>
+                    <button onclick="verifyAndCheckout()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg px-6 py-3 rounded-xl border-b-4 border-emerald-800 shadow-lg animate-tactile flex items-center space-x-2">
+                        <span>¡Pagar en la Caja!</span>
+                        <i class="fa-solid fa-circle-check"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- MODAL INGRESO PIN MODO EDUCADOR -->
+    <div id="pinModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl border-4 border-indigo-400 shadow-2xl p-6 text-center space-y-5">
+            <div class="bg-indigo-100 text-indigo-700 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-3xl">
+                🔒
+            </div>
+            <div>
+                <h3 class="text-2xl font-black text-slate-800">Acceso Profesional / Educador</h3>
+                <p class="text-xs text-slate-500 mt-1">Ingresa el PIN para acceder al Panel de Administración (PIN por defecto: <strong>1234</strong>)</p>
+            </div>
+
+            <div class="space-y-3">
+                <input type="password" id="pinInput" placeholder="••••" maxlength="6" 
+                       class="text-center text-3xl font-black tracking-widest w-full py-3 border-4 border-slate-300 rounded-2xl focus:border-indigo-500 focus:outline-none">
+                <p id="pinErrorMsg" class="text-sm text-rose-600 font-bold hidden">PIN incorrecto. Intenta de nuevo.</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="closePinModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl border-b-4 border-slate-400">
+                    Cancelar
+                </button>
+                <button onclick="validatePin()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-3 rounded-xl border-b-4 border-indigo-900 shadow">
+                    Ingresar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- INPUT OCULTO PARA IMPORTAR CONFIGURACIÓN JSON -->
+    <input type="file" id="jsonFileInput" accept=".json" class="hidden" onchange="handleJSONImport(event)">
+
     <!-- PIE DE PÁGINA -->
-    <footer class="bg-teal-900 text-teal-200 text-center text-xs p-3 mt-6">
-        Aplicación Educativa Adaptada para Necesidades Educativas Especiales (NEE) • Monedas y Billetes de Chile
+    <footer class="bg-white border-t-2 border-slate-200 py-4 text-center text-xs text-slate-500 font-medium">
+        <p>Mi Supermercado Pictográfico NEE • Diseñado con apoyo de Billetes y Monedas Chilenas 🇨🇱</p>
     </footer>
 
-    <!-- LOGICA DE LA APLICACION EN JAVASCRIPT -->
+    <!-- LÓGICA JAVASCRIPT PRINCIPAL DE LA APLICACIÓN -->
     <script>
-        // CONFIGURACION Y ESTADO INICIAL
-        const DEFAULT_PIN = "1234";
-        let isMuted = false;
-        let selectedSupermarket = null;
-        let basket = [];
-        let userMoneyTotal = 0;
-        let userMoneyList = [];
-
-        // Datos iniciales de ejemplo
-        const initialData = {
-            supermarkets: [
-                { id: "sm-1", name: "Supermercado Don Pepe", icon: "🏪" },
-                { id: "sm-2", name: "Hipermercado Escolar", icon: "🏬" }
-            ],
-            products: [
-                { id: "p-1", supermarketId: "sm-1", name: "Leche Entera", price: 1100, icon: "🥛" },
-                { id: "p-2", supermarketId: "sm-1", name: "Pan Hallulla", price: 1500, icon: "🍞" },
-                { id: "p-3", supermarketId: "sm-1", name: "Manzanas (1kg)", price: 1200, icon: "🍎" },
-                { id: "p-4", supermarketId: "sm-2", name: "Cuaderno Escolar", price: 2000, icon: "📓" },
-                { id: "p-5", supermarketId: "sm-2", name: "Caja de Jugo", price: 500, icon: "🧃" }
-            ]
+        /* ==========================================================================
+           ESTADO GLOBAL DE LA APLICACIÓN Y DATOS INICIALES NEE
+           ========================================================================== */
+        const APP_STATE = {
+            currentMode: 'kids', // 'kids' o 'teacher'
+            selectedSupermarketId: null,
+            basket: [], // { productId, quantity }
+            userPaidAmount: 0,
+            supermarkets: [],
+            products: [],
+            pinCode: '1234'
         };
 
-        let appData = JSON.parse(localStorage.getItem('nee_supermarket_data')) || initialData;
+        // Definición de Billetes y Monedas Oficiales de Chile
+        const CLP_CURRENCY_ITEMS = [
+            { id: 'b20k', value: 20000, type: 'bill', name: 'Billete de $20.000', color: '#E65100', subtitle: 'Naranja' },
+            { id: 'b10k', value: 10000, type: 'bill', name: 'Billete de $10.000', color: '#0D47A1', subtitle: 'Azul' },
+            { id: 'b5k',  value: 5000,  type: 'bill', name: 'Billete de $5.000',  color: '#C62828', subtitle: 'Rojo' },
+            { id: 'b2k',  value: 2000,  type: 'bill', name: 'Billete de $2.000',  color: '#6A1B9A', subtitle: 'Morado' },
+            { id: 'b1k',  value: 1000,  type: 'bill', name: 'Billete de $1.000',  color: '#2E7D32', subtitle: 'Verde' },
+            { id: 'c500', value: 500,   type: 'coin', name: 'Moneda de $500',    color: '#D97706', subtitle: 'Plateada / Dorada' },
+            { id: 'c100', value: 100,   type: 'coin', name: 'Moneda de $100',    color: '#F59E0B', subtitle: 'Dorada Grande' },
+            { id: 'c50',  value: 50,    type: 'coin', name: 'Moneda de $50',     color: '#EAB308', subtitle: 'Dorada 10 lados' },
+            { id: 'c10',  value: 10,    type: 'coin', name: 'Moneda de $10',     color: '#D97706', subtitle: 'Dorada Pequeña' }
+        ];
 
-        function saveData() {
-            localStorage.setItem('nee_supermarket_data', JSON.stringify(appData));
+        // Supermercados por Defecto
+        const DEFAULT_SUPERMARKETS = [
+            {
+                id: 'sup-lider',
+                name: 'Super Lider',
+                themeColor: 'bg-sky-600',
+                textColor: 'text-sky-600',
+                borderColor: 'border-sky-500',
+                icon: '🛒',
+                description: 'Gran variedad de alimentos y productos'
+            },
+            {
+                id: 'sup-jumbo',
+                name: 'Jumbo Frut',
+                themeColor: 'bg-emerald-600',
+                textColor: 'text-emerald-600',
+                borderColor: 'border-emerald-500',
+                icon: '🍏',
+                description: 'Frutas, verduras y lácteos frescos'
+            },
+            {
+                id: 'sup-unimarc',
+                name: 'Unimarcito',
+                themeColor: 'bg-rose-600',
+                textColor: 'text-rose-600',
+                borderColor: 'border-rose-500',
+                icon: '🍓',
+                description: 'Supermercado para las compras diarias'
+            },
+            {
+                id: 'sup-barrio',
+                name: 'Almacén del Barrio',
+                themeColor: 'bg-amber-600',
+                textColor: 'text-amber-600',
+                borderColor: 'border-amber-500',
+                icon: '🏪',
+                description: 'Negocio cercano para compras rápidas'
+            }
+        ];
+
+        // Productos por Defecto con precios adaptados a la moneda chilena
+        const DEFAULT_PRODUCTS = [
+            {
+                id: 'prod-1',
+                supermarketId: 'sup-lider',
+                name: 'Caja de Leche Entera',
+                category: 'Lácteos',
+                price: 1100,
+                iconEmoji: '🥛',
+                imageUrl: '',
+                customBreakdown: null // Automático: 1x $1.000 verde + 1x $100 moneda
+            },
+            {
+                id: 'prod-2',
+                supermarketId: 'sup-lider',
+                name: 'Kilo de Manzanas Rojas',
+                category: 'Frutas y Verduras',
+                price: 1500,
+                iconEmoji: '🍎',
+                imageUrl: '',
+                customBreakdown: null // Automático: 1x $1.000 + 1x $500
+            },
+            {
+                id: 'prod-3',
+                supermarketId: 'sup-lider',
+                name: 'Pan Marraqueta (1 Kg)',
+                category: 'Panadería',
+                price: 2000,
+                iconEmoji: '🥖',
+                imageUrl: '',
+                customBreakdown: null // 1x $2.000 morado
+            },
+            {
+                id: 'prod-4',
+                supermarketId: 'sup-jumbo',
+                name: 'Queso Mantecoso 250g',
+                category: 'Lácteos',
+                price: 2500,
+                iconEmoji: '🧀',
+                imageUrl: '',
+                customBreakdown: null // 1x $2.000 + 1x $500
+            },
+            {
+                id: 'prod-5',
+                supermarketId: 'sup-jumbo',
+                name: 'Aceite de Oliva 500ml',
+                category: 'Aseo y Despensa',
+                price: 5100,
+                iconEmoji: '🫒',
+                imageUrl: '',
+                customBreakdown: null // 1x $5.000 rojo + 1x $100
+            },
+            {
+                id: 'prod-6',
+                supermarketId: 'sup-unimarc',
+                name: 'Yogurt de Frutilla',
+                category: 'Lácteos',
+                price: 450,
+                iconEmoji: '🍓',
+                imageUrl: '',
+                customBreakdown: null // 4x $100 + 1x $50
+            },
+            {
+                id: 'prod-7',
+                supermarketId: 'sup-unimarc',
+                name: 'Paquete de Galletas',
+                category: 'Snacks',
+                price: 800,
+                iconEmoji: '🍪',
+                imageUrl: '',
+                customBreakdown: null // 1x $500 + 3x $100
+            },
+            {
+                id: 'prod-8',
+                supermarketId: 'sup-barrio',
+                name: 'Jugo de Naranja 1L',
+                category: 'Bebidas',
+                price: 1200,
+                iconEmoji: '🧃',
+                imageUrl: '',
+                customBreakdown: null // 1x $1.000 + 2x $100
+            },
+            {
+                id: 'prod-9',
+                supermarketId: 'sup-barrio',
+                name: 'Barra de Chocolate',
+                category: 'Snacks',
+                price: 1000,
+                iconEmoji: '🍫',
+                imageUrl: '',
+                customBreakdown: null // 1x $1.000 verde
+            }
+        ];
+
+        /* ==========================================================================
+           INICIALIZACIÓN Y PERSISTENCIA LOCAL (LOCAL STORAGE)
+           ========================================================================== */
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            renderApp();
+        });
+
+        function loadFromLocalStorage() {
+            try {
+                const storedSup = localStorage.getItem('nee_supermarkets');
+                const storedProd = localStorage.getItem('nee_products');
+                
+                if (storedSup) {
+                    APP_STATE.supermarkets = JSON.parse(storedSup);
+                } else {
+                    APP_STATE.supermarkets = [...DEFAULT_SUPERMARKETS];
+                    saveSupermarkets();
+                }
+
+                if (storedProd) {
+                    APP_STATE.products = JSON.parse(storedProd);
+                } else {
+                    APP_STATE.products = [...DEFAULT_PRODUCTS];
+                    saveProducts();
+                }
+            } catch (e) {
+                console.error("Error al cargar localStorage", e);
+                APP_STATE.supermarkets = [...DEFAULT_SUPERMARKETS];
+                APP_STATE.products = [...DEFAULT_PRODUCTS];
+            }
         }
 
-        // MOTOR DE VOZ SINTETIZADA
+        function saveSupermarkets() {
+            localStorage.setItem('nee_supermarkets', JSON.stringify(APP_STATE.supermarkets));
+        }
+
+        function saveProducts() {
+            localStorage.setItem('nee_products', JSON.stringify(APP_STATE.products));
+        }
+
+        function resetToDefaults() {
+            if (confirm("¿Deseas restablecer todos los supermercados y productos a los valores por defecto?")) {
+                APP_STATE.supermarkets = [...DEFAULT_SUPERMARKETS];
+                APP_STATE.products = [...DEFAULT_PRODUCTS];
+                saveSupermarkets();
+                saveProducts();
+                APP_STATE.basket = [];
+                updateBasketBadge();
+                renderApp();
+                speakText("Datos restablecidos a los valores iniciales.");
+            }
+        }
+
+        /* ==========================================================================
+           MOTOR DE SÍNTESIS DE VOZ (TEXT-TO-SPEECH)
+           Filtra automáticamente cualquier símbolo de dólar y asegura 'pesos chilenos'
+           ========================================================================== */
+        function cleanTextForSpeech(text) {
+            if (!text) return '';
+            return text
+                .replace(/\$/g, '')
+                .replace(/\bCLP\b/gi, 'pesos chilenos')
+                .replace(/\bdólares\b/gi, 'pesos chilenos')
+                .replace(/\bdólar\b/gi, 'peso chileno')
+                .replace(/\bpesos\b/gi, 'pesos chilenos');
+        }
+
         function speakText(text) {
-            if (isMuted) return;
+            if (!('speechSynthesis' in window)) return;
+            
             window.speechSynthesis.cancel();
-
-            let cleanText = text.replace(/\$/g, '');
-            cleanText = cleanText.replace(/pesos chilenos pesos chilenos/gi, 'pesos chilenos');
-
+            const cleanText = cleanTextForSpeech(text);
             const utterance = new SpeechSynthesisUtterance(cleanText);
             utterance.lang = 'es-CL';
-            utterance.rate = 0.85; // Hablar despacio
+            utterance.rate = 0.88; // Velocidad pausada para facilitación NEE
             utterance.pitch = 1.0;
+            
             window.speechSynthesis.speak(utterance);
         }
 
-        function toggleMute() {
-            isMuted = !isMuted;
-            document.getElementById('btn-audio-global').innerText = isMuted ? '🔇' : '🔊';
-        }
-
-        // NAVEGACION
-        function showView(viewId) {
-            ['view-supermarkets', 'view-products', 'view-checkout', 'view-admin'].forEach(id => {
-                document.getElementById(id).classList.add('hidden');
-            });
-            document.getElementById(viewId).classList.remove('hidden');
-        }
-
-        function goHome() {
-            showView('view-supermarkets');
-            renderSupermarkets();
-            speakText("Elige el supermercado al que quieres ir");
-        }
-
-        // DIBUJAR SUPERMERCADOS
-        function renderSupermarkets() {
-            const grid = document.getElementById('supermarkets-grid');
-            grid.innerHTML = '';
-            appData.supermarkets.forEach(sm => {
-                const card = document.createElement('div');
-                card.className = 'pictogram-card bg-white p-6 rounded-2xl shadow-md border-4 border-teal-300 flex items-center space-x-4 cursor-pointer hover:border-teal-500';
-                card.onclick = () => selectSupermarket(sm);
-                card.innerHTML = `
-                    <div class="text-6xl">${sm.icon}</div>
-                    <div>
-                        <h3 class="text-2xl font-extrabold text-teal-800">${sm.name}</h3>
-                        <p class="text-sm text-gray-500">Toca para entrar a comprar</p>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-        function selectSupermarket(sm) {
-            selectedSupermarket = sm;
-            basket = [];
-            updateBasketUI();
-            document.getElementById('current-supermarket-title').innerText = `${sm.icon} ${sm.name}`;
-            renderProducts();
-            showView('view-products');
-            speakText(`Entraste a ${sm.name}. Elige tus productos.`);
-        }
-
-        // DIBUJAR PRODUCTOS
-        function renderProducts() {
-            const grid = document.getElementById('products-grid');
-            grid.innerHTML = '';
-            const prods = appData.products.filter(p => p.supermarketId === selectedSupermarket.id);
-
-            if (prods.length === 0) {
-                grid.innerHTML = `<p class="col-span-full text-center text-gray-500 py-8">Este supermercado no tiene productos creados.</p>`;
-                return;
+        function playChimeSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // Do5
+                osc.frequency.exponentialRampToValueAtTime(659.25, audioCtx.currentTime + 0.15); // Mi5
+                osc.frequency.exponentialRampToValueAtTime(783.99, audioCtx.currentTime + 0.3); // Sol5
+                
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            } catch(e) {
+                // AudioContext no disponible o bloqueado por navegador
             }
-
-            prods.forEach(p => {
-                const card = document.createElement('div');
-                card.className = 'pictogram-card bg-white p-4 rounded-2xl shadow border-2 border-amber-200 flex flex-col items-center text-center cursor-pointer';
-                card.onclick = () => addToBasket(p);
-                card.innerHTML = `
-                    <div class="text-5xl mb-2">${p.icon}</div>
-                    <div class="font-bold text-gray-800 text-lg">${p.name}</div>
-                    <div class="text-teal-700 font-extrabold text-xl my-1">$${p.price.toLocaleString('es-CL')}</div>
-                    <div class="bg-amber-100 text-amber-800 font-bold px-3 py-1 rounded-lg text-xs mt-1">+ Agregar</div>
-                `;
-                grid.appendChild(card);
-            });
         }
 
-        // GESTIÓN DE CANASTO
-        function addToBasket(product) {
-            basket.push(product);
-            updateBasketUI();
-            speakText(`Agregaste ${product.name} por ${product.price} pesos chilenos`);
-        }
+        /* ==========================================================================
+           ALGORITMO DE DESGLOSE DE MONEDA CHILENA (CLP)
+           ========================================================================== */
+        function calculateCLPBreakdown(amount) {
+            if (!amount || amount <= 0) return [];
 
-        function removeFromBasket(index) {
-            const removed = basket.splice(index, 1)[0];
-            updateBasketUI();
-            if (removed) speakText(`Quitaste ${removed.name}`);
-        }
-
-        function updateBasketUI() {
-            const itemsContainer = document.getElementById('basket-items');
-            const totalEl = document.getElementById('basket-total');
-            const countEl = document.getElementById('basket-count');
-            const btnCheckout = document.getElementById('btn-checkout');
-
-            countEl.innerText = basket.length;
-
-            if (basket.length === 0) {
-                itemsContainer.innerHTML = `<p class="text-gray-400 text-center italic py-8">Tu canasto está vacío.<br>¡Toca un producto para agregar!</p>`;
-                totalEl.innerText = '$0';
-                btnCheckout.disabled = true;
-                btnCheckout.className = 'w-full bg-gray-300 text-gray-500 font-extrabold py-3 rounded-xl text-lg shadow border-2 border-gray-400 transition cursor-not-allowed';
-                return;
-            }
-
-            itemsContainer.innerHTML = '';
-            let total = 0;
-
-            basket.forEach((item, idx) => {
-                total += item.price;
-                const row = document.createElement('div');
-                row.className = 'flex justify-between items-center bg-amber-50 p-2 rounded-xl border border-amber-200';
-                row.innerHTML = `
-                    <div class="flex items-center space-x-2">
-                        <span class="text-2xl">${item.icon}</span>
-                        <span class="font-bold text-sm text-gray-800">${item.name}</span>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="font-extrabold text-teal-800">$${item.price.toLocaleString('es-CL')}</span>
-                        <button onclick="removeFromBasket(${idx})" class="text-red-500 font-bold text-sm px-1">❌</button>
-                    </div>
-                `;
-                itemsContainer.appendChild(row);
-            });
-
-            totalEl.innerText = `$${total.toLocaleString('es-CL')}`;
-            btnCheckout.disabled = false;
-            btnCheckout.className = 'w-full bg-amber-500 hover:bg-amber-600 text-white font-black py-3 rounded-xl text-lg shadow border-b-4 border-amber-700 transition cursor-pointer';
-        }
-
-        function backToProducts() {
-            showView('view-products');
-        }
-
-        // CAJA REGISTRADORA Y DIBUJO DE DINERO
-        function goCheckout() {
-            showView('view-checkout');
-            const total = basket.reduce((acc, i) => acc + i.price, 0);
-            document.getElementById('checkout-total-text').innerText = `$${total.toLocaleString('es-CL')}`;
-
-            // Render dinero requerido
-            const reqContainer = document.getElementById('required-money-visual');
-            reqContainer.innerHTML = renderMoneyVisuals(getMoneyBreakdown(total));
-
-            userMoneyTotal = 0;
-            userMoneyList = [];
-            updateUserMoneyUI();
-
-            speakText(`El total de tu compra es de ${total} pesos chilenos. Coloca el dinero en la caja.`);
-        }
-
-        function getMoneyBreakdown(amount) {
-            const denominations = [20000, 10000, 5000, 2000, 1000, 500, 100, 50, 10];
+            let remaining = Math.round(amount / 10) * 10;
             const breakdown = [];
-            let rem = amount;
 
-            for (let d of denominations) {
-                while (rem >= d) {
-                    breakdown.push(d);
-                    rem -= d;
+            const denominations = [
+                { val: 20000, id: 'b20k' },
+                { val: 10000, id: 'b10k' },
+                { val: 5000,  id: 'b5k'  },
+                { val: 2000,  id: 'b2k'  },
+                { val: 1000,  id: 'b1k'  },
+                { val: 500,   id: 'c500' },
+                { val: 100,   id: 'c100' },
+                { val: 50,    id: 'c50'  },
+                { val: 10,    id: 'c10'  }
+            ];
+
+            for (const item of denominations) {
+                if (remaining >= item.val) {
+                    const count = Math.floor(remaining / item.val);
+                    remaining %= item.val;
+                    const meta = CLP_CURRENCY_ITEMS.find(c => c.id === item.id);
+                    breakdown.push({
+                        ...meta,
+                        count: count
+                    });
                 }
             }
+
             return breakdown;
         }
 
-        function renderMoneyVisuals(moneyArray) {
-            if (moneyArray.length === 0) return '<span class="text-gray-400 text-sm italic">Sin dinero</span>';
-            return moneyArray.map(val => {
-                if (val >= 1000) {
-                    let color = 'bg-gray-600';
-                    if (val === 20000) color = 'bg-orange-500 border-orange-700';
-                    if (val === 10000) color = 'bg-blue-600 border-blue-800';
-                    if (val === 5000) color = 'bg-red-600 border-red-800';
-                    if (val === 2000) color = 'bg-purple-600 border-purple-800';
-                    if (val === 1000) color = 'bg-green-600 border-green-800';
+        /* ==========================================================================
+           GENERADOR SVG DE BILLETES Y MONEDAS CHILENAS
+           ========================================================================== */
+        function renderCurrencySVG(item, size = 'md') {
+            const isBill = item.type === 'bill';
+            
+            let height = size === 'sm' ? 'h-9' : (size === 'lg' ? 'h-20' : 'h-14');
+            let width = size === 'sm' ? 'w-16' : (size === 'lg' ? 'w-36' : 'w-24');
 
-                    return `<div class="${color} text-white font-bold text-xs px-2 py-1 rounded border shadow-sm flex items-center">$${val.toLocaleString('es-CL')}</div>`;
-                } else {
-                    return `<div class="bg-amber-400 text-amber-900 font-bold text-xs w-8 h-8 rounded-full border-2 border-amber-600 flex items-center justify-center shadow-sm">$${val}</div>`;
+            if (!isBill) {
+                height = size === 'sm' ? 'h-9' : (size === 'lg' ? 'h-16' : 'h-12');
+                width = size === 'sm' ? 'w-9' : (size === 'lg' ? 'w-16' : 'w-12');
+            }
+
+            if (isBill) {
+                let bgColor = '#C62828';
+                let label = '$5.000';
+
+                if (item.value === 20000) {
+                    bgColor = '#E65100'; label = '$20.000';
+                } else if (item.value === 10000) {
+                    bgColor = '#0D47A1'; label = '$10.000';
+                } else if (item.value === 5000) {
+                    bgColor = '#C62828'; label = '$5.000';
+                } else if (item.value === 2000) {
+                    bgColor = '#6A1B9A'; label = '$2.000';
+                } else if (item.value === 1000) {
+                    bgColor = '#2E7D32'; label = '$1.000';
                 }
-            }).join('');
-        }
 
-        function addMoney(amount) {
-            userMoneyList.push(amount);
-            userMoneyTotal += amount;
-            updateUserMoneyUI();
-            speakText(`${amount} pesos`);
-        }
-
-        function clearUserMoney() {
-            userMoneyList = [];
-            userMoneyTotal = 0;
-            updateUserMoneyUI();
-        }
-
-        function updateUserMoneyUI() {
-            document.getElementById('user-money-total').innerText = `$${userMoneyTotal.toLocaleString('es-CL')}`;
-            document.getElementById('user-money-visual').innerHTML = renderMoneyVisuals(userMoneyList);
-        }
-
-        function verifyPayment() {
-            const total = basket.reduce((acc, i) => acc + i.price, 0);
-
-            if (userMoneyTotal === total) {
-                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-                speakText(`¡Muy bien! Has pagado el valor total de ${total} pesos chilenos. ¡Felicitaciones!`);
-                alert("🎉 ¡EXCELENTE! Has pagado el valor exacto.");
-                goHome();
-            } else if (userMoneyTotal < total) {
-                const missing = total - userMoneyTotal;
-                speakText(`Te faltan ${missing} pesos chilenos para completar el total.`);
-                alert(`⚠️ Falta dinero. Te faltan $${missing.toLocaleString('es-CL')}`);
+                return `
+                    <div class="currency-item inline-flex flex-col items-center ${width} ${height} relative shadow-md rounded-lg overflow-hidden border-2 border-slate-700 select-none"
+                         style="background-color: ${bgColor}; color: white;" 
+                         title="${item.name}">
+                        <div class="w-full flex justify-between items-center px-1 py-0.5 text-[8px] sm:text-[9px] font-black opacity-90 border-b border-white/20">
+                            <span>BANCO CENTRAL DE CHILE</span>
+                            <span class="font-bold">${label}</span>
+                        </div>
+                        <div class="flex-1 w-full flex items-center justify-between px-2">
+                            <div class="text-xs sm:text-base font-black tracking-tight drop-shadow">
+                                ${label}
+                            </div>
+                            <div class="w-5 h-5 sm:w-7 sm:h-7 rounded-full border-2 border-white/40 flex items-center justify-center bg-white/10 text-[9px] font-bold text-center leading-none">
+                                🇨🇱
+                            </div>
+                        </div>
+                        <div class="w-full bg-black/25 px-1 py-0.5 text-[7px] sm:text-[8px] font-semibold text-center truncate">
+                            ${item.name}
+                        </div>
+                    </div>
+                `;
             } else {
-                const extra = userMoneyTotal - total;
-                speakText(`Pusiste más dinero. Te sobran ${extra} pesos chilenos.`);
-                alert(`⚠️ Colocaste más dinero de lo necesario.`);
+                let outerColor = '#F59E0B';
+                let innerColor = '#F59E0B';
+                let isBimetallic = false;
+
+                if (item.value === 500) {
+                    isBimetallic = true;
+                    outerColor = '#9CA3AF';
+                    innerColor = '#F59E0B';
+                }
+
+                return `
+                    <div class="currency-item inline-flex items-center justify-center ${width} ${height} relative shadow-md rounded-full border-2 border-slate-700 select-none font-black text-slate-900"
+                         style="background: ${isBimetallic ? `radial-gradient(circle, ${innerColor} 48%, ${outerColor} 50%)` : outerColor};"
+                         title="${item.name}">
+                        <div class="flex flex-col items-center justify-center leading-none">
+                            <span class="${item.value >= 100 ? 'text-xs sm:text-sm' : 'text-[10px]'} font-extrabold text-slate-900 drop-shadow-sm">
+                                $${item.value}
+                            </span>
+                        </div>
+                    </div>
+                `;
             }
         }
 
-        // PANEL ADMINISTRADOR (EDUCADOR)
+        function renderBreakdownHTML(breakdownArray, size = 'md') {
+            if (!breakdownArray || breakdownArray.length === 0) {
+                return '<span class="text-xs text-slate-400 italic">Sin precio definido</span>';
+            }
+
+            let html = '<div class="flex flex-wrap gap-2 items-center">';
+            breakdownArray.forEach(item => {
+                const count = item.count || 1;
+                for (let i = 0; i < count; i++) {
+                    html += renderCurrencySVG(item, size);
+                }
+            });
+            html += '</div>';
+            return html;
+        }
+
+        /* ==========================================================================
+           CONTROLADOR DE RUTAS Y RENDERIZADO
+           ========================================================================== */
+        function renderApp() {
+            const container = document.getElementById('appContainer');
+            const headerBasketBtn = document.getElementById('headerBasketBtn');
+            const modeLabel = document.getElementById('modeLabel');
+            const modeIcon = document.getElementById('modeIcon');
+
+            if (APP_STATE.currentMode === 'teacher') {
+                headerBasketBtn.classList.add('hidden');
+                modeLabel.textContent = "Volver a Modo Niños";
+                modeIcon.className = "fa-solid fa-child-reaching text-lg";
+                renderTeacherPanel(container);
+            } else {
+                modeLabel.textContent = "Modo Educador";
+                modeIcon.className = "fa-solid fa-user-gear text-lg";
+                
+                if (APP_STATE.selectedSupermarketId) {
+                    headerBasketBtn.classList.remove('hidden');
+                    renderSupermarketView(container);
+                } else {
+                    headerBasketBtn.classList.add('hidden');
+                    renderSupermarketSelectionView(container);
+                }
+            }
+        }
+
+        function goHome() {
+            APP_STATE.selectedSupermarketId = null;
+            renderApp();
+            speakText("Elige un supermercado para comenzar a comprar.");
+        }
+
+        function toggleModePrompt() {
+            if (APP_STATE.currentMode === 'teacher') {
+                APP_STATE.currentMode = 'kids';
+                renderApp();
+                speakText("Modo Niños activado.");
+            } else {
+                openPinModal();
+            }
+        }
+
         function openPinModal() {
-            document.getElementById('pin-modal').classList.remove('hidden');
-            document.getElementById('pin-input').value = '';
-            document.getElementById('pin-input').focus();
+            document.getElementById('pinInput').value = '';
+            document.getElementById('pinErrorMsg').classList.add('hidden');
+            document.getElementById('pinModal').classList.remove('hidden');
+            document.getElementById('pinInput').focus();
         }
 
         function closePinModal() {
-            document.getElementById('pin-modal').classList.add('hidden');
+            document.getElementById('pinModal').classList.add('hidden');
         }
 
-        function checkPin() {
-            const val = document.getElementById('pin-input').value;
-            if (val === DEFAULT_PIN) {
+        function validatePin() {
+            const pin = document.getElementById('pinInput').value.trim();
+            if (pin === APP_STATE.pinCode) {
                 closePinModal();
-                openAdminPanel();
+                APP_STATE.currentMode = 'teacher';
+                renderApp();
+                speakText("Modo Educador Activado.");
             } else {
-                alert("PIN incorrecto");
+                document.getElementById('pinErrorMsg').classList.remove('hidden');
+                speakText("PIN incorrecto.");
             }
         }
 
-        function openAdminPanel() {
-            showView('view-admin');
-            populateSupermarketSelect();
-        }
+        /* ==========================================================================
+           VISTA 1: SELECCIÓN DE SUPERMERCADOS (MODO NIÑOS)
+           ========================================================================== */
+        function renderSupermarketSelectionView(container) {
+            let html = `
+                <div class="space-y-6 text-center animate-fade-in">
+                    
+                    <div class="bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-3xl p-6 sm:p-8 shadow-xl border-4 border-indigo-200">
+                        <span class="text-5xl sm:text-6xl mb-2 block animate-bounce">🏪</span>
+                        <h2 class="text-2xl sm:text-4xl font-black tracking-tight">
+                            ¿A qué supermercado vamos a ir hoy?
+                        </h2>
+                        <p class="text-sm sm:text-base font-medium opacity-90 mt-2">
+                            Toca el supermercado que más te guste para ver sus productos.
+                        </p>
+                    </div>
 
-        function populateSupermarketSelect() {
-            const select = document.getElementById('prod-sm-id');
-            select.innerHTML = '';
-            appData.supermarkets.forEach(sm => {
-                const opt = document.createElement('option');
-                opt.value = sm.id;
-                opt.innerText = `${sm.icon} ${sm.name}`;
-                select.appendChild(opt);
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-4">
+            `;
+
+            APP_STATE.supermarkets.forEach(sup => {
+                const productCount = APP_STATE.products.filter(p => p.supermarketId === sup.id).length;
+
+                html += `
+                    <div onclick="selectSupermarket('${sup.id}')" 
+                         class="bg-white hover:bg-slate-50 border-4 ${sup.borderColor || 'border-indigo-400'} rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all cursor-pointer transform hover:-translate-y-2 flex flex-col justify-between items-center text-center group touch-focus">
+                        
+                        <div class="w-24 h-24 rounded-full ${sup.themeColor || 'bg-indigo-500'} text-white text-5xl flex items-center justify-center shadow-inner mb-4 group-hover:scale-110 transition-transform">
+                            ${sup.icon || '🛒'}
+                        </div>
+
+                        <div>
+                            <h3 class="text-2xl font-black text-slate-800 mb-1">${sup.name}</h3>
+                            <p class="text-xs text-slate-500 font-medium line-clamp-2">${sup.description || ''}</p>
+                        </div>
+
+                        <div class="mt-6 w-full bg-slate-100 py-2 px-4 rounded-2xl flex items-center justify-between border border-slate-200">
+                            <span class="text-xs font-bold text-slate-600">Productos:</span>
+                            <span class="text-sm font-black text-indigo-700 bg-white px-2.5 py-0.5 rounded-full border border-slate-300">
+                                ${productCount}
+                            </span>
+                        </div>
+
+                        <button class="mt-4 w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 px-4 rounded-xl border-b-4 border-emerald-700 shadow flex items-center justify-center space-x-2">
+                            <span>¡Entrar a comprar!</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                `;
             });
+
+            html += `
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
         }
 
-        function saveSupermarket(e) {
-            e.preventDefault();
-            const name = document.getElementById('sm-name').value;
-            const icon = document.getElementById('sm-icon').value;
-            const newSm = { id: `sm-${Date.now()}`, name, icon };
-
-            appData.supermarkets.push(newSm);
-            saveData();
-            document.getElementById('form-supermarket').reset();
-            populateSupermarketSelect();
-            alert("Supermercado guardado con éxito");
+        function selectSupermarket(id) {
+            const sup = APP_STATE.supermarkets.find(s => s.id === id);
+            APP_STATE.selectedSupermarketId = id;
+            renderApp();
+            if (sup) {
+                playChimeSound();
+                speakText(`¡Excelente! Entramos a ${sup.name}. Selecciona los productos para tu canasto.`);
+            }
         }
 
-        function saveProduct(e) {
-            e.preventDefault();
-            const supermarketId = document.getElementById('prod-sm-id').value;
-            const name = document.getElementById('prod-name').value;
-            const icon = document.getElementById('prod-icon').value;
-            const price = parseInt(document.getElementById('prod-price').value, 10);
+        /* ==========================================================================
+           VISTA 2: CATÁLOGO DE PRODUCTOS (MODO NIÑOS)
+           ========================================================================== */
+        function renderSupermarketView(container) {
+            const currentSup = APP_STATE.supermarkets.find(s => s.id === APP_STATE.selectedSupermarketId);
+            const supProducts = APP_STATE.products.filter(p => p.supermarketId === APP_STATE.selectedSupermarketId);
 
-            const newProd = { id: `p-${Date.now()}`, supermarketId, name, icon, price };
-            appData.products.push(newProd);
-            saveData();
-            document.getElementById('form-product').reset();
-            alert("Producto guardado con éxito");
+            let html = `
+                <div class="space-y-6">
+                    
+                    <!-- Banner del Supermercado -->
+                    <div class="bg-white border-4 ${currentSup?.borderColor || 'border-indigo-400'} rounded-3xl p-4 sm:p-6 shadow-md flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center space-x-4">
+                            <button onclick="goHome()" title="Volver a los supermercados" class="bg-slate-200 hover:bg-slate-300 text-slate-700 p-3 rounded-2xl font-bold flex items-center justify-center text-xl touch-focus">
+                                <i class="fa-solid fa-arrow-left"></i>
+                            </button>
+                            <div class="w-14 h-14 rounded-2xl ${currentSup?.themeColor || 'bg-indigo-500'} text-white text-3xl flex items-center justify-center shadow">
+                                ${currentSup?.icon || '🛒'}
+                            </div>
+                            <div>
+                                <h2 class="text-2xl sm:text-3xl font-black text-slate-800">${currentSup?.name || 'Supermercado'}</h2>
+                                <p class="text-xs text-slate-500 font-bold">Catálogo con Billetes y Monedas Chilenas</p>
+                            </div>
+                        </div>
+
+                        <button onclick="openBasketModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 px-6 rounded-2xl border-b-4 border-emerald-800 shadow-md flex items-center space-x-3 active:scale-95 touch-focus">
+                            <span class="text-2xl">🧺</span>
+                            <div class="text-left">
+                                <span class="text-xs text-emerald-100 block font-semibold">VER MI CANASTO</span>
+                                <span class="text-lg font-black">${getBasketItemCount()} productos</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Grilla de Productos -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            `;
+
+            if (supProducts.length === 0) {
+                html += `
+                    <div class="col-span-full bg-white rounded-3xl p-8 text-center border-4 border-dashed border-slate-300">
+                        <p class="text-4xl mb-2">📦</p>
+                        <h3 class="text-xl font-bold text-slate-700">No hay productos en este supermercado.</h3>
+                        <p class="text-xs text-slate-500 mt-1">Un educador puede agregar nuevos productos desde el Modo Educador.</p>
+                    </div>
+                `;
+            } else {
+                supProducts.forEach(prod => {
+                    const inCartCount = getProductQuantityInBasket(prod.id);
+                    
+                    let breakdown = prod.customBreakdown;
+                    if (!breakdown || breakdown.length === 0) {
+                        breakdown = calculateCLPBreakdown(prod.price);
+                    }
+
+                    const breakdownHTML = renderBreakdownHTML(breakdown, 'md');
+
+                    html += `
+                        <div class="bg-white border-4 border-slate-200 hover:border-indigo-400 rounded-3xl p-5 shadow-lg flex flex-col justify-between space-y-4 transition-all">
+                            
+                            <!-- Categoría y Botón de Audio -->
+                            <div class="flex justify-between items-center">
+                                <span class="bg-indigo-50 text-indigo-700 text-xs font-extrabold px-3 py-1 rounded-full border border-indigo-200">
+                                    ${prod.category || 'General'}
+                                </span>
+                                <button onclick="speakText('${prod.name}. Precio: ${prod.price} pesos chilenos.')" 
+                                        class="bg-sky-100 hover:bg-sky-200 text-sky-800 p-2 rounded-xl text-xs font-bold flex items-center gap-1 border border-sky-300">
+                                    <i class="fa-solid fa-volume-high text-sm"></i>
+                                    <span>Escuchar</span>
+                                </button>
+                            </div>
+
+                            <!-- Pictograma / Imagen -->
+                            <div class="flex items-center justify-center bg-slate-50 rounded-2xl py-6 border-2 border-slate-100 relative">
+                                ${prod.imageUrl ? `
+                                    <img src="${prod.imageUrl}" alt="${prod.name}" class="h-28 object-contain" onerror="this.onerror=null; this.src='https://placehold.co/120x120/e2e8f0/475569?text=Pictograma';">
+                                ` : `
+                                    <span class="text-7xl drop-shadow">${prod.iconEmoji || '📦'}</span>
+                                `}
+                            </div>
+
+                            <!-- Título y Precio en Pesos Chilenos -->
+                            <div class="text-center">
+                                <h3 class="text-xl font-black text-slate-800">${prod.name}</h3>
+                                <div class="text-2xl font-black text-emerald-700 mt-1">
+                                    $${prod.price.toLocaleString('es-CL')} <span class="text-xs font-semibold text-slate-500">pesos chilenos</span>
+                                </div>
+                            </div>
+
+                            <!-- Pictograma de Dinero Chileno -->
+                            <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-3 space-y-1">
+                                <span class="text-[10px] font-black text-amber-900 uppercase tracking-wider block">
+                                    <i class="fa-solid fa-wallet"></i> Dinero exacto para pagar:
+                                </span>
+                                <div class="overflow-x-auto py-1">
+                                    ${breakdownHTML}
+                                </div>
+                            </div>
+
+                            <!-- Controles de Agregar al Canasto -->
+                            <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                                ${inCartCount > 0 ? `
+                                    <button onclick="removeFromBasket('${prod.id}')" class="bg-rose-500 hover:bg-rose-600 text-white font-black text-xl w-12 h-12 rounded-2xl border-b-4 border-rose-700 flex items-center justify-center shadow touch-focus">
+                                        -
+                                    </button>
+                                    <div class="text-center px-2">
+                                        <span class="text-xs font-bold text-slate-400 block">En Canasto</span>
+                                        <span class="text-2xl font-black text-indigo-700">${inCartCount}</span>
+                                    </div>
+                                    <button onclick="addToBasket('${prod.id}')" class="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xl w-12 h-12 rounded-2xl border-b-4 border-emerald-700 flex items-center justify-center shadow touch-focus">
+                                        +
+                                    </button>
+                                ` : `
+                                    <button onclick="addToBasket('${prod.id}')" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-3 px-4 rounded-2xl border-b-4 border-emerald-700 shadow-md flex items-center justify-center space-x-2 text-base active:scale-95 touch-focus">
+                                        <i class="fa-solid fa-cart-plus text-xl"></i>
+                                        <span>Agregar al Canasto</span>
+                                    </button>
+                                `}
+                            </div>
+
+                        </div>
+                    `;
+                });
+            }
+
+            html += `
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
         }
 
-        function exportData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
-            const dlAnchorElem = document.createElement('a');
-            dlAnchorElem.setAttribute("href", dataStr);
-            dlAnchorElem.setAttribute("download", `config_supermercado_nee.json`);
-            dlAnchorElem.click();
+        /* ==========================================================================
+           LÓGICA DEL CANASTO DE COMPRAS
+           ========================================================================== */
+        function addToBasket(productId) {
+            const prod = APP_STATE.products.find(p => p.id === productId);
+            const item = APP_STATE.basket.find(i => i.productId === productId);
+
+            if (item) {
+                item.quantity += 1;
+            } else {
+                APP_STATE.basket.push({ productId, quantity: 1 });
+            }
+
+            playChimeSound();
+            if (prod) {
+                speakText(`Agregado: ${prod.name}`);
+            }
+
+            updateBasketBadge();
+            renderApp();
         }
 
-        function importData(event) {
+        function removeFromBasket(productId) {
+            const itemIndex = APP_STATE.basket.findIndex(i => i.productId === productId);
+            if (itemIndex > -1) {
+                if (APP_STATE.basket[itemIndex].quantity > 1) {
+                    APP_STATE.basket[itemIndex].quantity -= 1;
+                } else {
+                    APP_STATE.basket.splice(itemIndex, 1);
+                }
+            }
+
+            updateBasketBadge();
+            renderApp();
+        }
+
+        function clearBasket() {
+            if (APP_STATE.basket.length === 0) return;
+            if (confirm("¿Vaciar todo el canasto?")) {
+                APP_STATE.basket = [];
+                updateBasketBadge();
+                closeBasketModal();
+                renderApp();
+                speakText("El canasto ha sido vaciado.");
+            }
+        }
+
+        function getBasketItemCount() {
+            return APP_STATE.basket.reduce((total, item) => total + item.quantity, 0);
+        }
+
+        function getProductQuantityInBasket(productId) {
+            const item = APP_STATE.basket.find(i => i.productId === productId);
+            return item ? item.quantity : 0;
+        }
+
+        function updateBasketBadge() {
+            const badge = document.getElementById('basketBadge');
+            if (badge) {
+                badge.textContent = getBasketItemCount();
+            }
+        }
+
+        function calculateBasketTotalCLP() {
+            return APP_STATE.basket.reduce((total, item) => {
+                const prod = APP_STATE.products.find(p => p.id === item.productId);
+                return total + (prod ? prod.price * item.quantity : 0);
+            }, 0);
+        }
+
+        /* ==========================================================================
+           PRÁCTICA DE PAGO EN CAJA REGISTRADORA Y MODAL
+           ========================================================================== */
+        function openBasketModal() {
+            const modal = document.getElementById('basketModal');
+            const itemsList = document.getElementById('basketItemsList');
+            const totalCLPEl = document.getElementById('basketTotalCLP');
+            const breakdownEl = document.getElementById('basketCurrencyBreakdown');
+
+            APP_STATE.userPaidAmount = 0;
+            updateUserPaidDisplay();
+
+            if (APP_STATE.basket.length === 0) {
+                itemsList.innerHTML = `
+                    <div class="text-center py-8">
+                        <span class="text-5xl">🛒</span>
+                        <p class="text-lg font-bold text-slate-600 mt-2">Tu canasto está vacío.</p>
+                        <p class="text-xs text-slate-400">Agrega productos antes de ir a pagar.</p>
+                    </div>
+                `;
+                totalCLPEl.textContent = '$0 pesos';
+                breakdownEl.innerHTML = '<span class="text-xs text-slate-400">Agrega productos para ver el desglose en billetes y monedas.</span>';
+            } else {
+                let itemsHTML = '';
+                APP_STATE.basket.forEach(item => {
+                    const prod = APP_STATE.products.find(p => p.id === item.productId);
+                    if (!prod) return;
+
+                    const lineTotal = prod.price * item.quantity;
+
+                    itemsHTML += `
+                        <div class="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 flex items-center justify-between gap-4">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-3xl">${prod.iconEmoji || '📦'}</span>
+                                <div>
+                                    <h4 class="font-black text-slate-800">${prod.name}</h4>
+                                    <span class="text-xs text-slate-500 font-bold">$${prod.price.toLocaleString('es-CL')} pesos c/u</span>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center space-x-3">
+                                <span class="text-sm font-bold text-slate-600">Cant: ${item.quantity}</span>
+                                <span class="text-base font-black text-emerald-700">$${lineTotal.toLocaleString('es-CL')}</span>
+                                <button onclick="removeFromBasket('${prod.id}'); openBasketModal();" class="text-rose-500 hover:text-rose-700 p-1">
+                                    <i class="fa-solid fa-trash-can text-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                itemsList.innerHTML = itemsHTML;
+
+                const grandTotal = calculateBasketTotalCLP();
+                totalCLPEl.textContent = `$${grandTotal.toLocaleString('es-CL')} pesos`;
+
+                const grandBreakdown = calculateCLPBreakdown(grandTotal);
+                breakdownEl.innerHTML = renderBreakdownHTML(grandBreakdown, 'lg');
+            }
+
+            renderPaymentMoneyTray();
+            modal.classList.remove('hidden');
+        }
+
+        function closeBasketModal() {
+            document.getElementById('basketModal').classList.add('hidden');
+        }
+
+        function speakBasketTotalText() {
+            const total = calculateBasketTotalCLP();
+            speakText(`El total a pagar en el canasto es de ${total} pesos chilenos.`);
+        }
+
+        function renderPaymentMoneyTray() {
+            const tray = document.getElementById('paymentMoneyTray');
+            if (!tray) return;
+
+            let html = '';
+            CLP_CURRENCY_ITEMS.forEach(item => {
+                html += `
+                    <button onclick="addUserPayment(${item.value})" class="bg-white hover:bg-indigo-50 border-2 border-indigo-200 hover:border-indigo-400 p-2 rounded-xl flex flex-col items-center justify-center transition shadow-sm active:scale-95 touch-focus">
+                        ${renderCurrencySVG(item, 'sm')}
+                        <span class="text-[10px] font-bold text-slate-600 mt-1">+$${item.value}</span>
+                    </button>
+                `;
+            });
+            tray.innerHTML = html;
+        }
+
+        function addUserPayment(val) {
+            APP_STATE.userPaidAmount += val;
+            updateUserPaidDisplay();
+            playChimeSound();
+        }
+
+        function resetUserPayment() {
+            APP_STATE.userPaidAmount = 0;
+            updateUserPaidDisplay();
+        }
+
+        function updateUserPaidDisplay() {
+            const el = document.getElementById('userPaidTotal');
+            if (el) {
+                el.textContent = `$${APP_STATE.userPaidAmount.toLocaleString('es-CL')} pesos`;
+            }
+        }
+
+        function verifyAndCheckout() {
+            const total = calculateBasketTotalCLP();
+            if (total === 0) {
+                alert("Tu canasto está vacío.");
+                return;
+            }
+
+            if (APP_STATE.userPaidAmount >= total) {
+                const change = APP_STATE.userPaidAmount - total;
+                confetti({ particleCount: 130, spread: 90, origin: { y: 0.6 } });
+                playChimeSound();
+
+                let speechMsg = `¡Muy bien! Has pagado bien en pesos chilenos. El total fue de ${total} pesos chilenos.`;
+                if (change > 0) {
+                    speechMsg += ` Tu vuelto es de ${change} pesos chilenos.`;
+                }
+
+                speakText(speechMsg);
+                alert(`🎉 ¡COMPRA EXITOSA!\n\n${speechMsg}\n\n¡Gracias por comprar en Mi Supermercado!`);
+
+                APP_STATE.basket = [];
+                updateBasketBadge();
+                closeBasketModal();
+                renderApp();
+            } else {
+                const missing = total - APP_STATE.userPaidAmount;
+                const speechMsg = `Te faltan ${missing} pesos chilenos para completar el pago. Sigue agregando dinero en la caja.`;
+                speakText(speechMsg);
+                alert(`⚠️ DINERO INSUFICIENTE\n\nEntregaste: $${APP_STATE.userPaidAmount.toLocaleString('es-CL')} pesos.\nEl total es: $${total.toLocaleString('es-CL')} pesos.\nTe faltan: $${missing.toLocaleString('es-CL')} pesos chilenos.`);
+            }
+        }
+
+        /* ==========================================================================
+           VISTA 3: PANEL DE ADMINISTRACIÓN / EDUCADOR
+           ========================================================================== */
+        function renderTeacherPanel(container) {
+            let html = `
+                <div class="space-y-8 animate-fade-in">
+                    
+                    <!-- Encabezado Modo Educador -->
+                    <div class="bg-indigo-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center space-x-3">
+                                <span class="bg-indigo-700 p-3 rounded-2xl text-2xl">👩‍🏫</span>
+                                <h2 class="text-2xl sm:text-3xl font-black">Panel Profesional y Educador NEE</h2>
+                            </div>
+                            <p class="text-xs sm:text-sm text-indigo-200 mt-1">
+                                Gestiona los supermercados, edita los precios y comparte la configuración entre tablets de la escuela.
+                            </p>
+                        </div>
+
+                        <!-- Botones de Gestión de Datos -->
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="exportConfigJSON()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-black px-4 py-2.5 rounded-xl border-b-4 border-amber-700 shadow flex items-center gap-2">
+                                <i class="fa-solid fa-file-export"></i> Exportar Config (JSON)
+                            </button>
+                            <button onclick="triggerJSONImport()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs font-black px-4 py-2.5 rounded-xl border-b-4 border-sky-700 shadow flex items-center gap-2">
+                                <i class="fa-solid fa-file-import"></i> Importar Config (JSON)
+                            </button>
+                            <button onclick="resetToDefaults()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl border-b-4 border-rose-900 shadow">
+                                🔄 Restablecer Datos
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Columnas de Gestión -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        
+                        <!-- COLUMNA IZQUIERDA: Supermercados -->
+                        <div class="bg-white border-4 border-slate-200 rounded-3xl p-6 space-y-6 shadow-md">
+                            <div class="flex justify-between items-center border-b-2 border-slate-100 pb-4">
+                                <h3 class="text-xl font-black text-slate-800 flex items-center gap-2">
+                                    <span>🏪</span> Supermercados
+                                </h3>
+                                <button onclick="openSupermarketModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-xl">
+                                    + Nuevo
+                                </button>
+                            </div>
+
+                            <div class="space-y-3">
+                                ${APP_STATE.supermarkets.map(sup => `
+                                    <div class="bg-slate-50 border-2 border-slate-200 rounded-2xl p-3 flex justify-between items-center">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="text-2xl">${sup.icon || '🛒'}</span>
+                                            <div>
+                                                <h4 class="font-bold text-sm text-slate-800">${sup.name}</h4>
+                                                <span class="text-[10px] text-slate-400 font-semibold">${APP_STATE.products.filter(p => p.supermarketId === sup.id).length} productos</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex space-x-1">
+                                            <button onclick="deleteSupermarket('${sup.id}')" class="text-rose-500 hover:text-rose-700 p-1 text-sm">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- COLUMNA DERECHA: Catálogo de Productos -->
+                        <div class="lg:col-span-2 bg-white border-4 border-slate-200 rounded-3xl p-6 space-y-6 shadow-md">
+                            <div class="flex flex-wrap justify-between items-center border-b-2 border-slate-100 pb-4 gap-2">
+                                <h3 class="text-xl font-black text-slate-800 flex items-center gap-2">
+                                    <span>📦</span> Catálogo de Productos y Dinero Chileno
+                                </h3>
+                                <button onclick="openProductModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-4 py-2.5 rounded-xl border-b-4 border-emerald-800 shadow">
+                                    + Crear Producto
+                                </button>
+                            </div>
+
+                            <!-- Tabla de Productos -->
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-100 text-[11px] font-black text-slate-500 uppercase border-b-2 border-slate-200">
+                                            <th class="p-3">Pictograma</th>
+                                            <th class="p-3">Nombre</th>
+                                            <th class="p-3">Supermercado</th>
+                                            <th class="p-3">Precio (CLP)</th>
+                                            <th class="p-3">Billetes y Monedas</th>
+                                            <th class="p-3 text-right">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 text-sm">
+                                        ${APP_STATE.products.map(prod => {
+                                            const sup = APP_STATE.supermarkets.find(s => s.id === prod.supermarketId);
+                                            const breakdown = prod.customBreakdown || calculateCLPBreakdown(prod.price);
+
+                                            return `
+                                                <tr class="hover:bg-slate-50">
+                                                    <td class="p-3 text-2xl">
+                                                        ${prod.imageUrl ? `<img src="${prod.imageUrl}" class="w-8 h-8 object-contain">` : (prod.iconEmoji || '📦')}
+                                                    </td>
+                                                    <td class="p-3 font-bold text-slate-800">
+                                                        ${prod.name}
+                                                        <span class="block text-[10px] text-slate-400 font-semibold">${prod.category}</span>
+                                                    </td>
+                                                    <td class="p-3 text-xs font-semibold text-slate-600">
+                                                        ${sup ? sup.name : 'Sin asignar'}
+                                                    </td>
+                                                    <td class="p-3 font-black text-emerald-700">
+                                                        $${prod.price.toLocaleString('es-CL')}
+                                                    </td>
+                                                    <td class="p-3">
+                                                        ${renderBreakdownHTML(breakdown, 'sm')}
+                                                    </td>
+                                                    <td class="p-3 text-right space-x-1">
+                                                        <button onclick="editProduct('${prod.id}')" class="text-indigo-600 hover:text-indigo-800 font-bold text-xs p-1">
+                                                            Editar
+                                                        </button>
+                                                        <button onclick="deleteProduct('${prod.id}')" class="text-rose-500 hover:text-rose-700 font-bold text-xs p-1">
+                                                            Borrar
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        /* ==========================================================================
+           EXPORTACIÓN E IMPORTACIÓN DE CONFIGURACIÓN JSON (PARA OTRAS TABLETS)
+           ========================================================================== */
+        function exportConfigJSON() {
+            const dataToExport = {
+                appName: "Supermercado NEE Chile",
+                version: "1.0",
+                exportDate: new Date().toISOString(),
+                supermarkets: APP_STATE.supermarkets,
+                products: APP_STATE.products
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `supermercado_nee_config_${Date.now()}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+
+            speakText("Configuración exportada correctamente.");
+        }
+
+        function triggerJSONImport() {
+            document.getElementById('jsonFileInput').click();
+        }
+
+        function handleJSONImport(event) {
             const file = event.target.files[0];
             if (!file) return;
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    appData = JSON.parse(e.target.result);
-                    saveData();
-                    alert("Configuración importada exitosamente");
+                    const parsedData = JSON.parse(e.target.result);
+                    if (parsedData.supermarkets && parsedData.products) {
+                        APP_STATE.supermarkets = parsedData.supermarkets;
+                        APP_STATE.products = parsedData.products;
+                        saveSupermarkets();
+                        saveProducts();
+                        renderApp();
+                        alert("¡Configuración importada con éxito! Todos los supermercados y productos han sido actualizados.");
+                        speakText("Configuración importada con éxito.");
+                    } else {
+                        alert("El archivo JSON no tiene un formato válido de la aplicación.");
+                    }
                 } catch (err) {
-                    alert("Error al leer el archivo JSON");
+                    alert("Error al leer el archivo JSON: " + err.message);
                 }
             };
             reader.readAsText(file);
         }
 
-        function resetDefaultData() {
-            if (confirm("¿Seguro que deseas borrar los cambios y volver a los valores de fábrica?")) {
-                appData = initialData;
-                saveData();
-                alert("Datos restablecidos");
-                goHome();
+        /* ==========================================================================
+           GESTIÓN DE SUPERMERCADOS Y PRODUCTOS (CRUD)
+           ========================================================================== */
+        function openSupermarketModal() {
+            const name = prompt("Nombre del supermercado:");
+            if (!name) return;
+            const icon = prompt("Emoji o Ícono (ej: 🛒, 🍏, 🏪, 🥖):", "🛒");
+
+            const newSup = {
+                id: 'sup-' + Date.now(),
+                name: name,
+                themeColor: 'bg-indigo-600',
+                textColor: 'text-indigo-600',
+                borderColor: 'border-indigo-500',
+                icon: icon || '🛒',
+                description: 'Supermercado personalizado'
+            };
+
+            APP_STATE.supermarkets.push(newSup);
+            saveSupermarkets();
+            renderApp();
+            speakText(`Supermercado ${name} creado.`);
+        }
+
+        function deleteSupermarket(id) {
+            if (confirm("¿Seguro que deseas eliminar este supermercado?")) {
+                APP_STATE.supermarkets = APP_STATE.supermarkets.filter(s => s.id !== id);
+                saveSupermarkets();
+                renderApp();
             }
         }
 
-        // AL CARGAR
-        window.onload = () => {
-            goHome();
-        };
+        function openProductModal(editId = null) {
+            const existing = editId ? APP_STATE.products.find(p => p.id === editId) : null;
+
+            const name = prompt("Nombre del producto:", existing ? existing.name : "");
+            if (!name) return;
+
+            const priceStr = prompt("Precio en Pesos Chilenos (CLP):", existing ? existing.price : "1000");
+            const price = parseInt(priceStr, 10);
+            if (isNaN(price) || price <= 0) {
+                alert("Precio inválido");
+                return;
+            }
+
+            const category = prompt("Categoría (Lácteos, Frutas, Panadería, Snacks, etc.):", existing ? existing.category : "Alimentos");
+            const iconEmoji = prompt("Emoji o Pictograma (ej: 🥛, 🍎, 🧀):", existing ? existing.iconEmoji : "📦");
+
+            let supId = APP_STATE.supermarkets[0]?.id;
+            if (APP_STATE.supermarkets.length > 1) {
+                const supListNames = APP_STATE.supermarkets.map((s, idx) => `${idx + 1}. ${s.name}`).join('\n');
+                const choice = prompt(`Selecciona Supermercado (ingresa el número):\n${supListNames}`, "1");
+                const chosenIdx = parseInt(choice, 10) - 1;
+                if (APP_STATE.supermarkets[chosenIdx]) {
+                    supId = APP_STATE.supermarkets[chosenIdx].id;
+                }
+            }
+
+            if (existing) {
+                existing.name = name;
+                existing.price = price;
+                existing.category = category;
+                existing.iconEmoji = iconEmoji;
+                existing.supermarketId = supId;
+            } else {
+                const newProd = {
+                    id: 'prod-' + Date.now(),
+                    supermarketId: supId,
+                    name: name,
+                    category: category,
+                    price: price,
+                    iconEmoji: iconEmoji || '📦',
+                    imageUrl: '',
+                    customBreakdown: null
+                };
+                APP_STATE.products.push(newProd);
+            }
+
+            saveProducts();
+            renderApp();
+            speakText("Producto guardado exitosamente.");
+        }
+
+        function editProduct(id) {
+            openProductModal(id);
+        }
+
+        function deleteProduct(id) {
+            if (confirm("¿Eliminar este producto?")) {
+                APP_STATE.products = APP_STATE.products.filter(p => p.id !== id);
+                saveProducts();
+                renderApp();
+            }
+        }
     </script>
 </body>
 </html>
