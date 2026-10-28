@@ -19,6 +19,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
+    <!-- EMAILJS SDK PARA ENVÍO AUTOMÁTICO DE CORREOS -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -198,6 +201,13 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        // CONFIGURACIÓN EMAILJS INTEGRADAS
+        const EMAILJS_CONFIG = {
+            publicKey: "smzqxkKPlFcTigatD",
+            serviceId: "service_omucoeg",
+            templateId: "template_vyzp71o"
+        };
+
         // ESTADO GLOBAL
         const APP_STATE = {
             currentUser: null,
@@ -253,15 +263,12 @@
             { id: 'prod-9', supermarketId: 'sup-barrio', name: 'Barra de Chocolate', category: 'Snacks', price: 1000, iconEmoji: '🍫' }
         ];
 
-        // ESCUCHADORES EN TIEMPO REAL CON FIREBASE
         function initFirebaseListeners() {
-            // Sesión local activa
             const storedUser = localStorage.getItem('nee_active_user');
             if (storedUser) {
                 try { APP_STATE.currentUser = JSON.parse(storedUser); } catch(e) {}
             }
 
-            // 1. Cursos
             db.collection('courses').onSnapshot(snapshot => {
                 if (snapshot.empty) {
                     DEFAULT_COURSES.forEach(c => db.collection('courses').doc(c.id).set(c));
@@ -271,7 +278,6 @@
                 }
             });
 
-            // 2. Usuarios
             db.collection('users').onSnapshot(snapshot => {
                 if (snapshot.empty) {
                     DEFAULT_USERS.forEach(u => db.collection('users').doc(u.id).set(u));
@@ -285,7 +291,6 @@
                 }
             });
 
-            // 3. Supermercados
             db.collection('supermarkets').onSnapshot(snapshot => {
                 if (snapshot.empty) {
                     DEFAULT_SUPERMARKETS.forEach(s => db.collection('supermarkets').doc(s.id).set(s));
@@ -295,7 +300,6 @@
                 }
             });
 
-            // 4. Productos
             db.collection('products').onSnapshot(snapshot => {
                 if (snapshot.empty) {
                     DEFAULT_PRODUCTS.forEach(p => db.collection('products').doc(p.id).set(p));
@@ -306,15 +310,33 @@
             });
         }
 
+        // ENVÍO AUTOMÁTICO EN SEGUNDO PLANO
+        function sendAutomaticCredentialsEmail(user) {
+            if (!user || !user.email) return;
+
+            if (typeof emailjs !== 'undefined') {
+                emailjs.send(
+                    EMAILJS_CONFIG.serviceId,
+                    EMAILJS_CONFIG.templateId,
+                    {
+                        to_email: user.email,
+                        to_name: user.name,
+                        user_rut: user.rut,
+                        user_pin: user.pin,
+                        app_url: "https://informaticae77-eng.github.io/supermercado-nee/"
+                    },
+                    EMAILJS_CONFIG.publicKey
+                ).then(() => {
+                    console.log(`✉️ Correo enviado automáticamente a ${user.email}`);
+                }).catch(err => {
+                    console.error("Error EmailJS:", err);
+                });
+            }
+        }
+
         function cleanTextForSpeech(text) {
             if (!text) return '';
-            return text
-                .replace(/\$/g, ' ')
-                .replace(/\bCLP\b/gi, ' ')
-                .replace(/\bchilenos?\b/gi, ' ')
-                .replace(/\bpesos\s+pesos\b/gi, 'pesos')
-                .replace(/\s+/g, ' ')
-                .trim();
+            return text.replace(/\$/g, ' ').replace(/\bCLP\b/gi, ' ').replace(/\bchilenos?\b/gi, ' ').replace(/\bpesos\s+pesos\b/gi, 'pesos').replace(/\s+/g, ' ').trim();
         }
 
         function speakText(text) {
@@ -323,16 +345,13 @@
                 window.speechSynthesis.cancel();
                 const cleanText = cleanTextForSpeech(text);
                 if (!cleanText) return;
-
                 setTimeout(() => {
                     const utterance = new SpeechSynthesisUtterance(cleanText);
                     utterance.lang = 'es-CL';
                     utterance.rate = 0.88;
-
                     const voices = window.speechSynthesis.getVoices();
                     const spanishVoice = voices.find(v => v.lang === 'es-CL') || voices.find(v => v.lang.startsWith('es'));
                     if (spanishVoice) utterance.voice = spanishVoice;
-
                     window.speechSynthesis.speak(utterance);
                 }, 50);
             } catch(e) {}
@@ -526,7 +545,6 @@
             renderApp();
         }
 
-        // DASHBOARD ADMINISTRADOR
         function renderAdminDashboard(container) {
             let html = `
                 <div class="space-y-6">
@@ -548,8 +566,6 @@
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        
-                        <!-- SECCIÓN CURSOS -->
                         <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
                             <div class="flex justify-between items-center border-b pb-2">
                                 <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-school text-indigo-600"></i> Cursos</h3>
@@ -575,7 +591,6 @@
                             </div>
                         </div>
 
-                        <!-- SECCIÓN EDUCADORES -->
                         <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
                             <div class="flex justify-between items-center border-b pb-2">
                                 <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-chalkboard-user text-indigo-600"></i> Educadores</h3>
@@ -609,8 +624,8 @@
                             <button onclick="resetUserPassword('${t.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-2 py-1 rounded text-xs flex-1">
                                 🔄 Reiniciar Clave
                             </button>
-                            <button onclick="sendCredentialsByEmail('${t.id}')" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold px-2 py-1 rounded text-xs flex-1">
-                                ✉️ Enviar Correo
+                            <button onclick="sendAutomaticCredentialsEmail(APP_STATE.users.find(u=>u.id==='${t.id}'))" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold px-2 py-1 rounded text-xs flex-1">
+                                ✉️ Reenviar Correo
                             </button>
                         </div>
                     </div>
@@ -621,7 +636,6 @@
                             </div>
                         </div>
 
-                        <!-- SECCIÓN ALUMNOS -->
                         <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
                             <div class="flex justify-between items-center border-b pb-2">
                                 <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-children text-indigo-600"></i> Alumnos</h3>
@@ -655,8 +669,8 @@
                             <button onclick="resetUserPassword('${s.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-2 py-1 rounded text-xs flex-1">
                                 🔄 Reiniciar Clave
                             </button>
-                            <button onclick="sendCredentialsByEmail('${s.id}')" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold px-2 py-1 rounded text-xs flex-1">
-                                ✉️ Enviar Correo
+                            <button onclick="sendAutomaticCredentialsEmail(APP_STATE.users.find(u=>u.id==='${s.id}'))" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold px-2 py-1 rounded text-xs flex-1">
+                                ✉️ Reenviar Correo
                             </button>
                         </div>
                     </div>
@@ -744,13 +758,11 @@
             container.innerHTML = html;
         }
 
-        // ACCIONES CON BASE DE DATOS EN LA NUBE
         function openCreateUserModal(role) {
             if (APP_STATE.courses.length === 0) return alert("Crea al menos un curso antes de registrar usuarios.");
             
             document.getElementById('modalUserRole').value = role;
             document.getElementById('userModalTitle').textContent = role === 'teacher' ? 'Crear Nuevo Educador' : 'Crear Nuevo Alumno';
-            
             document.getElementById('modalName').value = '';
             document.getElementById('modalRut').value = '';
             document.getElementById('modalEmail').value = '';
@@ -799,9 +811,8 @@
 
             db.collection('users').doc(newUserId).set(newUser).then(() => {
                 closeUserModal();
-                if (confirm(`Usuario registrado en la Nube.\n\nClave Inicial (Primeros 4 dígitos RUT): ${initialPin}\n\n¿Deseas enviar las credenciales al correo (${email}) ahora?`)) {
-                    sendCredentialsByEmail(newUserId);
-                }
+                sendAutomaticCredentialsEmail(newUser);
+                alert(`✅ Usuario creado exitosamente en la nube.\n\nClave temporal: ${initialPin}\nSe ha enviado el correo con las credenciales a ${email}.`);
             });
         }
 
@@ -814,26 +825,10 @@
                 pin: initialPin,
                 mustChangePassword: true
             }).then(() => {
-                alert(`🔒 Clave de ${user.name} reiniciada a los primeros 4 dígitos del RUT (${initialPin}).\nAl ingresar se le exigirá cambiar su clave.`);
+                user.pin = initialPin;
+                sendAutomaticCredentialsEmail(user);
+                alert(`🔒 Clave de ${user.name} reiniciada a ${initialPin}.\nSe ha enviado la notificación por correo a ${user.email}.`);
             });
-        }
-
-        function sendCredentialsByEmail(userId) {
-            const user = APP_STATE.users.find(u => u.id === userId);
-            if (!user || !user.email) return alert("El usuario no tiene un correo asignado.");
-
-            const subject = encodeURIComponent("Credenciales de Acceso - Supermercado NEE Chile");
-            const body = encodeURIComponent(
-                `Hola ${user.name},\n\n` +
-                `Te compartimos tus credenciales para la plataforma Supermercado NEE:\n\n` +
-                `• RUT / Usuario: ${user.rut}\n` +
-                `• Clave Temporal: ${user.pin} (Primeros 4 dígitos de tu RUT)\n\n` +
-                `Al ingresar por primera vez, el sistema te solicitará cambiar esta clave temporal por tu clave personal.\n\n` +
-                `Accede aquí: https://informaticae77-eng.github.io/supermercado-nee/\n\n` +
-                `Saludos Cordiales,\nEquipo Directivo.`
-            );
-
-            window.open(`mailto:${user.email}?subject=${subject}&body=${body}`, '_blank');
         }
 
         function addNewCoursePrompt() {
@@ -855,7 +850,6 @@
             }
         }
 
-        // COMPRAS Y SIMULACIÓN
         function goHome() {
             APP_STATE.selectedSupermarketId = null;
             renderApp();
@@ -1179,7 +1173,6 @@
             }
         }
 
-        // INICIALIZAR BASE DE DATOS Y APLICACIÓN
         initFirebaseListeners();
     </script>
 </body>
