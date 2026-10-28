@@ -236,7 +236,7 @@
         <p>Mi Supermercado Pictográfico NEE • Diseñado con apoyo de Billetes y Monedas Chilenas 🇨🇱</p>
     </footer>
 
-    <!-- LÓGICA JAVASCRIPT OPTIMIZADA PARA GOOGLE CHROME -->
+    <!-- LÓGICA JAVASCRIPT CORREGIDA -->
     <script>
         const APP_STATE = {
             currentMode: 'kids',
@@ -298,21 +298,24 @@
         function saveSupermarkets() { localStorage.setItem('nee_supermarkets', JSON.stringify(APP_STATE.supermarkets)); }
         function saveProducts() { localStorage.setItem('nee_products', JSON.stringify(APP_STATE.products)); }
 
-        // LIMPIEZA DE TEXTO PARA QUE LA VOZ LEA "PESOS" SIN DUPLICACIONES
+        // FILTRO DE TEXTO SIN DUPLICACIONES PARA EL MOTOR DE CHROME
         function cleanTextForSpeech(text) {
             if (!text) return '';
             return text
-                .replace(/\$/g, '')
-                .replace(/\bCLP\b/gi, 'pesos')
-                .replace(/\bpesos chilenos\b/gi, 'pesos');
+                .replace(/\$/g, ' ')                  // Elimina el signo peso ($) para evitar que Chrome diga "pesos" dos veces
+                .replace(/\bCLP\b/gi, ' ')            // Elimina sigla CLP
+                .replace(/\bchilenos?\b/gi, ' ')       // Elimina "chileno" / "chilenos"
+                .replace(/\bpesos\s+pesos\b/gi, 'pesos') // Deduplica si aparece "pesos pesos"
+                .replace(/\s+/g, ' ')                 // Limpia espacios dobles
+                .trim();
         }
 
-        /* MOTOR DE SÍNTESIS DE VOZ PARA CHROME */
+        /* SÍNTESIS DE VOZ LIMPIA */
         function speakText(text) {
             if (!('speechSynthesis' in window)) return;
 
             try {
-                window.speechSynthesis.cancel(); // Detener cualquier locución previa
+                window.speechSynthesis.cancel();
                 const cleanText = cleanTextForSpeech(text);
                 if (!cleanText) return;
 
@@ -322,7 +325,6 @@
                     utterance.rate = 0.88;
                     utterance.pitch = 1.0;
 
-                    // Buscar voz en español en Chrome
                     const voices = window.speechSynthesis.getVoices();
                     const spanishVoice = voices.find(v => v.lang === 'es-CL') || 
                                          voices.find(v => v.lang.startsWith('es'));
@@ -645,7 +647,7 @@
         }
 
         function speakBasketTotalText() {
-            speakText(`El total a pagar es ${calculateBasketTotal()} pesos.`);
+            speakText(`El total a pagar es ${calculateBasketTotal()} pesos`);
         }
 
         function renderPaymentMoneyTray() {
@@ -683,7 +685,7 @@
 
         function verifyAndCheckout() {
             const totalNeeded = calculateBasketTotal();
-            if (totalNeeded === 0) { speakText("El canasto está vacío."); return; }
+            if (totalNeeded === 0) { speakText("El canasto está vacío"); return; }
 
             if (APP_STATE.userPaidAmount >= totalNeeded) {
                 confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
@@ -697,7 +699,7 @@
                 renderApp();
             } else {
                 const falta = totalNeeded - APP_STATE.userPaidAmount;
-                speakText(`Te faltan ${falta} pesos.`);
+                speakText(`Te faltan ${falta} pesos`);
                 alert(`⚠️ Te faltan $${falta.toLocaleString('es-CL')} pesos para pagar.`);
             }
         }
