@@ -822,13 +822,14 @@
             const user = APP_STATE.users.find(u => u.id === userId);
             if (!user || !user.email) return alert("El usuario no tiene un correo asignado.");
 
-            const subject = encodeURIComponent("Credenciales de Acceso - Supermercado NEE");
+            const subject = encodeURIComponent("Credenciales de Acceso - Supermercado NEE Chile");
             const body = encodeURIComponent(
                 `Hola ${user.name},\n\n` +
-                `Te compartimos tus credenciales de acceso para la plataforma Supermercado NEE:\n\n` +
-                `RUT / Usuario: ${user.rut}\n` +
-                `Clave Temporal: ${user.pin} (Primeros 4 dígitos de tu RUT)\n\n` +
+                `Te compartimos tus credenciales para la plataforma Supermercado NEE:\n\n` +
+                `• RUT / Usuario: ${user.rut}\n` +
+                `• Clave Temporal: ${user.pin} (Primeros 4 dígitos de tu RUT)\n\n` +
                 `Al ingresar por primera vez, el sistema te solicitará cambiar esta clave temporal por tu clave personal.\n\n` +
+                `Accede aquí: https://informaticae77-eng.github.io/supermercado-nee/\n\n` +
                 `Saludos Cordiales,\nEquipo Directivo.`
             );
 
