@@ -46,13 +46,11 @@
             -webkit-user-select: none;
         }
 
-        /* Foco visible de alto contraste para navegación táctil */
         .touch-focus:focus, .touch-focus:active {
             outline: 4px solid #2563EB !important;
             outline-offset: 3px;
         }
 
-        /* Micro-interacciones para billetes y monedas */
         .currency-item {
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
@@ -63,7 +61,6 @@
             transform: scale(0.95);
         }
 
-        /* Personalización de barra de desplazamiento */
         ::-webkit-scrollbar {
             width: 10px;
             height: 10px;
@@ -77,7 +74,6 @@
             border-radius: 8px;
         }
 
-        /* Animación táctil suave para botones principales */
         @keyframes pulse-gentle {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.03); }
@@ -93,7 +89,6 @@
     <header class="bg-white border-b-4 border-slate-300 shadow-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-3">
             
-            <!-- Logo y Título -->
             <div class="flex items-center space-x-3 cursor-pointer" onclick="goHome()">
                 <div class="bg-amber-400 p-2.5 rounded-2xl shadow-md border-2 border-amber-500 text-3xl flex items-center justify-center">
                     🛒
@@ -106,10 +101,7 @@
                 </div>
             </div>
 
-            <!-- Botones Globales -->
             <div class="flex items-center space-x-2 sm:space-x-3">
-                
-                <!-- Botón de Lectura por Voz -->
                 <button onclick="speakText('Bienvenido a Mi Supermercado Pictográfico. Selecciona una opción para empezar.')" 
                         title="Escuchar audio"
                         class="bg-sky-100 hover:bg-sky-200 text-sky-800 border-2 border-sky-400 font-bold py-2 px-3 sm:px-4 rounded-xl flex items-center space-x-2 transition-all shadow-sm active:scale-95 touch-focus">
@@ -117,14 +109,12 @@
                     <span class="hidden sm:inline font-bold text-sm">Voz / Leer</span>
                 </button>
 
-                <!-- Botón del Canasto -->
                 <button id="headerBasketBtn" onclick="openBasketModal()" class="hidden bg-emerald-500 hover:bg-emerald-600 text-white font-black py-2 px-4 rounded-xl border-b-4 border-emerald-700 flex items-center space-x-2 shadow-md active:scale-95 touch-focus">
                     <i class="fa-solid fa-basket-shopping text-xl"></i>
                     <span class="text-base">Mi Canasto</span>
                     <span id="basketBadge" class="bg-amber-300 text-slate-900 text-sm font-black px-2.5 py-0.5 rounded-full ml-1">0</span>
                 </button>
 
-                <!-- Interruptor de Modo (Niños <-> Educador) -->
                 <button id="modeSwitchBtn" onclick="toggleModePrompt()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 sm:px-4 rounded-xl border-b-4 border-indigo-900 flex items-center space-x-2 shadow-md active:scale-95 touch-focus">
                     <i id="modeIcon" class="fa-solid fa-user-gear text-lg"></i>
                     <span id="modeLabel" class="text-sm font-bold">Modo Educador</span>
@@ -134,15 +124,12 @@
     </header>
 
     <!-- CONTENEDOR PRINCIPAL DE LA VISTA -->
-    <main id="appContainer" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
-        <!-- El contenido dinámico se inyecta con JavaScript -->
-    </main>
+    <main id="appContainer" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full"></main>
 
     <!-- MODAL DEL CANASTO Y CAJA REGISTRADORA -->
     <div id="basketModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-white w-full max-w-4xl rounded-3xl border-4 border-slate-300 shadow-2xl overflow-hidden my-8 flex flex-col max-h-[90vh]">
             
-            <!-- Cabecera Modal -->
             <div class="bg-emerald-600 text-white px-6 py-4 flex justify-between items-center border-b-4 border-emerald-800">
                 <div class="flex items-center space-x-3">
                     <span class="text-3xl">🧺</span>
@@ -153,11 +140,9 @@
                 </button>
             </div>
 
-            <!-- Cuerpo del Modal -->
             <div class="p-6 overflow-y-auto flex-1 space-y-6">
                 <div id="basketItemsList" class="space-y-4"></div>
 
-                <!-- Resumen de Total y Pictogramas -->
                 <div id="basketSummaryBox" class="bg-amber-50 border-4 border-amber-300 rounded-2xl p-5 space-y-4 shadow-sm">
                     <div class="flex justify-between items-center border-b-2 border-amber-200 pb-3">
                         <span class="text-xl font-black text-slate-700">TOTAL A PAGAR:</span>
@@ -177,7 +162,6 @@
                     </div>
                 </div>
 
-                <!-- Práctica Interactiva de Pago -->
                 <div class="bg-indigo-50 border-4 border-indigo-200 rounded-2xl p-5 space-y-4">
                     <h3 class="text-lg font-black text-indigo-900 flex items-center gap-2">
                         <i class="fa-solid fa-cash-register text-2xl text-indigo-600"></i> Práctica de Pago en la Caja
@@ -203,7 +187,6 @@
                 </div>
             </div>
 
-            <!-- Pie del Modal -->
             <div class="bg-slate-100 px-6 py-4 border-t-2 border-slate-300 flex flex-wrap justify-between items-center gap-3">
                 <button onclick="clearBasket()" class="text-rose-600 hover:text-rose-800 font-bold text-sm underline px-2 py-1">
                     Vaciar Canasto
@@ -249,14 +232,11 @@
         </div>
     </div>
 
-    <input type="file" id="jsonFileInput" accept=".json" class="hidden" onchange="handleJSONImport(event)">
-
-    <!-- PIE DE PÁGINA -->
     <footer class="bg-white border-t-2 border-slate-200 py-4 text-center text-xs text-slate-500 font-medium">
         <p>Mi Supermercado Pictográfico NEE • Diseñado con apoyo de Billetes y Monedas Chilenas 🇨🇱</p>
     </footer>
 
-    <!-- LÓGICA JAVASCRIPT COMPLETA -->
+    <!-- LÓGICA JAVASCRIPT CON SOLUCIÓN 2 INTEGRADAS -->
     <script>
         const APP_STATE = {
             currentMode: 'kids',
@@ -324,13 +304,35 @@
             return text.replace(/\$/g, '').replace(/\bCLP\b/gi, 'pesos chilenos').replace(/\bpesos\b/gi, 'pesos chilenos');
         }
 
+        /* --- SOLUCIÓN 2: MOTOR DE VOZ UNIVERSAL Y REANUDACIÓN AUTOMÁTICA --- */
         function speakText(text) {
             if (!('speechSynthesis' in window)) return;
+            
+            window.speechSynthesis.resume();
             window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(cleanTextForSpeech(text));
+
+            const cleanText = cleanTextForSpeech(text);
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+
+            const voices = window.speechSynthesis.getVoices();
+            const spanishVoice = voices.find(v => v.lang === 'es-CL') || 
+                                 voices.find(v => v.lang.startsWith('es'));
+
+            if (spanishVoice) {
+                utterance.voice = spanishVoice;
+            }
+
             utterance.lang = 'es-CL';
             utterance.rate = 0.88;
+            utterance.pitch = 1.0;
+
             window.speechSynthesis.speak(utterance);
+        }
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.getVoices();
+            };
         }
 
         function playChimeSound() {
