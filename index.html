@@ -230,13 +230,13 @@
                 </button>
             </div>
         </div>
-    </div>
+    </footer>
 
     <footer class="bg-white border-t-2 border-slate-200 py-4 text-center text-xs text-slate-500 font-medium">
         <p>Mi Supermercado Pictográfico NEE • Diseñado con apoyo de Billetes y Monedas Chilenas 🇨🇱</p>
     </footer>
 
-    <!-- LÓGICA JAVASCRIPT CON FUNCIÓN DE VOZ ORIGINAL Y ROBUSTA -->
+    <!-- LÓGICA JAVASCRIPT CON RENDERIZADO GARANTIZADO -->
     <script>
         const APP_STATE = {
             currentMode: 'kids',
@@ -279,17 +279,24 @@
             { id: 'prod-9', supermarketId: 'sup-barrio', name: 'Barra de Chocolate', category: 'Snacks', price: 1000, iconEmoji: '🍫' }
         ];
 
-        window.addEventListener('DOMContentLoaded', () => {
-            loadFromLocalStorage();
-            renderApp();
-        });
-
         function loadFromLocalStorage() {
             try {
                 const storedSup = localStorage.getItem('nee_supermarkets');
                 const storedProd = localStorage.getItem('nee_products');
-                APP_STATE.supermarkets = storedSup ? JSON.parse(storedSup) : [...DEFAULT_SUPERMARKETS];
-                APP_STATE.products = storedProd ? JSON.parse(storedProd) : [...DEFAULT_PRODUCTS];
+                
+                if (storedSup) {
+                    const parsed = JSON.parse(storedSup);
+                    APP_STATE.supermarkets = (Array.isArray(parsed) && parsed.length > 0) ? parsed : [...DEFAULT_SUPERMARKETS];
+                } else {
+                    APP_STATE.supermarkets = [...DEFAULT_SUPERMARKETS];
+                }
+
+                if (storedProd) {
+                    const parsedP = JSON.parse(storedProd);
+                    APP_STATE.products = (Array.isArray(parsedP) && parsedP.length > 0) ? parsedP : [...DEFAULT_PRODUCTS];
+                } else {
+                    APP_STATE.products = [...DEFAULT_PRODUCTS];
+                }
             } catch (e) {
                 APP_STATE.supermarkets = [...DEFAULT_SUPERMARKETS];
                 APP_STATE.products = [...DEFAULT_PRODUCTS];
@@ -304,27 +311,22 @@
             return text
                 .replace(/\$/g, '')
                 .replace(/\bCLP\b/gi, 'pesos chilenos')
-                .replace(/\bdólares\b/gi, 'pesos chilenos')
-                .replace(/\bdólar\b/gi, 'peso chileno')
                 .replace(/\bpesos\b/gi, 'pesos chilenos');
         }
 
-        /* --- FUNCIÓN DE VOZ ORIGINAL SIMPLE Y EFECTIVA --- */
         function speakText(text) {
             if (!('speechSynthesis' in window)) return;
-
-            window.speechSynthesis.resume();
-            window.speechSynthesis.cancel();
-
-            const cleanText = cleanTextForSpeech(text);
-            if (!cleanText) return;
-
-            const utterance = new SpeechSynthesisUtterance(cleanText);
-            utterance.lang = 'es-CL';
-            utterance.rate = 0.88;
-            utterance.pitch = 1.0;
-
-            window.speechSynthesis.speak(utterance);
+            try {
+                window.speechSynthesis.resume();
+                window.speechSynthesis.cancel();
+                const cleanText = cleanTextForSpeech(text);
+                if (!cleanText) return;
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                utterance.lang = 'es-CL';
+                utterance.rate = 0.88;
+                utterance.pitch = 1.0;
+                window.speechSynthesis.speak(utterance);
+            } catch(e) {}
         }
 
         function playChimeSound() {
@@ -415,19 +417,21 @@
             const modeLabel = document.getElementById('modeLabel');
             const modeIcon = document.getElementById('modeIcon');
 
+            if (!container) return;
+
             if (APP_STATE.currentMode === 'teacher') {
-                modeLabel.textContent = 'Modo Niños';
-                modeIcon.className = 'fa-solid fa-child text-lg';
-                headerBasketBtn.classList.add('hidden');
+                if (modeLabel) modeLabel.textContent = 'Modo Niños';
+                if (modeIcon) modeIcon.className = 'fa-solid fa-child text-lg';
+                if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
                 renderTeacherView(container);
             } else {
-                modeLabel.textContent = 'Modo Educador';
-                modeIcon.className = 'fa-solid fa-user-gear text-lg';
+                if (modeLabel) modeLabel.textContent = 'Modo Educador';
+                if (modeIcon) modeIcon.className = 'fa-solid fa-user-gear text-lg';
                 if (APP_STATE.selectedSupermarketId) {
-                    headerBasketBtn.classList.remove('hidden');
+                    if (headerBasketBtn) headerBasketBtn.classList.remove('hidden');
                     renderSupermarketView(container, APP_STATE.selectedSupermarketId);
                 } else {
-                    headerBasketBtn.classList.add('hidden');
+                    if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
                     renderHomeView(container);
                 }
             }
@@ -825,6 +829,18 @@
                 saveProducts();
                 renderApp();
             }
+        }
+
+        // INICIALIZACIÓN INMEDIATA DEL SISTEMA
+        function initSystem() {
+            loadFromLocalStorage();
+            renderApp();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSystem);
+        } else {
+            initSystem();
         }
     </script>
 </body>
