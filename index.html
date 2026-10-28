@@ -236,7 +236,7 @@
         <p>Mi Supermercado Pictográfico NEE • Diseñado con apoyo de Billetes y Monedas Chilenas 🇨🇱</p>
     </footer>
 
-    <!-- LÓGICA JAVASCRIPT CON SOPORTE COMPLETO Y FALLBACK PARA FIREFOX -->
+    <!-- LÓGICA JAVASCRIPT OPTIMIZADA PARA GOOGLE CHROME -->
     <script>
         const APP_STATE = {
             currentMode: 'kids',
@@ -279,8 +279,6 @@
             { id: 'prod-9', supermarketId: 'sup-barrio', name: 'Barra de Chocolate', category: 'Snacks', price: 1000, iconEmoji: '🍫' }
         ];
 
-        let currentAudioTTS = null;
-
         function loadFromLocalStorage() {
             try {
                 const storedSup = localStorage.getItem('nee_supermarkets');
@@ -300,48 +298,41 @@
         function saveSupermarkets() { localStorage.setItem('nee_supermarkets', JSON.stringify(APP_STATE.supermarkets)); }
         function saveProducts() { localStorage.setItem('nee_products', JSON.stringify(APP_STATE.products)); }
 
+        // LIMPIEZA DE TEXTO PARA QUE LA VOZ LEA "PESOS" SIN DUPLICACIONES
         function cleanTextForSpeech(text) {
             if (!text) return '';
-            return text.replace(/\$/g, '').replace(/\bCLP\b/gi, 'pesos chilenos').replace(/\bpesos\b/gi, 'pesos chilenos');
+            return text
+                .replace(/\$/g, '')
+                .replace(/\bCLP\b/gi, 'pesos')
+                .replace(/\bpesos chilenos\b/gi, 'pesos');
         }
 
-        /* VOZ UNIVERSAL: WEB SPEECH API + FALLBACK ONLINE PARA FIREFOX/LINUX */
+        /* MOTOR DE SÍNTESIS DE VOZ PARA CHROME */
         function speakText(text) {
-            const cleanText = cleanTextForSpeech(text);
-            if (!cleanText) return;
+            if (!('speechSynthesis' in window)) return;
 
-            // Detener cualquier audio previo
-            if (currentAudioTTS) {
-                currentAudioTTS.pause();
-                currentAudioTTS = null;
-            }
-
-            // Intentar Web Speech API si el navegador tiene voces nativas cargadas
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.resume();
-                const voices = window.speechSynthesis.getVoices();
-                
-                if (voices && voices.length > 0) {
-                    window.speechSynthesis.cancel();
-                    setTimeout(() => {
-                        const utterance = new SpeechSynthesisUtterance(cleanText);
-                        const spanishVoice = voices.find(v => v.lang === 'es-CL') || 
-                                             voices.find(v => v.lang.startsWith('es'));
-                        if (spanishVoice) utterance.voice = spanishVoice;
-                        utterance.lang = 'es-ES';
-                        utterance.rate = 0.88;
-                        window.speechSynthesis.speak(utterance);
-                    }, 60);
-                    return;
-                }
-            }
-
-            // FALLBACK PARA FIREFOX SIN ENGINE NATIVO DE VOZ
             try {
-                const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=${encodeURIComponent(cleanText)}`;
-                currentAudioTTS = new Audio(ttsUrl);
-                currentAudioTTS.play().catch(() => {});
-            } catch (e) {}
+                window.speechSynthesis.cancel(); // Detener cualquier locución previa
+                const cleanText = cleanTextForSpeech(text);
+                if (!cleanText) return;
+
+                setTimeout(() => {
+                    const utterance = new SpeechSynthesisUtterance(cleanText);
+                    utterance.lang = 'es-CL';
+                    utterance.rate = 0.88;
+                    utterance.pitch = 1.0;
+
+                    // Buscar voz en español en Chrome
+                    const voices = window.speechSynthesis.getVoices();
+                    const spanishVoice = voices.find(v => v.lang === 'es-CL') || 
+                                         voices.find(v => v.lang.startsWith('es'));
+                    if (spanishVoice) {
+                        utterance.voice = spanishVoice;
+                    }
+
+                    window.speechSynthesis.speak(utterance);
+                }, 50);
+            } catch(e) {}
         }
 
         function playChimeSound() {
@@ -548,7 +539,7 @@
                             </div>
 
                             <div class="flex space-x-2">
-                                <button onclick="speakText('${prod.name}, vale ${prod.price} pesos chilenos')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold p-3 rounded-xl border border-sky-300 active:scale-95" title="Escuchar">
+                                <button onclick="speakText('${prod.name}, vale ${prod.price} pesos')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold p-3 rounded-xl border border-sky-300 active:scale-95" title="Escuchar">
                                     <i class="fa-solid fa-volume-high"></i>
                                 </button>
                                 <button onclick="addToBasket('${prod.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl border-b-4 border-emerald-800 flex items-center justify-center space-x-2 active:scale-95 shadow touch-focus">
@@ -654,7 +645,7 @@
         }
 
         function speakBasketTotalText() {
-            speakText(`El total a pagar es ${calculateBasketTotal()} pesos chilenos.`);
+            speakText(`El total a pagar es ${calculateBasketTotal()} pesos.`);
         }
 
         function renderPaymentMoneyTray() {
