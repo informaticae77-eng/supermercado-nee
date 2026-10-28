@@ -161,17 +161,21 @@
 
             if (isBill) {
                 return `
-                    <div class="currency-item inline-flex flex-col items-center ${width}${height} relative shadow-md rounded-lg overflow-hidden border border-slate-700 select-none text-white" style="background-color: ${item.color};">
+                    <div class="currency-item inline-flex flex-col items-center ${width} ${height} relative shadow-md rounded-lg overflow-hidden border border-slate-700 select-none text-white" style="background-color: ${item.color};">
                         <div class="w-full flex justify-between px-1 text-[7px] font-black opacity-90">
-                            <span>CHILE</span><span>$${item.value.toLocaleString('es-CL')}</span> </div> <div class="flex-1 flex items-center justify-center font-black text-xs"> $${item.value.toLocaleString('es-CL')}
+                            <span>CHILE</span><span>$${item.value.toLocaleString('es-CL')}</span>
+                        </div>
+                        <div class="flex-1 flex items-center justify-center font-black text-xs">
+                            $${item.value.toLocaleString('es-CL')}
                         </div>
                     </div>
                 `;
             } else {
                 const isBimetallic = item.value === 500;
                 return `
-                    <div class="currency-item inline-flex items-center justify-center ${width}${height} rounded-full border border-slate-700 shadow-md font-black text-slate-900 text-xs"
-                         style="background: ${isBimetallic ? 'radial-gradient(circle, #F59E0B 48\%, #9CA3AF 50\%)' : '#F59E0B'};"> $${item.value}
+                    <div class="currency-item inline-flex items-center justify-center ${width} ${height} rounded-full border border-slate-700 shadow-md font-black text-slate-900 text-xs"
+                         style="background: ${isBimetallic ? 'radial-gradient(circle, #F59E0B 48%, #9CA3AF 50%)' : '#F59E0B'};">
+                        $${item.value}
                     </div>
                 `;
             }
@@ -240,7 +244,7 @@
                             ${sup.icon || '🛒'}
                         </div>
                         <div>
-                            <h3 class="text-2xl font-black ${sup.textColor \vert{}\vert{} 'text-slate-800'}">${sup.name}</h3>
+                            <h3 class="text-2xl font-black ${sup.textColor || 'text-slate-800'}">${sup.name}</h3>
                             <p class="text-xs font-semibold text-slate-500 mt-1">${sup.description || 'Supermercado'}</p>
                         </div>
                         <span class="bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1 rounded-full border border-slate-300">
@@ -283,4 +287,332 @@
 
             if (products.length === 0) {
                 html += `
-                    <div class="bg-white p-12 rounded
+                    <div class="bg-white p-12 rounded-3xl text-center space-y-4 border-4 border-dashed border-slate-300">
+                        <span class="text-5xl">📦</span>
+                        <h3 class="text-xl font-bold text-slate-600">No hay productos en este supermercado.</h3>
+                    </div>
+                `;
+            } else {
+                html += `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">`;
+                products.forEach(prod => {
+                    const breakdown = calculateCLPBreakdown(prod.price);
+                    html += `
+                        <div class="bg-white rounded-3xl border-4 border-slate-200 p-5 shadow-md flex flex-col justify-between space-y-4 hover:border-amber-400 transition-all">
+                            <div class="flex items-center space-x-4">
+                                <div class="bg-amber-100 p-4 rounded-2xl text-4xl border-2 border-amber-300 flex items-center justify-center shrink-0">
+                                    ${prod.iconEmoji || '📦'}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">${prod.category || 'General'}</span>
+                                    <h3 class="text-lg font-black text-slate-800 truncate">${prod.name}</h3>
+                                    <div class="text-2xl font-black text-emerald-700 mt-1">$${prod.price.toLocaleString('es-CL')}</div>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                <span class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Pagas con:</span>
+                                ${renderBreakdownHTML(breakdown, 'sm')}
+                            </div>
+
+                            <div class="flex space-x-2">
+                                <button onclick="speakText('${prod.name}, vale ${prod.price} pesos chilenos')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold p-3 rounded-xl border border-sky-300 active:scale-95" title="Escuchar">
+                                    <i class="fa-solid fa-volume-high"></i>
+                                </button>
+                                <button onclick="addToBasket('${prod.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl border-b-4 border-emerald-800 flex items-center justify-center space-x-2 active:scale-95 shadow touch-focus">
+                                    <i class="fa-solid fa-cart-plus"></i>
+                                    <span>Añadir al Canasto</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        function addToBasket(prodId) {
+            const prod = APP_STATE.products.find(p => p.id === prodId);
+            if (!prod) return;
+            const existing = APP_STATE.basket.find(item => item.productId === prodId);
+            if (existing) { existing.quantity++; } else { APP_STATE.basket.push({ productId: prodId, quantity: 1 }); }
+            playChimeSound();
+            updateBasketBadge();
+            speakText(`Añadido ${prod.name} al canasto`);
+        }
+
+        function updateBasketBadge() {
+            const badge = document.getElementById('basketBadge');
+            const totalCount = APP_STATE.basket.reduce((sum, item) => sum + item.quantity, 0);
+            if (badge) badge.textContent = totalCount;
+        }
+
+        function openBasketModal() {
+            renderBasketModal();
+            document.getElementById('basketModal').classList.remove('hidden');
+        }
+
+        function closeBasketModal() { document.getElementById('basketModal').classList.add('hidden'); }
+
+        function clearBasket() {
+            APP_STATE.basket = [];
+            APP_STATE.userPaidAmount = 0;
+            updateBasketBadge();
+            renderBasketModal();
+            speakText("El canasto ha sido vaciado");
+        }
+
+        function renderBasketModal() {
+            const listContainer = document.getElementById('basketItemsList');
+            const totalEl = document.getElementById('basketTotalCLP');
+            const breakdownEl = document.getElementById('basketCurrencyBreakdown');
+
+            let totalAmount = 0;
+
+            if (APP_STATE.basket.length === 0) {
+                listContainer.innerHTML = `<div class="text-center py-8 text-slate-400 font-bold">Tu canasto está vacío.</div>`;
+            } else {
+                let html = '';
+                APP_STATE.basket.forEach(item => {
+                    const prod = APP_STATE.products.find(p => p.id === item.productId);
+                    if (!prod) return;
+                    const subtotal = prod.price * item.quantity;
+                    totalAmount += subtotal;
+
+                    html += `
+                        <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-2xl">${prod.iconEmoji || '📦'}</span>
+                                <div>
+                                    <h4 class="font-black text-slate-800 text-sm">${prod.name}</h4>
+                                    <span class="text-xs font-bold text-emerald-700">$${prod.price.toLocaleString('es-CL')} c/u</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="font-black px-2">${item.quantity} u.</span>
+                                <span class="font-black text-slate-800 text-sm">$${subtotal.toLocaleString('es-CL')}</span>
+                                <button onclick="removeFromBasket('${prod.id}')" class="text-rose-500 p-1">✕</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                listContainer.innerHTML = html;
+            }
+
+            totalEl.textContent = `$${totalAmount.toLocaleString('es-CL')}`;
+            breakdownEl.innerHTML = renderBreakdownHTML(calculateCLPBreakdown(totalAmount), 'md');
+            renderPaymentMoneyTray();
+            updateUserPaidDisplay();
+        }
+
+        function removeFromBasket(prodId) {
+            APP_STATE.basket = APP_STATE.basket.filter(i => i.productId !== prodId);
+            updateBasketBadge();
+            renderBasketModal();
+        }
+
+        function calculateBasketTotal() {
+            return APP_STATE.basket.reduce((sum, item) => {
+                const prod = APP_STATE.products.find(p => p.id === item.productId);
+                return sum + (prod ? prod.price * item.quantity : 0);
+            }, 0);
+        }
+
+        function speakBasketTotalText() {
+            speakText(`El total a pagar es ${calculateBasketTotal()} pesos chilenos.`);
+        }
+
+        function renderPaymentMoneyTray() {
+            const tray = document.getElementById('paymentMoneyTray');
+            if (!tray) return;
+            let html = '';
+            CLP_CURRENCY_ITEMS.forEach(item => {
+                html += `
+                    <button onclick="addPaidMoney(${item.value})" class="bg-white hover:bg-indigo-100 p-2 rounded-xl border-2 border-indigo-300 flex flex-col items-center justify-center space-y-1 shadow-sm active:scale-95 touch-focus">
+                        ${renderCurrencySVG(item, 'sm')}
+                        <span class="text-[10px] font-black text-indigo-900">+ $${item.value.toLocaleString('es-CL')}</span>
+                    </button>
+                `;
+            });
+            tray.innerHTML = html;
+        }
+
+        function addPaidMoney(amount) {
+            APP_STATE.userPaidAmount += amount;
+            playChimeSound();
+            updateUserPaidDisplay();
+            speakText(`Sumaste ${amount} pesos`);
+        }
+
+        function resetUserPayment() {
+            APP_STATE.userPaidAmount = 0;
+            updateUserPaidDisplay();
+            speakText("Dinero devuelto");
+        }
+
+        function updateUserPaidDisplay() {
+            const paidEl = document.getElementById('userPaidTotal');
+            if (paidEl) paidEl.textContent = `$${APP_STATE.userPaidAmount.toLocaleString('es-CL')}`;
+        }
+
+        function verifyAndCheckout() {
+            const totalNeeded = calculateBasketTotal();
+            if (totalNeeded === 0) { speakText("El canasto está vacío."); return; }
+
+            if (APP_STATE.userPaidAmount >= totalNeeded) {
+                confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+                const vuelto = APP_STATE.userPaidAmount - totalNeeded;
+                speakText(`¡Excelente trabajo! Has pagado correctamente.${vuelto > 0 ? ` Tu vuelto es ${vuelto} pesos.` : ''}`);
+                alert(`🎉 ¡COMPRA EXITOSA! 🎉\n\nTotal: $${totalNeeded.toLocaleString('es-CL')}\nPagado: $${APP_STATE.userPaidAmount.toLocaleString('es-CL')}${vuelto > 0 ? `\nVuelto: $${vuelto.toLocaleString('es-CL')}` : ''}`);
+                APP_STATE.basket = [];
+                APP_STATE.userPaidAmount = 0;
+                updateBasketBadge();
+                closeBasketModal();
+                renderApp();
+            } else {
+                const falta = totalNeeded - APP_STATE.userPaidAmount;
+                speakText(`Te faltan ${falta} pesos.`);
+                alert(`⚠️ Te faltan $${falta.toLocaleString('es-CL')} pesos para pagar.`);
+            }
+        }
+
+        function toggleModePrompt() {
+            if (APP_STATE.currentMode === 'teacher') {
+                APP_STATE.currentMode = 'kids';
+                renderApp();
+                speakText("Modo Niños activado");
+            } else {
+                document.getElementById('pinInput').value = '';
+                document.getElementById('pinErrorMsg').classList.add('hidden');
+                document.getElementById('pinModal').classList.remove('hidden');
+            }
+        }
+
+        function closePinModal() { document.getElementById('pinModal').classList.add('hidden'); }
+
+        function validatePin() {
+            if (document.getElementById('pinInput').value === APP_STATE.pinCode) {
+                closePinModal();
+                APP_STATE.currentMode = 'teacher';
+                renderApp();
+                speakText("Modo Educador activado");
+            } else {
+                document.getElementById('pinErrorMsg').classList.remove('hidden');
+            }
+        }
+
+        function renderTeacherView(container) {
+            let html = `
+                <div class="bg-white rounded-3xl border-4 border-indigo-300 p-6 shadow-xl space-y-8">
+                    <div class="flex justify-between items-center border-b pb-4">
+                        <h2 class="text-2xl font-black text-indigo-900">⚙️ Panel del Educador</h2>
+                        <button onclick="resetToDefaults()" class="bg-rose-100 text-rose-800 font-bold px-3 py-1.5 rounded-xl text-xs">Restablecer Todo</button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-black">Supermercados</h3>
+                            <button onclick="showAddSupermarketForm()" class="bg-emerald-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl">+ Nuevo Supermercado</button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            `;
+
+            APP_STATE.supermarkets.forEach(s => {
+                html += `
+                    <div class="p-3 bg-slate-50 border rounded-xl flex justify-between items-center">
+                        <span class="font-bold text-sm">${s.icon} ${s.name}</span>
+                        <button onclick="deleteSupermarket('${s.id}')" class="text-rose-600 font-bold text-xs">Eliminar</button>
+                    </div>
+                `;
+            });
+
+            html += `
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 border-t pt-4">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-black">Productos</h3>
+                            <button onclick="showAddProductForm()" class="bg-indigo-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl">+ Nuevo Producto</button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            `;
+
+            APP_STATE.products.forEach(p => {
+                html += `
+                    <div class="p-3 bg-white border rounded-xl flex justify-between items-center">
+                        <span class="font-bold text-sm">${p.iconEmoji} ${p.name} ($${p.price.toLocaleString('es-CL')})</span>
+                        <button onclick="deleteProduct('${p.id}')" class="text-rose-600 font-bold text-xs">Eliminar</button>
+                    </div>
+                `;
+            });
+
+            html += `</div></div></div>`;
+            container.innerHTML = html;
+        }
+
+        function showAddSupermarketForm() {
+            const name = prompt("Nombre del supermercado:");
+            if (!name) return;
+            const icon = prompt("Emoji (ej: 🛒, 🍎):", "🛒") || "🛒";
+            APP_STATE.supermarkets.push({
+                id: 'sup-' + Date.now(),
+                name, icon,
+                themeColor: 'bg-indigo-600',
+                textColor: 'text-indigo-600',
+                borderColor: 'border-indigo-500'
+            });
+            saveSupermarkets();
+            renderApp();
+        }
+
+        function deleteSupermarket(id) {
+            if (confirm("¿Eliminar este supermercado?")) {
+                APP_STATE.supermarkets = APP_STATE.supermarkets.filter(s => s.id !== id);
+                APP_STATE.products = APP_STATE.products.filter(p => p.supermarketId !== id);
+                saveSupermarkets();
+                saveProducts();
+                renderApp();
+            }
+        }
+
+        function showAddProductForm() {
+            if (APP_STATE.supermarkets.length === 0) return alert("Crea primero un supermercado.");
+            const name = prompt("Nombre del producto:");
+            if (!name) return;
+            const price = parseInt(prompt("Precio en CLP (ej: 1200):"), 10);
+            if (isNaN(price)) return alert("Precio no válido.");
+            const iconEmoji = prompt("Emoji (ej: 🥛, 🍎):", "📦") || "📦";
+
+            APP_STATE.products.push({
+                id: 'prod-' + Date.now(),
+                supermarketId: APP_STATE.supermarkets[0].id,
+                name, price, iconEmoji, category: 'General'
+            });
+            saveProducts();
+            renderApp();
+        }
+
+        function deleteProduct(id) {
+            if (confirm("¿Eliminar producto?")) {
+                APP_STATE.products = APP_STATE.products.filter(p => p.id !== id);
+                saveProducts();
+                renderApp();
+            }
+        }
+
+        function resetToDefaults() {
+            if (confirm("¿Restablecer datos iniciales?")) {
+                APP_STATE.supermarkets = [...DEFAULT_SUPERMARKETS];
+                APP_STATE.products = [...DEFAULT_PRODUCTS];
+                saveSupermarkets();
+                saveProducts();
+                renderApp();
+            }
+        }
+
+        loadFromLocalStorage();
+        renderApp();
+    </script>
