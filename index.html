@@ -15,6 +15,10 @@
     <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
+    <!-- FIREBASE SDK (COMPAT ENGINE) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -155,7 +159,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">RUT (sin puntos con guión):</label>
-                    <input type="text" id="modalRut" placeholder="Ej: 12345678-9" oninput="autoSetPinFromRut()" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-indigo-500 focus:outline-none">
+                    <input type="text" id="modalRut" placeholder="Ej: 12345678-9" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-indigo-500 focus:outline-none">
                     <p class="text-[10px] text-slate-500 mt-0.5">La clave inicial serán los primeros 4 dígitos del RUT.</p>
                 </div>
                 <div>
@@ -175,11 +179,26 @@
         </div>
     </div>
 
-    <footer class="bg-white border-t-2 border-slate-200 py-4 text-center text-xs text-slate-500 font-medium">
-        <p>Mi Supermercado Pictográfico NEE • Diseñado con apoyo de Billetes y Monedas Chilenas 🇨🇱</p>
+    <footer class="bg-white border-t-2 border-slate-200 py-4 text-center text-xs text-slate-500 font-medium flex justify-center items-center gap-2">
+        <p>Mi Supermercado Pictográfico NEE • Base de Datos en la Nube ☁️</p>
     </footer>
 
     <script>
+        // CONFIGURACIÓN DE FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyB27AIOvrMwMtidvD7Lbkbp9v--0DLaZyY",
+            authDomain: "supermercado-nee.firebaseapp.com",
+            projectId: "supermercado-nee",
+            storageBucket: "supermercado-nee.firebasestorage.app",
+            messagingSenderId: "439038813506",
+            appId: "1:439038813506:web:972b1e2a0dc1da8cfad4db",
+            measurementId: "G-ZJXT1QTQ6J"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // ESTADO GLOBAL
         const APP_STATE = {
             currentUser: null,
             selectedSupermarketId: null,
@@ -234,37 +253,57 @@
             { id: 'prod-9', supermarketId: 'sup-barrio', name: 'Barra de Chocolate', category: 'Snacks', price: 1000, iconEmoji: '🍫' }
         ];
 
-        function loadFromLocalStorage() {
-            try {
-                const storedCourses = localStorage.getItem('nee_courses');
-                const storedUsers = localStorage.getItem('nee_users');
-                const storedSup = localStorage.getItem('nee_supermarkets');
-                const storedProd = localStorage.getItem('nee_products');
-                const storedUserActive = localStorage.getItem('nee_active_user');
-
-                APP_STATE.courses = storedCourses ? JSON.parse(storedCourses) : [...DEFAULT_COURSES];
-                APP_STATE.users = storedUsers ? JSON.parse(storedUsers) : [...DEFAULT_USERS];
-                APP_STATE.supermarkets = storedSup ? JSON.parse(storedSup) : [...DEFAULT_SUPERMARKETS];
-                APP_STATE.products = storedProd ? JSON.parse(storedProd) : [...DEFAULT_PRODUCTS];
-                APP_STATE.currentUser = storedUserActive ? JSON.parse(storedUserActive) : null;
-            } catch (e) {
-                APP_STATE.courses = [...DEFAULT_COURSES];
-                APP_STATE.users = [...DEFAULT_USERS];
-                APP_STATE.supermarkets = [...DEFAULT_SUPERMARKETS];
-                APP_STATE.products = [...DEFAULT_PRODUCTS];
+        // ESCUCHADORES EN TIEMPO REAL CON FIREBASE
+        function initFirebaseListeners() {
+            // Sesión local activa
+            const storedUser = localStorage.getItem('nee_active_user');
+            if (storedUser) {
+                try { APP_STATE.currentUser = JSON.parse(storedUser); } catch(e) {}
             }
-        }
 
-        function saveData() {
-            localStorage.setItem('nee_courses', JSON.stringify(APP_STATE.courses));
-            localStorage.setItem('nee_users', JSON.stringify(APP_STATE.users));
-            localStorage.setItem('nee_supermarkets', JSON.stringify(APP_STATE.supermarkets));
-            localStorage.setItem('nee_products', JSON.stringify(APP_STATE.products));
-            if (APP_STATE.currentUser) {
-                localStorage.setItem('nee_active_user', JSON.stringify(APP_STATE.currentUser));
-            } else {
-                localStorage.removeItem('nee_active_user');
-            }
+            // 1. Cursos
+            db.collection('courses').onSnapshot(snapshot => {
+                if (snapshot.empty) {
+                    DEFAULT_COURSES.forEach(c => db.collection('courses').doc(c.id).set(c));
+                } else {
+                    APP_STATE.courses = snapshot.docs.map(doc => doc.data());
+                    renderApp();
+                }
+            });
+
+            // 2. Usuarios
+            db.collection('users').onSnapshot(snapshot => {
+                if (snapshot.empty) {
+                    DEFAULT_USERS.forEach(u => db.collection('users').doc(u.id).set(u));
+                } else {
+                    APP_STATE.users = snapshot.docs.map(doc => doc.data());
+                    if (APP_STATE.currentUser) {
+                        const updatedCur = APP_STATE.users.find(u => u.id === APP_STATE.currentUser.id);
+                        if (updatedCur) APP_STATE.currentUser = updatedCur;
+                    }
+                    renderApp();
+                }
+            });
+
+            // 3. Supermercados
+            db.collection('supermarkets').onSnapshot(snapshot => {
+                if (snapshot.empty) {
+                    DEFAULT_SUPERMARKETS.forEach(s => db.collection('supermarkets').doc(s.id).set(s));
+                } else {
+                    APP_STATE.supermarkets = snapshot.docs.map(doc => doc.data());
+                    renderApp();
+                }
+            });
+
+            // 4. Productos
+            db.collection('products').onSnapshot(snapshot => {
+                if (snapshot.empty) {
+                    DEFAULT_PRODUCTS.forEach(p => db.collection('products').doc(p.id).set(p));
+                } else {
+                    APP_STATE.products = snapshot.docs.map(doc => doc.data());
+                    renderApp();
+                }
+            });
         }
 
         function cleanTextForSpeech(text) {
@@ -345,21 +384,18 @@
                 userInfoHeader.innerHTML = '';
             }
 
-            // PANTALLA DE INGRESO
             if (!APP_STATE.currentUser) {
                 if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
                 renderLoginView(container);
                 return;
             }
 
-            // OBLIGAR A CAMBIAR CONTRASEÑA SI ES PRIMER INGRESO
             if (APP_STATE.currentUser.mustChangePassword) {
                 if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
                 renderForcePasswordChangeView(container);
                 return;
             }
 
-            // RUTAS POR ROL
             if (APP_STATE.currentUser.role === 'admin') {
                 if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
                 renderAdminDashboard(container);
@@ -416,7 +452,7 @@
 
             if (user && user.pin === pinVal) {
                 APP_STATE.currentUser = user;
-                saveData();
+                localStorage.setItem('nee_active_user', JSON.stringify(user));
                 speakText(`Bienvenido ${user.name}`);
                 renderApp();
             } else {
@@ -431,7 +467,7 @@
                         <div class="text-5xl">🔑</div>
                         <h2 class="text-2xl font-black text-amber-950">Cambio Obligatorio de Clave</h2>
                         <p class="text-xs font-bold text-amber-800">
-                            Hola <strong>${APP_STATE.currentUser.name}</strong>. Por motivos de seguridad, debes ingresar una nueva clave personal.
+                            Hola <strong>${APP_STATE.currentUser.name}</strong>. Por seguridad, debes ingresar una nueva clave personal.
                         </p>
                     </div>
 
@@ -471,33 +507,33 @@
                 return;
             }
 
-            // Actualizar usuario
-            const userInDb = APP_STATE.users.find(u => u.id === APP_STATE.currentUser.id);
-            if (userInDb) {
-                userInDb.pin = p1;
-                userInDb.mustChangePassword = false;
-                APP_STATE.currentUser = userInDb;
-                saveData();
-                alert("¡Clave actualizada con éxito!");
+            db.collection('users').doc(APP_STATE.currentUser.id).update({
+                pin: p1,
+                mustChangePassword: false
+            }).then(() => {
+                APP_STATE.currentUser.pin = p1;
+                APP_STATE.currentUser.mustChangePassword = false;
+                localStorage.setItem('nee_active_user', JSON.stringify(APP_STATE.currentUser));
+                alert("¡Clave actualizada con éxito en la nube!");
                 renderApp();
-            }
+            });
         }
 
         function logout() {
             APP_STATE.currentUser = null;
             APP_STATE.selectedSupermarketId = null;
-            saveData();
+            localStorage.removeItem('nee_active_user');
             renderApp();
         }
 
-        // DASHBOARD ADMINISTRADOR CON FILTRO DE CURSO
+        // DASHBOARD ADMINISTRADOR
         function renderAdminDashboard(container) {
             let html = `
                 <div class="space-y-6">
                     <div class="bg-indigo-900 text-white p-6 rounded-3xl shadow-lg flex flex-wrap justify-between items-center gap-4">
                         <div>
-                            <h2 class="text-2xl font-black">👑 Panel de Administración</h2>
-                            <p class="text-xs text-indigo-200 mt-1">Gestión completa de Cursos, Educadores, Alumnos y Claves.</p>
+                            <h2 class="text-2xl font-black">👑 Panel de Administración (Nube ☁️)</h2>
+                            <p class="text-xs text-indigo-200 mt-1">Gestión completa en tiempo real de Cursos, Educadores, Alumnos y Claves.</p>
                         </div>
                         
                         <div class="flex items-center gap-3">
@@ -508,9 +544,6 @@
                                     ${APP_STATE.courses.map(c => `<option value="${c.id}" ${APP_STATE.adminCourseFilter === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
                                 </select>
                             </div>
-                            <button onclick="resetToDefaults()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-2 rounded-xl text-xs">
-                                Restablecer Todo
-                            </button>
                         </div>
                     </div>
 
@@ -645,7 +678,6 @@
             renderAdminDashboard(document.getElementById('appContainer'));
         }
 
-        // PANEL DE EDUCADOR
         function renderTeacherDashboard(container) {
             const myCourseIds = APP_STATE.currentUser.courseIds || [];
             const myCourses = APP_STATE.courses.filter(c => myCourseIds.includes(c.id));
@@ -712,7 +744,7 @@
             container.innerHTML = html;
         }
 
-        // MODAL PARA CREACIÓN Y ASIGNACIÓN DE USUARIOS
+        // ACCIONES CON BASE DE DATOS EN LA NUBE
         function openCreateUserModal(role) {
             if (APP_STATE.courses.length === 0) return alert("Crea al menos un curso antes de registrar usuarios.");
             
@@ -746,9 +778,10 @@
             }
 
             const initialPin = getInitialPinFromRut(rut);
+            const newUserId = 'u-' + Date.now();
 
             const newUser = {
-                id: 'u-' + Date.now(),
+                id: newUserId,
                 name,
                 rut,
                 username: rut,
@@ -764,15 +797,12 @@
                 newUser.courseId = courseId;
             }
 
-            APP_STATE.users.push(newUser);
-            saveData();
-            closeUserModal();
-            renderAdminDashboard(document.getElementById('appContainer'));
-
-            // Notificación e instrucción de envío de correo
-            if (confirm(`Usuario registrado correctamente.\n\nClave Inicial (Primeros 4 dígitos RUT): ${initialPin}\n\n¿Deseas enviar las credenciales al correo (${email}) ahora?`)) {
-                sendCredentialsByEmail(newUser.id);
-            }
+            db.collection('users').doc(newUserId).set(newUser).then(() => {
+                closeUserModal();
+                if (confirm(`Usuario registrado en la Nube.\n\nClave Inicial (Primeros 4 dígitos RUT): ${initialPin}\n\n¿Deseas enviar las credenciales al correo (${email}) ahora?`)) {
+                    sendCredentialsByEmail(newUserId);
+                }
+            });
         }
 
         function resetUserPassword(userId) {
@@ -780,12 +810,12 @@
             if (!user) return;
 
             const initialPin = getInitialPinFromRut(user.rut);
-            user.pin = initialPin;
-            user.mustChangePassword = true;
-            saveData();
-
-            alert(`🔒 Clave de ${user.name} reiniciada a los primeros 4 dígitos del RUT (${initialPin}).\nAl ingresar, se le exigirá cambiar la clave.`);
-            renderAdminDashboard(document.getElementById('appContainer'));
+            db.collection('users').doc(userId).update({
+                pin: initialPin,
+                mustChangePassword: true
+            }).then(() => {
+                alert(`🔒 Clave de ${user.name} reiniciada a los primeros 4 dígitos del RUT (${initialPin}).\nAl ingresar se le exigirá cambiar su clave.`);
+            });
         }
 
         function sendCredentialsByEmail(userId) {
@@ -808,28 +838,23 @@
         function addNewCoursePrompt() {
             const name = prompt("Nombre del nuevo curso (ej: 2° Básico NEE):");
             if (!name) return;
-            APP_STATE.courses.push({ id: 'c-' + Date.now(), name });
-            saveData();
-            renderApp();
+            const newId = 'c-' + Date.now();
+            db.collection('courses').doc(newId).set({ id: newId, name });
         }
 
         function deleteCourse(id) {
-            if (confirm("¿Eliminar este curso?")) {
-                APP_STATE.courses = APP_STATE.courses.filter(c => c.id !== id);
-                saveData();
-                renderApp();
+            if (confirm("¿Eliminar este curso de la Nube?")) {
+                db.collection('courses').doc(id).delete();
             }
         }
 
         function deleteUser(id) {
             if (confirm("¿Eliminar este usuario del sistema?")) {
-                APP_STATE.users = APP_STATE.users.filter(u => u.id !== id);
-                saveData();
-                renderApp();
+                db.collection('users').doc(id).delete();
             }
         }
 
-        // VISTAS DE SIMULACIÓN Y COMPRAS
+        // COMPRAS Y SIMULACIÓN
         function goHome() {
             APP_STATE.selectedSupermarketId = null;
             renderApp();
@@ -1153,20 +1178,8 @@
             }
         }
 
-        function resetToDefaults() {
-            if (confirm("¿Restablecer datos e iniciar de cero?")) {
-                APP_STATE.courses = [...DEFAULT_COURSES];
-                APP_STATE.users = [...DEFAULT_USERS];
-                APP_STATE.supermarkets = [...DEFAULT_SUPERMARKETS];
-                APP_STATE.products = [...DEFAULT_PRODUCTS];
-                APP_STATE.currentUser = null;
-                saveData();
-                renderApp();
-            }
-        }
-
-        loadFromLocalStorage();
-        renderApp();
+        // INICIALIZAR BASE DE DATOS Y APLICACIÓN
+        initFirebaseListeners();
     </script>
 </body>
 </html>
