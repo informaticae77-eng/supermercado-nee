@@ -6,7 +6,7 @@
     <title>Mi Supermercado Pictográfico - Chile NEE</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Font Lexend (Accesibilidad) -->
+    <!-- Google Font Lexend -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -19,45 +19,23 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Lexend', 'sans-serif'],
-                    },
-                    colors: {
-                        chileRed: '#D52B1E',
-                        chileBlue: '#0039A6'
-                    }
+                    fontFamily: { sans: ['Lexend', 'sans-serif'] },
+                    colors: { chileRed: '#D52B1E', chileBlue: '#0039A6' }
                 }
             }
         }
     </script>
 
     <style>
-        body {
-            font-family: 'Lexend', sans-serif;
-            background-color: #F8FAFC;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-        .touch-focus:focus, .touch-focus:active {
-            outline: 4px solid #2563EB !important;
-            outline-offset: 3px;
-        }
-
-        .currency-item {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
+        body { font-family: 'Lexend', sans-serif; background-color: #F8FAFC; user-select: none; -webkit-user-select: none; }
+        .touch-focus:focus, .touch-focus:active { outline: 4px solid #2563EB !important; outline-offset: 3px; }
+        .currency-item { transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .currency-item:hover { transform: scale(1.05); }
         .currency-item:active { transform: scale(0.95); }
-
         ::-webkit-scrollbar { width: 10px; height: 10px; }
         ::-webkit-scrollbar-track { background: #E2E8F0; border-radius: 8px; }
         ::-webkit-scrollbar-thumb { background: #94A3B8; border-radius: 8px; }
-
-        @keyframes pulse-gentle {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.03); }
-        }
+        @keyframes pulse-gentle { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
         .animate-tactile { animation: pulse-gentle 2.5s infinite ease-in-out; }
     </style>
 </head>
@@ -66,11 +44,8 @@
     <!-- BARRA DE NAVEGACIÓN -->
     <header class="bg-white border-b-4 border-slate-300 shadow-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-3">
-            
             <div class="flex items-center space-x-3 cursor-pointer" onclick="goHome()">
-                <div class="bg-amber-400 p-2.5 rounded-2xl shadow-md border-2 border-amber-500 text-3xl flex items-center justify-center">
-                    🛒
-                </div>
+                <div class="bg-amber-400 p-2.5 rounded-2xl shadow-md border-2 border-amber-500 text-3xl flex items-center justify-center">🛒</div>
                 <div>
                     <h1 class="text-xl sm:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
                         SuperMercado NEE <span class="bg-red-600 text-white text-xs px-2.5 py-0.5 rounded-full uppercase tracking-wider">Chile 🇨🇱</span>
@@ -80,8 +55,7 @@
             </div>
 
             <div class="flex items-center space-x-2 sm:space-x-3">
-                <button onclick="speakText('Bienvenido a Mi Supermercado Pictográfico.')" 
-                        title="Escuchar audio"
+                <button onclick="speakText('Bienvenido a Mi Supermercado Pictográfico.')" title="Escuchar audio"
                         class="bg-sky-100 hover:bg-sky-200 text-sky-800 border-2 border-sky-400 font-bold py-2 px-3 rounded-xl flex items-center space-x-2 active:scale-95 touch-focus">
                     <i class="fa-solid fa-volume-high text-lg"></i>
                     <span class="hidden sm:inline font-bold text-sm">Voz</span>
@@ -98,13 +72,12 @@
         </div>
     </header>
 
-    <!-- CONTENEDOR PRINCIPAL DE LA VISTA -->
+    <!-- CONTENEDOR PRINCIPAL -->
     <main id="appContainer" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full"></main>
 
-    <!-- MODAL DEL CANASTO Y CAJA REGISTRADORA -->
+    <!-- MODAL VIRTUAL DE CANASTO -->
     <div id="basketModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-white w-full max-w-4xl rounded-3xl border-4 border-slate-300 shadow-2xl overflow-hidden my-8 flex flex-col max-h-[90vh]">
-            
             <div class="bg-emerald-600 text-white px-6 py-4 flex justify-between items-center border-b-4 border-emerald-800">
                 <div class="flex items-center space-x-3">
                     <span class="text-3xl">🧺</span>
@@ -169,22 +142,54 @@
         </div>
     </div>
 
+    <!-- MODAL DE CREACIÓN DE USUARIO -->
+    <div id="userModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-3xl border-4 border-indigo-400 shadow-2xl p-6 space-y-4">
+            <h3 id="userModalTitle" class="text-2xl font-black text-indigo-950 border-b pb-2">Crear Nuevo Usuario</h3>
+            <input type="hidden" id="modalUserRole">
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre Completo:</label>
+                    <input type="text" id="modalName" placeholder="Ej: María Gonzáles" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">RUT (sin puntos con guión):</label>
+                    <input type="text" id="modalRut" placeholder="Ej: 12345678-9" oninput="autoSetPinFromRut()" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-indigo-500 focus:outline-none">
+                    <p class="text-[10px] text-slate-500 mt-0.5">La clave inicial serán los primeros 4 dígitos del RUT.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Correo Electrónico:</label>
+                    <input type="email" id="modalEmail" placeholder="ejemplo@correo.cl" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Curso Asignado:</label>
+                    <select id="modalCourse" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-indigo-500 focus:outline-none bg-white"></select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button onclick="closeUserModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl border-b-4 border-slate-400">Cancelar</button>
+                <button onclick="saveUserFromModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-2.5 rounded-xl border-b-4 border-indigo-900 shadow">Guardar y Asignar</button>
+            </div>
+        </div>
+    </div>
+
     <footer class="bg-white border-t-2 border-slate-200 py-4 text-center text-xs text-slate-500 font-medium">
         <p>Mi Supermercado Pictográfico NEE • Diseñado con apoyo de Billetes y Monedas Chilenas 🇨🇱</p>
     </footer>
 
     <script>
-        // ESTADO GLOBAL CON CURSOS Y USUARIOS
         const APP_STATE = {
             currentUser: null,
             selectedSupermarketId: null,
+            adminCourseFilter: 'all',
             basket: [],
             userPaidAmount: 0,
             courses: [],
             users: [],
             supermarkets: [],
-            products: [],
-            evaluations: [] // Estructura lista para futuros instrumentos
+            products: []
         };
 
         const CLP_CURRENCY_ITEMS = [
@@ -205,9 +210,9 @@
         ];
 
         const DEFAULT_USERS = [
-            { id: 'u-admin', username: 'admin', pin: '1234', name: 'Administrador General', role: 'admin' },
-            { id: 'u-edu1', username: 'educador1', pin: '1234', name: 'Profe Maria', role: 'teacher', courseIds: ['c-1'] },
-            { id: 'u-alum1', username: 'alumno1', pin: '1111', name: 'Juanito Pérez', role: 'student', courseId: 'c-1' }
+            { id: 'u-admin', username: '11111111-1', rut: '11111111-1', pin: '1234', name: 'Administrador General', role: 'admin', email: 'admin@escuela.cl', mustChangePassword: false },
+            { id: 'u-edu1', username: '12345678-9', rut: '12345678-9', pin: '1234', name: 'Profe María', role: 'teacher', courseIds: ['c-1'], email: 'maria.profe@escuela.cl', mustChangePassword: false },
+            { id: 'u-alum1', username: '23456789-0', rut: '23456789-0', pin: '2345', name: 'Juanito Pérez', role: 'student', courseId: 'c-1', email: 'apoderado.juanito@escuela.cl', mustChangePassword: false }
         ];
 
         const DEFAULT_SUPERMARKETS = [
@@ -311,72 +316,12 @@
             } catch(e) {}
         }
 
-        function calculateCLPBreakdown(amount) {
-            if (!amount || amount <= 0) return [];
-            let remaining = Math.round(amount / 10) * 10;
-            const breakdown = [];
-            const denominations = [
-                { val: 20000, id: 'b20k' }, { val: 10000, id: 'b10k' }, { val: 5000, id: 'b5k' },
-                { val: 2000, id: 'b2k' },   { val: 1000, id: 'b1k' },   { val: 500, id: 'c500' },
-                { val: 100, id: 'c100' },   { val: 50, id: 'c50' },     { val: 10, id: 'c10' }
-            ];
-
-            for (const item of denominations) {
-                if (remaining >= item.val) {
-                    const count = Math.floor(remaining / item.val);
-                    remaining %= item.val;
-                    const meta = CLP_CURRENCY_ITEMS.find(c => c.id === item.id);
-                    breakdown.push({ ...meta, count });
-                }
-            }
-            return breakdown;
+        function getInitialPinFromRut(rutString) {
+            if (!rutString) return '1234';
+            const cleanDigits = rutString.replace(/[^0-9]/g, '');
+            return cleanDigits.length >= 4 ? cleanDigits.substring(0, 4) : '1234';
         }
 
-        function renderCurrencySVG(item, size = 'md') {
-            const isBill = item.type === 'bill';
-            let height = size === 'sm' ? 'h-8' : 'h-12';
-            let width = size === 'sm' ? 'w-14' : 'w-22';
-
-            if (!isBill) {
-                height = size === 'sm' ? 'h-8' : 'h-10';
-                width = size === 'sm' ? 'w-8' : 'w-10';
-            }
-
-            if (isBill) {
-                return `
-                    <div class="currency-item inline-flex flex-col items-center ${width} ${height} relative shadow-md rounded-lg overflow-hidden border border-slate-700 select-none text-white" style="background-color: ${item.color};">
-                        <div class="w-full flex justify-between px-1 text-[7px] font-black opacity-90">
-                            <span>CHILE</span><span>$${item.value.toLocaleString('es-CL')}</span>
-                        </div>
-                        <div class="flex-1 flex items-center justify-center font-black text-xs">
-                            $${item.value.toLocaleString('es-CL')}
-                        </div>
-                    </div>
-                `;
-            } else {
-                const isBimetallic = item.value === 500;
-                return `
-                    <div class="currency-item inline-flex items-center justify-center ${width} ${height} rounded-full border border-slate-700 shadow-md font-black text-slate-900 text-xs"
-                         style="background: ${isBimetallic ? 'radial-gradient(circle, #F59E0B 48%, #9CA3AF 50%)' : '#F59E0B'};">
-                        $${item.value}
-                    </div>
-                `;
-            }
-        }
-
-        function renderBreakdownHTML(breakdownArray, size = 'md') {
-            if (!breakdownArray || breakdownArray.length === 0) return '<span class="text-xs text-slate-400 italic">Sin precio</span>';
-            let html = '<div class="flex flex-wrap gap-2 items-center">';
-            breakdownArray.forEach(item => {
-                for (let i = 0; i < (item.count || 1); i++) {
-                    html += renderCurrencySVG(item, size);
-                }
-            });
-            html += '</div>';
-            return html;
-        }
-
-        // CONTROL DE VISTAS PRINCIPALES
         function renderApp() {
             const container = document.getElementById('appContainer');
             const headerBasketBtn = document.getElementById('headerBasketBtn');
@@ -384,7 +329,6 @@
 
             if (!container) return;
 
-            // Actualizar header de usuario
             if (APP_STATE.currentUser) {
                 const roleTag = APP_STATE.currentUser.role === 'admin' ? '🔑 Admin' :
                                (APP_STATE.currentUser.role === 'teacher' ? '👨‍🏫 Educador' : '🎒 Alumno');
@@ -401,14 +345,21 @@
                 userInfoHeader.innerHTML = '';
             }
 
-            // Si no hay usuario logueado -> Mostrar Pantalla de Login
+            // PANTALLA DE INGRESO
             if (!APP_STATE.currentUser) {
                 if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
                 renderLoginView(container);
                 return;
             }
 
-            // Rutas por Rol
+            // OBLIGAR A CAMBIAR CONTRASEÑA SI ES PRIMER INGRESO
+            if (APP_STATE.currentUser.mustChangePassword) {
+                if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
+                renderForcePasswordChangeView(container);
+                return;
+            }
+
+            // RUTAS POR ROL
             if (APP_STATE.currentUser.role === 'admin') {
                 if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
                 renderAdminDashboard(container);
@@ -416,7 +367,6 @@
                 if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
                 renderTeacherDashboard(container);
             } else {
-                // Alumno -> Simulación de supermercado
                 if (headerBasketBtn) headerBasketBtn.classList.remove('hidden');
                 if (APP_STATE.selectedSupermarketId) {
                     renderSupermarketView(container, APP_STATE.selectedSupermarketId);
@@ -427,38 +377,28 @@
             updateBasketBadge();
         }
 
-        // PANTALLA DE LOGIN
         function renderLoginView(container) {
             let html = `
                 <div class="max-w-md mx-auto bg-white border-4 border-slate-300 rounded-3xl p-6 shadow-xl space-y-6">
                     <div class="text-center space-y-2">
                         <div class="text-5xl">🔐</div>
                         <h2 class="text-2xl font-black text-slate-800">Iniciar Sesión</h2>
-                        <p class="text-xs font-semibold text-slate-500">Ingresa tu usuario y clave o PIN</p>
+                        <p class="text-xs font-semibold text-slate-500">Ingresa tu RUT (o Usuario) y tu PIN / Clave</p>
                     </div>
 
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre de Usuario:</label>
-                            <input type="text" id="loginUser" placeholder="Ej: admin, educador1, alumno1" class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 focus:border-indigo-500 focus:outline-none font-bold">
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">RUT o Usuario:</label>
+                            <input type="text" id="loginUser" placeholder="Ej: 12345678-9 o admin" class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 focus:border-indigo-500 focus:outline-none font-bold">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Clave / PIN:</label>
                             <input type="password" id="loginPin" placeholder="••••" class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 focus:border-indigo-500 focus:outline-none text-center text-xl tracking-widest font-black">
                         </div>
-                        <p id="loginError" class="text-xs font-bold text-rose-600 hidden text-center">Usuario o contraseña incorrecta.</p>
+                        <p id="loginError" class="text-xs font-bold text-rose-600 hidden text-center">RUT o clave incorrecta.</p>
                         <button onclick="handleLogin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl border-b-4 border-indigo-900 shadow active:scale-95 text-lg">
                             Ingresar
                         </button>
-                    </div>
-
-                    <div class="border-t pt-4 text-center">
-                        <p class="text-xs font-bold text-slate-400 mb-2">Credenciales demo iniciales:</p>
-                        <div class="text-[11px] text-slate-600 space-y-1">
-                            <p><strong>Admin:</strong> usuario: <code class="bg-slate-100 px-1">admin</code> | PIN: <code class="bg-slate-100 px-1">1234</code></p>
-                            <p><strong>Educador:</strong> usuario: <code class="bg-slate-100 px-1">educador1</code> | PIN: <code class="bg-slate-100 px-1">1234</code></p>
-                            <p><strong>Alumno:</strong> usuario: <code class="bg-slate-100 px-1">alumno1</code> | PIN: <code class="bg-slate-100 px-1">1111</code></p>
-                        </div>
                     </div>
                 </div>
             `;
@@ -466,17 +406,80 @@
         }
 
         function handleLogin() {
-            const userVal = document.getElementById('loginUser').value.trim();
+            const userVal = document.getElementById('loginUser').value.trim().toLowerCase();
             const pinVal = document.getElementById('loginPin').value.trim();
-            const user = APP_STATE.users.find(u => u.username.toLowerCase() === userVal.toLowerCase() && u.pin === pinVal);
 
-            if (user) {
+            const user = APP_STATE.users.find(u => 
+                (u.rut && u.rut.toLowerCase() === userVal) || 
+                (u.username && u.username.toLowerCase() === userVal)
+            );
+
+            if (user && user.pin === pinVal) {
                 APP_STATE.currentUser = user;
                 saveData();
                 speakText(`Bienvenido ${user.name}`);
                 renderApp();
             } else {
                 document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+
+        function renderForcePasswordChangeView(container) {
+            let html = `
+                <div class="max-w-md mx-auto bg-amber-50 border-4 border-amber-400 rounded-3xl p-6 shadow-xl space-y-5">
+                    <div class="text-center space-y-2">
+                        <div class="text-5xl">🔑</div>
+                        <h2 class="text-2xl font-black text-amber-950">Cambio Obligatorio de Clave</h2>
+                        <p class="text-xs font-bold text-amber-800">
+                            Hola <strong>${APP_STATE.currentUser.name}</strong>. Por motivos de seguridad, debes ingresar una nueva clave personal.
+                        </p>
+                    </div>
+
+                    <div class="space-y-4 bg-white p-4 rounded-2xl border-2 border-amber-200">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nueva Clave Personal / PIN:</label>
+                            <input type="password" id="newPinInput" placeholder="Mínimo 4 caracteres" class="w-full px-4 py-2.5 border-2 border-slate-300 rounded-xl font-bold focus:border-amber-500 focus:outline-none text-center text-lg">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Confirmar Nueva Clave:</label>
+                            <input type="password" id="confirmPinInput" placeholder="Repite la clave" class="w-full px-4 py-2.5 border-2 border-slate-300 rounded-xl font-bold focus:border-amber-500 focus:outline-none text-center text-lg">
+                        </div>
+                        <p id="changePinError" class="text-xs font-bold text-rose-600 hidden text-center"></p>
+                    </div>
+
+                    <button onclick="saveNewPersonalPassword()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl border-b-4 border-emerald-800 shadow active:scale-95 text-base">
+                        Guardar Nueva Clave e Ingresar
+                    </button>
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+
+        function saveNewPersonalPassword() {
+            const p1 = document.getElementById('newPinInput').value.trim();
+            const p2 = document.getElementById('confirmPinInput').value.trim();
+            const errEl = document.getElementById('changePinError');
+
+            if (p1.length < 4) {
+                errEl.textContent = "La clave debe tener al menos 4 caracteres.";
+                errEl.classList.remove('hidden');
+                return;
+            }
+            if (p1 !== p2) {
+                errEl.textContent = "Las claves no coinciden.";
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            // Actualizar usuario
+            const userInDb = APP_STATE.users.find(u => u.id === APP_STATE.currentUser.id);
+            if (userInDb) {
+                userInDb.pin = p1;
+                userInDb.mustChangePassword = false;
+                APP_STATE.currentUser = userInDb;
+                saveData();
+                alert("¡Clave actualizada con éxito!");
+                renderApp();
             }
         }
 
@@ -487,18 +490,28 @@
             renderApp();
         }
 
-        // DASHBOARD ADMINISTRADOR (GESTIÓN DE CURSOS, EDUCADORES Y ALUMNOS)
+        // DASHBOARD ADMINISTRADOR CON FILTRO DE CURSO
         function renderAdminDashboard(container) {
             let html = `
                 <div class="space-y-6">
                     <div class="bg-indigo-900 text-white p-6 rounded-3xl shadow-lg flex flex-wrap justify-between items-center gap-4">
                         <div>
                             <h2 class="text-2xl font-black">👑 Panel de Administración</h2>
-                            <p class="text-xs text-indigo-200 mt-1">Crea cursos, gestiona educadores y registra alumnos con sus credenciales.</p>
+                            <p class="text-xs text-indigo-200 mt-1">Gestión completa de Cursos, Educadores, Alumnos y Claves.</p>
                         </div>
-                        <button onclick="resetToDefaults()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-2 rounded-xl text-xs">
-                            Restablecer Todo
-                        </button>
+                        
+                        <div class="flex items-center gap-3">
+                            <div class="bg-indigo-800 px-3 py-1.5 rounded-xl border border-indigo-700 flex items-center gap-2">
+                                <label class="text-xs font-bold uppercase text-indigo-200">Filtrar por Curso:</label>
+                                <select id="adminCourseFilter" onchange="filterAdminByCourse(this.value)" class="bg-white text-slate-900 text-xs font-bold px-2 py-1 rounded-lg focus:outline-none">
+                                    <option value="all" ${APP_STATE.adminCourseFilter === 'all' ? 'selected' : ''}>Todos los Cursos</option>
+                                    ${APP_STATE.courses.map(c => `<option value="${c.id}" ${APP_STATE.adminCourseFilter === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <button onclick="resetToDefaults()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-2 rounded-xl text-xs">
+                                Restablecer Todo
+                            </button>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -533,26 +546,40 @@
                         <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
                             <div class="flex justify-between items-center border-b pb-2">
                                 <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-chalkboard-user text-indigo-600"></i> Educadores</h3>
-                                <button onclick="addNewTeacherPrompt()" class="bg-indigo-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Educador</button>
+                                <button onclick="openCreateUserModal('teacher')" class="bg-indigo-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Educador</button>
                             </div>
                             <div class="space-y-2">
             `;
 
-            const teachers = APP_STATE.users.filter(u => u.role === 'teacher');
-            teachers.forEach(t => {
-                const assignedCourses = (t.courseIds || []).map(id => {
-                    const found = APP_STATE.courses.find(c => c.id === id);
-                    return found ? found.name : '';
-                }).join(', ');
+            let teachers = APP_STATE.users.filter(u => u.role === 'teacher');
+            if (APP_STATE.adminCourseFilter !== 'all') {
+                teachers = teachers.filter(t => (t.courseIds || []).includes(APP_STATE.adminCourseFilter));
+            }
 
+            teachers.forEach(t => {
+                const assignedCourses = (t.courseIds || []).map(id => APP_STATE.courses.find(c => c.id === id)?.name || '').join(', ');
                 html += `
-                    <div class="p-3 bg-slate-50 border rounded-xl space-y-1 text-sm">
-                        <div class="flex justify-between items-center">
-                            <span class="font-black text-slate-800">${t.name}</span>
-                            <button onclick="deleteUser('${t.id}')" class="text-rose-600 font-bold text-xs">Eliminar</button>
+                    <div class="p-3 bg-slate-50 border rounded-xl space-y-2 text-sm">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="font-black text-slate-800 block">${t.name}</span>
+                                <span class="text-[11px] text-slate-500 font-bold">RUT: ${t.rut || 'Sin RUT'}</span>
+                            </div>
+                            <button onclick="deleteUser('${t.id}')" class="text-rose-600 font-bold text-xs">✕</button>
                         </div>
-                        <div class="text-xs text-slate-600">Usuario: <code class="bg-white px-1 border font-bold">${t.username}</code> | PIN: <code class="bg-white px-1 border font-bold">${t.pin}</code></div>
-                        <div class="text-[10px] font-bold text-indigo-700">Cursos: ${assignedCourses || 'Ninguno'}</div>
+                        <div class="text-[11px] bg-white p-2 rounded-lg border space-y-1">
+                            <div>📧 Correo: <span class="font-bold text-indigo-900">${t.email || 'No asignado'}</span></div>
+                            <div>🔑 Clave actual: <code class="bg-slate-100 px-1 font-bold">${t.pin}</code></div>
+                            <div class="text-[10px] text-indigo-700 font-bold">Cursos: ${assignedCourses || 'Ninguno'}</div>
+                        </div>
+                        <div class="flex gap-2 pt-1">
+                            <button onclick="resetUserPassword('${t.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-2 py-1 rounded text-xs flex-1">
+                                🔄 Reiniciar Clave
+                            </button>
+                            <button onclick="sendCredentialsByEmail('${t.id}')" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold px-2 py-1 rounded text-xs flex-1">
+                                ✉️ Enviar Correo
+                            </button>
+                        </div>
                     </div>
                 `;
             });
@@ -565,22 +592,40 @@
                         <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
                             <div class="flex justify-between items-center border-b pb-2">
                                 <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-children text-indigo-600"></i> Alumnos</h3>
-                                <button onclick="addNewStudentPrompt()" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Alumno</button>
+                                <button onclick="openCreateUserModal('student')" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Alumno</button>
                             </div>
                             <div class="space-y-2">
             `;
 
-            const students = APP_STATE.users.filter(u => u.role === 'student');
+            let students = APP_STATE.users.filter(u => u.role === 'student');
+            if (APP_STATE.adminCourseFilter !== 'all') {
+                students = students.filter(s => s.courseId === APP_STATE.adminCourseFilter);
+            }
+
             students.forEach(s => {
                 const courseName = APP_STATE.courses.find(c => c.id === s.courseId)?.name || 'Sin curso';
                 html += `
-                    <div class="p-3 bg-slate-50 border rounded-xl space-y-1 text-sm">
-                        <div class="flex justify-between items-center">
-                            <span class="font-black text-slate-800">${s.name}</span>
-                            <button onclick="deleteUser('${s.id}')" class="text-rose-600 font-bold text-xs">Eliminar</button>
+                    <div class="p-3 bg-slate-50 border rounded-xl space-y-2 text-sm">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="font-black text-slate-800 block">${s.name}</span>
+                                <span class="text-[11px] text-slate-500 font-bold">RUT: ${s.rut || 'Sin RUT'}</span>
+                            </div>
+                            <button onclick="deleteUser('${s.id}')" class="text-rose-600 font-bold text-xs">✕</button>
                         </div>
-                        <div class="text-xs text-slate-600">Usuario: <code class="bg-white px-1 border font-bold">${s.username}</code> | PIN: <code class="bg-white px-1 border font-bold">${s.pin}</code></div>
-                        <div class="text-[10px] font-bold text-emerald-700">Curso: ${courseName}</div>
+                        <div class="text-[11px] bg-white p-2 rounded-lg border space-y-1">
+                            <div>📧 Correo Apoderado: <span class="font-bold text-emerald-900">${s.email || 'No asignado'}</span></div>
+                            <div>🔑 Clave actual: <code class="bg-slate-100 px-1 font-bold">${s.pin}</code></div>
+                            <div class="text-[10px] text-emerald-700 font-bold">Curso: ${courseName}</div>
+                        </div>
+                        <div class="flex gap-2 pt-1">
+                            <button onclick="resetUserPassword('${s.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-2 py-1 rounded text-xs flex-1">
+                                🔄 Reiniciar Clave
+                            </button>
+                            <button onclick="sendCredentialsByEmail('${s.id}')" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold px-2 py-1 rounded text-xs flex-1">
+                                ✉️ Enviar Correo
+                            </button>
+                        </div>
                     </div>
                 `;
             });
@@ -593,6 +638,11 @@
                 </div>
             `;
             container.innerHTML = html;
+        }
+
+        function filterAdminByCourse(courseId) {
+            APP_STATE.adminCourseFilter = courseId;
+            renderAdminDashboard(document.getElementById('appContainer'));
         }
 
         // PANEL DE EDUCADOR
@@ -629,8 +679,8 @@
                             <div class="space-y-1">
                                 ${studentsInCourse.map(s => `
                                     <div class="text-xs font-bold text-slate-700 bg-white p-2 rounded-lg border flex justify-between">
-                                        <span>👤 ${s.name}</span>
-                                        <span class="text-slate-400">User: ${s.username}</span>
+                                        <span>👤 ${s.name} (RUT: ${s.rut})</span>
+                                        <span class="text-slate-400">PIN: ${s.pin}</span>
                                     </div>
                                 `).join('')}
                             </div>
@@ -646,11 +696,11 @@
                         <div class="bg-white p-6 rounded-3xl border-4 border-amber-200 shadow space-y-4">
                             <h3 class="font-black text-lg text-amber-900 border-b pb-2">📋 Instrumentos de Evaluación</h3>
                             <p class="text-xs font-semibold text-slate-600">
-                                Módulo preparado para crear y aplicar pautas de cotejo/evaluación adaptadas para cada estudiante.
+                                Módulo preparado para crear e implementar pautas de cotejo adaptadas.
                             </p>
                             <div class="p-8 border-2 border-dashed border-amber-300 bg-amber-50 rounded-2xl text-center space-y-3">
                                 <span class="text-4xl">📝</span>
-                                <p class="text-xs font-bold text-amber-900">Estructura vinculada correctamente a Cursos y Alumnos.</p>
+                                <p class="text-xs font-bold text-amber-900">Estructura vinculada a los cursos y RUTs de alumnos.</p>
                                 <button class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-black px-4 py-2 rounded-xl shadow opacity-75 cursor-not-allowed">
                                     + Crear Pauta de Evaluación (Próximamente)
                                 </button>
@@ -662,7 +712,99 @@
             container.innerHTML = html;
         }
 
-        // FUNCIONES DE CREACIÓN DE CURSOS Y USUARIOS
+        // MODAL PARA CREACIÓN Y ASIGNACIÓN DE USUARIOS
+        function openCreateUserModal(role) {
+            if (APP_STATE.courses.length === 0) return alert("Crea al menos un curso antes de registrar usuarios.");
+            
+            document.getElementById('modalUserRole').value = role;
+            document.getElementById('userModalTitle').textContent = role === 'teacher' ? 'Crear Nuevo Educador' : 'Crear Nuevo Alumno';
+            
+            document.getElementById('modalName').value = '';
+            document.getElementById('modalRut').value = '';
+            document.getElementById('modalEmail').value = '';
+
+            const courseSelect = document.getElementById('modalCourse');
+            courseSelect.innerHTML = APP_STATE.courses.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+            document.getElementById('userModal').classList.remove('hidden');
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').classList.add('hidden');
+        }
+
+        function saveUserFromModal() {
+            const role = document.getElementById('modalUserRole').value;
+            const name = document.getElementById('modalName').value.trim();
+            const rut = document.getElementById('modalRut').value.trim();
+            const email = document.getElementById('modalEmail').value.trim();
+            const courseId = document.getElementById('modalCourse').value;
+
+            if (!name || !rut || !email) {
+                alert("Por favor completa Nombre, RUT y Correo.");
+                return;
+            }
+
+            const initialPin = getInitialPinFromRut(rut);
+
+            const newUser = {
+                id: 'u-' + Date.now(),
+                name,
+                rut,
+                username: rut,
+                email,
+                pin: initialPin,
+                role,
+                mustChangePassword: true
+            };
+
+            if (role === 'teacher') {
+                newUser.courseIds = [courseId];
+            } else {
+                newUser.courseId = courseId;
+            }
+
+            APP_STATE.users.push(newUser);
+            saveData();
+            closeUserModal();
+            renderAdminDashboard(document.getElementById('appContainer'));
+
+            // Notificación e instrucción de envío de correo
+            if (confirm(`Usuario registrado correctamente.\n\nClave Inicial (Primeros 4 dígitos RUT): ${initialPin}\n\n¿Deseas enviar las credenciales al correo (${email}) ahora?`)) {
+                sendCredentialsByEmail(newUser.id);
+            }
+        }
+
+        function resetUserPassword(userId) {
+            const user = APP_STATE.users.find(u => u.id === userId);
+            if (!user) return;
+
+            const initialPin = getInitialPinFromRut(user.rut);
+            user.pin = initialPin;
+            user.mustChangePassword = true;
+            saveData();
+
+            alert(`🔒 Clave de ${user.name} reiniciada a los primeros 4 dígitos del RUT (${initialPin}).\nAl ingresar, se le exigirá cambiar la clave.`);
+            renderAdminDashboard(document.getElementById('appContainer'));
+        }
+
+        function sendCredentialsByEmail(userId) {
+            const user = APP_STATE.users.find(u => u.id === userId);
+            if (!user || !user.email) return alert("El usuario no tiene un correo asignado.");
+
+            const subject = encodeURIComponent("Credenciales de Acceso - Supermercado NEE");
+            const body = encodeURIComponent(
+                `Hola ${user.name},\n\n` +
+                `Te compartimos tus credenciales de acceso para la plataforma Supermercado NEE:\n\n` +
+                `RUT / Usuario: ${user.rut}\n` +
+                `Clave Temporal: ${user.pin} (Primeros 4 dígitos de tu RUT)\n\n` +
+                `Al ingresar por primera vez, el sistema te solicitará cambiar esta clave temporal por tu clave personal.\n\n` +
+                `Saludos Cordiales,\nEquipo Directivo.`
+            );
+
+            window.open(`mailto:${user.email}?subject=${subject}&body=${body}`, '_blank');
+        }
+
         function addNewCoursePrompt() {
             const name = prompt("Nombre del nuevo curso (ej: 2° Básico NEE):");
             if (!name) return;
@@ -679,55 +821,15 @@
             }
         }
 
-        function addNewTeacherPrompt() {
-            if (APP_STATE.courses.length === 0) return alert("Crea primero al menos un curso.");
-            const name = prompt("Nombre del educador:");
-            if (!name) return;
-            const username = prompt("Nombre de usuario para inicio de sesión (ej: profe_maria):");
-            if (!username) return;
-            const pin = prompt("Clave / PIN de acceso:", "1234");
-            if (!pin) return;
-
-            const selectedCourseId = APP_STATE.courses[0].id;
-            APP_STATE.users.push({
-                id: 'u-' + Date.now(),
-                name, username, pin,
-                role: 'teacher',
-                courseIds: [selectedCourseId]
-            });
-            saveData();
-            renderApp();
-        }
-
-        function addNewStudentPrompt() {
-            if (APP_STATE.courses.length === 0) return alert("Crea primero al menos un curso.");
-            const name = prompt("Nombre del alumno:");
-            if (!name) return;
-            const username = prompt("Nombre de usuario único para el alumno (ej: juanito):");
-            if (!username) return;
-            const pin = prompt("PIN sencillo de acceso (ej: 1111):", "1111");
-            if (!pin) return;
-
-            const selectedCourseId = APP_STATE.courses[0].id;
-            APP_STATE.users.push({
-                id: 'u-' + Date.now(),
-                name, username, pin,
-                role: 'student',
-                courseId: selectedCourseId
-            });
-            saveData();
-            renderApp();
-        }
-
         function deleteUser(id) {
-            if (confirm("¿Eliminar este usuario?")) {
+            if (confirm("¿Eliminar este usuario del sistema?")) {
                 APP_STATE.users = APP_STATE.users.filter(u => u.id !== id);
                 saveData();
                 renderApp();
             }
         }
 
-        // VISTAS DE SIMULACIÓN (ALUMNOS)
+        // VISTAS DE SIMULACIÓN Y COMPRAS
         function goHome() {
             APP_STATE.selectedSupermarketId = null;
             renderApp();
@@ -839,6 +941,71 @@
 
             html += `</div>`;
             container.innerHTML = html;
+        }
+
+        function calculateCLPBreakdown(amount) {
+            if (!amount || amount <= 0) return [];
+            let remaining = Math.round(amount / 10) * 10;
+            const breakdown = [];
+            const denominations = [
+                { val: 20000, id: 'b20k' }, { val: 10000, id: 'b10k' }, { val: 5000, id: 'b5k' },
+                { val: 2000, id: 'b2k' },   { val: 1000, id: 'b1k' },   { val: 500, id: 'c500' },
+                { val: 100, id: 'c100' },   { val: 50, id: 'c50' },     { val: 10, id: 'c10' }
+            ];
+
+            for (const item of denominations) {
+                if (remaining >= item.val) {
+                    const count = Math.floor(remaining / item.val);
+                    remaining %= item.val;
+                    const meta = CLP_CURRENCY_ITEMS.find(c => c.id === item.id);
+                    breakdown.push({ ...meta, count });
+                }
+            }
+            return breakdown;
+        }
+
+        function renderCurrencySVG(item, size = 'md') {
+            const isBill = item.type === 'bill';
+            let height = size === 'sm' ? 'h-8' : 'h-12';
+            let width = size === 'sm' ? 'w-14' : 'w-22';
+
+            if (!isBill) {
+                height = size === 'sm' ? 'h-8' : 'h-10';
+                width = size === 'sm' ? 'w-8' : 'w-10';
+            }
+
+            if (isBill) {
+                return `
+                    <div class="currency-item inline-flex flex-col items-center ${width} ${height} relative shadow-md rounded-lg overflow-hidden border border-slate-700 select-none text-white" style="background-color: ${item.color};">
+                        <div class="w-full flex justify-between px-1 text-[7px] font-black opacity-90">
+                            <span>CHILE</span><span>$${item.value.toLocaleString('es-CL')}</span>
+                        </div>
+                        <div class="flex-1 flex items-center justify-center font-black text-xs">
+                            $${item.value.toLocaleString('es-CL')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                const isBimetallic = item.value === 500;
+                return `
+                    <div class="currency-item inline-flex items-center justify-center ${width} ${height} rounded-full border border-slate-700 shadow-md font-black text-slate-900 text-xs"
+                         style="background: ${isBimetallic ? 'radial-gradient(circle, #F59E0B 48%, #9CA3AF 50%)' : '#F59E0B'};">
+                        $${item.value}
+                    </div>
+                `;
+            }
+        }
+
+        function renderBreakdownHTML(breakdownArray, size = 'md') {
+            if (!breakdownArray || breakdownArray.length === 0) return '<span class="text-xs text-slate-400 italic">Sin precio</span>';
+            let html = '<div class="flex flex-wrap gap-2 items-center">';
+            breakdownArray.forEach(item => {
+                for (let i = 0; i < (item.count || 1); i++) {
+                    html += renderCurrencySVG(item, size);
+                }
+            });
+            html += '</div>';
+            return html;
         }
 
         function addToBasket(prodId) {
