@@ -149,11 +149,18 @@
         </div>
     </div>
 
-    <!-- MODAL DE ASIGNACIÓN MULTI-CURSO PARA EDUCADORES EN SU DASHBOARD -->
+    <!-- MODAL DE AUTO-ASIGNACIÓN MULTI-CURSO PARA EDUCADORES EN SU DASHBOARD -->
     <div id="teacherCourseModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-3xl border-4 border-indigo-500 shadow-2xl p-6 space-y-4">
             <h3 class="text-2xl font-black text-indigo-950 border-b pb-2">📚 Mis Cursos Asignados</h3>
-            <p class="text-xs text-slate-600 font-medium">Selecciona los cursos que estás impartiendo para visualizar a tus alumnos:</p>
+            <div class="flex justify-between items-center text-xs">
+                <span class="font-bold text-slate-600">Marca las casillas que corresponden:</span>
+                <div class="space-x-2">
+                    <button type="button" onclick="selectAllTeacherSelfCourses(true)" class="text-indigo-600 hover:underline font-bold">Seleccionar Todos</button>
+                    <span class="text-slate-300">|</span>
+                    <button type="button" onclick="selectAllTeacherSelfCourses(false)" class="text-rose-600 hover:underline font-bold">Desmarcar Todos</button>
+                </div>
+            </div>
             <div id="teacherCourseCheckboxes" class="space-y-2 max-h-60 overflow-y-auto p-3 bg-slate-50 rounded-2xl border"></div>
             <div class="grid grid-cols-2 gap-3 pt-2">
                 <button onclick="closeTeacherCourseModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl border-b-4 border-slate-400">Cancelar</button>
@@ -194,7 +201,14 @@
 
                 <!-- SELECTOR DE MULTI-CURSO (EDUCADORES) -->
                 <div id="modalMultiCourseContainer" class="hidden">
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Cursos Asignados al Educador:</label>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-xs font-bold text-slate-700 uppercase">Cursos Asignados al Educador:</label>
+                        <div class="space-x-2 text-xs">
+                            <button type="button" onclick="selectAllModalCourses(true)" class="text-indigo-600 hover:underline font-bold">Todos</button>
+                            <span class="text-slate-300">|</span>
+                            <button type="button" onclick="selectAllModalCourses(false)" class="text-rose-600 hover:underline font-bold">Ninguno</button>
+                        </div>
+                    </div>
                     <div id="modalMultiCourseCheckboxes" class="space-y-1.5 max-h-36 overflow-y-auto p-3 bg-slate-50 border-2 border-slate-200 rounded-xl"></div>
                 </div>
 
@@ -359,6 +373,18 @@
         };
 
         let cameraStream = null;
+
+        // HELPER COMPATIBILIDAD MULTI-CURSO PARA EDUCADORES
+        function getUserCourseIds(user) {
+            if (!user) return [];
+            if (Array.isArray(user.courseIds) && user.courseIds.length > 0) {
+                return user.courseIds;
+            }
+            if (user.courseId) {
+                return [user.courseId];
+            }
+            return [];
+        }
 
         // BILLETES Y MONEDAS REALES CHILENAS (IMÁGENES HIGH RES)
         const CLP_CURRENCY_ITEMS = [
@@ -754,11 +780,12 @@
 
             let teachers = APP_STATE.users.filter(u => u.role === 'teacher');
             if (APP_STATE.adminCourseFilter !== 'all') {
-                teachers = teachers.filter(t => (t.courseIds || []).includes(APP_STATE.adminCourseFilter));
+                teachers = teachers.filter(t => getUserCourseIds(t).includes(APP_STATE.adminCourseFilter));
             }
 
             teachers.forEach(t => {
-                const assignedCourses = (t.courseIds || []).map(id => APP_STATE.courses.find(c => c.id === id)?.name || '').filter(Boolean).join(', ');
+                const teacherCourseIds = getUserCourseIds(t);
+                const assignedCourses = teacherCourseIds.map(id => APP_STATE.courses.find(c => c.id === id)?.name || '').filter(Boolean).join(', ');
                 const photoImg = t.photoUrl ? `<img src="${t.photoUrl}" class="w-9 h-9 rounded-full object-cover border-2 border-indigo-500">` : `<div class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">👨‍🏫</div>`;
                 html += `
                     <div class="p-3 bg-slate-50 border rounded-xl space-y-2 text-sm">
@@ -854,7 +881,7 @@
 
         // DASHBOARD EDUCADOR CON VISTA Y AUTO-ASIGNACIÓN MULTI-CURSO
         function renderTeacherDashboard(container) {
-            const myCourseIds = APP_STATE.currentUser.courseIds || [];
+            const myCourseIds = getUserCourseIds(APP_STATE.currentUser);
             const myCourses = APP_STATE.courses.filter(c => myCourseIds.includes(c.id));
 
             let html = `
@@ -1006,7 +1033,7 @@
         // AUTO-ASIGNACIÓN MULTI-CURSO PARA EL EDUCADOR
         function openTeacherCourseModal() {
             const container = document.getElementById('teacherCourseCheckboxes');
-            const myCourseIds = APP_STATE.currentUser.courseIds || [];
+            const myCourseIds = getUserCourseIds(APP_STATE.currentUser);
 
             container.innerHTML = APP_STATE.courses.map(c => {
                 const isChecked = myCourseIds.includes(c.id) ? 'checked' : '';
@@ -1019,6 +1046,10 @@
             }).join('');
 
             document.getElementById('teacherCourseModal').classList.remove('hidden');
+        }
+
+        function selectAllTeacherSelfCourses(select) {
+            document.querySelectorAll('.teacher-self-course-cb').forEach(cb => cb.checked = select);
         }
 
         function closeTeacherCourseModal() {
@@ -1134,6 +1165,10 @@
             }).join('');
         }
 
+        function selectAllModalCourses(select) {
+            document.querySelectorAll('.user-modal-course-cb').forEach(cb => cb.checked = select);
+        }
+
         // MODAL Y OPERACIONES USUARIO (SOPORTA MULTI-CURSO EN EDUCADORES Y CURSO ÚNICO EN ALUMNOS)
         function openCreateUserModal(role) {
             if (APP_STATE.courses.length === 0) return alert("Crea al menos un curso antes de registrar usuarios.");
@@ -1190,7 +1225,7 @@
             if (user.role === 'teacher') {
                 singleCont.classList.add('hidden');
                 multiCont.classList.remove('hidden');
-                renderMultiCourseCheckboxes(user.courseIds || []);
+                renderMultiCourseCheckboxes(getUserCourseIds(user));
             } else {
                 multiCont.classList.add('hidden');
                 singleCont.classList.remove('hidden');
