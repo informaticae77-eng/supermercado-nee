@@ -369,7 +369,7 @@
                         <option value="Frutas y Verduras">🍎 Frutas y Verduras</option>
                         <option value="Bebidas">🧃 Bebidas y Jugos</option>
                         <option value="Snacks">🍪 Snacks y Dulces</option>
-                        <option value="Despensa">🥫 Despensa y Abarrotes</option>
+                        <option value="Despensa">罐 Despensa y Abarrotes</option>
                     </select>
                 </div>
                 <div>
@@ -1238,7 +1238,24 @@
             container.innerHTML = html;
         }
 
-        // EDICIÓN Y CARGA DE BILLETES Y MONEDAS
+        // EDICIÓN Y CARGA DE BILLETES Y MONEDAS CON COMPRESIÓN
+        function compressCurrencyPhoto(dataUrl, callback) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX = 400;
+                let w = img.width, h = img.height;
+                if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } }
+                else { if (h > MAX) { w *= MAX / h; h = MAX; } }
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                const compressed = canvas.toDataURL('image/jpeg', 0.75);
+                callback(compressed);
+            };
+            img.src = dataUrl;
+        }
+
         function openCurrencyEditModal(currencyId, currencyName) {
             document.getElementById('modalCurrencyId').value = currencyId;
             document.getElementById('currencyModalTitle').textContent = `Foto de ${currencyName}`;
@@ -1259,9 +1276,11 @@
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                document.getElementById('modalCurrencyPhotoUrl').value = e.target.result;
-                document.getElementById('currencyPhotoPreview').src = e.target.result;
-                document.getElementById('currencyPhotoPreviewContainer').classList.remove('hidden');
+                compressCurrencyPhoto(e.target.result, function(compressedUrl) {
+                    document.getElementById('modalCurrencyPhotoUrl').value = compressedUrl;
+                    document.getElementById('currencyPhotoPreview').src = compressedUrl;
+                    document.getElementById('currencyPhotoPreviewContainer').classList.remove('hidden');
+                });
             };
             reader.readAsDataURL(file);
         }
@@ -1284,11 +1303,11 @@
             if (!video || !currencyCameraStream) return;
 
             const canvas = document.createElement('canvas');
-            canvas.width = 300; canvas.height = 180;
+            canvas.width = 400; canvas.height = 240;
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, 300, 180);
+            ctx.drawImage(video, 0, 0, 400, 240);
 
-            const base64Img = canvas.toDataURL('image/jpeg', 0.8);
+            const base64Img = canvas.toDataURL('image/jpeg', 0.75);
             document.getElementById('modalCurrencyPhotoUrl').value = base64Img;
             document.getElementById('currencyPhotoPreview').src = base64Img;
             document.getElementById('currencyPhotoPreviewContainer').classList.remove('hidden');
@@ -1310,9 +1329,14 @@
 
             if (!photoUrl) return alert("Sube un archivo o toma una foto.");
 
-            db.collection('currencies').doc(currencyId).set({ photoUrl }).then(() => {
+            db.collection('currencies').doc(currencyId).set({ photoUrl })
+            .then(() => {
                 closeCurrencyEditModal();
                 alert("✅ Fotografía de billete/moneda guardada en la Nube.");
+            })
+            .catch((error) => {
+                console.error("Error al guardar en Firestore:", error);
+                alert("❌ Error al guardar en la nube: " + error.message);
             });
         }
 
