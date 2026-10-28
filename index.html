@@ -119,7 +119,7 @@
                     <h3 class="text-lg font-black text-indigo-900 flex items-center gap-2">
                         <i class="fa-solid fa-cash-register text-2xl text-indigo-600"></i> Práctica de Pago en la Caja
                     </h3>
-                    <p class="text-sm text-indigo-800 font-medium">Toca los billetes y monedas para juntar el dinero y presiona <strong>"¡Pagar en la Caja!"</strong>.</p>
+                    <p class="text-sm text-indigo-800 font-medium">Toca los billetes y monedas reales para juntar el dinero y presiona <strong>"¡Pagar en la Caja!"</strong>.</p>
 
                     <div class="bg-white p-4 rounded-xl border-2 border-indigo-300 flex flex-wrap justify-between items-center gap-2">
                         <div>
@@ -149,10 +149,11 @@
         </div>
     </div>
 
-    <!-- MODAL DE CREACIÓN DE USUARIO -->
+    <!-- MODAL DE CREACIÓN / EDICIÓN DE USUARIO -->
     <div id="userModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-lg rounded-3xl border-4 border-indigo-400 shadow-2xl p-6 space-y-4">
             <h3 id="userModalTitle" class="text-2xl font-black text-indigo-950 border-b pb-2">Crear Nuevo Usuario</h3>
+            <input type="hidden" id="modalUserId">
             <input type="hidden" id="modalUserRole">
             
             <div class="space-y-3">
@@ -173,11 +174,87 @@
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Curso Asignado:</label>
                     <select id="modalCourse" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-indigo-500 focus:outline-none bg-white"></select>
                 </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">URL Foto del Alumno / Usuario (Opcional):</label>
+                    <input type="text" id="modalPhotoUrl" placeholder="https://ejemplo.com/foto.jpg" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-indigo-500 focus:outline-none">
+                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3 pt-2">
                 <button onclick="closeUserModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl border-b-4 border-slate-400">Cancelar</button>
                 <button onclick="saveUserFromModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-2.5 rounded-xl border-b-4 border-indigo-900 shadow">Guardar y Asignar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE SUPERMERCADO -->
+    <div id="supermarketModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-3xl border-4 border-emerald-500 shadow-2xl p-6 space-y-4">
+            <h3 id="supModalTitle" class="text-2xl font-black text-emerald-950 border-b pb-2">Crear Supermercado</h3>
+            <input type="hidden" id="modalSupId">
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre del Supermercado:</label>
+                    <input type="text" id="modalSupName" placeholder="Ej: Don Pedro" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Emoji / Ícono:</label>
+                    <input type="text" id="modalSupIcon" placeholder="Ej: 🏪" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">URL Imagen / Pictograma:</label>
+                    <input type="text" id="modalSupPhoto" placeholder="https://ejemplo.com/logo.png" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Descripción:</label>
+                    <input type="text" id="modalSupDesc" placeholder="Ej: Verduras y abarrotes" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-emerald-500 focus:outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button onclick="closeSupermarketModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl border-b-4 border-slate-400">Cancelar</button>
+                <button onclick="saveSupermarketFromModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2.5 rounded-xl border-b-4 border-emerald-900 shadow">Guardar Supermercado</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE PRODUCTO -->
+    <div id="productModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-3xl border-4 border-amber-500 shadow-2xl p-6 space-y-4">
+            <h3 id="prodModalTitle" class="text-2xl font-black text-amber-950 border-b pb-2">Crear Producto</h3>
+            <input type="hidden" id="modalProdId">
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Supermercado Asignado:</label>
+                    <select id="modalProdSupermarket" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-amber-500 focus:outline-none bg-white"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre del Producto:</label>
+                    <input type="text" id="modalProdName" placeholder="Ej: Pan Hallulla" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-amber-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Categoría:</label>
+                    <input type="text" id="modalProdCategory" placeholder="Ej: Panadería, Lácteos" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-amber-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Precio en CLP ($):</label>
+                    <input type="number" id="modalProdPrice" placeholder="Ej: 1500" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-amber-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Emoji / Ícono del Producto:</label>
+                    <input type="text" id="modalProdEmoji" placeholder="Ej: 🍞" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-amber-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">URL Imagen / Pictograma ARASAAC:</label>
+                    <input type="text" id="modalProdPhoto" placeholder="https://ejemplo.com/pictograma.png" class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl font-bold focus:border-amber-500 focus:outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button onclick="closeProductModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl border-b-4 border-slate-400">Cancelar</button>
+                <button onclick="saveProductFromModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-2.5 rounded-xl border-b-4 border-amber-800 shadow">Guardar Producto</button>
             </div>
         </div>
     </div>
@@ -201,7 +278,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // CONFIGURACIÓN EMAILJS INTEGRADAS
+        // CONFIGURACIÓN EMAILJS
         const EMAILJS_CONFIG = {
             publicKey: "smzqxkKPlFcTigatD",
             serviceId: "service_omucoeg",
@@ -221,16 +298,17 @@
             products: []
         };
 
+        // BILLETES Y MONEDAS REALES CHILENAS (IMÁGENES HIGH RES)
         const CLP_CURRENCY_ITEMS = [
-            { id: 'b20k', value: 20000, type: 'bill', name: 'Billete de $20.000', color: '#E65100' },
-            { id: 'b10k', value: 10000, type: 'bill', name: 'Billete de $10.000', color: '#0D47A1' },
-            { id: 'b5k',  value: 5000,  type: 'bill', name: 'Billete de $5.000',  color: '#C62828' },
-            { id: 'b2k',  value: 2000,  type: 'bill', name: 'Billete de $2.000',  color: '#6A1B9A' },
-            { id: 'b1k',  value: 1000,  type: 'bill', name: 'Billete de $1.000',  color: '#2E7D32' },
-            { id: 'c500', value: 500,   type: 'coin', name: 'Moneda de $500',    color: '#D97706' },
-            { id: 'c100', value: 100,   type: 'coin', name: 'Moneda de $100',    color: '#F59E0B' },
-            { id: 'c50',  value: 50,    type: 'coin', name: 'Moneda de $50',     color: '#EAB308' },
-            { id: 'c10',  value: 10,    type: 'coin', name: 'Moneda de $10',     color: '#D97706' }
+            { id: 'b20k', value: 20000, type: 'bill', name: 'Billete $20.000', color: '#E65100', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/20000_pesos_chilenos_2010_anverso.jpg/320px-20000_pesos_chilenos_2010_anverso.jpg' },
+            { id: 'b10k', value: 10000, type: 'bill', name: 'Billete $10.000', color: '#0D47A1', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/10000_pesos_chilenos_2010_anverso.jpg/320px-10000_pesos_chilenos_2010_anverso.jpg' },
+            { id: 'b5k',  value: 5000,  type: 'bill', name: 'Billete $5.000',  color: '#C62828', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/5000_pesos_chilenos_2009_anverso.jpg/320px-5000_pesos_chilenos_2009_anverso.jpg' },
+            { id: 'b2k',  value: 2000,  type: 'bill', name: 'Billete $2.000',  color: '#6A1B9A', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/2000_pesos_chilenos_2009_anverso.jpg/320px-2000_pesos_chilenos_2009_anverso.jpg' },
+            { id: 'b1k',  value: 1000,  type: 'bill', name: 'Billete $1.000',  color: '#2E7D32', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/1000_pesos_chilenos_2011_anverso.jpg/320px-1000_pesos_chilenos_2011_anverso.jpg' },
+            { id: 'c500', value: 500,   type: 'coin', name: 'Moneda $500',    color: '#D97706', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/500_pesos_chilenos_anverso.png/220px-500_pesos_chilenos_anverso.png' },
+            { id: 'c100', value: 100,   type: 'coin', name: 'Moneda $100',    color: '#F59E0B', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/100_pesos_chilenos_anverso.png/220px-100_pesos_chilenos_anverso.png' },
+            { id: 'c50',  value: 50,    type: 'coin', name: 'Moneda $50',     color: '#EAB308', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/50_pesos_chilenos_anverso.png/220px-50_pesos_chilenos_anverso.png' },
+            { id: 'c10',  value: 10,    type: 'coin', name: 'Moneda $10',     color: '#D97706', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/10_pesos_chilenos_anverso.png/220px-10_pesos_chilenos_anverso.png' }
         ];
 
         const DEFAULT_COURSES = [
@@ -239,28 +317,28 @@
         ];
 
         const DEFAULT_USERS = [
-            { id: 'u-admin', username: '11111111-1', rut: '11111111-1', pin: '1234', name: 'Administrador General', role: 'admin', email: 'admin@escuela.cl', mustChangePassword: false },
-            { id: 'u-edu1', username: '12345678-9', rut: '12345678-9', pin: '1234', name: 'Profe María', role: 'teacher', courseIds: ['c-1'], email: 'maria.profe@escuela.cl', mustChangePassword: false },
-            { id: 'u-alum1', username: '23456789-0', rut: '23456789-0', pin: '2345', name: 'Juanito Pérez', role: 'student', courseId: 'c-1', email: 'apoderado.juanito@escuela.cl', mustChangePassword: false }
+            { id: 'u-admin', username: '11111111-1', rut: '11111111-1', pin: '1234', name: 'Administrador General', role: 'admin', email: 'admin@escuela.cl', photoUrl: '', mustChangePassword: false },
+            { id: 'u-edu1', username: '12345678-9', rut: '12345678-9', pin: '1234', name: 'Profe María', role: 'teacher', courseIds: ['c-1'], email: 'maria.profe@escuela.cl', photoUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=ProfeMaria', mustChangePassword: false },
+            { id: 'u-alum1', username: '23456789-0', rut: '23456789-0', pin: '2345', name: 'Juanito Pérez', role: 'student', courseId: 'c-1', email: 'apoderado.juanito@escuela.cl', photoUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=Juanito', mustChangePassword: false }
         ];
 
         const DEFAULT_SUPERMARKETS = [
-            { id: 'sup-lider', name: 'Super Lider', themeColor: 'bg-sky-600', textColor: 'text-sky-600', borderColor: 'border-sky-500', icon: '🛒', description: 'Gran variedad de alimentos' },
-            { id: 'sup-jumbo', name: 'Jumbo Frut', themeColor: 'bg-emerald-600', textColor: 'text-emerald-600', borderColor: 'border-emerald-500', icon: '🍏', description: 'Frutas y verduras frescas' },
-            { id: 'sup-unimarc', name: 'Unimarcito', themeColor: 'bg-rose-600', textColor: 'text-rose-600', borderColor: 'border-rose-500', icon: '🍓', description: 'Compras diarias' },
-            { id: 'sup-barrio', name: 'Almacén del Barrio', themeColor: 'bg-amber-600', textColor: 'text-amber-600', borderColor: 'border-amber-500', icon: '🏪', description: 'Negocio cercano' }
+            { id: 'sup-lider', name: 'Super Lider', themeColor: 'bg-sky-600', textColor: 'text-sky-600', borderColor: 'border-sky-500', icon: '🛒', photoUrl: '', description: 'Gran variedad de alimentos' },
+            { id: 'sup-jumbo', name: 'Jumbo Frut', themeColor: 'bg-emerald-600', textColor: 'text-emerald-600', borderColor: 'border-emerald-500', icon: '🍏', photoUrl: '', description: 'Frutas y verduras frescas' },
+            { id: 'sup-unimarc', name: 'Unimarcito', themeColor: 'bg-rose-600', textColor: 'text-rose-600', borderColor: 'border-rose-500', icon: '🍓', photoUrl: '', description: 'Compras diarias' },
+            { id: 'sup-barrio', name: 'Almacén del Barrio', themeColor: 'bg-amber-600', textColor: 'text-amber-600', borderColor: 'border-amber-500', icon: '🏪', photoUrl: '', description: 'Negocio cercano' }
         ];
 
         const DEFAULT_PRODUCTS = [
-            { id: 'prod-1', supermarketId: 'sup-lider', name: 'Caja de Leche Entera', category: 'Lácteos', price: 1100, iconEmoji: '🥛' },
-            { id: 'prod-2', supermarketId: 'sup-lider', name: 'Kilo de Manzanas', category: 'Frutas', price: 1500, iconEmoji: '🍎' },
-            { id: 'prod-3', supermarketId: 'sup-lider', name: 'Pan Marraqueta (1 Kg)', category: 'Panadería', price: 2000, iconEmoji: '🥖' },
-            { id: 'prod-4', supermarketId: 'sup-jumbo', name: 'Queso Mantecoso 250g', category: 'Lácteos', price: 2500, iconEmoji: '🧀' },
-            { id: 'prod-5', supermarketId: 'sup-jumbo', name: 'Aceite de Oliva', category: 'Despensa', price: 5100, iconEmoji: '🫒' },
-            { id: 'prod-6', supermarketId: 'sup-unimarc', name: 'Yogurt de Frutilla', category: 'Lácteos', price: 450, iconEmoji: '🍓' },
-            { id: 'prod-7', supermarketId: 'sup-unimarc', name: 'Paquete de Galletas', category: 'Snacks', price: 800, iconEmoji: '🍪' },
-            { id: 'prod-8', supermarketId: 'sup-barrio', name: 'Jugo de Naranja 1L', category: 'Bebidas', price: 1200, iconEmoji: '🧃' },
-            { id: 'prod-9', supermarketId: 'sup-barrio', name: 'Barra de Chocolate', category: 'Snacks', price: 1000, iconEmoji: '🍫' }
+            { id: 'prod-1', supermarketId: 'sup-lider', name: 'Caja de Leche Entera', category: 'Lácteos', price: 1100, iconEmoji: '🥛', photoUrl: '' },
+            { id: 'prod-2', supermarketId: 'sup-lider', name: 'Kilo de Manzanas', category: 'Frutas', price: 1500, iconEmoji: '🍎', photoUrl: '' },
+            { id: 'prod-3', supermarketId: 'sup-lider', name: 'Pan Marraqueta (1 Kg)', category: 'Panadería', price: 2000, iconEmoji: '🥖', photoUrl: '' },
+            { id: 'prod-4', supermarketId: 'sup-jumbo', name: 'Queso Mantecoso 250g', category: 'Lácteos', price: 2500, iconEmoji: '🧀', photoUrl: '' },
+            { id: 'prod-5', supermarketId: 'sup-jumbo', name: 'Aceite de Oliva', category: 'Despensa', price: 5100, iconEmoji: '🫒', photoUrl: '' },
+            { id: 'prod-6', supermarketId: 'sup-unimarc', name: 'Yogurt de Frutilla', category: 'Lácteos', price: 450, iconEmoji: '🍓', photoUrl: '' },
+            { id: 'prod-7', supermarketId: 'sup-unimarc', name: 'Paquete de Galletas', category: 'Snacks', price: 800, iconEmoji: '🍪', photoUrl: '' },
+            { id: 'prod-8', supermarketId: 'sup-barrio', name: 'Jugo de Naranja 1L', category: 'Bebidas', price: 1200, iconEmoji: '🧃', photoUrl: '' },
+            { id: 'prod-9', supermarketId: 'sup-barrio', name: 'Barra de Chocolate', category: 'Snacks', price: 1000, iconEmoji: '🍫', photoUrl: '' }
         ];
 
         function initFirebaseListeners() {
@@ -310,7 +388,6 @@
             });
         }
 
-        // ENVÍO AUTOMÁTICO EN SEGUNDO PLANO
         function sendAutomaticCredentialsEmail(user) {
             if (!user || !user.email) return;
 
@@ -327,10 +404,8 @@
                     },
                     EMAILJS_CONFIG.publicKey
                 ).then(() => {
-                    console.log(`✉️ Correo enviado automáticamente a ${user.email}`);
-                }).catch(err => {
-                    console.error("Error EmailJS:", err);
-                });
+                    console.log(`✉️ Correo enviado a ${user.email}`);
+                }).catch(err => console.error("Error EmailJS:", err));
             }
         }
 
@@ -390,8 +465,14 @@
             if (APP_STATE.currentUser) {
                 const roleTag = APP_STATE.currentUser.role === 'admin' ? '🔑 Admin' :
                                (APP_STATE.currentUser.role === 'teacher' ? '👨‍🏫 Educador' : '🎒 Alumno');
+                
+                const userPhoto = APP_STATE.currentUser.photoUrl 
+                    ? `<img src="${APP_STATE.currentUser.photoUrl}" class="w-8 h-8 rounded-full border-2 border-indigo-500 object-cover">`
+                    : `<span class="text-xl">👤</span>`;
+
                 userInfoHeader.innerHTML = `
-                    <div class="bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-xl text-xs flex items-center gap-2">
+                    <div class="bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-xl text-xs flex items-center gap-2 shadow-sm">
+                        ${userPhoto}
                         <span class="font-bold text-indigo-900">${APP_STATE.currentUser.name}</span>
                         <span class="bg-indigo-600 text-white font-black px-2 py-0.5 rounded-md text-[10px]">${roleTag}</span>
                     </div>
@@ -545,13 +626,14 @@
             renderApp();
         }
 
+        // DASHBOARD ADMINISTRADOR CON EDICIÓN COMPLETA
         function renderAdminDashboard(container) {
             let html = `
                 <div class="space-y-6">
                     <div class="bg-indigo-900 text-white p-6 rounded-3xl shadow-lg flex flex-wrap justify-between items-center gap-4">
                         <div>
                             <h2 class="text-2xl font-black">👑 Panel de Administración (Nube ☁️)</h2>
-                            <p class="text-xs text-indigo-200 mt-1">Gestión completa en tiempo real de Cursos, Educadores, Alumnos y Claves.</p>
+                            <p class="text-xs text-indigo-200 mt-1">Gestión completa en tiempo real de Cursos, Educadores, Alumnos, Fotos y Claves.</p>
                         </div>
                         
                         <div class="flex items-center gap-3">
@@ -566,6 +648,7 @@
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- CURSOS -->
                         <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
                             <div class="flex justify-between items-center border-b pb-2">
                                 <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-school text-indigo-600"></i> Cursos</h3>
@@ -591,6 +674,7 @@
                             </div>
                         </div>
 
+                        <!-- EDUCADORES -->
                         <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
                             <div class="flex justify-between items-center border-b pb-2">
                                 <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-chalkboard-user text-indigo-600"></i> Educadores</h3>
@@ -606,14 +690,21 @@
 
             teachers.forEach(t => {
                 const assignedCourses = (t.courseIds || []).map(id => APP_STATE.courses.find(c => c.id === id)?.name || '').join(', ');
+                const photoImg = t.photoUrl ? `<img src="${t.photoUrl}" class="w-9 h-9 rounded-full object-cover border-2 border-indigo-500">` : `<div class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">👨‍🏫</div>`;
                 html += `
                     <div class="p-3 bg-slate-50 border rounded-xl space-y-2 text-sm">
                         <div class="flex justify-between items-start">
-                            <div>
-                                <span class="font-black text-slate-800 block">${t.name}</span>
-                                <span class="text-[11px] text-slate-500 font-bold">RUT: ${t.rut || 'Sin RUT'}</span>
+                            <div class="flex items-center gap-2">
+                                ${photoImg}
+                                <div>
+                                    <span class="font-black text-slate-800 block">${t.name}</span>
+                                    <span class="text-[11px] text-slate-500 font-bold">RUT: ${t.rut || 'Sin RUT'}</span>
+                                </div>
                             </div>
-                            <button onclick="deleteUser('${t.id}')" class="text-rose-600 font-bold text-xs">✕</button>
+                            <div class="flex items-center gap-1">
+                                <button onclick="openEditUserModal('${t.id}')" title="Editar" class="text-amber-600 hover:bg-amber-100 p-1 rounded font-bold text-xs">✏️</button>
+                                <button onclick="deleteUser('${t.id}')" title="Eliminar" class="text-rose-600 hover:bg-rose-100 p-1 rounded font-bold text-xs">✕</button>
+                            </div>
                         </div>
                         <div class="text-[11px] bg-white p-2 rounded-lg border space-y-1">
                             <div>📧 Correo: <span class="font-bold text-indigo-900">${t.email || 'No asignado'}</span></div>
@@ -621,12 +712,8 @@
                             <div class="text-[10px] text-indigo-700 font-bold">Cursos: ${assignedCourses || 'Ninguno'}</div>
                         </div>
                         <div class="flex gap-2 pt-1">
-                            <button onclick="resetUserPassword('${t.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-2 py-1 rounded text-xs flex-1">
-                                🔄 Reiniciar Clave
-                            </button>
-                            <button onclick="sendAutomaticCredentialsEmail(APP_STATE.users.find(u=>u.id==='${t.id}'))" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold px-2 py-1 rounded text-xs flex-1">
-                                ✉️ Reenviar Correo
-                            </button>
+                            <button onclick="resetUserPassword('${t.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-2 py-1 rounded text-xs flex-1">🔄 Clave</button>
+                            <button onclick="sendAutomaticCredentialsEmail(APP_STATE.users.find(u=>u.id==='${t.id}'))" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold px-2 py-1 rounded text-xs flex-1">✉️ Correo</button>
                         </div>
                     </div>
                 `;
@@ -636,6 +723,7 @@
                             </div>
                         </div>
 
+                        <!-- ALUMNOS -->
                         <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
                             <div class="flex justify-between items-center border-b pb-2">
                                 <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-children text-indigo-600"></i> Alumnos</h3>
@@ -651,14 +739,21 @@
 
             students.forEach(s => {
                 const courseName = APP_STATE.courses.find(c => c.id === s.courseId)?.name || 'Sin curso';
+                const studentPhoto = s.photoUrl ? `<img src="${s.photoUrl}" class="w-9 h-9 rounded-full object-cover border-2 border-emerald-500">` : `<div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-xs">🎒</div>`;
                 html += `
                     <div class="p-3 bg-slate-50 border rounded-xl space-y-2 text-sm">
                         <div class="flex justify-between items-start">
-                            <div>
-                                <span class="font-black text-slate-800 block">${s.name}</span>
-                                <span class="text-[11px] text-slate-500 font-bold">RUT: ${s.rut || 'Sin RUT'}</span>
+                            <div class="flex items-center gap-2">
+                                ${studentPhoto}
+                                <div>
+                                    <span class="font-black text-slate-800 block">${s.name}</span>
+                                    <span class="text-[11px] text-slate-500 font-bold">RUT: ${s.rut || 'Sin RUT'}</span>
+                                </div>
                             </div>
-                            <button onclick="deleteUser('${s.id}')" class="text-rose-600 font-bold text-xs">✕</button>
+                            <div class="flex items-center gap-1">
+                                <button onclick="openEditUserModal('${s.id}')" title="Editar" class="text-amber-600 hover:bg-amber-100 p-1 rounded font-bold text-xs">✏️</button>
+                                <button onclick="deleteUser('${s.id}')" title="Eliminar" class="text-rose-600 hover:bg-rose-100 p-1 rounded font-bold text-xs">✕</button>
+                            </div>
                         </div>
                         <div class="text-[11px] bg-white p-2 rounded-lg border space-y-1">
                             <div>📧 Correo Apoderado: <span class="font-bold text-emerald-900">${s.email || 'No asignado'}</span></div>
@@ -666,12 +761,8 @@
                             <div class="text-[10px] text-emerald-700 font-bold">Curso: ${courseName}</div>
                         </div>
                         <div class="flex gap-2 pt-1">
-                            <button onclick="resetUserPassword('${s.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-2 py-1 rounded text-xs flex-1">
-                                🔄 Reiniciar Clave
-                            </button>
-                            <button onclick="sendAutomaticCredentialsEmail(APP_STATE.users.find(u=>u.id==='${s.id}'))" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold px-2 py-1 rounded text-xs flex-1">
-                                ✉️ Reenviar Correo
-                            </button>
+                            <button onclick="resetUserPassword('${s.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-2 py-1 rounded text-xs flex-1">🔄 Clave</button>
+                            <button onclick="sendAutomaticCredentialsEmail(APP_STATE.users.find(u=>u.id==='${s.id}'))" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold px-2 py-1 rounded text-xs flex-1">✉️ Correo</button>
                         </div>
                     </div>
                 `;
@@ -692,43 +783,53 @@
             renderAdminDashboard(document.getElementById('appContainer'));
         }
 
+        // DASHBOARD EDUCADOR CON SUPERMERCADOS, PRODUCTOS, CURSOS Y ALUMNOS
         function renderTeacherDashboard(container) {
             const myCourseIds = APP_STATE.currentUser.courseIds || [];
             const myCourses = APP_STATE.courses.filter(c => myCourseIds.includes(c.id));
 
             let html = `
                 <div class="space-y-6">
-                    <div class="bg-indigo-800 text-white p-6 rounded-3xl shadow-lg flex justify-between items-center">
+                    <div class="bg-indigo-800 text-white p-6 rounded-3xl shadow-lg flex flex-wrap justify-between items-center gap-4">
                         <div>
                             <h2 class="text-2xl font-black">👨‍🏫 Panel del Educador</h2>
-                            <p class="text-xs text-indigo-200 mt-1">Gestión pedagógica por cursos y alumnos asignados.</p>
+                            <p class="text-xs text-indigo-200 mt-1">Gestión pedagógica de Cursos, Alumnos, Supermercados y Catálogo Pictográfico.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="addNewCoursePrompt()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs px-3 py-2 rounded-xl shadow">+ Crear Curso</button>
+                            <button onclick="openCreateUserModal('student')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-3 py-2 rounded-xl shadow">+ Crear Alumno</button>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow space-y-4">
-                            <h3 class="font-black text-lg text-indigo-900 border-b pb-2">Mis Cursos Asignados</h3>
-                            <div class="space-y-3">
+                    <!-- GESTIÓN DE CURSOS Y ALUMNOS -->
+                    <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow space-y-4">
+                        <h3 class="font-black text-lg text-indigo-900 border-b pb-2 flex justify-between items-center">
+                            <span>🏫 Mis Cursos y Alumnos Asignados</span>
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             `;
 
             if (myCourses.length === 0) {
-                html += `<p class="text-sm text-slate-500 italic">No tienes cursos asignados aún.</p>`;
+                html += `<p class="text-sm text-slate-500 italic col-span-2">No tienes cursos asignados aún. Presiona "+ Crear Curso" para comenzar.</p>`;
             } else {
                 myCourses.forEach(c => {
                     const studentsInCourse = APP_STATE.users.filter(u => u.role === 'student' && u.courseId === c.id);
                     html += `
-                        <div class="p-4 bg-indigo-50 border-2 border-indigo-200 rounded-2xl space-y-2">
+                        <div class="p-4 bg-indigo-50 border-2 border-indigo-200 rounded-2xl space-y-3">
                             <div class="flex justify-between items-center">
                                 <span class="font-black text-indigo-950 text-base">${c.name}</span>
                                 <span class="text-xs bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded-full font-bold">${studentsInCourse.length} Alumnos</span>
                             </div>
-                            <div class="space-y-1">
-                                ${studentsInCourse.map(s => `
-                                    <div class="text-xs font-bold text-slate-700 bg-white p-2 rounded-lg border flex justify-between">
-                                        <span>👤 ${s.name} (RUT: ${s.rut})</span>
-                                        <span class="text-slate-400">PIN: ${s.pin}</span>
-                                    </div>
-                                `).join('')}
+                            <div class="space-y-2">
+                                ${studentsInCourse.map(s => {
+                                    const img = s.photoUrl ? `<img src="${s.photoUrl}" class="w-7 h-7 rounded-full object-cover">` : `👤`;
+                                    return `
+                                        <div class="text-xs font-bold text-slate-700 bg-white p-2 rounded-lg border flex justify-between items-center">
+                                            <div class="flex items-center gap-2">${img} <span>${s.name} (${s.rut})</span></div>
+                                            <span class="text-slate-400">PIN: ${s.pin}</span>
+                                        </div>
+                                    `;
+                                }).join('')}
                             </div>
                         </div>
                     `;
@@ -736,36 +837,97 @@
             }
 
             html += `
+                        </div>
+                    </div>
+
+                    <!-- GESTIÓN DE SUPERMERCADOS Y PRODUCTOS -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        
+                        <!-- SUPERMERCADOS -->
+                        <div class="bg-white p-6 rounded-3xl border-4 border-emerald-200 shadow space-y-4">
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <h3 class="font-black text-lg text-emerald-900">🏪 Supermercados</h3>
+                                <button onclick="openSupermarketModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow">+ Supermercado</button>
+                            </div>
+                            <div class="space-y-3">
+            `;
+
+            APP_STATE.supermarkets.forEach(sup => {
+                const iconDisplay = sup.photoUrl ? `<img src="${sup.photoUrl}" class="w-10 h-10 rounded-xl object-cover border">` : `<span class="text-2xl">${sup.icon || '🏪'}</span>`;
+                html += `
+                    <div class="p-3 bg-slate-50 border rounded-2xl flex justify-between items-center">
+                        <div class="flex items-center space-x-3">
+                            ${iconDisplay}
+                            <div>
+                                <h4 class="font-black text-slate-800 text-sm">${sup.name}</h4>
+                                <p class="text-[10px] text-slate-500">${sup.description}</p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="openSupermarketModal('${sup.id}')" class="text-amber-600 hover:bg-amber-100 p-1.5 rounded-lg font-bold text-xs">✏️ Editar</button>
+                            <button onclick="deleteSupermarket('${sup.id}')" class="text-rose-600 hover:bg-rose-100 p-1.5 rounded-lg font-bold text-xs">✕</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
                             </div>
                         </div>
 
+                        <!-- PRODUCTOS -->
                         <div class="bg-white p-6 rounded-3xl border-4 border-amber-200 shadow space-y-4">
-                            <h3 class="font-black text-lg text-amber-900 border-b pb-2">📋 Instrumentos de Evaluación</h3>
-                            <p class="text-xs font-semibold text-slate-600">
-                                Módulo preparado para crear e implementar pautas de cotejo adaptadas.
-                            </p>
-                            <div class="p-8 border-2 border-dashed border-amber-300 bg-amber-50 rounded-2xl text-center space-y-3">
-                                <span class="text-4xl">📝</span>
-                                <p class="text-xs font-bold text-amber-900">Estructura vinculada a los cursos y RUTs de alumnos.</p>
-                                <button class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-black px-4 py-2 rounded-xl shadow opacity-75 cursor-not-allowed">
-                                    + Crear Pauta de Evaluación (Próximamente)
-                                </button>
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <h3 class="font-black text-lg text-amber-900">🍎 Productos y Pictogramas</h3>
+                                <button onclick="openProductModal()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow">+ Producto</button>
+                            </div>
+                            <div class="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+            `;
+
+            APP_STATE.products.forEach(prod => {
+                const sup = APP_STATE.supermarkets.find(s => s.id === prod.supermarketId);
+                const prodImg = prod.photoUrl 
+                    ? `<img src="${prod.photoUrl}" class="w-10 h-10 rounded-xl object-cover border">` 
+                    : `<span class="text-2xl">${prod.iconEmoji || '📦'}</span>`;
+
+                html += `
+                    <div class="p-3 bg-slate-50 border rounded-2xl flex justify-between items-center">
+                        <div class="flex items-center space-x-3">
+                            ${prodImg}
+                            <div>
+                                <h4 class="font-black text-slate-800 text-sm">${prod.name}</h4>
+                                <span class="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full">${sup ? sup.name : 'Sin super'} • $${prod.price.toLocaleString('es-CL')}</span>
                             </div>
                         </div>
+                        <div class="flex space-x-2">
+                            <button onclick="openProductModal('${prod.id}')" class="text-amber-600 hover:bg-amber-100 p-1.5 rounded-lg font-bold text-xs">✏️ Editar</button>
+                            <button onclick="deleteProduct('${prod.id}')" class="text-rose-600 hover:bg-rose-100 p-1.5 rounded-lg font-bold text-xs">✕</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             `;
             container.innerHTML = html;
         }
 
+        // FUNCIONES DE MODALES Y OPERACIONES
         function openCreateUserModal(role) {
             if (APP_STATE.courses.length === 0) return alert("Crea al menos un curso antes de registrar usuarios.");
             
+            document.getElementById('modalUserId').value = '';
             document.getElementById('modalUserRole').value = role;
             document.getElementById('userModalTitle').textContent = role === 'teacher' ? 'Crear Nuevo Educador' : 'Crear Nuevo Alumno';
             document.getElementById('modalName').value = '';
             document.getElementById('modalRut').value = '';
             document.getElementById('modalEmail').value = '';
+            document.getElementById('modalPhotoUrl').value = '';
 
             const courseSelect = document.getElementById('modalCourse');
             courseSelect.innerHTML = APP_STATE.courses.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
@@ -773,47 +935,173 @@
             document.getElementById('userModal').classList.remove('hidden');
         }
 
-        function closeUserModal() {
-            document.getElementById('userModal').classList.add('hidden');
+        function openEditUserModal(userId) {
+            const user = APP_STATE.users.find(u => u.id === userId);
+            if (!user) return;
+
+            document.getElementById('modalUserId').value = user.id;
+            document.getElementById('modalUserRole').value = user.role;
+            document.getElementById('userModalTitle').textContent = user.role === 'teacher' ? 'Editar Educador' : 'Editar Alumno';
+            document.getElementById('modalName').value = user.name || '';
+            document.getElementById('modalRut').value = user.rut || '';
+            document.getElementById('modalEmail').value = user.email || '';
+            document.getElementById('modalPhotoUrl').value = user.photoUrl || '';
+
+            const courseSelect = document.getElementById('modalCourse');
+            courseSelect.innerHTML = APP_STATE.courses.map(c => `<option value="${c.id}" ${user.courseId === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+
+            document.getElementById('userModal').classList.remove('hidden');
         }
 
+        function closeUserModal() { document.getElementById('userModal').classList.add('hidden'); }
+
         function saveUserFromModal() {
+            const userId = document.getElementById('modalUserId').value;
             const role = document.getElementById('modalUserRole').value;
             const name = document.getElementById('modalName').value.trim();
             const rut = document.getElementById('modalRut').value.trim();
             const email = document.getElementById('modalEmail').value.trim();
             const courseId = document.getElementById('modalCourse').value;
+            const photoUrl = document.getElementById('modalPhotoUrl').value.trim();
 
-            if (!name || !rut || !email) {
-                alert("Por favor completa Nombre, RUT y Correo.");
-                return;
+            if (!name || !rut || !email) return alert("Por favor completa Nombre, RUT y Correo.");
+
+            if (userId) {
+                // EDITAR EXISTENTE
+                const updateData = { name, rut, username: rut, email, photoUrl };
+                if (role === 'teacher') updateData.courseIds = [courseId];
+                else updateData.courseId = courseId;
+
+                db.collection('users').doc(userId).update(updateData).then(() => {
+                    closeUserModal();
+                    alert("✅ Usuario actualizado correctamente en la nube.");
+                });
+            } else {
+                // CREAR NUEVO
+                const initialPin = getInitialPinFromRut(rut);
+                const newUserId = 'u-' + Date.now();
+                const newUser = {
+                    id: newUserId, name, rut, username: rut, email, photoUrl,
+                    pin: initialPin, role, mustChangePassword: true
+                };
+                if (role === 'teacher') newUser.courseIds = [courseId];
+                else newUser.courseId = courseId;
+
+                db.collection('users').doc(newUserId).set(newUser).then(() => {
+                    closeUserModal();
+                    sendAutomaticCredentialsEmail(newUser);
+                    alert(`✅ Usuario registrado exitosamente.\nClave temporal: ${initialPin}\nCorreo enviado a ${email}`);
+                });
             }
+        }
 
-            const initialPin = getInitialPinFromRut(rut);
-            const newUserId = 'u-' + Date.now();
+        // GESTIÓN DE SUPERMERCADOS
+        function openSupermarketModal(supId = null) {
+            if (supId) {
+                const sup = APP_STATE.supermarkets.find(s => s.id === supId);
+                if (!sup) return;
+                document.getElementById('modalSupId').value = sup.id;
+                document.getElementById('supModalTitle').textContent = 'Editar Supermercado';
+                document.getElementById('modalSupName').value = sup.name || '';
+                document.getElementById('modalSupIcon').value = sup.icon || '🏪';
+                document.getElementById('modalSupPhoto').value = sup.photoUrl || '';
+                document.getElementById('modalSupDesc').value = sup.description || '';
+            } else {
+                document.getElementById('modalSupId').value = '';
+                document.getElementById('supModalTitle').textContent = 'Crear Supermercado';
+                document.getElementById('modalSupName').value = '';
+                document.getElementById('modalSupIcon').value = '🏪';
+                document.getElementById('modalSupPhoto').value = '';
+                document.getElementById('modalSupDesc').value = '';
+            }
+            document.getElementById('supermarketModal').classList.remove('hidden');
+        }
 
-            const newUser = {
-                id: newUserId,
-                name,
-                rut,
-                username: rut,
-                email,
-                pin: initialPin,
-                role,
-                mustChangePassword: true
+        function closeSupermarketModal() { document.getElementById('supermarketModal').classList.add('hidden'); }
+
+        function saveSupermarketFromModal() {
+            const supId = document.getElementById('modalSupId').value;
+            const name = document.getElementById('modalSupName').value.trim();
+            const icon = document.getElementById('modalSupIcon').value.trim();
+            const photoUrl = document.getElementById('modalSupPhoto').value.trim();
+            const description = document.getElementById('modalSupDesc').value.trim();
+
+            if (!name) return alert("Ingresa un nombre para el supermercado.");
+
+            const id = supId || ('sup-' + Date.now());
+            const data = {
+                id, name, icon: icon || '🏪', photoUrl, description,
+                themeColor: 'bg-emerald-600', textColor: 'text-emerald-600', borderColor: 'border-emerald-500'
             };
 
-            if (role === 'teacher') {
-                newUser.courseIds = [courseId];
-            } else {
-                newUser.courseId = courseId;
-            }
-
-            db.collection('users').doc(newUserId).set(newUser).then(() => {
-                closeUserModal();
-                sendAutomaticCredentialsEmail(newUser);
-                alert(`✅ Usuario creado exitosamente en la nube.\n\nClave temporal: ${initialPin}\nSe ha enviado el correo con las credenciales a ${email}.`);
+            db.collection('supermarkets').doc(id).set(data).then(() => {
+                closeSupermarketModal();
+                alert("✅ Supermercado guardado en la nube.");
             });
+        }
+
+        function deleteSupermarket(id) {
+            if (confirm("¿Eliminar este supermercado?")) {
+                db.collection('supermarkets').doc(id).delete();
+            }
+        }
+
+        // GESTIÓN DE PRODUCTOS
+        function openProductModal(prodId = null) {
+            if (APP_STATE.supermarkets.length === 0) return alert("Crea un supermercado primero.");
+
+            const supSelect = document.getElementById('modalProdSupermarket');
+            supSelect.innerHTML = APP_STATE.supermarkets.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+
+            if (prodId) {
+                const prod = APP_STATE.products.find(p => p.id === prodId);
+                if (!prod) return;
+                document.getElementById('modalProdId').value = prod.id;
+                document.getElementById('prodModalTitle').textContent = 'Editar Producto';
+                document.getElementById('modalProdSupermarket').value = prod.supermarketId;
+                document.getElementById('modalProdName').value = prod.name || '';
+                document.getElementById('modalProdCategory').value = prod.category || '';
+                document.getElementById('modalProdPrice').value = prod.price || '';
+                document.getElementById('modalProdEmoji').value = prod.iconEmoji || '📦';
+                document.getElementById('modalProdPhoto').value = prod.photoUrl || '';
+            } else {
+                document.getElementById('modalProdId').value = '';
+                document.getElementById('prodModalTitle').textContent = 'Crear Producto';
+                document.getElementById('modalProdName').value = '';
+                document.getElementById('modalProdCategory').value = 'General';
+                document.getElementById('modalProdPrice').value = '';
+                document.getElementById('modalProdEmoji').value = '📦';
+                document.getElementById('modalProdPhoto').value = '';
+            }
+            document.getElementById('productModal').classList.remove('hidden');
+        }
+
+        function closeProductModal() { document.getElementById('productModal').classList.add('hidden'); }
+
+        function saveProductFromModal() {
+            const prodId = document.getElementById('modalProdId').value;
+            const supermarketId = document.getElementById('modalProdSupermarket').value;
+            const name = document.getElementById('modalProdName').value.trim();
+            const category = document.getElementById('modalProdCategory').value.trim();
+            const price = parseInt(document.getElementById('modalProdPrice').value);
+            const iconEmoji = document.getElementById('modalProdEmoji').value.trim();
+            const photoUrl = document.getElementById('modalProdPhoto').value.trim();
+
+            if (!name || isNaN(price)) return alert("Completa el nombre y precio del producto.");
+
+            const id = prodId || ('prod-' + Date.now());
+            const data = { id, supermarketId, name, category, price, iconEmoji: iconEmoji || '📦', photoUrl };
+
+            db.collection('products').doc(id).set(data).then(() => {
+                closeProductModal();
+                alert("✅ Producto guardado en la nube.");
+            });
+        }
+
+        function deleteProduct(id) {
+            if (confirm("¿Eliminar este producto?")) {
+                db.collection('products').doc(id).delete();
+            }
         }
 
         function resetUserPassword(userId) {
@@ -821,13 +1109,10 @@
             if (!user) return;
 
             const initialPin = getInitialPinFromRut(user.rut);
-            db.collection('users').doc(userId).update({
-                pin: initialPin,
-                mustChangePassword: true
-            }).then(() => {
+            db.collection('users').doc(userId).update({ pin: initialPin, mustChangePassword: true }).then(() => {
                 user.pin = initialPin;
                 sendAutomaticCredentialsEmail(user);
-                alert(`🔒 Clave de ${user.name} reiniciada a ${initialPin}.\nSe ha enviado la notificación por correo a ${user.email}.`);
+                alert(`🔒 Clave de ${user.name} reiniciada a ${initialPin}.\nNotificación enviada por correo a ${user.email}.`);
             });
         }
 
@@ -839,15 +1124,11 @@
         }
 
         function deleteCourse(id) {
-            if (confirm("¿Eliminar este curso de la Nube?")) {
-                db.collection('courses').doc(id).delete();
-            }
+            if (confirm("¿Eliminar este curso de la Nube?")) db.collection('courses').doc(id).delete();
         }
 
         function deleteUser(id) {
-            if (confirm("¿Eliminar este usuario del sistema?")) {
-                db.collection('users').doc(id).delete();
-            }
+            if (confirm("¿Eliminar este usuario del sistema?")) db.collection('users').doc(id).delete();
         }
 
         function goHome() {
@@ -867,11 +1148,15 @@
 
             APP_STATE.supermarkets.forEach(sup => {
                 const count = APP_STATE.products.filter(p => p.supermarketId === sup.id).length;
+                const iconDisplay = sup.photoUrl 
+                    ? `<img src="${sup.photoUrl}" class="w-20 h-20 rounded-2xl object-cover shadow border-2 border-white">`
+                    : `<span class="text-5xl">${sup.icon || '🛒'}</span>`;
+
                 html += `
                     <div onclick="selectSupermarket('${sup.id}')"
                          class="bg-white rounded-3xl border-4 ${sup.borderColor || 'border-slate-300'} p-6 shadow-lg hover:shadow-2xl transition-all cursor-pointer flex flex-col items-center text-center space-y-4 touch-focus active:scale-95 group">
-                        <div class="${sup.themeColor || 'bg-amber-400'} text-5xl p-6 rounded-3xl shadow-inner group-hover:scale-110 transition-transform">
-                            ${sup.icon || '🛒'}
+                        <div class="${sup.themeColor || 'bg-amber-400'} p-4 rounded-3xl shadow-inner group-hover:scale-110 transition-transform">
+                            ${iconDisplay}
                         </div>
                         <div>
                             <h3 class="text-2xl font-black ${sup.textColor || 'text-slate-800'}">${sup.name}</h3>
@@ -926,12 +1211,14 @@
                 html += `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">`;
                 products.forEach(prod => {
                     const breakdown = calculateCLPBreakdown(prod.price);
+                    const prodVisual = prod.photoUrl 
+                        ? `<img src="${prod.photoUrl}" class="w-16 h-16 object-cover rounded-2xl border-2 border-amber-300 shrink-0">`
+                        : `<div class="bg-amber-100 p-4 rounded-2xl text-4xl border-2 border-amber-300 flex items-center justify-center shrink-0">${prod.iconEmoji || '📦'}</div>`;
+
                     html += `
                         <div class="bg-white rounded-3xl border-4 border-slate-200 p-5 shadow-md flex flex-col justify-between space-y-4 hover:border-amber-400 transition-all">
                             <div class="flex items-center space-x-4">
-                                <div class="bg-amber-100 p-4 rounded-2xl text-4xl border-2 border-amber-300 flex items-center justify-center shrink-0">
-                                    ${prod.iconEmoji || '📦'}
-                                </div>
+                                ${prodVisual}
                                 <div class="flex-1 min-w-0">
                                     <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">${prod.category || 'General'}</span>
                                     <h3 class="text-lg font-black text-slate-800 truncate">${prod.name}</h3>
@@ -984,19 +1271,31 @@
             return breakdown;
         }
 
+        // RENDER DE DINERO CON IMÁGENES REALES Y FALLBACK ESTILIZADO
         function renderCurrencySVG(item, size = 'md') {
             const isBill = item.type === 'bill';
             let height = size === 'sm' ? 'h-8' : 'h-12';
-            let width = size === 'sm' ? 'w-14' : 'w-22';
+            let width = size === 'sm' ? 'w-16' : 'w-24';
 
             if (!isBill) {
                 height = size === 'sm' ? 'h-8' : 'h-10';
                 width = size === 'sm' ? 'w-8' : 'w-10';
             }
 
+            if (item.img) {
+                return `
+                    <div class="currency-item inline-flex items-center justify-center ${width} ${height} rounded-lg overflow-hidden border border-slate-700 shadow-md bg-white select-none shrink-0" title="${item.name}">
+                        <img src="${item.img}" class="w-full h-full object-contain" alt="${item.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="hidden w-full h-full items-center justify-center text-[10px] font-black text-white" style="background-color:${item.color};">
+                            $${item.value.toLocaleString('es-CL')}
+                        </div>
+                    </div>
+                `;
+            }
+
             if (isBill) {
                 return `
-                    <div class="currency-item inline-flex flex-col items-center ${width} ${height} relative shadow-md rounded-lg overflow-hidden border border-slate-700 select-none text-white" style="background-color: ${item.color};">
+                    <div class="currency-item inline-flex flex-col items-center ${width} ${height} relative shadow-md rounded-lg overflow-hidden border border-slate-700 select-none text-white shrink-0" style="background-color: ${item.color};">
                         <div class="w-full flex justify-between px-1 text-[7px] font-black opacity-90">
                             <span>CHILE</span><span>$${item.value.toLocaleString('es-CL')}</span>
                         </div>
@@ -1008,7 +1307,7 @@
             } else {
                 const isBimetallic = item.value === 500;
                 return `
-                    <div class="currency-item inline-flex items-center justify-center ${width} ${height} rounded-full border border-slate-700 shadow-md font-black text-slate-900 text-xs"
+                    <div class="currency-item inline-flex items-center justify-center ${width} ${height} rounded-full border border-slate-700 shadow-md font-black text-slate-900 text-xs shrink-0"
                          style="background: ${isBimetallic ? 'radial-gradient(circle, #F59E0B 48%, #9CA3AF 50%)' : '#F59E0B'};">
                         $${item.value}
                     </div>
@@ -1076,10 +1375,14 @@
                     const subtotal = prod.price * item.quantity;
                     totalAmount += subtotal;
 
+                    const itemIcon = prod.photoUrl 
+                        ? `<img src="${prod.photoUrl}" class="w-8 h-8 rounded-lg object-cover border">`
+                        : `<span class="text-2xl">${prod.iconEmoji || '📦'}</span>`;
+
                     html += `
                         <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-2xl">
                             <div class="flex items-center space-x-3">
-                                <span class="text-2xl">${prod.iconEmoji || '📦'}</span>
+                                ${itemIcon}
                                 <div>
                                     <h4 class="font-black text-slate-800 text-sm">${prod.name}</h4>
                                     <span class="text-xs font-bold text-emerald-700">$${prod.price.toLocaleString('es-CL')} c/u</span>
