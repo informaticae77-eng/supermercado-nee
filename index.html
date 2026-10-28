@@ -1005,7 +1005,7 @@
             renderAdminDashboard(document.getElementById('appContainer'));
         }
 
-        // DASHBOARD EDUCADOR CON COMPRAS GUARDADAS Y CARGA DE DINERO
+        // DASHBOARD EDUCADOR
         function renderTeacherDashboard(container) {
             const myCourseIds = getUserCourseIds(APP_STATE.currentUser);
             const myCourses = APP_STATE.courses.filter(c => myCourseIds.includes(c.id));
@@ -1027,7 +1027,7 @@
                         </div>
                     </div>
 
-                    <!-- NUEVO MÓDULO: REPORTE DE EVALUACIONES Y LISTAS DE COMPRA DE ESTUDIANTES -->
+                    <!-- MÓDULO: REPORTE DE EVALUACIONES Y LISTAS DE COMPRA DE ESTUDIANTES -->
                     <div class="bg-white p-6 rounded-3xl border-4 border-indigo-300 shadow space-y-4">
                         <div class="flex justify-between items-center border-b pb-2">
                             <h3 class="font-black text-lg text-indigo-950 flex items-center gap-2">
@@ -1238,7 +1238,7 @@
             container.innerHTML = html;
         }
 
-        // LÓGICA DE EDICIÓN Y CARGA DE BILLETES / MONEDAS
+        // EDICIÓN Y CARGA DE BILLETES Y MONEDAS
         function openCurrencyEditModal(currencyId, currencyName) {
             document.getElementById('modalCurrencyId').value = currencyId;
             document.getElementById('currencyModalTitle').textContent = `Foto de ${currencyName}`;
@@ -1316,7 +1316,7 @@
             });
         }
 
-        // AUTO-ASIGNACIÓN MULTI-CURSO PARA EL EDUCADOR
+        // AUTO-ASIGNACIÓN MULTI-CURSO
         function openTeacherCourseModal() {
             const container = document.getElementById('teacherCourseCheckboxes');
             const myCourseIds = getUserCourseIds(APP_STATE.currentUser);
@@ -1357,7 +1357,7 @@
             });
         }
 
-        // MANEJO DE FOTOGRAFÍA DE USUARIOS
+        // FOTOGRAFÍA DE USUARIOS
         function handleImageFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1741,7 +1741,7 @@
             if (sup) speakText(`Entrando a ${sup.name}`);
         }
 
-        // VISTA SUPERMERCADO CATEGORIZADA Y PESTAÑAS PARA EL ESTUDIANTE
+        // VISTA SUPERMERCADO AGRUPADA POR CATEGORÍAS PARA EL ESTUDIANTE
         function filterCategory(cat) {
             APP_STATE.selectedCategoryFilter = cat;
             renderSupermarketView(document.getElementById('appContainer'), APP_STATE.selectedSupermarketId);
@@ -1753,11 +1753,12 @@
 
             if (!sup) { goHome(); return; }
 
-            // OBTENER TODAS LAS CATEGORÍAS DISPONIBLES
+            // TODAS LAS CATEGORÍAS DISPONIBLES EN ESTE SUPERMERCADO
             const categories = Array.from(new Set(products.map(p => p.category || 'General')));
 
+            let filteredProducts = products;
             if (APP_STATE.selectedCategoryFilter !== 'all') {
-                products = products.filter(p => (p.category || 'General') === APP_STATE.selectedCategoryFilter);
+                filteredProducts = products.filter(p => (p.category || 'General') === APP_STATE.selectedCategoryFilter);
             }
 
             let html = `
@@ -1776,7 +1777,7 @@
                     <!-- BARRA DE CATEGORÍAS PEDAGÓGICA -->
                     <div class="bg-white p-3 rounded-2xl border-2 border-slate-200 flex items-center gap-2 overflow-x-auto">
                         <button onclick="filterCategory('all')" class="px-4 py-2 rounded-xl font-extrabold text-xs shrink-0 transition-all ${APP_STATE.selectedCategoryFilter === 'all' ? 'bg-amber-400 text-slate-900 shadow' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
-                            ✨ Todos los Productos
+                            ✨ Ver Todas las Categorías
                         </button>
                         ${categories.map(cat => `
                             <button onclick="filterCategory('${cat}')" class="px-4 py-2 rounded-xl font-extrabold text-xs shrink-0 transition-all ${APP_STATE.selectedCategoryFilter === cat ? 'bg-indigo-600 text-white shadow' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
@@ -1786,7 +1787,7 @@
                     </div>
             `;
 
-            if (products.length === 0) {
+            if (filteredProducts.length === 0) {
                 html += `
                     <div class="bg-white p-12 rounded-3xl text-center space-y-4 border-4 border-dashed border-slate-300">
                         <span class="text-5xl">📦</span>
@@ -1794,49 +1795,81 @@
                     </div>
                 `;
             } else {
-                html += `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">`;
-                products.forEach(prod => {
-                    const breakdown = calculateCLPBreakdown(prod.price);
-                    const prodVisual = prod.photoUrl 
-                        ? `<img src="${prod.photoUrl}" class="w-16 h-16 object-cover rounded-2xl border-2 border-amber-300 shrink-0">`
-                        : `<div class="bg-amber-100 p-4 rounded-2xl text-4xl border-2 border-amber-300 flex items-center justify-center shrink-0">${prod.iconEmoji || '📦'}</div>`;
+                // AGRUPAR PRODUCTOS EN BLOQUES VISUALES POR CATEGORÍA
+                const displayCategories = APP_STATE.selectedCategoryFilter === 'all'
+                    ? categories
+                    : [APP_STATE.selectedCategoryFilter];
+
+                displayCategories.forEach(cat => {
+                    const catProducts = filteredProducts.filter(p => (p.category || 'General') === cat);
+                    if (catProducts.length === 0) return;
+
+                    let catEmoji = '🏷️';
+                    if (cat.toLowerCase().includes('limpieza')) catEmoji = '🧹';
+                    else if (cat.toLowerCase().includes('lácteo') || cat.toLowerCase().includes('lacteo')) catEmoji = '🥛';
+                    else if (cat.toLowerCase().includes('panader')) catEmoji = '🥖';
+                    else if (cat.toLowerCase().includes('fruta') || cat.toLowerCase().includes('verdura')) catEmoji = '🍎';
+                    else if (cat.toLowerCase().includes('bebida') || cat.toLowerCase().includes('jugo')) catEmoji = '🧃';
+                    else if (cat.toLowerCase().includes('snack') || cat.toLowerCase().includes('dulce')) catEmoji = '🍪';
+                    else if (cat.toLowerCase().includes('despensa') || cat.toLowerCase().includes('abarrote')) catEmoji = '🥫';
 
                     html += `
-                        <div class="bg-white rounded-3xl border-4 border-slate-200 p-5 shadow-md flex flex-col justify-between space-y-4 hover:border-amber-400 transition-all">
-                            <div class="flex items-center space-x-4">
-                                ${prodVisual}
-                                <div class="flex-1 min-w-0">
-                                    <span class="text-[10px] font-black uppercase text-amber-900 bg-amber-200 px-2 py-0.5 rounded-md tracking-wider">${prod.category || 'General'}</span>
-                                    <h3 class="text-lg font-black text-slate-800 truncate mt-1">${prod.name}</h3>
-                                    <div class="text-2xl font-black text-emerald-700 mt-0.5">$${prod.price.toLocaleString('es-CL')}</div>
+                        <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow space-y-4">
+                            <div class="flex items-center space-x-3 border-b-2 border-indigo-100 pb-3">
+                                <span class="text-3xl">${catEmoji}</span>
+                                <h3 class="text-xl font-black text-indigo-950">${cat}</h3>
+                                <span class="bg-indigo-100 text-indigo-900 font-bold text-xs px-2.5 py-1 rounded-full">${catProducts.length} productos</span>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    `;
+
+                    catProducts.forEach(prod => {
+                        const breakdown = calculateCLPBreakdown(prod.price);
+                        const prodVisual = prod.photoUrl 
+                            ? `<img src="${prod.photoUrl}" class="w-16 h-16 object-cover rounded-2xl border-2 border-amber-300 shrink-0">`
+                            : `<div class="bg-amber-100 p-4 rounded-2xl text-4xl border-2 border-amber-300 flex items-center justify-center shrink-0">${prod.iconEmoji || '📦'}</div>`;
+
+                        html += `
+                            <div class="bg-slate-50 rounded-3xl border-4 border-slate-200 p-5 shadow-md flex flex-col justify-between space-y-4 hover:border-amber-400 transition-all">
+                                <div class="flex items-center space-x-4">
+                                    ${prodVisual}
+                                    <div class="flex-1 min-w-0">
+                                        <span class="text-[10px] font-black uppercase text-amber-900 bg-amber-200 px-2 py-0.5 rounded-md tracking-wider">${prod.category || 'General'}</span>
+                                        <h3 class="text-lg font-black text-slate-800 truncate mt-1">${prod.name}</h3>
+                                        <div class="text-2xl font-black text-emerald-700 mt-0.5">$${prod.price.toLocaleString('es-CL')}</div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white p-3 rounded-xl border border-slate-200">
+                                    <span class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Pagas con:</span>
+                                    ${renderBreakdownHTML(breakdown, 'sm')}
+                                </div>
+
+                                <div class="flex space-x-2">
+                                    <button onclick="speakText('${prod.name}, vale ${prod.price} pesos')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold p-3 rounded-xl border border-sky-300 active:scale-95">
+                                        <i class="fa-solid fa-volume-high"></i>
+                                    </button>
+                                    <button onclick="addToBasket('${prod.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl border-b-4 border-emerald-800 flex items-center justify-center space-x-2 active:scale-95 shadow touch-focus">
+                                        <i class="fa-solid fa-cart-plus"></i>
+                                        <span>Añadir al Canasto</span>
+                                    </button>
                                 </div>
                             </div>
+                        `;
+                    });
 
-                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                                <span class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Pagas con:</span>
-                                ${renderBreakdownHTML(breakdown, 'sm')}
-                            </div>
-
-                            <div class="flex space-x-2">
-                                <button onclick="speakText('${prod.name}, vale ${prod.price} pesos')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold p-3 rounded-xl border border-sky-300 active:scale-95">
-                                    <i class="fa-solid fa-volume-high"></i>
-                                </button>
-                                <button onclick="addToBasket('${prod.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl border-b-4 border-emerald-800 flex items-center justify-center space-x-2 active:scale-95 shadow touch-focus">
-                                    <i class="fa-solid fa-cart-plus"></i>
-                                    <span>Añadir al Canasto</span>
-                                </button>
+                    html += `
                             </div>
                         </div>
                     `;
                 });
-                html += `</div>`;
             }
 
             html += `</div>`;
             container.innerHTML = html;
         }
 
-        // CÁLCULO DE DENOMINACIONES CHILENAS
         function calculateCLPBreakdown(amount) {
             if (!amount || amount <= 0) return [];
             let remaining = Math.round(amount / 10) * 10;
@@ -1929,7 +1962,6 @@
             speakText("El canasto ha sido vaciado");
         }
 
-        // LÓGICA DE MISIÓN "¡YA ESTOY EN EL SUPERMERCADO!"
         function startSupermarketMission() {
             if (APP_STATE.basket.length === 0) return alert("Agrega productos al canasto antes de comenzar la misión.");
 
@@ -1996,7 +2028,6 @@
             closeAiScannerModal();
             renderBasketModal();
 
-            // VERIFICAR SI ENCONTRÓ TODOS LOS PRODUCTOS DE LA LISTA
             const allProductIds = APP_STATE.basket.map(i => i.productId);
             const allFound = allProductIds.every(id => APP_STATE.foundProductIds.includes(id));
 
@@ -2111,7 +2142,6 @@
             if (paidEl) paidEl.textContent = `$${APP_STATE.userPaidAmount.toLocaleString('es-CL')}`;
         }
 
-        // VERIFICACIÓN Y REGISTRO OBLIGATORIO DE COMPRA/EVALUACIÓN EN FIRESTORE
         function verifyAndCheckout() {
             const totalNeeded = calculateBasketTotal();
             if (totalNeeded === 0) { speakText("El canasto está vacío"); return; }
@@ -2121,7 +2151,6 @@
                 const vuelto = APP_STATE.userPaidAmount - totalNeeded;
                 speakText(`¡Excelente trabajo! Has pagado correctamente.${vuelto > 0 ? ` Tu vuelto es ${vuelto} pesos.` : ''}`);
 
-                // GUARDAR LISTA Y TIEMPO DE EVALUACIÓN EN LA NUBE PARA EL EDUCADOR
                 const evalId = 'eval-' + Date.now();
                 const evalData = {
                     id: evalId,
