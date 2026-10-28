@@ -236,7 +236,7 @@
         <p>Mi Supermercado Pictográfico NEE • Diseñado con apoyo de Billetes y Monedas Chilenas 🇨🇱</p>
     </footer>
 
-    <!-- LÓGICA JAVASCRIPT GARANTIZADA -->
+    <!-- LÓGICA JAVASCRIPT CON SOPORTE COMPLETO Y FALLBACK PARA FIREFOX -->
     <script>
         const APP_STATE = {
             currentMode: 'kids',
@@ -279,6 +279,8 @@
             { id: 'prod-9', supermarketId: 'sup-barrio', name: 'Barra de Chocolate', category: 'Snacks', price: 1000, iconEmoji: '🍫' }
         ];
 
+        let currentAudioTTS = null;
+
         function loadFromLocalStorage() {
             try {
                 const storedSup = localStorage.getItem('nee_supermarkets');
@@ -287,17 +289,8 @@
                 let parsedSup = storedSup ? JSON.parse(storedSup) : null;
                 let parsedProd = storedProd ? JSON.parse(storedProd) : null;
 
-                if (Array.isArray(parsedSup) && parsedSup.length > 0) {
-                    APP_STATE.supermarkets = parsedSup;
-                } else {
-                    APP_STATE.supermarkets = [...DEFAULT_SUPERMARKETS];
-                }
-
-                if (Array.isArray(parsedProd) && parsedProd.length > 0) {
-                    APP_STATE.products = parsedProd;
-                } else {
-                    APP_STATE.products = [...DEFAULT_PRODUCTS];
-                }
+                APP_STATE.supermarkets = (Array.isArray(parsedSup) && parsedSup.length > 0) ? parsedSup : [...DEFAULT_SUPERMARKETS];
+                APP_STATE.products = (Array.isArray(parsedProd) && parsedProd.length > 0) ? parsedProd : [...DEFAULT_PRODUCTS];
             } catch (e) {
                 APP_STATE.supermarkets = [...DEFAULT_SUPERMARKETS];
                 APP_STATE.products = [...DEFAULT_PRODUCTS];
@@ -312,26 +305,43 @@
             return text.replace(/\$/g, '').replace(/\bCLP\b/gi, 'pesos chilenos').replace(/\bpesos\b/gi, 'pesos chilenos');
         }
 
+        /* VOZ UNIVERSAL: WEB SPEECH API + FALLBACK ONLINE PARA FIREFOX/LINUX */
         function speakText(text) {
-            if (!('speechSynthesis' in window)) return;
-            try {
-                window.speechSynthesis.cancel();
-                const cleanText = cleanTextForSpeech(text);
-                if (!cleanText) return;
+            const cleanText = cleanTextForSpeech(text);
+            if (!cleanText) return;
 
-                const utterance = new SpeechSynthesisUtterance(cleanText);
-                utterance.lang = 'es-CL';
-                utterance.rate = 0.88;
-                utterance.pitch = 1.0;
+            // Detener cualquier audio previo
+            if (currentAudioTTS) {
+                currentAudioTTS.pause();
+                currentAudioTTS = null;
+            }
 
-                if (window.speechSynthesis.getVoices) {
-                    const voices = window.speechSynthesis.getVoices();
-                    const spanishVoice = voices.find(v => v.lang === 'es-CL') || voices.find(v => v.lang.startsWith('es'));
-                    if (spanishVoice) utterance.voice = spanishVoice;
+            // Intentar Web Speech API si el navegador tiene voces nativas cargadas
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.resume();
+                const voices = window.speechSynthesis.getVoices();
+                
+                if (voices && voices.length > 0) {
+                    window.speechSynthesis.cancel();
+                    setTimeout(() => {
+                        const utterance = new SpeechSynthesisUtterance(cleanText);
+                        const spanishVoice = voices.find(v => v.lang === 'es-CL') || 
+                                             voices.find(v => v.lang.startsWith('es'));
+                        if (spanishVoice) utterance.voice = spanishVoice;
+                        utterance.lang = 'es-ES';
+                        utterance.rate = 0.88;
+                        window.speechSynthesis.speak(utterance);
+                    }, 60);
+                    return;
                 }
+            }
 
-                window.speechSynthesis.speak(utterance);
-            } catch(e) {}
+            // FALLBACK PARA FIREFOX SIN ENGINE NATIVO DE VOZ
+            try {
+                const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=${encodeURIComponent(cleanText)}`;
+                currentAudioTTS = new Audio(ttsUrl);
+                currentAudioTTS.play().catch(() => {});
+            } catch (e) {}
         }
 
         function playChimeSound() {
@@ -836,7 +846,6 @@
             }
         }
 
-        // Inicialización garantizada
         loadFromLocalStorage();
         renderApp();
     </script>
