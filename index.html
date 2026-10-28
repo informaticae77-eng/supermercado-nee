@@ -24,14 +24,7 @@
                     },
                     colors: {
                         chileRed: '#D52B1E',
-                        chileBlue: '#0039A6',
-                        bill20k: '#E65100',
-                        bill10k: '#0D47A1',
-                        bill5k: '#C62828',
-                        bill2k: '#6A1B9A',
-                        bill1k: '#2E7D32',
-                        coinGold: '#F59E0B',
-                        coinSilver: '#9CA3AF'
+                        chileBlue: '#0039A6'
                     }
                 }
             }
@@ -54,38 +47,23 @@
         .currency-item {
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-        .currency-item:hover {
-            transform: scale(1.05);
-        }
-        .currency-item:active {
-            transform: scale(0.95);
-        }
+        .currency-item:hover { transform: scale(1.05); }
+        .currency-item:active { transform: scale(0.95); }
 
-        ::-webkit-scrollbar {
-            width: 10px;
-            height: 10px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #E2E8F0;
-            border-radius: 8px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #94A3B8;
-            border-radius: 8px;
-        }
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: #E2E8F0; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb { background: #94A3B8; border-radius: 8px; }
 
         @keyframes pulse-gentle {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.03); }
         }
-        .animate-tactile {
-            animation: pulse-gentle 2.5s infinite ease-in-out;
-        }
+        .animate-tactile { animation: pulse-gentle 2.5s infinite ease-in-out; }
     </style>
 </head>
 <body class="text-slate-900 bg-slate-100 min-h-screen flex flex-col justify-between">
 
-    <!-- BARRA DE NAVEGACIÓN Y CABECERA -->
+    <!-- BARRA DE NAVEGACIÓN -->
     <header class="bg-white border-b-4 border-slate-300 shadow-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-3">
             
@@ -102,23 +80,20 @@
             </div>
 
             <div class="flex items-center space-x-2 sm:space-x-3">
-                <button onclick="speakText('Bienvenido a Mi Supermercado Pictográfico. Selecciona una opción para empezar.')" 
+                <button onclick="speakText('Bienvenido a Mi Supermercado Pictográfico.')" 
                         title="Escuchar audio"
-                        class="bg-sky-100 hover:bg-sky-200 text-sky-800 border-2 border-sky-400 font-bold py-2 px-3 sm:px-4 rounded-xl flex items-center space-x-2 transition-all shadow-sm active:scale-95 touch-focus">
-                    <i class="fa-solid fa-volume-high text-xl"></i>
-                    <span class="hidden sm:inline font-bold text-sm">Voz / Leer</span>
+                        class="bg-sky-100 hover:bg-sky-200 text-sky-800 border-2 border-sky-400 font-bold py-2 px-3 rounded-xl flex items-center space-x-2 active:scale-95 touch-focus">
+                    <i class="fa-solid fa-volume-high text-lg"></i>
+                    <span class="hidden sm:inline font-bold text-sm">Voz</span>
                 </button>
 
                 <button id="headerBasketBtn" onclick="openBasketModal()" class="hidden bg-emerald-500 hover:bg-emerald-600 text-white font-black py-2 px-4 rounded-xl border-b-4 border-emerald-700 flex items-center space-x-2 shadow-md active:scale-95 touch-focus">
                     <i class="fa-solid fa-basket-shopping text-xl"></i>
-                    <span class="text-base">Mi Canasto</span>
+                    <span class="text-base">Canasto</span>
                     <span id="basketBadge" class="bg-amber-300 text-slate-900 text-sm font-black px-2.5 py-0.5 rounded-full ml-1">0</span>
                 </button>
 
-                <button id="modeSwitchBtn" onclick="toggleModePrompt()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 sm:px-4 rounded-xl border-b-4 border-indigo-900 flex items-center space-x-2 shadow-md active:scale-95 touch-focus">
-                    <i id="modeIcon" class="fa-solid fa-user-gear text-lg"></i>
-                    <span id="modeLabel" class="text-sm font-bold">Modo Educador</span>
-                </button>
+                <div id="userInfoHeader" class="flex items-center gap-2"></div>
             </div>
         </div>
     </header>
@@ -135,9 +110,7 @@
                     <span class="text-3xl">🧺</span>
                     <h2 class="text-2xl font-black">Mi Canasto de Compras</h2>
                 </div>
-                <button onclick="closeBasketModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white rounded-full p-2 w-10 h-10 flex items-center justify-center text-xl font-bold border-2 border-white shadow">
-                    ✕
-                </button>
+                <button onclick="closeBasketModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white rounded-full p-2 w-10 h-10 flex items-center justify-center text-xl font-bold border-2 border-white shadow">✕</button>
             </div>
 
             <div class="p-6 overflow-y-auto flex-1 space-y-6">
@@ -152,7 +125,7 @@
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-sm font-extrabold text-amber-900 uppercase tracking-wide flex items-center gap-2">
-                                <i class="fa-solid fa-money-bill-wave"></i> Dinero exacto en Billetes y Monedas Chilenas:
+                                <i class="fa-solid fa-money-bill-wave"></i> Dinero exacto en Billetes y Monedas:
                             </span>
                             <button onclick="speakBasketTotalText()" class="text-xs bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold px-3 py-1 rounded-lg flex items-center gap-1">
                                 <i class="fa-solid fa-volume-high"></i> Escuchar Total
@@ -166,18 +139,14 @@
                     <h3 class="text-lg font-black text-indigo-900 flex items-center gap-2">
                         <i class="fa-solid fa-cash-register text-2xl text-indigo-600"></i> Práctica de Pago en la Caja
                     </h3>
-                    <p class="text-sm text-indigo-800 font-medium">
-                        Toca los billetes y monedas para juntar el dinero necesario y presiona <strong>"¡Pagar en la Caja!"</strong>.
-                    </p>
+                    <p class="text-sm text-indigo-800 font-medium">Toca los billetes y monedas para juntar el dinero y presiona <strong>"¡Pagar en la Caja!"</strong>.</p>
 
                     <div class="bg-white p-4 rounded-xl border-2 border-indigo-300 flex flex-wrap justify-between items-center gap-2">
                         <div>
                             <span class="text-xs font-bold text-slate-500 block">Has entregado en la caja:</span>
                             <span id="userPaidTotal" class="text-2xl font-black text-indigo-700">$0</span>
                         </div>
-                        <button onclick="resetUserPayment()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold px-3 py-1.5 rounded-lg text-xs border border-rose-300">
-                            🔄 Devolver Dinero
-                        </button>
+                        <button onclick="resetUserPayment()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold px-3 py-1.5 rounded-lg text-xs border border-rose-300">🔄 Devolver Dinero</button>
                     </div>
 
                     <div class="space-y-2">
@@ -188,13 +157,9 @@
             </div>
 
             <div class="bg-slate-100 px-6 py-4 border-t-2 border-slate-300 flex flex-wrap justify-between items-center gap-3">
-                <button onclick="clearBasket()" class="text-rose-600 hover:text-rose-800 font-bold text-sm underline px-2 py-1">
-                    Vaciar Canasto
-                </button>
+                <button onclick="clearBasket()" class="text-rose-600 hover:text-rose-800 font-bold text-sm underline px-2 py-1">Vaciar Canasto</button>
                 <div class="flex space-x-3">
-                    <button onclick="closeBasketModal()" class="bg-slate-300 hover:bg-slate-400 text-slate-800 font-extrabold px-5 py-3 rounded-xl border-b-4 border-slate-500">
-                        Seguir Comprando
-                    </button>
+                    <button onclick="closeBasketModal()" class="bg-slate-300 hover:bg-slate-400 text-slate-800 font-extrabold px-5 py-3 rounded-xl border-b-4 border-slate-500">Seguir Comprando</button>
                     <button onclick="verifyAndCheckout()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg px-6 py-3 rounded-xl border-b-4 border-emerald-800 shadow-lg animate-tactile flex items-center space-x-2">
                         <span>¡Pagar en la Caja!</span>
                         <i class="fa-solid fa-circle-check"></i>
@@ -204,48 +169,22 @@
         </div>
     </div>
 
-    <!-- MODAL INGRESO PIN MODO EDUCADOR -->
-    <div id="pinModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-3xl border-4 border-indigo-400 shadow-2xl p-6 text-center space-y-5">
-            <div class="bg-indigo-100 text-indigo-700 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-3xl">
-                🔒
-            </div>
-            <div>
-                <h3 class="text-2xl font-black text-slate-800">Acceso Profesional / Educador</h3>
-                <p class="text-xs text-slate-500 mt-1">Ingresa el PIN para acceder al Panel de Administración (PIN por defecto: <strong>1234</strong>)</p>
-            </div>
-
-            <div class="space-y-3">
-                <input type="password" id="pinInput" placeholder="••••" maxlength="6" 
-                       class="text-center text-3xl font-black tracking-widest w-full py-3 border-4 border-slate-300 rounded-2xl focus:border-indigo-500 focus:outline-none">
-                <p id="pinErrorMsg" class="text-sm text-rose-600 font-bold hidden">PIN incorrecto. Intenta de nuevo.</p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="closePinModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl border-b-4 border-slate-400">
-                    Cancelar
-                </button>
-                <button onclick="validatePin()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-3 rounded-xl border-b-4 border-indigo-900 shadow">
-                    Ingresar
-                </button>
-            </div>
-        </div>
-    </div>
-
     <footer class="bg-white border-t-2 border-slate-200 py-4 text-center text-xs text-slate-500 font-medium">
         <p>Mi Supermercado Pictográfico NEE • Diseñado con apoyo de Billetes y Monedas Chilenas 🇨🇱</p>
     </footer>
 
-    <!-- LÓGICA JAVASCRIPT CORREGIDA -->
     <script>
+        // ESTADO GLOBAL CON CURSOS Y USUARIOS
         const APP_STATE = {
-            currentMode: 'kids',
+            currentUser: null,
             selectedSupermarketId: null,
             basket: [],
             userPaidAmount: 0,
+            courses: [],
+            users: [],
             supermarkets: [],
             products: [],
-            pinCode: '1234'
+            evaluations: [] // Estructura lista para futuros instrumentos
         };
 
         const CLP_CURRENCY_ITEMS = [
@@ -258,6 +197,17 @@
             { id: 'c100', value: 100,   type: 'coin', name: 'Moneda de $100',    color: '#F59E0B' },
             { id: 'c50',  value: 50,    type: 'coin', name: 'Moneda de $50',     color: '#EAB308' },
             { id: 'c10',  value: 10,    type: 'coin', name: 'Moneda de $10',     color: '#D97706' }
+        ];
+
+        const DEFAULT_COURSES = [
+            { id: 'c-1', name: '1° Básico NEE' },
+            { id: 'c-2', name: 'Taller Laboral A' }
+        ];
+
+        const DEFAULT_USERS = [
+            { id: 'u-admin', username: 'admin', pin: '1234', name: 'Administrador General', role: 'admin' },
+            { id: 'u-edu1', username: 'educador1', pin: '1234', name: 'Profe Maria', role: 'teacher', courseIds: ['c-1'] },
+            { id: 'u-alum1', username: 'alumno1', pin: '1111', name: 'Juanito Pérez', role: 'student', courseId: 'c-1' }
         ];
 
         const DEFAULT_SUPERMARKETS = [
@@ -281,39 +231,50 @@
 
         function loadFromLocalStorage() {
             try {
+                const storedCourses = localStorage.getItem('nee_courses');
+                const storedUsers = localStorage.getItem('nee_users');
                 const storedSup = localStorage.getItem('nee_supermarkets');
                 const storedProd = localStorage.getItem('nee_products');
-                
-                let parsedSup = storedSup ? JSON.parse(storedSup) : null;
-                let parsedProd = storedProd ? JSON.parse(storedProd) : null;
+                const storedUserActive = localStorage.getItem('nee_active_user');
 
-                APP_STATE.supermarkets = (Array.isArray(parsedSup) && parsedSup.length > 0) ? parsedSup : [...DEFAULT_SUPERMARKETS];
-                APP_STATE.products = (Array.isArray(parsedProd) && parsedProd.length > 0) ? parsedProd : [...DEFAULT_PRODUCTS];
+                APP_STATE.courses = storedCourses ? JSON.parse(storedCourses) : [...DEFAULT_COURSES];
+                APP_STATE.users = storedUsers ? JSON.parse(storedUsers) : [...DEFAULT_USERS];
+                APP_STATE.supermarkets = storedSup ? JSON.parse(storedSup) : [...DEFAULT_SUPERMARKETS];
+                APP_STATE.products = storedProd ? JSON.parse(storedProd) : [...DEFAULT_PRODUCTS];
+                APP_STATE.currentUser = storedUserActive ? JSON.parse(storedUserActive) : null;
             } catch (e) {
+                APP_STATE.courses = [...DEFAULT_COURSES];
+                APP_STATE.users = [...DEFAULT_USERS];
                 APP_STATE.supermarkets = [...DEFAULT_SUPERMARKETS];
                 APP_STATE.products = [...DEFAULT_PRODUCTS];
             }
         }
 
-        function saveSupermarkets() { localStorage.setItem('nee_supermarkets', JSON.stringify(APP_STATE.supermarkets)); }
-        function saveProducts() { localStorage.setItem('nee_products', JSON.stringify(APP_STATE.products)); }
+        function saveData() {
+            localStorage.setItem('nee_courses', JSON.stringify(APP_STATE.courses));
+            localStorage.setItem('nee_users', JSON.stringify(APP_STATE.users));
+            localStorage.setItem('nee_supermarkets', JSON.stringify(APP_STATE.supermarkets));
+            localStorage.setItem('nee_products', JSON.stringify(APP_STATE.products));
+            if (APP_STATE.currentUser) {
+                localStorage.setItem('nee_active_user', JSON.stringify(APP_STATE.currentUser));
+            } else {
+                localStorage.removeItem('nee_active_user');
+            }
+        }
 
-        // FILTRO DE TEXTO SIN DUPLICACIONES PARA EL MOTOR DE CHROME
         function cleanTextForSpeech(text) {
             if (!text) return '';
             return text
-                .replace(/\$/g, ' ')                  // Elimina el signo peso ($) para evitar que Chrome diga "pesos" dos veces
-                .replace(/\bCLP\b/gi, ' ')            // Elimina sigla CLP
-                .replace(/\bchilenos?\b/gi, ' ')       // Elimina "chileno" / "chilenos"
-                .replace(/\bpesos\s+pesos\b/gi, 'pesos') // Deduplica si aparece "pesos pesos"
-                .replace(/\s+/g, ' ')                 // Limpia espacios dobles
+                .replace(/\$/g, ' ')
+                .replace(/\bCLP\b/gi, ' ')
+                .replace(/\bchilenos?\b/gi, ' ')
+                .replace(/\bpesos\s+pesos\b/gi, 'pesos')
+                .replace(/\s+/g, ' ')
                 .trim();
         }
 
-        /* SÍNTESIS DE VOZ LIMPIA */
         function speakText(text) {
             if (!('speechSynthesis' in window)) return;
-
             try {
                 window.speechSynthesis.cancel();
                 const cleanText = cleanTextForSpeech(text);
@@ -323,14 +284,10 @@
                     const utterance = new SpeechSynthesisUtterance(cleanText);
                     utterance.lang = 'es-CL';
                     utterance.rate = 0.88;
-                    utterance.pitch = 1.0;
 
                     const voices = window.speechSynthesis.getVoices();
-                    const spanishVoice = voices.find(v => v.lang === 'es-CL') || 
-                                         voices.find(v => v.lang.startsWith('es'));
-                    if (spanishVoice) {
-                        utterance.voice = spanishVoice;
-                    }
+                    const spanishVoice = voices.find(v => v.lang === 'es-CL') || voices.find(v => v.lang.startsWith('es'));
+                    if (spanishVoice) utterance.voice = spanishVoice;
 
                     window.speechSynthesis.speak(utterance);
                 }, 50);
@@ -377,12 +334,12 @@
 
         function renderCurrencySVG(item, size = 'md') {
             const isBill = item.type === 'bill';
-            let height = size === 'sm' ? 'h-8' : (size === 'lg' ? 'h-16' : 'h-12');
-            let width = size === 'sm' ? 'w-14' : (size === 'lg' ? 'w-32' : 'w-22');
+            let height = size === 'sm' ? 'h-8' : 'h-12';
+            let width = size === 'sm' ? 'w-14' : 'w-22';
 
             if (!isBill) {
-                height = size === 'sm' ? 'h-8' : (size === 'lg' ? 'h-14' : 'h-10');
-                width = size === 'sm' ? 'w-8' : (size === 'lg' ? 'w-14' : 'w-10');
+                height = size === 'sm' ? 'h-8' : 'h-10';
+                width = size === 'sm' ? 'w-8' : 'w-10';
             }
 
             if (isBill) {
@@ -419,33 +376,358 @@
             return html;
         }
 
+        // CONTROL DE VISTAS PRINCIPALES
         function renderApp() {
             const container = document.getElementById('appContainer');
             const headerBasketBtn = document.getElementById('headerBasketBtn');
-            const modeLabel = document.getElementById('modeLabel');
-            const modeIcon = document.getElementById('modeIcon');
+            const userInfoHeader = document.getElementById('userInfoHeader');
 
             if (!container) return;
 
-            if (APP_STATE.currentMode === 'teacher') {
-                if (modeLabel) modeLabel.textContent = 'Modo Niños';
-                if (modeIcon) modeIcon.className = 'fa-solid fa-child text-lg';
-                if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
-                renderTeacherView(container);
+            // Actualizar header de usuario
+            if (APP_STATE.currentUser) {
+                const roleTag = APP_STATE.currentUser.role === 'admin' ? '🔑 Admin' :
+                               (APP_STATE.currentUser.role === 'teacher' ? '👨‍🏫 Educador' : '🎒 Alumno');
+                userInfoHeader.innerHTML = `
+                    <div class="bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-xl text-xs flex items-center gap-2">
+                        <span class="font-bold text-indigo-900">${APP_STATE.currentUser.name}</span>
+                        <span class="bg-indigo-600 text-white font-black px-2 py-0.5 rounded-md text-[10px]">${roleTag}</span>
+                    </div>
+                    <button onclick="logout()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold px-3 py-1.5 rounded-xl text-xs border border-rose-300">
+                        Salir
+                    </button>
+                `;
             } else {
-                if (modeLabel) modeLabel.textContent = 'Modo Educador';
-                if (modeIcon) modeIcon.className = 'fa-solid fa-user-gear text-lg';
+                userInfoHeader.innerHTML = '';
+            }
+
+            // Si no hay usuario logueado -> Mostrar Pantalla de Login
+            if (!APP_STATE.currentUser) {
+                if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
+                renderLoginView(container);
+                return;
+            }
+
+            // Rutas por Rol
+            if (APP_STATE.currentUser.role === 'admin') {
+                if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
+                renderAdminDashboard(container);
+            } else if (APP_STATE.currentUser.role === 'teacher') {
+                if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
+                renderTeacherDashboard(container);
+            } else {
+                // Alumno -> Simulación de supermercado
+                if (headerBasketBtn) headerBasketBtn.classList.remove('hidden');
                 if (APP_STATE.selectedSupermarketId) {
-                    if (headerBasketBtn) headerBasketBtn.classList.remove('hidden');
                     renderSupermarketView(container, APP_STATE.selectedSupermarketId);
                 } else {
-                    if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
                     renderHomeView(container);
                 }
             }
             updateBasketBadge();
         }
 
+        // PANTALLA DE LOGIN
+        function renderLoginView(container) {
+            let html = `
+                <div class="max-w-md mx-auto bg-white border-4 border-slate-300 rounded-3xl p-6 shadow-xl space-y-6">
+                    <div class="text-center space-y-2">
+                        <div class="text-5xl">🔐</div>
+                        <h2 class="text-2xl font-black text-slate-800">Iniciar Sesión</h2>
+                        <p class="text-xs font-semibold text-slate-500">Ingresa tu usuario y clave o PIN</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre de Usuario:</label>
+                            <input type="text" id="loginUser" placeholder="Ej: admin, educador1, alumno1" class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 focus:border-indigo-500 focus:outline-none font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Clave / PIN:</label>
+                            <input type="password" id="loginPin" placeholder="••••" class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 focus:border-indigo-500 focus:outline-none text-center text-xl tracking-widest font-black">
+                        </div>
+                        <p id="loginError" class="text-xs font-bold text-rose-600 hidden text-center">Usuario o contraseña incorrecta.</p>
+                        <button onclick="handleLogin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl border-b-4 border-indigo-900 shadow active:scale-95 text-lg">
+                            Ingresar
+                        </button>
+                    </div>
+
+                    <div class="border-t pt-4 text-center">
+                        <p class="text-xs font-bold text-slate-400 mb-2">Credenciales demo iniciales:</p>
+                        <div class="text-[11px] text-slate-600 space-y-1">
+                            <p><strong>Admin:</strong> usuario: <code class="bg-slate-100 px-1">admin</code> | PIN: <code class="bg-slate-100 px-1">1234</code></p>
+                            <p><strong>Educador:</strong> usuario: <code class="bg-slate-100 px-1">educador1</code> | PIN: <code class="bg-slate-100 px-1">1234</code></p>
+                            <p><strong>Alumno:</strong> usuario: <code class="bg-slate-100 px-1">alumno1</code> | PIN: <code class="bg-slate-100 px-1">1111</code></p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+
+        function handleLogin() {
+            const userVal = document.getElementById('loginUser').value.trim();
+            const pinVal = document.getElementById('loginPin').value.trim();
+            const user = APP_STATE.users.find(u => u.username.toLowerCase() === userVal.toLowerCase() && u.pin === pinVal);
+
+            if (user) {
+                APP_STATE.currentUser = user;
+                saveData();
+                speakText(`Bienvenido ${user.name}`);
+                renderApp();
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            APP_STATE.currentUser = null;
+            APP_STATE.selectedSupermarketId = null;
+            saveData();
+            renderApp();
+        }
+
+        // DASHBOARD ADMINISTRADOR (GESTIÓN DE CURSOS, EDUCADORES Y ALUMNOS)
+        function renderAdminDashboard(container) {
+            let html = `
+                <div class="space-y-6">
+                    <div class="bg-indigo-900 text-white p-6 rounded-3xl shadow-lg flex flex-wrap justify-between items-center gap-4">
+                        <div>
+                            <h2 class="text-2xl font-black">👑 Panel de Administración</h2>
+                            <p class="text-xs text-indigo-200 mt-1">Crea cursos, gestiona educadores y registra alumnos con sus credenciales.</p>
+                        </div>
+                        <button onclick="resetToDefaults()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-2 rounded-xl text-xs">
+                            Restablecer Todo
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <!-- SECCIÓN CURSOS -->
+                        <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-school text-indigo-600"></i> Cursos</h3>
+                                <button onclick="addNewCoursePrompt()" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Curso</button>
+                            </div>
+                            <div class="space-y-2">
+            `;
+
+            APP_STATE.courses.forEach(c => {
+                const countStudents = APP_STATE.users.filter(u => u.role === 'student' && u.courseId === c.id).length;
+                html += `
+                    <div class="p-3 bg-slate-50 border rounded-xl flex justify-between items-center text-sm">
+                        <div>
+                            <span class="font-black text-slate-800 block">${c.name}</span>
+                            <span class="text-[10px] text-slate-500 font-bold">${countStudents} alumnos</span>
+                        </div>
+                        <button onclick="deleteCourse('${c.id}')" class="text-rose-600 font-bold text-xs">Eliminar</button>
+                    </div>
+                `;
+            });
+
+            html += `
+                            </div>
+                        </div>
+
+                        <!-- SECCIÓN EDUCADORES -->
+                        <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-chalkboard-user text-indigo-600"></i> Educadores</h3>
+                                <button onclick="addNewTeacherPrompt()" class="bg-indigo-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Educador</button>
+                            </div>
+                            <div class="space-y-2">
+            `;
+
+            const teachers = APP_STATE.users.filter(u => u.role === 'teacher');
+            teachers.forEach(t => {
+                const assignedCourses = (t.courseIds || []).map(id => {
+                    const found = APP_STATE.courses.find(c => c.id === id);
+                    return found ? found.name : '';
+                }).join(', ');
+
+                html += `
+                    <div class="p-3 bg-slate-50 border rounded-xl space-y-1 text-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="font-black text-slate-800">${t.name}</span>
+                            <button onclick="deleteUser('${t.id}')" class="text-rose-600 font-bold text-xs">Eliminar</button>
+                        </div>
+                        <div class="text-xs text-slate-600">Usuario: <code class="bg-white px-1 border font-bold">${t.username}</code> | PIN: <code class="bg-white px-1 border font-bold">${t.pin}</code></div>
+                        <div class="text-[10px] font-bold text-indigo-700">Cursos: ${assignedCourses || 'Ninguno'}</div>
+                    </div>
+                `;
+            });
+
+            html += `
+                            </div>
+                        </div>
+
+                        <!-- SECCIÓN ALUMNOS -->
+                        <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-children text-indigo-600"></i> Alumnos</h3>
+                                <button onclick="addNewStudentPrompt()" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Alumno</button>
+                            </div>
+                            <div class="space-y-2">
+            `;
+
+            const students = APP_STATE.users.filter(u => u.role === 'student');
+            students.forEach(s => {
+                const courseName = APP_STATE.courses.find(c => c.id === s.courseId)?.name || 'Sin curso';
+                html += `
+                    <div class="p-3 bg-slate-50 border rounded-xl space-y-1 text-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="font-black text-slate-800">${s.name}</span>
+                            <button onclick="deleteUser('${s.id}')" class="text-rose-600 font-bold text-xs">Eliminar</button>
+                        </div>
+                        <div class="text-xs text-slate-600">Usuario: <code class="bg-white px-1 border font-bold">${s.username}</code> | PIN: <code class="bg-white px-1 border font-bold">${s.pin}</code></div>
+                        <div class="text-[10px] font-bold text-emerald-700">Curso: ${courseName}</div>
+                    </div>
+                `;
+            });
+
+            html += `
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+
+        // PANEL DE EDUCADOR
+        function renderTeacherDashboard(container) {
+            const myCourseIds = APP_STATE.currentUser.courseIds || [];
+            const myCourses = APP_STATE.courses.filter(c => myCourseIds.includes(c.id));
+
+            let html = `
+                <div class="space-y-6">
+                    <div class="bg-indigo-800 text-white p-6 rounded-3xl shadow-lg flex justify-between items-center">
+                        <div>
+                            <h2 class="text-2xl font-black">👨‍🏫 Panel del Educador</h2>
+                            <p class="text-xs text-indigo-200 mt-1">Gestión pedagógica por cursos y alumnos asignados.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow space-y-4">
+                            <h3 class="font-black text-lg text-indigo-900 border-b pb-2">Mis Cursos Asignados</h3>
+                            <div class="space-y-3">
+            `;
+
+            if (myCourses.length === 0) {
+                html += `<p class="text-sm text-slate-500 italic">No tienes cursos asignados aún.</p>`;
+            } else {
+                myCourses.forEach(c => {
+                    const studentsInCourse = APP_STATE.users.filter(u => u.role === 'student' && u.courseId === c.id);
+                    html += `
+                        <div class="p-4 bg-indigo-50 border-2 border-indigo-200 rounded-2xl space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="font-black text-indigo-950 text-base">${c.name}</span>
+                                <span class="text-xs bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded-full font-bold">${studentsInCourse.length} Alumnos</span>
+                            </div>
+                            <div class="space-y-1">
+                                ${studentsInCourse.map(s => `
+                                    <div class="text-xs font-bold text-slate-700 bg-white p-2 rounded-lg border flex justify-between">
+                                        <span>👤 ${s.name}</span>
+                                        <span class="text-slate-400">User: ${s.username}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            html += `
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-3xl border-4 border-amber-200 shadow space-y-4">
+                            <h3 class="font-black text-lg text-amber-900 border-b pb-2">📋 Instrumentos de Evaluación</h3>
+                            <p class="text-xs font-semibold text-slate-600">
+                                Módulo preparado para crear y aplicar pautas de cotejo/evaluación adaptadas para cada estudiante.
+                            </p>
+                            <div class="p-8 border-2 border-dashed border-amber-300 bg-amber-50 rounded-2xl text-center space-y-3">
+                                <span class="text-4xl">📝</span>
+                                <p class="text-xs font-bold text-amber-900">Estructura vinculada correctamente a Cursos y Alumnos.</p>
+                                <button class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-black px-4 py-2 rounded-xl shadow opacity-75 cursor-not-allowed">
+                                    + Crear Pauta de Evaluación (Próximamente)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+
+        // FUNCIONES DE CREACIÓN DE CURSOS Y USUARIOS
+        function addNewCoursePrompt() {
+            const name = prompt("Nombre del nuevo curso (ej: 2° Básico NEE):");
+            if (!name) return;
+            APP_STATE.courses.push({ id: 'c-' + Date.now(), name });
+            saveData();
+            renderApp();
+        }
+
+        function deleteCourse(id) {
+            if (confirm("¿Eliminar este curso?")) {
+                APP_STATE.courses = APP_STATE.courses.filter(c => c.id !== id);
+                saveData();
+                renderApp();
+            }
+        }
+
+        function addNewTeacherPrompt() {
+            if (APP_STATE.courses.length === 0) return alert("Crea primero al menos un curso.");
+            const name = prompt("Nombre del educador:");
+            if (!name) return;
+            const username = prompt("Nombre de usuario para inicio de sesión (ej: profe_maria):");
+            if (!username) return;
+            const pin = prompt("Clave / PIN de acceso:", "1234");
+            if (!pin) return;
+
+            const selectedCourseId = APP_STATE.courses[0].id;
+            APP_STATE.users.push({
+                id: 'u-' + Date.now(),
+                name, username, pin,
+                role: 'teacher',
+                courseIds: [selectedCourseId]
+            });
+            saveData();
+            renderApp();
+        }
+
+        function addNewStudentPrompt() {
+            if (APP_STATE.courses.length === 0) return alert("Crea primero al menos un curso.");
+            const name = prompt("Nombre del alumno:");
+            if (!name) return;
+            const username = prompt("Nombre de usuario único para el alumno (ej: juanito):");
+            if (!username) return;
+            const pin = prompt("PIN sencillo de acceso (ej: 1111):", "1111");
+            if (!pin) return;
+
+            const selectedCourseId = APP_STATE.courses[0].id;
+            APP_STATE.users.push({
+                id: 'u-' + Date.now(),
+                name, username, pin,
+                role: 'student',
+                courseId: selectedCourseId
+            });
+            saveData();
+            renderApp();
+        }
+
+        function deleteUser(id) {
+            if (confirm("¿Eliminar este usuario?")) {
+                APP_STATE.users = APP_STATE.users.filter(u => u.id !== id);
+                saveData();
+                renderApp();
+            }
+        }
+
+        // VISTAS DE SIMULACIÓN (ALUMNOS)
         function goHome() {
             APP_STATE.selectedSupermarketId = null;
             renderApp();
@@ -541,7 +823,7 @@
                             </div>
 
                             <div class="flex space-x-2">
-                                <button onclick="speakText('${prod.name}, vale ${prod.price} pesos')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold p-3 rounded-xl border border-sky-300 active:scale-95" title="Escuchar">
+                                <button onclick="speakText('${prod.name}, vale ${prod.price} pesos')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold p-3 rounded-xl border border-sky-300 active:scale-95">
                                     <i class="fa-solid fa-volume-high"></i>
                                 </button>
                                 <button onclick="addToBasket('${prod.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl border-b-4 border-emerald-800 flex items-center justify-center space-x-2 active:scale-95 shadow touch-focus">
@@ -704,137 +986,14 @@
             }
         }
 
-        function toggleModePrompt() {
-            if (APP_STATE.currentMode === 'teacher') {
-                APP_STATE.currentMode = 'kids';
-                renderApp();
-                speakText("Modo Niños activado");
-            } else {
-                document.getElementById('pinInput').value = '';
-                document.getElementById('pinErrorMsg').classList.add('hidden');
-                document.getElementById('pinModal').classList.remove('hidden');
-            }
-        }
-
-        function closePinModal() { document.getElementById('pinModal').classList.add('hidden'); }
-
-        function validatePin() {
-            if (document.getElementById('pinInput').value === APP_STATE.pinCode) {
-                closePinModal();
-                APP_STATE.currentMode = 'teacher';
-                renderApp();
-                speakText("Modo Educador activado");
-            } else {
-                document.getElementById('pinErrorMsg').classList.remove('hidden');
-            }
-        }
-
-        function renderTeacherView(container) {
-            let html = `
-                <div class="bg-white rounded-3xl border-4 border-indigo-300 p-6 shadow-xl space-y-8">
-                    <div class="flex justify-between items-center border-b pb-4">
-                        <h2 class="text-2xl font-black text-indigo-900">⚙️ Panel del Educador</h2>
-                        <button onclick="resetToDefaults()" class="bg-rose-100 text-rose-800 font-bold px-3 py-1.5 rounded-xl text-xs">Restablecer Todo</button>
-                    </div>
-
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center">
-                            <h3 class="font-black">Supermercados</h3>
-                            <button onclick="showAddSupermarketForm()" class="bg-emerald-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl">+ Nuevo Supermercado</button>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            `;
-
-            APP_STATE.supermarkets.forEach(s => {
-                html += `
-                    <div class="p-3 bg-slate-50 border rounded-xl flex justify-between items-center">
-                        <span class="font-bold text-sm">${s.icon} ${s.name}</span>
-                        <button onclick="deleteSupermarket('${s.id}')" class="text-rose-600 font-bold text-xs">Eliminar</button>
-                    </div>
-                `;
-            });
-
-            html += `
-                        </div>
-                    </div>
-
-                    <div class="space-y-4 border-t pt-4">
-                        <div class="flex justify-between items-center">
-                            <h3 class="font-black">Productos</h3>
-                            <button onclick="showAddProductForm()" class="bg-indigo-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl">+ Nuevo Producto</button>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            `;
-
-            APP_STATE.products.forEach(p => {
-                html += `
-                    <div class="p-3 bg-white border rounded-xl flex justify-between items-center">
-                        <span class="font-bold text-sm">${p.iconEmoji} ${p.name} ($${p.price.toLocaleString('es-CL')})</span>
-                        <button onclick="deleteProduct('${p.id}')" class="text-rose-600 font-bold text-xs">Eliminar</button>
-                    </div>
-                `;
-            });
-
-            html += `</div></div></div>`;
-            container.innerHTML = html;
-        }
-
-        function showAddSupermarketForm() {
-            const name = prompt("Nombre del supermercado:");
-            if (!name) return;
-            const icon = prompt("Emoji (ej: 🛒, 🍎):", "🛒") || "🛒";
-            APP_STATE.supermarkets.push({
-                id: 'sup-' + Date.now(),
-                name, icon,
-                themeColor: 'bg-indigo-600',
-                textColor: 'text-indigo-600',
-                borderColor: 'border-indigo-500'
-            });
-            saveSupermarkets();
-            renderApp();
-        }
-
-        function deleteSupermarket(id) {
-            if (confirm("¿Eliminar este supermercado?")) {
-                APP_STATE.supermarkets = APP_STATE.supermarkets.filter(s => s.id !== id);
-                APP_STATE.products = APP_STATE.products.filter(p => p.supermarketId !== id);
-                saveSupermarkets();
-                saveProducts();
-                renderApp();
-            }
-        }
-
-        function showAddProductForm() {
-            if (APP_STATE.supermarkets.length === 0) return alert("Crea primero un supermercado.");
-            const name = prompt("Nombre del producto:");
-            if (!name) return;
-            const price = parseInt(prompt("Precio en CLP (ej: 1200):"), 10);
-            if (isNaN(price)) return alert("Precio no válido.");
-            const iconEmoji = prompt("Emoji (ej: 🥛, 🍎):", "📦") || "📦";
-
-            APP_STATE.products.push({
-                id: 'prod-' + Date.now(),
-                supermarketId: APP_STATE.supermarkets[0].id,
-                name, price, iconEmoji, category: 'General'
-            });
-            saveProducts();
-            renderApp();
-        }
-
-        function deleteProduct(id) {
-            if (confirm("¿Eliminar producto?")) {
-                APP_STATE.products = APP_STATE.products.filter(p => p.id !== id);
-                saveProducts();
-                renderApp();
-            }
-        }
-
         function resetToDefaults() {
-            if (confirm("¿Restablecer datos iniciales?")) {
+            if (confirm("¿Restablecer datos e iniciar de cero?")) {
+                APP_STATE.courses = [...DEFAULT_COURSES];
+                APP_STATE.users = [...DEFAULT_USERS];
                 APP_STATE.supermarkets = [...DEFAULT_SUPERMARKETS];
                 APP_STATE.products = [...DEFAULT_PRODUCTS];
-                saveSupermarkets();
-                saveProducts();
+                APP_STATE.currentUser = null;
+                saveData();
                 renderApp();
             }
         }
