@@ -1,4 +1,242 @@
-<!-- LÓGICA JAVASCRIPT CON SOPORTE COMPLETO PARA FIREFOX Y CHROME -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Supermercado Pictográfico - Chile NEE</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font Lexend (Accesibilidad) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome para íconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Lexend', 'sans-serif'],
+                    },
+                    colors: {
+                        chileRed: '#D52B1E',
+                        chileBlue: '#0039A6',
+                        bill20k: '#E65100',
+                        bill10k: '#0D47A1',
+                        bill5k: '#C62828',
+                        bill2k: '#6A1B9A',
+                        bill1k: '#2E7D32',
+                        coinGold: '#F59E0B',
+                        coinSilver: '#9CA3AF'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            background-color: #F8FAFC;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .touch-focus:focus, .touch-focus:active {
+            outline: 4px solid #2563EB !important;
+            outline-offset: 3px;
+        }
+
+        .currency-item {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .currency-item:hover {
+            transform: scale(1.05);
+        }
+        .currency-item:active {
+            transform: scale(0.95);
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #E2E8F0;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94A3B8;
+            border-radius: 8px;
+        }
+
+        @keyframes pulse-gentle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+        .animate-tactile {
+            animation: pulse-gentle 2.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-slate-900 bg-slate-100 min-h-screen flex flex-col justify-between">
+
+    <!-- BARRA DE NAVEGACIÓN Y CABECERA -->
+    <header class="bg-white border-b-4 border-slate-300 shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-3">
+            
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="goHome()">
+                <div class="bg-amber-400 p-2.5 rounded-2xl shadow-md border-2 border-amber-500 text-3xl flex items-center justify-center">
+                    🛒
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                        SuperMercado NEE <span class="bg-red-600 text-white text-xs px-2.5 py-0.5 rounded-full uppercase tracking-wider">Chile 🇨🇱</span>
+                    </h1>
+                    <p class="text-xs font-semibold text-slate-500">Aprende a comprar con billetes y monedas chilenas</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <button onclick="speakText('Bienvenido a Mi Supermercado Pictográfico. Selecciona una opción para empezar.')" 
+                        title="Escuchar audio"
+                        class="bg-sky-100 hover:bg-sky-200 text-sky-800 border-2 border-sky-400 font-bold py-2 px-3 sm:px-4 rounded-xl flex items-center space-x-2 transition-all shadow-sm active:scale-95 touch-focus">
+                    <i class="fa-solid fa-volume-high text-xl"></i>
+                    <span class="hidden sm:inline font-bold text-sm">Voz / Leer</span>
+                </button>
+
+                <button id="headerBasketBtn" onclick="openBasketModal()" class="hidden bg-emerald-500 hover:bg-emerald-600 text-white font-black py-2 px-4 rounded-xl border-b-4 border-emerald-700 flex items-center space-x-2 shadow-md active:scale-95 touch-focus">
+                    <i class="fa-solid fa-basket-shopping text-xl"></i>
+                    <span class="text-base">Mi Canasto</span>
+                    <span id="basketBadge" class="bg-amber-300 text-slate-900 text-sm font-black px-2.5 py-0.5 rounded-full ml-1">0</span>
+                </button>
+
+                <button id="modeSwitchBtn" onclick="toggleModePrompt()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 sm:px-4 rounded-xl border-b-4 border-indigo-900 flex items-center space-x-2 shadow-md active:scale-95 touch-focus">
+                    <i id="modeIcon" class="fa-solid fa-user-gear text-lg"></i>
+                    <span id="modeLabel" class="text-sm font-bold">Modo Educador</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENEDOR PRINCIPAL DE LA VISTA -->
+    <main id="appContainer" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full"></main>
+
+    <!-- MODAL DEL CANASTO Y CAJA REGISTRADORA -->
+    <div id="basketModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white w-full max-w-4xl rounded-3xl border-4 border-slate-300 shadow-2xl overflow-hidden my-8 flex flex-col max-h-[90vh]">
+            
+            <div class="bg-emerald-600 text-white px-6 py-4 flex justify-between items-center border-b-4 border-emerald-800">
+                <div class="flex items-center space-x-3">
+                    <span class="text-3xl">🧺</span>
+                    <h2 class="text-2xl font-black">Mi Canasto de Compras</h2>
+                </div>
+                <button onclick="closeBasketModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white rounded-full p-2 w-10 h-10 flex items-center justify-center text-xl font-bold border-2 border-white shadow">
+                    ✕
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto flex-1 space-y-6">
+                <div id="basketItemsList" class="space-y-4"></div>
+
+                <div id="basketSummaryBox" class="bg-amber-50 border-4 border-amber-300 rounded-2xl p-5 space-y-4 shadow-sm">
+                    <div class="flex justify-between items-center border-b-2 border-amber-200 pb-3">
+                        <span class="text-xl font-black text-slate-700">TOTAL A PAGAR:</span>
+                        <span id="basketTotalCLP" class="text-3xl font-black text-emerald-700">$0</span>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-extrabold text-amber-900 uppercase tracking-wide flex items-center gap-2">
+                                <i class="fa-solid fa-money-bill-wave"></i> Dinero exacto en Billetes y Monedas Chilenas:
+                            </span>
+                            <button onclick="speakBasketTotalText()" class="text-xs bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold px-3 py-1 rounded-lg flex items-center gap-1">
+                                <i class="fa-solid fa-volume-high"></i> Escuchar Total
+                            </button>
+                        </div>
+                        <div id="basketCurrencyBreakdown" class="flex flex-wrap gap-3 items-center justify-start bg-white p-4 rounded-xl border-2 border-amber-200 min-h-[80px]"></div>
+                    </div>
+                </div>
+
+                <div class="bg-indigo-50 border-4 border-indigo-200 rounded-2xl p-5 space-y-4">
+                    <h3 class="text-lg font-black text-indigo-900 flex items-center gap-2">
+                        <i class="fa-solid fa-cash-register text-2xl text-indigo-600"></i> Práctica de Pago en la Caja
+                    </h3>
+                    <p class="text-sm text-indigo-800 font-medium">
+                        Toca los billetes y monedas para juntar el dinero necesario y presiona <strong>"¡Pagar en la Caja!"</strong>.
+                    </p>
+
+                    <div class="bg-white p-4 rounded-xl border-2 border-indigo-300 flex flex-wrap justify-between items-center gap-2">
+                        <div>
+                            <span class="text-xs font-bold text-slate-500 block">Has entregado en la caja:</span>
+                            <span id="userPaidTotal" class="text-2xl font-black text-indigo-700">$0</span>
+                        </div>
+                        <button onclick="resetUserPayment()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold px-3 py-1.5 rounded-lg text-xs border border-rose-300">
+                            🔄 Devolver Dinero
+                        </button>
+                    </div>
+
+                    <div class="space-y-2">
+                        <span class="text-xs font-bold text-indigo-900 uppercase">Toca el dinero para ponerlo en la caja:</span>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2" id="paymentMoneyTray"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-100 px-6 py-4 border-t-2 border-slate-300 flex flex-wrap justify-between items-center gap-3">
+                <button onclick="clearBasket()" class="text-rose-600 hover:text-rose-800 font-bold text-sm underline px-2 py-1">
+                    Vaciar Canasto
+                </button>
+                <div class="flex space-x-3">
+                    <button onclick="closeBasketModal()" class="bg-slate-300 hover:bg-slate-400 text-slate-800 font-extrabold px-5 py-3 rounded-xl border-b-4 border-slate-500">
+                        Seguir Comprando
+                    </button>
+                    <button onclick="verifyAndCheckout()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg px-6 py-3 rounded-xl border-b-4 border-emerald-800 shadow-lg animate-tactile flex items-center space-x-2">
+                        <span>¡Pagar en la Caja!</span>
+                        <i class="fa-solid fa-circle-check"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL INGRESO PIN MODO EDUCADOR -->
+    <div id="pinModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl border-4 border-indigo-400 shadow-2xl p-6 text-center space-y-5">
+            <div class="bg-indigo-100 text-indigo-700 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-3xl">
+                🔒
+            </div>
+            <div>
+                <h3 class="text-2xl font-black text-slate-800">Acceso Profesional / Educador</h3>
+                <p class="text-xs text-slate-500 mt-1">Ingresa el PIN para acceder al Panel de Administración (PIN por defecto: <strong>1234</strong>)</p>
+            </div>
+
+            <div class="space-y-3">
+                <input type="password" id="pinInput" placeholder="••••" maxlength="6" 
+                       class="text-center text-3xl font-black tracking-widest w-full py-3 border-4 border-slate-300 rounded-2xl focus:border-indigo-500 focus:outline-none">
+                <p id="pinErrorMsg" class="text-sm text-rose-600 font-bold hidden">PIN incorrecto. Intenta de nuevo.</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="closePinModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl border-b-4 border-slate-400">
+                    Cancelar
+                </button>
+                <button onclick="validatePin()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-3 rounded-xl border-b-4 border-indigo-900 shadow">
+                    Ingresar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white border-t-2 border-slate-200 py-4 text-center text-xs text-slate-500 font-medium">
+        <p>Mi Supermercado Pictográfico NEE • Diseñado con apoyo de Billetes y Monedas Chilenas 🇨🇱</p>
+    </footer>
+
+    <!-- LÓGICA JAVASCRIPT GARANTIZADA -->
     <script>
         const APP_STATE = {
             currentMode: 'kids',
@@ -41,18 +279,6 @@
             { id: 'prod-9', supermarketId: 'sup-barrio', name: 'Barra de Chocolate', category: 'Snacks', price: 1000, iconEmoji: '🍫' }
         ];
 
-        // Carga dinámica de voces para Firefox
-        let systemVoices = [];
-        function loadVoices() {
-            if ('speechSynthesis' in window) {
-                systemVoices = window.speechSynthesis.getVoices();
-            }
-        }
-        loadVoices();
-        if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined) {
-            window.speechSynthesis.onvoiceschanged = loadVoices;
-        }
-
         function loadFromLocalStorage() {
             try {
                 const storedSup = localStorage.getItem('nee_supermarkets');
@@ -61,8 +287,17 @@
                 let parsedSup = storedSup ? JSON.parse(storedSup) : null;
                 let parsedProd = storedProd ? JSON.parse(storedProd) : null;
 
-                APP_STATE.supermarkets = (Array.isArray(parsedSup) && parsedSup.length > 0) ? parsedSup : [...DEFAULT_SUPERMARKETS];
-                APP_STATE.products = (Array.isArray(parsedProd) && parsedProd.length > 0) ? parsedProd : [...DEFAULT_PRODUCTS];
+                if (Array.isArray(parsedSup) && parsedSup.length > 0) {
+                    APP_STATE.supermarkets = parsedSup;
+                } else {
+                    APP_STATE.supermarkets = [...DEFAULT_SUPERMARKETS];
+                }
+
+                if (Array.isArray(parsedProd) && parsedProd.length > 0) {
+                    APP_STATE.products = parsedProd;
+                } else {
+                    APP_STATE.products = [...DEFAULT_PRODUCTS];
+                }
             } catch (e) {
                 APP_STATE.supermarkets = [...DEFAULT_SUPERMARKETS];
                 APP_STATE.products = [...DEFAULT_PRODUCTS];
@@ -77,7 +312,6 @@
             return text.replace(/\$/g, '').replace(/\bCLP\b/gi, 'pesos chilenos').replace(/\bpesos\b/gi, 'pesos chilenos');
         }
 
-        /* SÍNTESIS ADAPTADA A FIREFOX */
         function speakText(text) {
             if (!('speechSynthesis' in window)) return;
             try {
@@ -85,29 +319,18 @@
                 const cleanText = cleanTextForSpeech(text);
                 if (!cleanText) return;
 
-                // Retardo de 100ms necesario para que Firefox no ignore el comando speak()
-                setTimeout(() => {
-                    const utterance = new SpeechSynthesisUtterance(cleanText);
-                    
-                    if (systemVoices.length === 0) {
-                        systemVoices = window.speechSynthesis.getVoices();
-                    }
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                utterance.lang = 'es-CL';
+                utterance.rate = 0.88;
+                utterance.pitch = 1.0;
 
-                    // Busca voz en español chileno primero, luego cualquier voz en español
-                    const spanishVoice = systemVoices.find(v => v.lang === 'es-CL') || 
-                                         systemVoices.find(v => v.lang.startsWith('es'));
+                if (window.speechSynthesis.getVoices) {
+                    const voices = window.speechSynthesis.getVoices();
+                    const spanishVoice = voices.find(v => v.lang === 'es-CL') || voices.find(v => v.lang.startsWith('es'));
+                    if (spanishVoice) utterance.voice = spanishVoice;
+                }
 
-                    if (spanishVoice) {
-                        utterance.voice = spanishVoice;
-                        utterance.lang = spanishVoice.lang;
-                    } else {
-                        utterance.lang = 'es';
-                    }
-
-                    utterance.rate = 0.88;
-                    utterance.pitch = 1.0;
-                    window.speechSynthesis.speak(utterance);
-                }, 100);
+                window.speechSynthesis.speak(utterance);
             } catch(e) {}
         }
 
@@ -613,6 +836,9 @@
             }
         }
 
+        // Inicialización garantizada
         loadFromLocalStorage();
         renderApp();
     </script>
+</body>
+</html>
