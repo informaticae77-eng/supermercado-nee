@@ -170,7 +170,7 @@
         </div>
     </div>
 
-    <!-- MODAL: GESTIÓN DE USUARIOS (CREAR / EDITAR) -->
+    <!-- MODAL: GESTIÓN DE USUARIOS -->
     <div id="userModal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-white w-full max-w-md rounded-3xl border-4 border-indigo-600 shadow-2xl p-6 space-y-4 my-6">
             <div class="flex justify-between items-center border-b pb-2">
@@ -238,6 +238,59 @@
         </div>
     </div>
 
+    <!-- MODAL: GESTIÓN DE CATEGORÍAS (SELECTOR EXTENDIDO DE ÍCONOS) -->
+    <div id="categoryModal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl border-4 border-indigo-600 shadow-2xl p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 id="catModalTitle" class="text-xl font-black text-slate-800">Categoría</h3>
+                <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-slate-700 font-black text-xl">✕</button>
+            </div>
+
+            <input type="hidden" id="modalCatId">
+
+            <div class="space-y-3 text-xs font-bold">
+                <div>
+                    <label class="block uppercase text-slate-600 mb-1">Nombre de la Categoría:</label>
+                    <input type="text" id="modalCatName" placeholder="Ej: Congelados" class="w-full px-3 py-2 border-2 border-slate-300 rounded-xl focus:border-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block uppercase text-slate-600 mb-1">Elegir Ícono / Emoji:</label>
+                    <div class="flex items-center gap-2 mb-2">
+                        <input type="text" id="modalCatIcon" placeholder="🏷️" class="w-16 px-3 py-2 border-2 border-indigo-500 rounded-xl focus:outline-none text-2xl text-center shrink-0 bg-indigo-50 font-black">
+                        <span class="text-[11px] text-slate-500">Selecciona un ícono rápido o escribe uno personalizado.</span>
+                    </div>
+
+                    <!-- REJILLA EXTENDIDA DE SELECCIÓN RÁPIDA DE ÍCONOS -->
+                    <div class="max-h-36 overflow-y-auto bg-slate-50 p-2.5 rounded-2xl border-2 border-slate-200 grid grid-cols-6 gap-1.5 text-center">
+                        <button type="button" onclick="selectCategoryIconEmoji('🥛')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">🥛</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('🧹')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">🧹</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('🍎')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">🍎</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('🥖')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">🥖</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('🍪')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">🍪</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('🥫')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">🥫</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('🧃')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">🧃</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('❄️')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">❄️</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('🧼')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">🧼</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('🧀')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">🧀</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('🥩')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">🥩</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('🐟')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">🐟</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('🍿')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">🍿</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('🐶')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">🐶</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('🧻')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">🧻</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('🍬')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">🍬</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('☕')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">☕</button>
+                        <button type="button" onclick="selectCategoryIconEmoji('📦')" class="text-2xl p-1.5 hover:bg-indigo-100 rounded-xl transition-all">📦</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeCategoryModal()" class="flex-1 bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl">Cancelar</button>
+                <button onclick="saveCategoryFromModal()" class="flex-1 bg-indigo-600 text-white font-black py-2.5 rounded-xl border-b-4 border-indigo-900">Guardar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: GESTIÓN DE SUPERMERCADOS -->
     <div id="supermarketModal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-3xl border-4 border-emerald-600 shadow-2xl p-6 space-y-4">
@@ -281,7 +334,7 @@
         </div>
     </div>
 
-    <!-- MODAL: GESTIÓN DE PRODUCTOS -->
+    <!-- MODAL: GESTIÓN DE PRODUCTOS (CON OPCIÓN DE REPLICAR EN TODOS LOS SUPERMERCADOS) -->
     <div id="productModal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-3xl border-4 border-amber-500 shadow-2xl p-6 space-y-4">
             <div class="flex justify-between items-center border-b pb-2">
@@ -296,6 +349,15 @@
                     <label class="block uppercase text-slate-600 mb-1">Supermercado:</label>
                     <select id="modalProdSupermarket" class="w-full px-3 py-2 border-2 border-slate-300 rounded-xl bg-white"></select>
                 </div>
+
+                <!-- OPCIÓN DE REPLICACIÓN EN TODOS LOS SUPERMERCADOS -->
+                <div class="bg-amber-50 border-2 border-amber-300 p-3 rounded-2xl flex items-center gap-2">
+                    <input type="checkbox" id="modalProdReplicateAll" class="w-5 h-5 text-amber-600 rounded cursor-pointer shrink-0">
+                    <label for="modalProdReplicateAll" class="text-xs font-extrabold text-amber-950 cursor-pointer">
+                        🔁 Replicar este producto en TODOS los supermercados creados
+                    </label>
+                </div>
+
                 <div>
                     <label class="block uppercase text-slate-600 mb-1">Nombre del Producto:</label>
                     <input type="text" id="modalProdName" placeholder="Ej: Leche Entera 1L" class="w-full px-3 py-2 border-2 border-slate-300 rounded-xl">
@@ -303,7 +365,7 @@
                 <div>
                     <div class="flex justify-between items-center mb-1">
                         <label class="block uppercase text-slate-600">Categoría:</label>
-                        <button type="button" onclick="addNewCategoryPrompt()" class="text-[10px] text-indigo-600 font-bold underline">+ Crear Nueva Categoría</button>
+                        <button type="button" onclick="openCategoryModal()" class="text-[10px] text-indigo-600 font-bold underline">+ Crear Nueva Categoría</button>
                     </div>
                     <select id="modalProdCategory" class="w-full px-3 py-2 border-2 border-slate-300 rounded-xl bg-white"></select>
                 </div>
