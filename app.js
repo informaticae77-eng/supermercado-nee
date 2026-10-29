@@ -190,6 +190,7 @@ function initFirebaseListeners() {
             DEFAULT_CATEGORIES.forEach(c => db.collection('categories').doc(c.id).set(c));
         } else {
             APP_STATE.categories = snapshot.docs.map(doc => doc.data());
+            updateCategoryDropdowns();
             renderApp();
         }
     });
@@ -826,6 +827,27 @@ function renderTeacherDashboard(container) {
     }
 
     html += `
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-3xl border-4 border-amber-300 shadow space-y-3">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-money-bill-wave text-amber-600"></i>
+                        <span>Personalizar Fotos de Billetes y Monedas (CLP)</span>
+                    </h3>
+                    <span class="text-[10px] bg-amber-100 text-amber-900 font-bold px-2.5 py-1 rounded-full">Sube archivos o usa la Cámara</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 max-h-60 overflow-y-auto p-1">
+                    ${CLP_CURRENCY_ITEMS.map(item => `
+                        <div class="p-2.5 bg-slate-50 border-2 border-slate-200 rounded-2xl flex flex-col items-center text-center space-y-2 hover:border-amber-400 transition-all">
+                            <span class="text-[11px] font-black text-slate-800">${item.name}</span>
+                            <div class="my-1">${renderCurrencySVG(item, 'sm')}</div>
+                            <button onclick="openCurrencyEditModal('${item.id}', '${item.name}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black px-2.5 py-1 rounded-xl text-[10px] w-full border-b-2 border-amber-600 active:scale-95">
+                                📷 Cambiar Foto
+                            </button>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
 
@@ -1645,8 +1667,23 @@ function saveUserFromModal() {
 }
 
 // ==========================================
-// GESTIÓN DE CATEGORÍAS CON ÍCONO/EMOJI
+// GESTIÓN DE CATEGORÍAS Y SELECTOR DINÁMICO
 // ==========================================
+function updateCategoryDropdowns(selectedCategoryName = null) {
+    const catSelect = document.getElementById('modalProdCategory');
+    if (!catSelect) return;
+
+    const categoriesList = APP_STATE.categories || [];
+
+    if (categoriesList.length === 0) {
+        catSelect.innerHTML = `<option value="General">🏷️ General</option>`;
+    } else {
+        catSelect.innerHTML = categoriesList.map(c => 
+            `<option value="${c.name}" ${selectedCategoryName === c.name ? 'selected' : ''}>${c.icon || '🏷️'} ${c.name}</option>`
+        ).join('');
+    }
+}
+
 function selectCategoryIconEmoji(emoji) {
     document.getElementById('modalCatIcon').value = emoji;
 }
@@ -1683,14 +1720,18 @@ function saveCategoryFromModal() {
     const id = catId || ('cat-' + Date.now());
     const data = { id, name, icon };
 
+    if (!APP_STATE.categories) APP_STATE.categories = [];
+    const idx = APP_STATE.categories.findIndex(c => c.id === id);
+    if (idx >= 0) {
+        APP_STATE.categories[idx] = data;
+    } else {
+        APP_STATE.categories.push(data);
+    }
+
     db.collection('categories').doc(id).set(data).then(() => {
         closeCategoryModal();
-        alert(`✅ Categoría "${name}" guardada con su ícono en la nube.`);
-        if (!document.getElementById('productModal').classList.contains('hidden')) {
-            const prodId = document.getElementById('modalProdId').value || null;
-            openProductModal(prodId);
-            document.getElementById('modalProdCategory').value = name;
-        }
+        updateCategoryDropdowns(name);
+        alert(`✅ Categoría "${name}" guardada con éxito.`);
     }).catch(err => alert("Error al guardar categoría: " + err.message));
 }
 
@@ -1854,15 +1895,8 @@ function openProductModal(prodId = null) {
     if (APP_STATE.supermarkets.length === 0) return alert("Crea un supermercado primero.");
 
     const supSelect = document.getElementById('modalProdSupermarket');
-    supSelect.innerHTML = APP_STATE.supermarkets.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-
-    const catSelect = document.getElementById('modalProdCategory');
-    const categoriesList = APP_STATE.categories || [];
-
-    if (categoriesList.length === 0) {
-        catSelect.innerHTML = `<option value="General">🏷️ General</option>`;
-    } else {
-        catSelect.innerHTML = categoriesList.map(c => `<option value="${c.name}">${c.icon || '🏷️'} ${c.name}</option>`).join('');
+    if (supSelect) {
+        supSelect.innerHTML = APP_STATE.supermarkets.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
     }
 
     const replicateCheckbox = document.getElementById('modalProdReplicateAll');
@@ -1873,13 +1907,14 @@ function openProductModal(prodId = null) {
         if (!prod) return;
         document.getElementById('modalProdId').value = prod.id;
         document.getElementById('prodModalTitle').textContent = 'Editar Producto';
-        document.getElementById('modalProdSupermarket').value = prod.supermarketId;
+        if (supSelect) supSelect.value = prod.supermarketId;
         document.getElementById('modalProdName').value = prod.name || '';
-        document.getElementById('modalProdCategory').value = prod.category || (categoriesList[0] ? categoriesList[0].name : 'General');
         document.getElementById('modalProdPrice').value = prod.price || '';
         document.getElementById('modalProdEmoji').value = prod.iconEmoji || '📦';
         document.getElementById('modalProdPhoto').value = prod.photoUrl || '';
         
+        updateCategoryDropdowns(prod.category || 'General');
+
         if (prod.photoUrl) {
             document.getElementById('prodPhotoPreview').src = prod.photoUrl;
             document.getElementById('prodPhotoPreviewContainer').classList.remove('hidden');
@@ -1895,9 +1930,10 @@ function openProductModal(prodId = null) {
         document.getElementById('modalProdId').value = '';
         document.getElementById('prodModalTitle').textContent = 'Crear Producto';
         document.getElementById('modalProdName').value = '';
-        if (categoriesList[0]) document.getElementById('modalProdCategory').value = categoriesList[0].name;
         document.getElementById('modalProdPrice').value = '';
         document.getElementById('modalProdEmoji').value = '📦';
+        
+        updateCategoryDropdowns();
         removeProductPhoto();
     }
     document.getElementById('productModal').classList.remove('hidden');
