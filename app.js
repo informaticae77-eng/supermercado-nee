@@ -1,4 +1,6 @@
-// CONFIGURACIÓN DE FIREBASE
+// ==========================================
+// CONFIGURACIÓN DE FIREBASE Y EMAILJS
+// ==========================================
 const firebaseConfig = {
     apiKey: "AIzaSyB27AIOvrMwMtidvD7Lbkbp9v--0DLaZyY",
     authDomain: "supermercado-nee.firebaseapp.com",
@@ -9,10 +11,11 @@ const firebaseConfig = {
     measurementId: "G-ZJXT1QTQ6J"
 };
 
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 const db = firebase.firestore();
 
-// CONFIGURACIÓN EMAILJS
 const EMAILJS_CONFIG = {
     publicKey: "smzqxkKPlFcTigatD",
     serviceId: "service_omucoeg",
@@ -23,7 +26,9 @@ if (typeof emailjs !== 'undefined') {
     emailjs.init(EMAILJS_CONFIG.publicKey);
 }
 
+// ==========================================
 // ESTADO GLOBAL DE LA APLICACIÓN
+// ==========================================
 const APP_STATE = {
     currentUser: null,
     selectedSupermarketId: null,
@@ -37,6 +42,13 @@ const APP_STATE = {
     products: [],
     evaluations: [],
     customCurrencies: {},
+    pdfTemplate: {
+        institutionName: "Escuela Especial NEE Chile",
+        headerTitle: "INFORME DE EVALUACIÓN PEDAGÓGICA Y COGNITIVA",
+        footerText: "Documento oficial del Equipo Multidisciplinario PIE",
+        primaryColor: "#3730a3",
+        logoUrl: ""
+    },
     telemetry: {
         voiceHelpCount: 0,
         paymentResetsCount: 0
@@ -46,7 +58,6 @@ const APP_STATE = {
     missionTimerInterval: null,
     missionElapsedSeconds: 0,
     foundProductIds: [],
-    aiModel: null,
     currentScanningProductId: null
 };
 
@@ -61,7 +72,9 @@ function getUserCourseIds(user) {
     return [];
 }
 
-// MONEDAS Y BILLETES CHILENOS
+// ==========================================
+// MONEDAS Y BILLETES CHILENOS (CLP)
+// ==========================================
 const CLP_CURRENCY_ITEMS = [
     { id: 'b20k', value: 20000, type: 'bill', name: 'Billete $20.000', color: '#E65100', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/20000_pesos_chilenos_2010_anverso.jpg/320px-20000_pesos_chilenos_2010_anverso.jpg' },
     { id: 'b10k', value: 10000, type: 'bill', name: 'Billete $10.000', color: '#0D47A1', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/10000_pesos_chilenos_2010_anverso.jpg/320px-10000_pesos_chilenos_2010_anverso.jpg' },
@@ -100,9 +113,12 @@ const DEFAULT_PRODUCTS = [
     { id: 'prod-5', supermarketId: 'sup-jumbo', name: 'Detergente Líquido', category: 'Limpieza', price: 4500, iconEmoji: '🧼', photoUrl: '' },
     { id: 'prod-6', supermarketId: 'sup-jumbo', name: 'Queso Mantecoso 250g', category: 'Lácteos', price: 2500, iconEmoji: '🧀', photoUrl: '' },
     { id: 'prod-7', supermarketId: 'sup-unimarc', name: 'Yogurt Frutilla Soprole', category: 'Lácteos', price: 450, iconEmoji: '🍓', photoUrl: '' },
-    { id: 'prod-8', supermarketId: 'sup-unimarc', name: 'Paquete de Galletas', category: 'Snacks', price: 800, iconEmoji: '🍪', photoUrl: '' }
+    { id: 'prod-8', supermarketId: 'sup-unimarc', name: 'Paquete de Galletas', category: 'Snacks y Dulces', price: 800, iconEmoji: '🍪', photoUrl: '' }
 ];
 
+// ==========================================
+// ESCUCHADORES DE FIRESTORE EN TIEMPO REAL
+// ==========================================
 function initFirebaseListeners() {
     const storedUser = localStorage.getItem('nee_active_user');
     if (storedUser) {
@@ -160,6 +176,21 @@ function initFirebaseListeners() {
         APP_STATE.customCurrencies = map;
         renderApp();
     });
+
+    db.collection('settings').doc('pdfReport').onSnapshot(doc => {
+        if (doc.exists) {
+            APP_STATE.pdfTemplate = doc.data();
+        } else {
+            APP_STATE.pdfTemplate = {
+                institutionName: "Escuela Especial NEE Chile",
+                headerTitle: "INFORME DE EVALUACIÓN PEDAGÓGICA Y COGNITIVA",
+                footerText: "Documento oficial del Equipo Multidisciplinario PIE",
+                primaryColor: "#3730a3",
+                logoUrl: ""
+            };
+        }
+        renderApp();
+    });
 }
 
 function sendAutomaticCredentialsEmail(user) {
@@ -187,6 +218,9 @@ function sendAutomaticCredentialsEmail(user) {
     }
 }
 
+// ==========================================
+// FUNCIONES DE SÍNTESIS DE VOZ Y AUDIO
+// ==========================================
 function cleanTextForSpeech(text) {
     if (!text) return '';
     return text.replace(/\$/g, ' ').replace(/\bCLP\b/gi, ' ').replace(/\bchilenos?\b/gi, ' ').replace(/\bpesos\s+pesos\b/gi, 'pesos').replace(/\s+/g, ' ').trim();
@@ -236,6 +270,9 @@ function getInitialPinFromRut(rutString) {
     return cleanDigits.length >= 4 ? cleanDigits.substring(0, 4) : '1234';
 }
 
+// ==========================================
+// RENDERIZADO Y RUTEO PRINCIPAL DE LA APP
+// ==========================================
 function renderApp() {
     const container = document.getElementById('appContainer');
     const headerBasketBtn = document.getElementById('headerBasketBtn');
@@ -407,13 +444,16 @@ function logout() {
     renderApp();
 }
 
+// ==========================================
+// PANEL DE ADMINISTRACIÓN
+// ==========================================
 function renderAdminDashboard(container) {
     let html = `
         <div class="space-y-6">
             <div class="bg-indigo-900 text-white p-6 rounded-3xl shadow-lg flex flex-wrap justify-between items-center gap-4">
                 <div>
                     <h2 class="text-2xl font-black">👑 Panel de Administración (Nube ☁️)</h2>
-                    <p class="text-xs text-indigo-200 mt-1">Gestión completa en tiempo real de Cursos, Educadores, Alumnos, Fotos y Claves.</p>
+                    <p class="text-xs text-indigo-200 mt-1">Gestión completa en tiempo real de Cursos, Educadores, Alumnos, Fotos, Claves y Plantillas PDF.</p>
                 </div>
                 
                 <div class="flex items-center gap-3">
@@ -549,10 +589,70 @@ function renderAdminDashboard(container) {
     html += `
                     </div>
                 </div>
-
             </div>
+    `;
+
+    // CONFIGURACIÓN DE PLANTILLA PDF INSTITUCIONAL
+    const pdfTpl = APP_STATE.pdfTemplate || {
+        institutionName: "Escuela Especial NEE",
+        headerTitle: "INFORME DE EVALUACIÓN PEDAGÓGICA Y COGNITIVA",
+        footerText: "Documento oficial del Equipo Multidisciplinario PIE",
+        primaryColor: "#3730a3",
+        logoUrl: ""
+    };
+
+    html += `
+        <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow space-y-4 mt-6">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-black text-lg text-indigo-950 flex items-center gap-2">
+                    <i class="fa-solid fa-file-pdf text-rose-600"></i>
+                    <span>Configuración de Plantilla de Informes PDF</span>
+                </h3>
+                <span class="text-xs bg-indigo-100 text-indigo-900 font-bold px-3 py-1 rounded-full">Formato Oficial</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-bold">
+                <div>
+                    <label class="block uppercase text-slate-600 mb-1">Nombre de la Escuela / Institución:</label>
+                    <input type="text" id="pdfInstName" value="${pdfTpl.institutionName || ''}" class="w-full px-3 py-2 border-2 border-slate-300 rounded-xl">
+                </div>
+                <div>
+                    <label class="block uppercase text-slate-600 mb-1">Título Encabezado del Documento:</label>
+                    <input type="text" id="pdfHeaderTitle" value="${pdfTpl.headerTitle || ''}" class="w-full px-3 py-2 border-2 border-slate-300 rounded-xl">
+                </div>
+                <div>
+                    <label class="block uppercase text-slate-600 mb-1">Texto al Pie de Página:</label>
+                    <input type="text" id="pdfFooterText" value="${pdfTpl.footerText || ''}" class="w-full px-3 py-2 border-2 border-slate-300 rounded-xl">
+                </div>
+                <div>
+                    <label class="block uppercase text-slate-600 mb-1">Color Principal Encabezado:</label>
+                    <input type="color" id="pdfPrimaryColor" value="${pdfTpl.primaryColor || '#3730a3'}" class="w-full h-10 p-1 border-2 border-slate-300 rounded-xl cursor-pointer">
+                </div>
+            </div>
+
+            <div class="border-t pt-3 space-y-2 text-xs font-bold">
+                <label class="block uppercase text-slate-600">Logo Institucional para el PDF:</label>
+                <div class="flex items-center gap-4">
+                    <div id="pdfLogoPreviewContainer" class="${pdfTpl.logoUrl ? '' : 'hidden'} w-20 h-20 bg-slate-50 border-2 border-indigo-300 rounded-2xl flex items-center justify-center p-1">
+                        <img id="pdfLogoPreview" src="${pdfTpl.logoUrl || ''}" class="max-h-full max-w-full object-contain">
+                    </div>
+                    <div class="space-y-2">
+                        <input type="file" id="pdfLogoInput" accept="image/*" onchange="handlePdfLogoUpload(event)" class="hidden">
+                        <button type="button" onclick="document.getElementById('pdfLogoInput').click()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-black px-4 py-2 rounded-xl border border-indigo-300 shadow-sm">
+                            📷 Subir Logo Institucional
+                        </button>
+                        <input type="hidden" id="pdfLogoUrl" value="${pdfTpl.logoUrl || ''}">
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="savePdfTemplateSettings()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 px-6 rounded-xl border-b-4 border-emerald-900 shadow active:scale-95 text-xs">
+                💾 Guardar Formato de PDF en la Nube
+            </button>
         </div>
     `;
+
+    html += `</div>`;
     container.innerHTML = html;
 }
 
@@ -561,7 +661,9 @@ function filterAdminByCourse(courseId) {
     renderAdminDashboard(document.getElementById('appContainer'));
 }
 
-// PANEL DEL EDUCADOR PROFESIONAL
+// ==========================================
+// PANEL DEL EDUCADOR Y EVALUACIÓN
+// ==========================================
 function renderTeacherDashboard(container) {
     const myCourseIds = getUserCourseIds(APP_STATE.currentUser);
     const myCourses = APP_STATE.courses.filter(c => myCourseIds.includes(c.id));
@@ -704,6 +806,422 @@ function renderTeacherDashboard(container) {
     container.innerHTML = html;
 }
 
+// ==========================================
+// CONFIGURACIÓN DE PDF Y EXPORTACIÓN
+// ==========================================
+function handlePdfLogoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const MAX = 250;
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } }
+            else { if (h > MAX) { w *= MAX / h; h = MAX; } }
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const compressed = canvas.toDataURL('image/png');
+
+            document.getElementById('pdfLogoUrl').value = compressed;
+            document.getElementById('pdfLogoPreview').src = compressed;
+            document.getElementById('pdfLogoPreviewContainer').classList.remove('hidden');
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function savePdfTemplateSettings() {
+    const data = {
+        institutionName: document.getElementById('pdfInstName').value.trim(),
+        headerTitle: document.getElementById('pdfHeaderTitle').value.trim(),
+        footerText: document.getElementById('pdfFooterText').value.trim(),
+        primaryColor: document.getElementById('pdfPrimaryColor').value,
+        logoUrl: document.getElementById('pdfLogoUrl').value
+    };
+
+    db.collection('settings').doc('pdfReport').set(data)
+    .then(() => alert("✅ Formato de plantilla PDF guardado exitosamente en la nube."))
+    .catch(err => alert("Error al guardar formato: " + err.message));
+}
+
+function generatePDFReport(evalId, scores) {
+    const evaluation = APP_STATE.evaluations.find(e => e.id === evalId);
+    if (!evaluation) return;
+
+    const pdfTpl = APP_STATE.pdfTemplate || {
+        institutionName: "Escuela Especial NEE",
+        headerTitle: "INFORME DE EVALUACIÓN PEDAGÓGICA Y COGNITIVA",
+        footerText: "Documento confidencial PIE",
+        primaryColor: "#3730a3",
+        logoUrl: ""
+    };
+
+    const totalPts = scores.reduce((a, b) => a + b, 0);
+    const percentage = Math.round((totalPts / 20) * 100);
+
+    let level = 'Inicial';
+    if (percentage >= 85) level = 'Destacado / Autónomo';
+    else if (percentage >= 60) level = 'Adecuado / En Desarrollo';
+    else if (percentage >= 40) level = 'Inicial / Requiere Apoyo';
+
+    const voiceCount = evaluation.telemetry ? (evaluation.telemetry.voiceHelpCount || 0) : 0;
+    const resetCount = evaluation.telemetry ? (evaluation.telemetry.paymentResetsCount || 0) : 0;
+    const timeSec = evaluation.timeSeconds || 0;
+    const timeFormatted = `${Math.floor(timeSec / 60)} min ${timeSec % 60} seg`;
+
+    const pdfContainer = document.createElement('div');
+    pdfContainer.style.width = '750px';
+    pdfContainer.style.padding = '30px';
+    pdfContainer.style.fontFamily = 'Helvetica, Arial, sans-serif';
+    pdfContainer.style.color = '#1e293b';
+
+    const logoHtml = pdfTpl.logoUrl 
+        ? `<img src="${pdfTpl.logoUrl}" style="max-height: 60px; max-width: 140px; object-fit: contain;">` 
+        : `<span style="font-size: 32px;">🏛️</span>`;
+
+    pdfContainer.innerHTML = `
+        <div style="border: 2px solid ${pdfTpl.primaryColor}; padding: 20px; border-radius: 16px; background-color: #ffffff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    ${logoHtml}
+                    <div>
+                        <h2 style="font-size: 16px; font-weight: 900; color: ${pdfTpl.primaryColor}; margin: 0;">${pdfTpl.institutionName}</h2>
+                        <h4 style="font-size: 11px; font-weight: 700; color: #64748b; margin: 2px 0 0 0;">${pdfTpl.headerTitle}</h4>
+                    </div>
+                </div>
+                <div style="text-align: right; font-size: 10px; color: #64748b;">
+                    <b>Fecha:</b> ${new Date().toLocaleDateString('es-CL')}
+                </div>
+            </div>
+
+            <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; padding: 12px; border-radius: 10px; margin-bottom: 15px; font-size: 11px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 3px 0;"><b>Estudiante:</b> ${evaluation.studentName}</td>
+                        <td style="padding: 3px 0; text-align: right;"><b>Logro Global:</b> <span style="font-size: 13px; font-weight: 900; color: ${pdfTpl.primaryColor};">${percentage}% (${level})</span></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 3px 0;"><b>Monto Comprado:</b> $${(evaluation.totalAmount || 0).toLocaleString('es-CL')}</td>
+                        <td style="padding: 3px 0; text-align: right;"><b>Tiempo Búsqueda:</b> ${timeFormatted}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 3px 0;"><b>Solicitudes de Voz:</b> ${voiceCount} veces</td>
+                        <td style="padding: 3px 0; text-align: right;"><b>Devoluciones Caja:</b> ${resetCount} veces</td>
+                    </tr>
+                </table>
+            </div>
+
+            <h3 style="font-size: 12px; font-weight: 800; color: ${pdfTpl.primaryColor}; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 8px;">1. EVALUACIÓN POR DIMENSIONES</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 15px;">
+                <thead>
+                    <tr style="background-color: ${pdfTpl.primaryColor}; color: white; text-align: left;">
+                        <th style="padding: 6px;">Dimensión Evaluada</th>
+                        <th style="padding: 6px; text-align: center;">Puntaje (1-5)</th>
+                        <th style="padding: 6px;">Desempeño Observado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 6px;"><b>Atención y Búsqueda Visual</b></td>
+                        <td style="padding: 6px; text-align: center; font-weight: bold;">${scores[0]} / 5</td>
+                        <td style="padding: 6px;">${scores[0] >= 4 ? 'Discriminación eficaz de pictogramas e ítems por categoría.' : 'Requiere mediación visual o auditiva focalizada.'}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 6px;"><b>Funciones Ejecutivas</b></td>
+                        <td style="padding: 6px; text-align: center; font-weight: bold;">${scores[1]} / 5</td>
+                        <td style="padding: 6px;">${scores[1] >= 4 ? 'Estructura la secuencia de compra de manera fluida y autorregulada.' : 'Muestra flexibilidad frente al error pero requiere apoyo en la planificación.'}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 6px;"><b>Razonamiento Lógico-Matemático</b></td>
+                        <td style="padding: 6px; text-align: center; font-weight: bold;">${scores[2]} / 5</td>
+                        <td style="padding: 6px;">${scores[2] >= 4 ? 'Reconoce y combina denominaciones monetarias CLP de forma precisa.' : 'Requiere reforzar el valor relativo de billetes y monedas chilenas.'}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 6px;"><b>Autonomía e Integración AIVD</b></td>
+                        <td style="padding: 6px; text-align: center; font-weight: bold;">${scores[3]} / 5</td>
+                        <td style="padding: 6px;">${scores[3] >= 4 ? 'Desempeño autónomo y transferible al entorno comunitario real.' : 'Progresa adecuadamente con soportes tecnológicos.'}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3 style="font-size: 12px; font-weight: 800; color: ${pdfTpl.primaryColor}; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 8px;">2. RECOMENDACIONES PEDAGÓGICAS Y PIE</h3>
+            <div style="font-size: 10px; line-height: 1.5; background-color: #f8fafc; border-left: 3px solid ${pdfTpl.primaryColor}; padding: 8px; margin-bottom: 30px;">
+                <p style="margin: 0 0 4px 0;">• <b>Sugerencia en Aula:</b> Trabajar conteo de 1.000 en 1.000 y descomposición de vuelto mediante los pictogramas de la app.</p>
+                <p style="margin: 0;">• <b>Sugerencia para el Hogar:</b> Involucrar al estudiante en compras cotidianas guiadas en el comercio local para reforzar la transferencia.</p>
+            </div>
+
+            <div style="display: flex; justify-content: space-around; margin-top: 40px; text-align: center; font-size: 10px;">
+                <div style="border-top: 1px solid #94a3b8; width: 200px; padding-top: 4px;">
+                    <b>Educador(a) / Docente PIE</b>
+                </div>
+                <div style="border-top: 1px solid #94a3b8; width: 200px; padding-top: 4px;">
+                    <b>Equipo Multidisciplinario</b>
+                </div>
+            </div>
+
+            <div style="margin-top: 25px; border-top: 1px solid #e2e8f0; padding-top: 8px; text-align: center; font-size: 8px; color: #94a3b8;">
+                ${pdfTpl.footerText}
+            </div>
+        </div>
+    `;
+
+    const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `Informe_NEE_${evaluation.studentName.replace(/\s+/g, '_')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    if (typeof html2pdf !== 'undefined') {
+        html2pdf().set(opt).from(pdfContainer).save();
+    } else {
+        alert("La librería html2pdf.js no está cargada. Asegúrate de incluirla en tu index.html");
+    }
+}
+
+function downloadPdfFromModal(evalId, scores) {
+    generatePDFReport(evalId, scores);
+}
+
+// ==========================================
+// MODAL DE PAUTA DE EVALUACIÓN MULTIDIMENSIONAL
+// ==========================================
+function openAdvancedEvaluationModal(evalId) {
+    const evaluation = APP_STATE.evaluations.find(e => e.id === evalId);
+    if (!evaluation) return;
+
+    let modal = document.getElementById('advancedEvalModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'advancedEvalModal';
+        modal.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto';
+        document.body.appendChild(modal);
+    }
+
+    const voiceCount = evaluation.telemetry ? (evaluation.telemetry.voiceHelpCount || 0) : 0;
+    const resetCount = evaluation.telemetry ? (evaluation.telemetry.paymentResetsCount || 0) : 0;
+    const timeStr = evaluation.timeSeconds ? `${Math.floor(evaluation.timeSeconds / 60)}m ${evaluation.timeSeconds % 60}s` : 'N/A';
+
+    modal.innerHTML = `
+        <div class="bg-white w-full max-w-2xl rounded-3xl border-4 border-indigo-600 shadow-2xl p-6 space-y-5 my-6">
+            <div class="flex justify-between items-center border-b pb-3">
+                <div>
+                    <h3 class="text-xl font-black text-indigo-950 flex items-center gap-2">
+                        <i class="fa-solid fa-clipboard-check text-indigo-600"></i>
+                        <span>Pauta de Evaluación Integral NEE</span>
+                    </h3>
+                    <p class="text-xs font-bold text-slate-500 mt-0.5">Evaluación multidimensional de funciones cognitivas y del desarrollo.</p>
+                </div>
+                <button onclick="closeAdvancedEvalModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">✕</button>
+            </div>
+
+            <div class="bg-indigo-50 border-2 border-indigo-200 p-3.5 rounded-2xl grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                <div>
+                    <span class="text-[10px] font-extrabold uppercase text-slate-500 block">Estudiante</span>
+                    <span class="font-black text-indigo-950 truncate block">${evaluation.studentName}</span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-extrabold uppercase text-slate-500 block">Tiempo Búsqueda</span>
+                    <span class="font-black text-amber-900 block">${timeStr}</span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-extrabold uppercase text-slate-500 block">Solicitudes Voz</span>
+                    <span class="font-black text-sky-900 block">${voiceCount} veces</span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-extrabold uppercase text-slate-500 block">Devoluciones Caja</span>
+                    <span class="font-black text-rose-900 block">${resetCount} veces</span>
+                </div>
+            </div>
+
+            <form id="advancedRubricForm" class="space-y-4 text-xs">
+                <div class="bg-slate-50 p-3.5 rounded-2xl border-2 border-slate-200 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-black text-indigo-950 text-sm">1. Atención y Discriminación Visual</span>
+                        <select id="dim1" class="font-black text-indigo-900 bg-white border-2 border-indigo-300 p-1.5 rounded-xl focus:outline-none">
+                            <option value="5">5 - Destacado (Totalmente Autónomo)</option>
+                            <option value="4">4 - Logrado (Apoyos mínimos)</option>
+                            <option value="3" selected>3 - En Desarrollo (Requiere guía verbal)</option>
+                            <option value="2">2 - Inicial (Requiere modelado constante)</option>
+                            <option value="1">1 - En Diagnóstico / No observado</option>
+                        </select>
+                    </div>
+                    <p class="text-[11px] text-slate-600 font-medium">Capacidad para localizar productos en góndolas y clasificar ítems por categoría pictográfica.</p>
+                </div>
+
+                <div class="bg-slate-50 p-3.5 rounded-2xl border-2 border-slate-200 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-black text-indigo-950 text-sm">2. Funciones Ejecutivas y Planificación</span>
+                        <select id="dim2" class="font-black text-indigo-900 bg-white border-2 border-indigo-300 p-1.5 rounded-xl focus:outline-none">
+                            <option value="5">5 - Destacado (Totalmente Autónomo)</option>
+                            <option value="4">4 - Logrado (Apoyos mínimos)</option>
+                            <option value="3" selected>3 - En Desarrollo (Requiere guía verbal)</option>
+                            <option value="2">2 - Inicial (Requiere modelado constante)</option>
+                            <option value="1">1 - En Diagnóstico / No observado</option>
+                        </select>
+                    </div>
+                    <p class="text-[11px] text-slate-600 font-medium">Estructuración del flujo de compra, monitoreo de errores y persistencia frente a fallas en el pago.</p>
+                </div>
+
+                <div class="bg-slate-50 p-3.5 rounded-2xl border-2 border-slate-200 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-black text-indigo-950 text-sm">3. Razonamiento Matemático Funcional (CLP)</span>
+                        <select id="dim3" class="font-black text-indigo-900 bg-white border-2 border-indigo-300 p-1.5 rounded-xl focus:outline-none">
+                            <option value="5">5 - Destacado (Totalmente Autónomo)</option>
+                            <option value="4">4 - Logrado (Apoyos mínimos)</option>
+                            <option value="3" selected>3 - En Desarrollo (Requiere guía verbal)</option>
+                            <option value="2">2 - Inicial (Requiere modelado constante)</option>
+                            <option value="1">1 - En Diagnóstico / No observado</option>
+                        </select>
+                    </div>
+                    <p class="text-[11px] text-slate-600 font-medium">Reconocimiento de billetes/monedas chilenas, cálculo de la combinación de pago y noción de vuelto.</p>
+                </div>
+
+                <div class="bg-slate-50 p-3.5 rounded-2xl border-2 border-slate-200 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-black text-indigo-950 text-sm">4. Autonomía e Integración (AIVD)</span>
+                        <select id="dim4" class="font-black text-indigo-900 bg-white border-2 border-indigo-300 p-1.5 rounded-xl focus:outline-none">
+                            <option value="5">5 - Destacado (Totalmente Autónomo)</option>
+                            <option value="4">4 - Logrado (Apoyos mínimos)</option>
+                            <option value="3" selected>3 - En Desarrollo (Requiere guía verbal)</option>
+                            <option value="2">2 - Inicial (Requiere modelado constante)</option>
+                            <option value="1">1 - En Diagnóstico / No observado</option>
+                        </select>
+                    </div>
+                    <p class="text-[11px] text-slate-600 font-medium">Uso adecuado de la tecnología táctil/voz, ritmo de trabajo y transferencia de la conducta al entorno real.</p>
+                </div>
+            </form>
+
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button onclick="closeAdvancedEvalModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl">Cancelar</button>
+                <button onclick="processAdvancedReport('${evalId}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl border-b-4 border-indigo-900 shadow flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Generar Informe IA con Porcentaje</span>
+                </button>
+            </div>
+        </div>
+    `;
+    modal.classList.remove('hidden');
+}
+
+function closeAdvancedEvalModal() {
+    const modal = document.getElementById('advancedEvalModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function processAdvancedReport(evalId) {
+    const evaluation = APP_STATE.evaluations.find(e => e.id === evalId);
+    if (!evaluation) return;
+
+    const scores = [
+        parseInt(document.getElementById('dim1').value),
+        parseInt(document.getElementById('dim2').value),
+        parseInt(document.getElementById('dim3').value),
+        parseInt(document.getElementById('dim4').value)
+    ];
+
+    const totalPts = scores.reduce((a, b) => a + b, 0);
+    const percentage = Math.round((totalPts / 20) * 100);
+
+    let level = 'Inicial';
+    if (percentage >= 85) level = 'Destacado / Autónomo';
+    else if (percentage >= 60) level = 'Adecuado / En Desarrollo';
+    else if (percentage >= 40) level = 'Inicial / Requiere Apoyo';
+
+    closeAdvancedEvalModal();
+
+    let resultModal = document.getElementById('aiReportResultModal');
+    if (!resultModal) {
+        resultModal = document.createElement('div');
+        resultModal.id = 'aiReportResultModal';
+        resultModal.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto';
+        document.body.appendChild(resultModal);
+    }
+
+    resultModal.innerHTML = `
+        <div class="bg-white w-full max-w-xl rounded-3xl border-4 border-indigo-500 shadow-2xl p-6 text-center space-y-3">
+            <div class="text-4xl animate-spin">⚙️</div>
+            <h3 class="text-xl font-black text-indigo-950">Generando Informe Profesional...</h3>
+            <p class="text-xs font-bold text-slate-500">Sintetizando datos cuantitativos y cualitativos para apoderados y equipo PIE.</p>
+        </div>
+    `;
+    resultModal.classList.remove('hidden');
+
+    const voiceCount = evaluation.telemetry ? (evaluation.telemetry.voiceHelpCount || 0) : 0;
+    const resetCount = evaluation.telemetry ? (evaluation.telemetry.paymentResetsCount || 0) : 0;
+    const timeSec = evaluation.timeSeconds || 0;
+
+    const reportMarkdown = `
+📄 **INFORME PEDAGÓGICO DE DESEMPEÑO COGNITIVO Y FUNCIONAL**
+
+**Estudiante:** ${evaluation.studentName}
+**Porcentaje Global de Logro:** ${percentage}% (${level})
+**Tiempo de Búsqueda:** ${Math.floor(timeSec / 60)} min ${timeSec % 60} seg.
+**Soportes Solicitados:** ${voiceCount} apoyos de voz | ${resetCount} correcciones de caja.
+
+---
+
+### 1. RESUMEN GENERAL DE DESEMPEÑO
+El/La estudiante realizó la actividad de simulación de compra alcanzando un **${percentage}% de logro global**, situándose en un nivel **${level}**. Durante la experiencia demostró capacidad de adaptación al entorno digital interactivo y manejo funcional de recursos.
+
+### 2. EVALUACIÓN POR DIMENSIONES COGNITIVAS
+* **Atención y Búsqueda Visual (${scores[0]}/5):** ${scores[0] >= 4 ? 'Discriminación eficaz de pictogramas e ítems por categoría.' : 'Requiere mediación visual o auditiva focalizada.'}
+* **Funciones Ejecutivas (${scores[1]}/5):** ${scores[1] >= 4 ? 'Estructura la secuencia de compra de manera fluida y autorregulada.' : 'Muestra flexibilidad frente al error pero requiere apoyo en la planificación.'}
+* **Razonamiento Lógico-Matemático (${scores[2]}/5):** ${scores[2] >= 4 ? 'Reconoce y combina denominaciones monetarias CLP de forma precisa.' : 'Requiere reforzar el valor relativo de billetes y monedas chilenas.'}
+* **Autonomía e Integración AIVD (${scores[3]}/5):** ${scores[3] >= 4 ? 'Desempeño autónomo y transferible al entorno comunitario real.' : 'Progresa adecuadamente con soportes tecnológicos.'}
+
+---
+
+### 3. RECOMENDACIONES PEDAGÓGICAS
+* **Sugerencia en Aula:** Trabajar conteo de 1.000 en 1.000 y descomposición de vuelto mediante los pictogramas de la app.
+* **Sugerencia para el Hogar:** Involucrar al estudiante en compras cotidianas guiadas en el comercio local para reforzar la transferencia.
+    `;
+
+    resultModal.innerHTML = `
+        <div class="bg-white w-full max-w-2xl rounded-3xl border-4 border-indigo-600 shadow-2xl p-6 space-y-4 my-6 text-left">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="text-xl font-black text-indigo-950 flex items-center gap-2">
+                    <span>🤖 Reporte Pedagógico Consolidado</span>
+                </h3>
+                <button onclick="closeAiReportResultModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">✕</button>
+            </div>
+
+            <div class="bg-slate-50 p-4 rounded-2xl border text-xs font-sans text-slate-800 whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
+${reportMarkdown}
+            </div>
+
+            <div class="flex flex-wrap gap-2 pt-2">
+                <button onclick="downloadPdfFromModal('${evalId}', [${scores.join(',')}])" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl border-b-4 border-emerald-900 shadow text-xs flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span>Descargar PDF Oficial</span>
+                </button>
+                <button onclick="navigator.clipboard.writeText(\`${reportMarkdown.replace(/`/g, "'")}\`); alert('¡Informe copiado al portapapeles!');" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black px-4 py-3 rounded-xl border-b-4 border-amber-600 shadow text-xs flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-copy"></i>
+                    <span>Copiar Texto</span>
+                </button>
+                <button onclick="closeAiReportResultModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-4 py-3 rounded-xl border-b-4 border-indigo-900 shadow text-xs">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function closeAiReportResultModal() {
+    const modal = document.getElementById('aiReportResultModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+// ==========================================
+// CONTROLADORES DE IMÁGENES Y CÁMARA
+// ==========================================
 function compressCurrencyPhoto(dataUrl, callback) {
     const img = new Image();
     img.onload = function() {
@@ -797,10 +1315,9 @@ function saveCurrencyPhotoFromModal() {
     db.collection('currencies').doc(currencyId).set({ photoUrl })
     .then(() => {
         closeCurrencyEditModal();
-        alert("✅ Fotografía de billete/moneda guardada en la Nube.");
+        alert("✅ Fotografía guardada en la Nube.");
     })
     .catch((error) => {
-        console.error("Error al guardar en Firestore:", error);
         alert("❌ Error al guardar en la nube: " + error.message);
     });
 }
@@ -840,7 +1357,7 @@ function saveTeacherSelfCourses() {
         APP_STATE.currentUser.courseIds = selectedCourseIds;
         localStorage.setItem('nee_active_user', JSON.stringify(APP_STATE.currentUser));
         closeTeacherCourseModal();
-        alert("✅ Tus cursos asignados han sido actualizados.");
+        alert("✅ Mis cursos asignados actualizados.");
         renderApp();
     });
 }
@@ -1183,6 +1700,9 @@ function goHome() {
     renderApp();
 }
 
+// ==========================================
+// VISTA DEL ESTUDIANTE Y TIENDA
+// ==========================================
 function renderHomeView(container) {
     let html = `
         <div class="space-y-6">
@@ -1353,6 +1873,9 @@ function renderSupermarketView(container, supId) {
     container.innerHTML = html;
 }
 
+// ==========================================
+// CÁLCULOS MONETARIOS Y DIBUJO DE MONEDAS
+// ==========================================
 function calculateCLPBreakdown(amount) {
     if (!amount || amount <= 0) return [];
     let remaining = Math.round(amount / 10) * 10;
@@ -1413,6 +1936,9 @@ function renderBreakdownHTML(breakdownArray, size = 'md') {
     return html;
 }
 
+// ==========================================
+// GESTIÓN DEL CANASTO Y CAJA DE PAGO
+// ==========================================
 function addToBasket(prodId) {
     const prod = APP_STATE.products.find(p => p.id === prodId);
     if (!prod) return;
@@ -1588,10 +2114,6 @@ function calculateBasketTotal() {
     }, 0);
 }
 
-function speakBasketTotalText() {
-    speakText(`El total a pagar es ${calculateBasketTotal()} pesos`);
-}
-
 function renderPaymentMoneyTray() {
     const tray = document.getElementById('paymentMoneyTray');
     if (!tray) return;
@@ -1689,228 +2211,8 @@ function closeSuccessModalAndFinish() {
     renderApp();
 }
 
-function openAdvancedEvaluationModal(evalId) {
-    const evaluation = APP_STATE.evaluations.find(e => e.id === evalId);
-    if (!evaluation) return;
-
-    let modal = document.getElementById('advancedEvalModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'advancedEvalModal';
-        modal.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto';
-        document.body.appendChild(modal);
-    }
-
-    const voiceCount = evaluation.telemetry ? (evaluation.telemetry.voiceHelpCount || 0) : 0;
-    const resetCount = evaluation.telemetry ? (evaluation.telemetry.paymentResetsCount || 0) : 0;
-    const timeStr = evaluation.timeSeconds ? `${Math.floor(evaluation.timeSeconds / 60)}m ${evaluation.timeSeconds % 60}s` : 'N/A';
-
-    modal.innerHTML = `
-        <div class="bg-white w-full max-w-2xl rounded-3xl border-4 border-indigo-600 shadow-2xl p-6 space-y-5 my-6">
-            <div class="flex justify-between items-center border-b pb-3">
-                <div>
-                    <h3 class="text-xl font-black text-indigo-950 flex items-center gap-2">
-                        <i class="fa-solid fa-clipboard-check text-indigo-600"></i>
-                        <span>Pauta de Evaluación Integral NEE</span>
-                    </h3>
-                    <p class="text-xs font-bold text-slate-500 mt-0.5">Evaluación multidimensional de funciones cognitivas y del desarrollo.</p>
-                </div>
-                <button onclick="closeAdvancedEvalModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">✕</button>
-            </div>
-
-            <div class="bg-indigo-50 border-2 border-indigo-200 p-3.5 rounded-2xl grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-                <div>
-                    <span class="text-[10px] font-extrabold uppercase text-slate-500 block">Estudiante</span>
-                    <span class="font-black text-indigo-950 truncate block">${evaluation.studentName}</span>
-                </div>
-                <div>
-                    <span class="text-[10px] font-extrabold uppercase text-slate-500 block">Tiempo Búsqueda</span>
-                    <span class="font-black text-amber-900 block">${timeStr}</span>
-                </div>
-                <div>
-                    <span class="text-[10px] font-extrabold uppercase text-slate-500 block">Solicitudes Voz</span>
-                    <span class="font-black text-sky-900 block">${voiceCount} veces</span>
-                </div>
-                <div>
-                    <span class="text-[10px] font-extrabold uppercase text-slate-500 block">Devoluciones Caja</span>
-                    <span class="font-black text-rose-900 block">${resetCount} veces</span>
-                </div>
-            </div>
-
-            <form id="advancedRubricForm" class="space-y-4 text-xs">
-                <div class="bg-slate-50 p-3.5 rounded-2xl border-2 border-slate-200 space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="font-black text-indigo-950 text-sm">1. Atención y Discriminación Visual</span>
-                        <select id="dim1" class="font-black text-indigo-900 bg-white border-2 border-indigo-300 p-1.5 rounded-xl focus:outline-none">
-                            <option value="5">5 - Destacado (Totalmente Autónomo)</option>
-                            <option value="4">4 - Logrado (Apoyos mínimos)</option>
-                            <option value="3" selected>3 - En Desarrollo (Requiere guía verbal)</option>
-                            <option value="2">2 - Inicial (Requiere modelado constante)</option>
-                            <option value="1">1 - En Diagnóstico / No observado</option>
-                        </select>
-                    </div>
-                    <p class="text-[11px] text-slate-600 font-medium">Capacidad para localizar productos en góndolas y clasificar ítems por categoría pictográfica.</p>
-                </div>
-
-                <div class="bg-slate-50 p-3.5 rounded-2xl border-2 border-slate-200 space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="font-black text-indigo-950 text-sm">2. Funciones Ejecutivas y Planificación</span>
-                        <select id="dim2" class="font-black text-indigo-900 bg-white border-2 border-indigo-300 p-1.5 rounded-xl focus:outline-none">
-                            <option value="5">5 - Destacado (Totalmente Autónomo)</option>
-                            <option value="4">4 - Logrado (Apoyos mínimos)</option>
-                            <option value="3" selected>3 - En Desarrollo (Requiere guía verbal)</option>
-                            <option value="2">2 - Inicial (Requiere modelado constante)</option>
-                            <option value="1">1 - En Diagnóstico / No observado</option>
-                        </select>
-                    </div>
-                    <p class="text-[11px] text-slate-600 font-medium">Estructuración del flujo de compra, monitoreo de errores y persistencia frente a fallas en el pago.</p>
-                </div>
-
-                <div class="bg-slate-50 p-3.5 rounded-2xl border-2 border-slate-200 space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="font-black text-indigo-950 text-sm">3. Razonamiento Matemático Funcional (CLP)</span>
-                        <select id="dim3" class="font-black text-indigo-900 bg-white border-2 border-indigo-300 p-1.5 rounded-xl focus:outline-none">
-                            <option value="5">5 - Destacado (Totalmente Autónomo)</option>
-                            <option value="4">4 - Logrado (Apoyos mínimos)</option>
-                            <option value="3" selected>3 - En Desarrollo (Requiere guía verbal)</option>
-                            <option value="2">2 - Inicial (Requiere modelado constante)</option>
-                            <option value="1">1 - En Diagnóstico / No observado</option>
-                        </select>
-                    </div>
-                    <p class="text-[11px] text-slate-600 font-medium">Reconocimiento de billetes/monedas chilenas, cálculo de la combinación de pago y noción de vuelto.</p>
-                </div>
-
-                <div class="bg-slate-50 p-3.5 rounded-2xl border-2 border-slate-200 space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="font-black text-indigo-950 text-sm">4. Autonomía e Integración (AIVD)</span>
-                        <select id="dim4" class="font-black text-indigo-900 bg-white border-2 border-indigo-300 p-1.5 rounded-xl focus:outline-none">
-                            <option value="5">5 - Destacado (Totalmente Autónomo)</option>
-                            <option value="4">4 - Logrado (Apoyos mínimos)</option>
-                            <option value="3" selected>3 - En Desarrollo (Requiere guía verbal)</option>
-                            <option value="2">2 - Inicial (Requiere modelado constante)</option>
-                            <option value="1">1 - En Diagnóstico / No observado</option>
-                        </select>
-                    </div>
-                    <p class="text-[11px] text-slate-600 font-medium">Uso adecuado de la tecnología táctil/voz, ritmo de trabajo y transferencia de la conducta al entorno real.</p>
-                </div>
-            </form>
-
-            <div class="grid grid-cols-2 gap-3 pt-2">
-                <button onclick="closeAdvancedEvalModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl">Cancelar</button>
-                <button onclick="processAdvancedReport('${evalId}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl border-b-4 border-indigo-900 shadow flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i>
-                    <span>Generar Informe IA con Porcentaje</span>
-                </button>
-            </div>
-        </div>
-    `;
-    modal.classList.remove('hidden');
-}
-
-function closeAdvancedEvalModal() {
-    const modal = document.getElementById('advancedEvalModal');
-    if (modal) modal.classList.add('hidden');
-}
-
-async function processAdvancedReport(evalId) {
-    const evaluation = APP_STATE.evaluations.find(e => e.id === evalId);
-    if (!evaluation) return;
-
-    const scores = [
-        parseInt(document.getElementById('dim1').value),
-        parseInt(document.getElementById('dim2').value),
-        parseInt(document.getElementById('dim3').value),
-        parseInt(document.getElementById('dim4').value)
-    ];
-
-    const totalPts = scores.reduce((a, b) => a + b, 0);
-    const percentage = Math.round((totalPts / 20) * 100);
-
-    let level = 'Inicial';
-    if (percentage >= 85) level = 'Destacado / Autónomo';
-    else if (percentage >= 60) level = 'Adecuado / En Desarrollo';
-    else if (percentage >= 40) level = 'Inicial / Requiere Apoyo';
-
-    closeAdvancedEvalModal();
-
-    let resultModal = document.getElementById('aiReportResultModal');
-    if (!resultModal) {
-        resultModal = document.createElement('div');
-        resultModal.id = 'aiReportResultModal';
-        resultModal.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto';
-        document.body.appendChild(resultModal);
-    }
-
-    resultModal.innerHTML = `
-        <div class="bg-white w-full max-w-xl rounded-3xl border-4 border-indigo-500 shadow-2xl p-6 text-center space-y-3">
-            <div class="text-4xl animate-spin">⚙️</div>
-            <h3 class="text-xl font-black text-indigo-950">Generando Informe Profesional...</h3>
-            <p class="text-xs font-bold text-slate-500">Sintetizando datos cuantitativos y cualitativos para apoderados y equipo PIE.</p>
-        </div>
-    `;
-    resultModal.classList.remove('hidden');
-
-    const voiceCount = evaluation.telemetry ? (evaluation.telemetry.voiceHelpCount || 0) : 0;
-    const resetCount = evaluation.telemetry ? (evaluation.telemetry.paymentResetsCount || 0) : 0;
-    const timeSec = evaluation.timeSeconds || 0;
-
-    const reportMarkdown = `
-📄 **INFORME PEDAGÓGICO DE DESEMPEÑO COGNITIVO Y FUNCIONAL**
-
-**Estudiante:** ${evaluation.studentName}
-**Porcentaje Global de Logro:** ${percentage}% (${level})
-**Tiempo de Búsqueda:** ${Math.floor(timeSec / 60)} min ${timeSec % 60} seg.
-**Soportes Solicitados:** ${voiceCount} apoyos de voz | ${resetCount} correcciones de caja.
-
----
-
-### 1. RESUMEN GENERAL DE DESEMPEÑO
-El/La estudiante realizó la actividad de simulación de compra alcanzando un **${percentage}% de logro global**, situándose en un nivel **${level}**. Durante la experiencia demostró capacidad de adaptación al entorno digital interactivo y manejo funcional de recursos.
-
-### 2. EVALUACIÓN POR DIMENSIONES COGNITIVAS
-* **Atención y Búsqueda Visual (${scores[0]}/5):** ${scores[0] >= 4 ? 'Discriminación eficaz de pictogramas e ítems por categoría.' : 'Requiere mediación visual o auditiva focalizada.'}
-* **Funciones Ejecutivas (${scores[1]}/5):** ${scores[1] >= 4 ? 'Estructura la secuencia de compra de manera fluida y autorregulada.' : 'Muestra flexibilidad frente al error pero requiere apoyo en la planificación.'}
-* **Razonamiento Lógico-Matemático (${scores[2]}/5):** ${scores[2] >= 4 ? 'Reconoce y combina denominaciones monetarias CLP de forma precisa.' : 'Requiere reforzar el valor relativo de billetes y monedas chilenas.'}
-* **Autonomía e Integración AIVD (${scores[3]}/5):** ${scores[3] >= 4 ? 'Desempeño autónomo y transferible al entorno comunitario real.' : 'Progresa adecuadamente con soportes tecnológicos.'}
-
----
-
-### 3. RECOMENDACIONES PEDAGÓGICAS
-* **Sugerencia en Aula:** Trabajar conteo de 1.000 en 1.000 y descomposición de vuelto mediante los pictogramas de la app.
-* **Sugerencia para el Hogar:** Involucrar al estudiante en compras cotidianas guiadas en el comercio local para reforzar la transferencia.
-    `;
-
-    resultModal.innerHTML = `
-        <div class="bg-white w-full max-w-2xl rounded-3xl border-4 border-indigo-600 shadow-2xl p-6 space-y-4 my-6 text-left">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="text-xl font-black text-indigo-950 flex items-center gap-2">
-                    <span>🤖 Reporte Pedagógico Consolidado</span>
-                </h3>
-                <button onclick="closeAiReportResultModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">✕</button>
-            </div>
-
-            <div class="bg-slate-50 p-4 rounded-2xl border text-xs font-sans text-slate-800 whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
-${reportMarkdown}
-            </div>
-
-            <div class="flex gap-3 pt-2">
-                <button onclick="navigator.clipboard.writeText(\`${reportMarkdown.replace(/`/g, "'")}\`); alert('¡Informe copiado al portapapeles!');" class="flex-1 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black py-3 rounded-xl border-b-4 border-amber-600 shadow text-xs flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-copy"></i>
-                    <span>Copiar Texto</span>
-                </button>
-                <button onclick="closeAiReportResultModal()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl border-b-4 border-indigo-900 shadow text-xs">
-                    Cerrar
-                </button>
-            </div>
-        </div>
-    `;
-}
-
-function closeAiReportResultModal() {
-    const modal = document.getElementById('aiReportResultModal');
-    if (modal) modal.classList.add('hidden');
-}
-
-// INICIALIZAR Y RENDERIZAR INMEDIATAMENTE
+// ==========================================
+// INICIALIZACIÓN AUTOMÁTICA
+// ==========================================
 initFirebaseListeners();
 renderApp();
