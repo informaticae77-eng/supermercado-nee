@@ -37,6 +37,7 @@ const APP_STATE = {
     basket: [],
     userPaidAmount: 0,
     courses: [],
+    categories: [],
     users: [],
     supermarkets: [],
     products: [],
@@ -117,6 +118,15 @@ const DEFAULT_COURSES = [
     { id: 'c-2', name: 'Taller Laboral A' }
 ];
 
+const DEFAULT_CATEGORIES = [
+    { id: 'cat-1', name: 'Lácteos' },
+    { id: 'cat-2', name: 'Limpieza' },
+    { id: 'cat-3', name: 'Frutas y Verduras' },
+    { id: 'cat-4', name: 'Panadería' },
+    { id: 'cat-5', name: 'Snacks y Dulces' },
+    { id: 'cat-6', name: 'Despensa' }
+];
+
 const DEFAULT_USERS = [
     { id: 'u-admin', username: '11111111-1', rut: '11111111-1', pin: '1234', name: 'Administrador General', role: 'admin', email: 'admin@escuela.cl', photoUrl: '', mustChangePassword: false },
     { id: 'u-edu1', username: '12345678-9', rut: '12345678-9', pin: '1234', name: 'Profe María', role: 'teacher', courseIds: ['c-1', 'c-2'], email: 'maria.profe@escuela.cl', photoUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=ProfeMaria', mustChangePassword: false },
@@ -155,6 +165,15 @@ function initFirebaseListeners() {
             DEFAULT_COURSES.forEach(c => db.collection('courses').doc(c.id).set(c));
         } else {
             APP_STATE.courses = snapshot.docs.map(doc => doc.data());
+            renderApp();
+        }
+    });
+
+    db.collection('categories').onSnapshot(snapshot => {
+        if (snapshot.empty) {
+            DEFAULT_CATEGORIES.forEach(c => db.collection('categories').doc(c.id).set(c));
+        } else {
+            APP_STATE.categories = snapshot.docs.map(doc => doc.data());
             renderApp();
         }
     });
@@ -814,12 +833,15 @@ function renderTeacherDashboard(container) {
                 <div class="bg-white p-5 rounded-3xl border-4 border-amber-200 shadow space-y-3">
                     <div class="flex justify-between items-center border-b pb-2">
                         <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">🍎 Catálogo de Productos</h3>
-                        <button onclick="openProductModal()" class="bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Producto</button>
+                        <div class="flex gap-2">
+                            <button onclick="addNewCategoryPrompt()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Categoría</button>
+                            <button onclick="openProductModal()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Producto</button>
+                        </div>
                     </div>
                     <div class="space-y-2 max-h-48 overflow-y-auto">
                         ${APP_STATE.products.map(p => `
                             <div class="p-2 bg-slate-50 border rounded-xl flex justify-between items-center text-xs font-bold">
-                                <span>${p.iconEmoji || '📦'} ${p.name} ($${p.price})</span>
+                                <span>${p.iconEmoji || '📦'} ${p.name} ($${p.price}) <span class="text-[10px] text-slate-400">(${p.category || 'General'})</span></span>
                                 <button onclick="openProductModal('${p.id}')" class="text-amber-600">✏️ Editar</button>
                             </div>
                         `).join('')}
@@ -912,7 +934,7 @@ function generatePDFReport(evalId, scores) {
 
     pdfContainer.innerHTML = `
         <div style="border: 2px solid ${pdfTpl.primaryColor}; padding: 20px; border-radius: 16px; background-color: #ffffff;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px;">
+            <div style="display: flex; justify-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px;">
                 <div style="display: flex; align-items: center; gap: 15px;">
                     ${logoHtml}
                     <div>
@@ -1591,6 +1613,31 @@ function saveUserFromModal() {
 }
 
 // ==========================================
+// GESTIÓN DE CATEGORÍAS (EN TIEMPO REAL)
+// ==========================================
+function addNewCategoryPrompt() {
+    const catName = prompt("Ingresa el nombre de la nueva categoría (ej: Congelados, Abarrotes):");
+    if (!catName || !catName.trim()) return;
+    const cleanCat = catName.trim();
+    
+    const exists = (APP_STATE.categories || []).some(c => c.name.toLowerCase() === cleanCat.toLowerCase());
+    if (exists) {
+        alert("⚠️ Esa categoría ya existe.");
+        return;
+    }
+
+    const newId = 'cat-' + Date.now();
+    db.collection('categories').doc(newId).set({ id: newId, name: cleanCat }).then(() => {
+        alert(`✅ Categoría "${cleanCat}" creada exitosamente.`);
+        if (!document.getElementById('productModal').classList.contains('hidden')) {
+            const prodId = document.getElementById('modalProdId').value || null;
+            openProductModal(prodId);
+            document.getElementById('modalProdCategory').value = cleanCat;
+        }
+    }).catch(err => alert("Error al crear categoría: " + err.message));
+}
+
+// ==========================================
 // GESTIÓN DE SUPERMERCADOS CON COMPRESIÓN DE FOTO
 // ==========================================
 function handleSupermarketPhotoUpload(event) {
@@ -1698,6 +1745,18 @@ function openProductModal(prodId = null) {
     const supSelect = document.getElementById('modalProdSupermarket');
     supSelect.innerHTML = APP_STATE.supermarkets.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
 
+    const catSelect = document.getElementById('modalProdCategory');
+    const allCatNames = Array.from(new Set([
+        ...(APP_STATE.categories || []).map(c => c.name),
+        ...APP_STATE.products.map(p => p.category).filter(Boolean)
+    ]));
+
+    if (allCatNames.length === 0) {
+        allCatNames.push('Lácteos', 'Limpieza', 'Frutas y Verduras', 'Panadería', 'Snacks y Dulces');
+    }
+
+    catSelect.innerHTML = allCatNames.map(c => `<option value="${c}">${c}</option>`).join('');
+
     if (prodId) {
         const prod = APP_STATE.products.find(p => p.id === prodId);
         if (!prod) return;
@@ -1705,7 +1764,7 @@ function openProductModal(prodId = null) {
         document.getElementById('prodModalTitle').textContent = 'Editar Producto';
         document.getElementById('modalProdSupermarket').value = prod.supermarketId;
         document.getElementById('modalProdName').value = prod.name || '';
-        document.getElementById('modalProdCategory').value = prod.category || 'Lácteos';
+        document.getElementById('modalProdCategory').value = prod.category || allCatNames[0];
         document.getElementById('modalProdPrice').value = prod.price || '';
         document.getElementById('modalProdEmoji').value = prod.iconEmoji || '📦';
         document.getElementById('modalProdPhoto').value = prod.photoUrl || '';
@@ -1713,7 +1772,7 @@ function openProductModal(prodId = null) {
         document.getElementById('modalProdId').value = '';
         document.getElementById('prodModalTitle').textContent = 'Crear Producto';
         document.getElementById('modalProdName').value = '';
-        document.getElementById('modalProdCategory').value = 'Lácteos';
+        document.getElementById('modalProdCategory').value = allCatNames[0];
         document.getElementById('modalProdPrice').value = '';
         document.getElementById('modalProdEmoji').value = '📦';
         document.getElementById('modalProdPhoto').value = '';
