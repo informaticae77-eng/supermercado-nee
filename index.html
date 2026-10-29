@@ -301,14 +301,11 @@
                     <input type="text" id="modalProdName" placeholder="Ej: Leche Entera 1L" class="w-full px-3 py-2 border-2 border-slate-300 rounded-xl">
                 </div>
                 <div>
-                    <label class="block uppercase text-slate-600 mb-1">Categoría:</label>
-                    <select id="modalProdCategory" class="w-full px-3 py-2 border-2 border-slate-300 rounded-xl bg-white">
-                        <option value="Lácteos">Lácteos</option>
-                        <option value="Limpieza">Limpieza</option>
-                        <option value="Frutas y Verduras">Frutas y Verduras</option>
-                        <option value="Panadería">Panadería</option>
-                        <option value="Snacks y Dulces">Snacks y Dulces</option>
-                    </select>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block uppercase text-slate-600">Categoría:</label>
+                        <button type="button" onclick="addNewCategoryPrompt()" class="text-[10px] text-indigo-600 font-bold underline">+ Crear Nueva Categoría</button>
+                    </div>
+                    <select id="modalProdCategory" class="w-full px-3 py-2 border-2 border-slate-300 rounded-xl bg-white"></select>
                 </div>
                 <div>
                     <label class="block uppercase text-slate-600 mb-1">Precio ($ CLP):</label>
