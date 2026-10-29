@@ -65,6 +65,31 @@ let cameraStream = null;
 let currencyCameraStream = null;
 let aiScannerStream = null;
 
+// ==========================================
+// CONTROLADORES DE ERRORES DE CARGA DE IMÁGENES
+// ==========================================
+function handleImageError(imgEl, emoji) {
+    if (!imgEl) return;
+    const fallbackEmoji = emoji || '🛒';
+    imgEl.outerHTML = `<span class="text-5xl">${fallbackEmoji}</span>`;
+}
+
+function handleProductImageError(imgEl, emoji) {
+    if (!imgEl) return;
+    const fallbackEmoji = emoji || '📦';
+    if (imgEl.parentElement) {
+        imgEl.parentElement.innerHTML = `<div class="bg-amber-100 p-4 rounded-2xl text-4xl border-2 border-amber-300 flex items-center justify-center shrink-0">${fallbackEmoji}</div>`;
+    }
+}
+
+function handleBasketItemImageError(imgEl, emoji) {
+    if (!imgEl) return;
+    const fallbackEmoji = emoji || '📦';
+    if (imgEl.parentElement) {
+        imgEl.parentElement.innerHTML = `<span class="text-2xl">${fallbackEmoji}</span>`;
+    }
+}
+
 function getUserCourseIds(user) {
     if (!user) return [];
     if (Array.isArray(user.courseIds) && user.courseIds.length > 0) return user.courseIds;
@@ -956,7 +981,7 @@ function generatePDFReport(evalId, scores) {
                 <p style="margin: 0;">• <b>Sugerencia para el Hogar:</b> Involucrar al estudiante en compras cotidianas guiadas en el comercio local para reforzar la transferencia.</p>
             </div>
 
-            <div style="display: flex; justify-content: space-around; margin-top: 40px; text-align: center; font-size: 10px;">
+            <div style="display: flex; justify-space-around; margin-top: 40px; text-align: center; font-size: 10px;">
                 <div style="border-top: 1px solid #94a3b8; width: 200px; padding-top: 4px;">
                     <b>Educador(a) / Docente PIE</b>
                 </div>
@@ -1565,6 +1590,42 @@ function saveUserFromModal() {
     }
 }
 
+// ==========================================
+// GESTIÓN DE SUPERMERCADOS CON COMPRESIÓN DE FOTO
+// ==========================================
+function handleSupermarketPhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const MAX = 400;
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } }
+            else { if (h > MAX) { w *= MAX / h; h = MAX; } }
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const compressed = canvas.toDataURL('image/jpeg', 0.8);
+
+            document.getElementById('modalSupPhoto').value = compressed;
+            document.getElementById('supPhotoPreview').src = compressed;
+            document.getElementById('supPhotoPreviewContainer').classList.remove('hidden');
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeSupermarketPhoto() {
+    document.getElementById('modalSupPhoto').value = '';
+    document.getElementById('supPhotoPreview').src = '';
+    document.getElementById('supPhotoPreviewContainer').classList.add('hidden');
+}
+
 function openSupermarketModal(supId = null) {
     if (supId) {
         const sup = APP_STATE.supermarkets.find(s => s.id === supId);
@@ -1575,6 +1636,13 @@ function openSupermarketModal(supId = null) {
         document.getElementById('modalSupIcon').value = sup.icon || '🏪';
         document.getElementById('modalSupPhoto').value = sup.photoUrl || '';
         document.getElementById('modalSupDesc').value = sup.description || '';
+
+        if (sup.photoUrl) {
+            document.getElementById('supPhotoPreview').src = sup.photoUrl;
+            document.getElementById('supPhotoPreviewContainer').classList.remove('hidden');
+        } else {
+            removeSupermarketPhoto();
+        }
     } else {
         document.getElementById('modalSupId').value = '';
         document.getElementById('supModalTitle').textContent = 'Crear Supermercado';
@@ -1582,11 +1650,14 @@ function openSupermarketModal(supId = null) {
         document.getElementById('modalSupIcon').value = '🏪';
         document.getElementById('modalSupPhoto').value = '';
         document.getElementById('modalSupDesc').value = '';
+        removeSupermarketPhoto();
     }
     document.getElementById('supermarketModal').classList.remove('hidden');
 }
 
-function closeSupermarketModal() { document.getElementById('supermarketModal').classList.add('hidden'); }
+function closeSupermarketModal() { 
+    document.getElementById('supermarketModal').classList.add('hidden'); 
+}
 
 function saveSupermarketFromModal() {
     const supId = document.getElementById('modalSupId').value;
@@ -1599,13 +1670,21 @@ function saveSupermarketFromModal() {
 
     const id = supId || ('sup-' + Date.now());
     const data = {
-        id, name, icon: icon || '🏪', photoUrl, description,
-        themeColor: 'bg-emerald-600', textColor: 'text-emerald-600', borderColor: 'border-emerald-500'
+        id, 
+        name, 
+        icon: icon || '🏪', 
+        photoUrl: photoUrl || '', 
+        description,
+        themeColor: 'bg-emerald-600', 
+        textColor: 'text-emerald-600', 
+        borderColor: 'border-emerald-500'
     };
 
     db.collection('supermarkets').doc(id).set(data).then(() => {
         closeSupermarketModal();
-        alert("✅ Supermercado guardado en la nube.");
+        alert("✅ Supermercado guardado con su fotografía en la nube.");
+    }).catch(err => {
+        alert("❌ Error al guardar en la nube: " + err.message);
     });
 }
 
@@ -1701,7 +1780,7 @@ function goHome() {
 }
 
 // ==========================================
-// VISTA DEL ESTUDIANTE Y TIENDA
+// VISTA DEL ESTUDIANTE Y TIENDA (MANEJO ROBUSTO DE IMÁGENES)
 // ==========================================
 function renderHomeView(container) {
     let html = `
@@ -1715,14 +1794,16 @@ function renderHomeView(container) {
 
     APP_STATE.supermarkets.forEach(sup => {
         const count = APP_STATE.products.filter(p => p.supermarketId === sup.id).length;
-        const iconDisplay = sup.photoUrl 
-            ? `<img src="${sup.photoUrl}" class="w-20 h-20 rounded-2xl object-cover shadow border-2 border-white">`
-            : `<span class="text-5xl">${sup.icon || '🛒'}</span>`;
+        const iconEmoji = sup.icon || '🛒';
+        
+        const iconDisplay = (sup.photoUrl && sup.photoUrl.trim() !== '') 
+            ? `<img src="${sup.photoUrl}" class="w-20 h-20 rounded-2xl object-cover shadow border-2 border-white" onerror="handleImageError(this, '${iconEmoji}')">`
+            : `<span class="text-5xl">${iconEmoji}</span>`;
 
         html += `
             <div onclick="selectSupermarket('${sup.id}')"
                  class="bg-white rounded-3xl border-4 ${sup.borderColor || 'border-slate-300'} p-6 shadow-lg hover:shadow-2xl transition-all cursor-pointer flex flex-col items-center text-center space-y-4 touch-focus active:scale-95 group">
-                <div class="${sup.themeColor || 'bg-amber-400'} p-4 rounded-3xl shadow-inner group-hover:scale-110 transition-transform">
+                <div class="${sup.themeColor || 'bg-amber-400'} p-4 rounded-3xl shadow-inner group-hover:scale-110 transition-transform flex items-center justify-center">
                     ${iconDisplay}
                 </div>
                 <div>
@@ -1829,8 +1910,8 @@ function renderSupermarketView(container, supId) {
 
             catProducts.forEach(prod => {
                 const breakdown = calculateCLPBreakdown(prod.price);
-                const prodVisual = prod.photoUrl 
-                    ? `<img src="${prod.photoUrl}" class="w-16 h-16 object-cover rounded-2xl border-2 border-amber-300 shrink-0">`
+                const prodVisual = (prod.photoUrl && prod.photoUrl.trim() !== '') 
+                    ? `<img src="${prod.photoUrl}" class="w-16 h-16 object-cover rounded-2xl border-2 border-amber-300 shrink-0" onerror="handleProductImageError(this, '${prod.iconEmoji || '📦'}')">`
                     : `<div class="bg-amber-100 p-4 rounded-2xl text-4xl border-2 border-amber-300 flex items-center justify-center shrink-0">${prod.iconEmoji || '📦'}</div>`;
 
                 html += `
@@ -2065,8 +2146,8 @@ function renderBasketModal() {
             totalAmount += subtotal;
 
             const isFound = APP_STATE.foundProductIds.includes(prod.id);
-            const itemIcon = prod.photoUrl 
-                ? `<img src="${prod.photoUrl}" class="w-10 h-10 rounded-lg object-cover border">`
+            const itemIcon = (prod.photoUrl && prod.photoUrl.trim() !== '') 
+                ? `<img src="${prod.photoUrl}" class="w-10 h-10 rounded-lg object-cover border" onerror="handleBasketItemImageError(this, '${prod.iconEmoji || '📦'}')">`
                 : `<span class="text-2xl">${prod.iconEmoji || '📦'}</span>`;
 
             html += `
