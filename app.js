@@ -98,6 +98,22 @@ function getUserCourseIds(user) {
     return [];
 }
 
+function getCategoryIcon(catName) {
+    if (!catName) return '🏷️';
+    const catObj = (APP_STATE.categories || []).find(c => c.name.toLowerCase() === catName.toLowerCase());
+    if (catObj && catObj.icon) return catObj.icon;
+    
+    const lower = catName.toLowerCase();
+    if (lower.includes('limpieza')) return '🧹';
+    if (lower.includes('lácteo') || lower.includes('lacteo')) return '🥛';
+    if (lower.includes('panader')) return '🥖';
+    if (lower.includes('fruta') || lower.includes('verdura')) return '🍎';
+    if (lower.includes('bebida') || lower.includes('jugo')) return '🧃';
+    if (lower.includes('snack') || lower.includes('dulce')) return '🍪';
+    if (lower.includes('despensa') || lower.includes('abarrote')) return '🥫';
+    return '🏷️';
+}
+
 // ==========================================
 // MONEDAS Y BILLETES CHILENOS (CLP)
 // ==========================================
@@ -119,12 +135,12 @@ const DEFAULT_COURSES = [
 ];
 
 const DEFAULT_CATEGORIES = [
-    { id: 'cat-1', name: 'Lácteos' },
-    { id: 'cat-2', name: 'Limpieza' },
-    { id: 'cat-3', name: 'Frutas y Verduras' },
-    { id: 'cat-4', name: 'Panadería' },
-    { id: 'cat-5', name: 'Snacks y Dulces' },
-    { id: 'cat-6', name: 'Despensa' }
+    { id: 'cat-1', name: 'Lácteos', icon: '🥛' },
+    { id: 'cat-2', name: 'Limpieza', icon: '🧹' },
+    { id: 'cat-3', name: 'Frutas y Verduras', icon: '🍎' },
+    { id: 'cat-4', name: 'Panadería', icon: '🥖' },
+    { id: 'cat-5', name: 'Snacks y Dulces', icon: '🍪' },
+    { id: 'cat-6', name: 'Despensa', icon: '🥫' }
 ];
 
 const DEFAULT_USERS = [
@@ -636,7 +652,6 @@ function renderAdminDashboard(container) {
             </div>
     `;
 
-    // CONFIGURACIÓN DE PLANTILLA PDF INSTITUCIONAL
     const pdfTpl = APP_STATE.pdfTemplate || {
         institutionName: "Escuela Especial NEE",
         headerTitle: "INFORME DE EVALUACIÓN PEDAGÓGICA Y COGNITIVA",
@@ -832,12 +847,29 @@ function renderTeacherDashboard(container) {
 
                 <div class="bg-white p-5 rounded-3xl border-4 border-amber-200 shadow space-y-3">
                     <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">🍎 Catálogo de Productos</h3>
+                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">🍎 Catálogo de Productos y Categorías</h3>
                         <div class="flex gap-2">
-                            <button onclick="addNewCategoryPrompt()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Categoría</button>
+                            <button onclick="openCategoryModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Categoría</button>
                             <button onclick="openProductModal()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Producto</button>
                         </div>
                     </div>
+                    
+                    <div class="space-y-1 border-b pb-2 mb-2 max-h-32 overflow-y-auto">
+                        <span class="text-[10px] font-black uppercase text-slate-400 block mb-1">Categorías Existentes:</span>
+                        ${(APP_STATE.categories || []).map(cat => `
+                            <div class="flex justify-between items-center p-1.5 bg-indigo-50 border border-indigo-100 rounded-lg text-xs font-bold">
+                                <span class="flex items-center gap-1.5 text-indigo-950">
+                                    <span class="text-base">${cat.icon || '🏷️'}</span>
+                                    <span>${cat.name}</span>
+                                </span>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="openCategoryModal('${cat.id}')" class="text-amber-600 hover:underline text-[10px]">✏️ Editar</button>
+                                    <button onclick="deleteCategory('${cat.id}')" class="text-rose-600 hover:underline text-[10px]">✕</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
                     <div class="space-y-2 max-h-48 overflow-y-auto">
                         ${APP_STATE.products.map(p => `
                             <div class="p-2 bg-slate-50 border rounded-xl flex justify-between items-center text-xs font-bold">
@@ -1029,7 +1061,7 @@ function generatePDFReport(evalId, scores) {
     if (typeof html2pdf !== 'undefined') {
         html2pdf().set(opt).from(pdfContainer).save();
     } else {
-        alert("La librería html2pdf.js no está cargada. Asegúrate de incluirla en tu index.html");
+        alert("La librería html2pdf.js no está cargada.");
     }
 }
 
@@ -1613,32 +1645,63 @@ function saveUserFromModal() {
 }
 
 // ==========================================
-// GESTIÓN DE CATEGORÍAS (EN TIEMPO REAL)
+// GESTIÓN DE CATEGORÍAS CON ÍCONO/EMOJI
 // ==========================================
-function addNewCategoryPrompt() {
-    const catName = prompt("Ingresa el nombre de la nueva categoría (ej: Congelados, Abarrotes):");
-    if (!catName || !catName.trim()) return;
-    const cleanCat = catName.trim();
-    
-    const exists = (APP_STATE.categories || []).some(c => c.name.toLowerCase() === cleanCat.toLowerCase());
-    if (exists) {
-        alert("⚠️ Esa categoría ya existe.");
-        return;
-    }
+function selectCategoryIconEmoji(emoji) {
+    document.getElementById('modalCatIcon').value = emoji;
+}
 
-    const newId = 'cat-' + Date.now();
-    db.collection('categories').doc(newId).set({ id: newId, name: cleanCat }).then(() => {
-        alert(`✅ Categoría "${cleanCat}" creada exitosamente.`);
+function openCategoryModal(catId = null) {
+    if (catId) {
+        const cat = (APP_STATE.categories || []).find(c => c.id === catId);
+        if (cat) {
+            document.getElementById('modalCatId').value = cat.id;
+            document.getElementById('catModalTitle').textContent = 'Editar Categoría';
+            document.getElementById('modalCatName').value = cat.name || '';
+            document.getElementById('modalCatIcon').value = cat.icon || '🏷️';
+        }
+    } else {
+        document.getElementById('modalCatId').value = '';
+        document.getElementById('catModalTitle').textContent = 'Crear Categoría';
+        document.getElementById('modalCatName').value = '';
+        document.getElementById('modalCatIcon').value = '🏷️';
+    }
+    document.getElementById('categoryModal').classList.remove('hidden');
+}
+
+function closeCategoryModal() {
+    document.getElementById('categoryModal').classList.add('hidden');
+}
+
+function saveCategoryFromModal() {
+    const catId = document.getElementById('modalCatId').value;
+    const name = document.getElementById('modalCatName').value.trim();
+    const icon = document.getElementById('modalCatIcon').value.trim() || '🏷️';
+
+    if (!name) return alert("Ingresa un nombre para la categoría.");
+
+    const id = catId || ('cat-' + Date.now());
+    const data = { id, name, icon };
+
+    db.collection('categories').doc(id).set(data).then(() => {
+        closeCategoryModal();
+        alert(`✅ Categoría "${name}" guardada con su ícono en la nube.`);
         if (!document.getElementById('productModal').classList.contains('hidden')) {
             const prodId = document.getElementById('modalProdId').value || null;
             openProductModal(prodId);
-            document.getElementById('modalProdCategory').value = cleanCat;
+            document.getElementById('modalProdCategory').value = name;
         }
-    }).catch(err => alert("Error al crear categoría: " + err.message));
+    }).catch(err => alert("Error al guardar categoría: " + err.message));
+}
+
+function deleteCategory(id) {
+    if (confirm("¿Eliminar esta categoría de la nube?")) {
+        db.collection('categories').doc(id).delete();
+    }
 }
 
 // ==========================================
-// GESTIÓN DE SUPERMERCADOS CON COMPRESIÓN DE FOTO
+// GESTIÓN DE SUPERMERCADOS
 // ==========================================
 function handleSupermarketPhotoUpload(event) {
     const file = event.target.files[0];
@@ -1739,6 +1802,54 @@ function deleteSupermarket(id) {
     if (confirm("¿Eliminar este supermercado?")) db.collection('supermarkets').doc(id).delete();
 }
 
+// ==========================================
+// GESTIÓN DE PRODUCTOS Y REPLICACIÓN EN SUPERMERCADOS
+// ==========================================
+function handleProductPhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const MAX = 400;
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } }
+            else { if (h > MAX) { w *= MAX / h; h = MAX; } }
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const compressed = canvas.toDataURL('image/jpeg', 0.8);
+
+            document.getElementById('modalProdPhoto').value = compressed;
+            document.getElementById('modalProdPhotoUrl').value = '';
+            document.getElementById('prodPhotoPreview').src = compressed;
+            document.getElementById('prodPhotoPreviewContainer').classList.remove('hidden');
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function handleProductUrlInput(url) {
+    if (url && url.trim() !== '') {
+        document.getElementById('modalProdPhoto').value = url.trim();
+        document.getElementById('prodPhotoPreview').src = url.trim();
+        document.getElementById('prodPhotoPreviewContainer').classList.remove('hidden');
+    } else {
+        removeProductPhoto();
+    }
+}
+
+function removeProductPhoto() {
+    document.getElementById('modalProdPhoto').value = '';
+    document.getElementById('modalProdPhotoUrl').value = '';
+    document.getElementById('prodPhotoPreview').src = '';
+    document.getElementById('prodPhotoPreviewContainer').classList.add('hidden');
+}
+
 function openProductModal(prodId = null) {
     if (APP_STATE.supermarkets.length === 0) return alert("Crea un supermercado primero.");
 
@@ -1746,16 +1857,16 @@ function openProductModal(prodId = null) {
     supSelect.innerHTML = APP_STATE.supermarkets.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
 
     const catSelect = document.getElementById('modalProdCategory');
-    const allCatNames = Array.from(new Set([
-        ...(APP_STATE.categories || []).map(c => c.name),
-        ...APP_STATE.products.map(p => p.category).filter(Boolean)
-    ]));
+    const categoriesList = APP_STATE.categories || [];
 
-    if (allCatNames.length === 0) {
-        allCatNames.push('Lácteos', 'Limpieza', 'Frutas y Verduras', 'Panadería', 'Snacks y Dulces');
+    if (categoriesList.length === 0) {
+        catSelect.innerHTML = `<option value="General">🏷️ General</option>`;
+    } else {
+        catSelect.innerHTML = categoriesList.map(c => `<option value="${c.name}">${c.icon || '🏷️'} ${c.name}</option>`).join('');
     }
 
-    catSelect.innerHTML = allCatNames.map(c => `<option value="${c}">${c}</option>`).join('');
+    const replicateCheckbox = document.getElementById('modalProdReplicateAll');
+    if (replicateCheckbox) replicateCheckbox.checked = false;
 
     if (prodId) {
         const prod = APP_STATE.products.find(p => p.id === prodId);
@@ -1764,18 +1875,30 @@ function openProductModal(prodId = null) {
         document.getElementById('prodModalTitle').textContent = 'Editar Producto';
         document.getElementById('modalProdSupermarket').value = prod.supermarketId;
         document.getElementById('modalProdName').value = prod.name || '';
-        document.getElementById('modalProdCategory').value = prod.category || allCatNames[0];
+        document.getElementById('modalProdCategory').value = prod.category || (categoriesList[0] ? categoriesList[0].name : 'General');
         document.getElementById('modalProdPrice').value = prod.price || '';
         document.getElementById('modalProdEmoji').value = prod.iconEmoji || '📦';
         document.getElementById('modalProdPhoto').value = prod.photoUrl || '';
+        
+        if (prod.photoUrl) {
+            document.getElementById('prodPhotoPreview').src = prod.photoUrl;
+            document.getElementById('prodPhotoPreviewContainer').classList.remove('hidden');
+            if (prod.photoUrl.startsWith('http')) {
+                document.getElementById('modalProdPhotoUrl').value = prod.photoUrl;
+            } else {
+                document.getElementById('modalProdPhotoUrl').value = '';
+            }
+        } else {
+            removeProductPhoto();
+        }
     } else {
         document.getElementById('modalProdId').value = '';
         document.getElementById('prodModalTitle').textContent = 'Crear Producto';
         document.getElementById('modalProdName').value = '';
-        document.getElementById('modalProdCategory').value = allCatNames[0];
+        if (categoriesList[0]) document.getElementById('modalProdCategory').value = categoriesList[0].name;
         document.getElementById('modalProdPrice').value = '';
         document.getElementById('modalProdEmoji').value = '📦';
-        document.getElementById('modalProdPhoto').value = '';
+        removeProductPhoto();
     }
     document.getElementById('productModal').classList.remove('hidden');
 }
@@ -1790,16 +1913,46 @@ function saveProductFromModal() {
     const price = parseInt(document.getElementById('modalProdPrice').value);
     const iconEmoji = document.getElementById('modalProdEmoji').value.trim();
     const photoUrl = document.getElementById('modalProdPhoto').value.trim();
+    const replicateCheckbox = document.getElementById('modalProdReplicateAll');
+    const replicateAll = replicateCheckbox ? replicateCheckbox.checked : false;
 
     if (!name || isNaN(price)) return alert("Completa el nombre y precio del producto.");
 
-    const id = prodId || ('prod-' + Date.now());
-    const data = { id, supermarketId, name, category, price, iconEmoji: iconEmoji || '📦', photoUrl };
+    if (replicateAll) {
+        if (APP_STATE.supermarkets.length === 0) return alert("No hay supermercados creados.");
 
-    db.collection('products').doc(id).set(data).then(() => {
-        closeProductModal();
-        alert("✅ Producto guardado en la nube.");
-    });
+        const batch = db.batch();
+        const now = Date.now();
+
+        APP_STATE.supermarkets.forEach((sup, idx) => {
+            const newId = 'prod-' + now + '-' + idx;
+            const docRef = db.collection('products').doc(newId);
+            const data = {
+                id: newId,
+                supermarketId: sup.id,
+                name,
+                category,
+                price,
+                iconEmoji: iconEmoji || '📦',
+                photoUrl
+            };
+            batch.set(docRef, data);
+        });
+
+        batch.commit().then(() => {
+            closeProductModal();
+            alert(`✅ Producto replicado y guardado en los ${APP_STATE.supermarkets.length} supermercados.`);
+        }).catch(err => alert("❌ Error al replicar productos: " + err.message));
+
+    } else {
+        const id = prodId || ('prod-' + Date.now());
+        const data = { id, supermarketId, name, category, price, iconEmoji: iconEmoji || '📦', photoUrl };
+
+        db.collection('products').doc(id).set(data).then(() => {
+            closeProductModal();
+            alert("✅ Producto guardado en la nube con su imagen.");
+        }).catch(err => alert("❌ Error al guardar producto: " + err.message));
+    }
 }
 
 function deleteProduct(id) {
@@ -1839,7 +1992,7 @@ function goHome() {
 }
 
 // ==========================================
-// VISTA DEL ESTUDIANTE Y TIENDA (MANEJO ROBUSTO DE IMÁGENES)
+// VISTA DEL ESTUDIANTE Y TIENDA
 // ==========================================
 function renderHomeView(container) {
     let html = `
@@ -1924,8 +2077,9 @@ function renderSupermarketView(container, supId) {
                     ✨ Ver Todas las Categorías
                 </button>
                 ${categories.map(cat => `
-                    <button onclick="filterCategory('${cat}')" class="px-4 py-2 rounded-xl font-extrabold text-xs shrink-0 transition-all ${APP_STATE.selectedCategoryFilter === cat ? 'bg-indigo-600 text-white shadow' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
-                        🏷️ ${cat}
+                    <button onclick="filterCategory('${cat}')" class="px-4 py-2 rounded-xl font-extrabold text-xs shrink-0 transition-all ${APP_STATE.selectedCategoryFilter === cat ? 'bg-indigo-600 text-white shadow' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} flex items-center gap-1.5">
+                        <span>${getCategoryIcon(cat)}</span>
+                        <span>${cat}</span>
                     </button>
                 `).join('')}
             </div>
@@ -1947,14 +2101,7 @@ function renderSupermarketView(container, supId) {
             const catProducts = filteredProducts.filter(p => (p.category || 'General') === cat);
             if (catProducts.length === 0) return;
 
-            let catEmoji = '🏷️';
-            if (cat.toLowerCase().includes('limpieza')) catEmoji = '🧹';
-            else if (cat.toLowerCase().includes('lácteo') || cat.toLowerCase().includes('lacteo')) catEmoji = '🥛';
-            else if (cat.toLowerCase().includes('panader')) catEmoji = '🥖';
-            else if (cat.toLowerCase().includes('fruta') || cat.toLowerCase().includes('verdura')) catEmoji = '🍎';
-            else if (cat.toLowerCase().includes('bebida') || cat.toLowerCase().includes('jugo')) catEmoji = '🧃';
-            else if (cat.toLowerCase().includes('snack') || cat.toLowerCase().includes('dulce')) catEmoji = '🍪';
-            else if (cat.toLowerCase().includes('despensa') || cat.toLowerCase().includes('abarrote')) catEmoji = '🥫';
+            const catEmoji = getCategoryIcon(cat);
 
             html += `
                 <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow space-y-4">
