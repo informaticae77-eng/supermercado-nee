@@ -27,12 +27,47 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
+// COMPRESOR AUTOMÁTICO DE IMÁGENES (MAX 1MB FIREBASE FIX)
+// ==========================================
+function compressImageBase64(base64Data, maxWidth = 300, maxHeight = 300, quality = 0.7) {
+    return new Promise((resolve) => {
+        if (!base64Data || !base64Data.startsWith('data:image')) {
+            return resolve(base64Data || '');
+        }
+        const img = new Image();
+        img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+            if (width > height) {
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+            } else {
+                if (height > maxHeight) {
+                    width = Math.round((width * maxHeight) / height);
+                    height = maxHeight;
+                }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => resolve(base64Data);
+        img.src = base64Data;
+    });
+}
+
+// ==========================================
 // ESTADO GLOBAL DE LA APLICACIÓN
 // ==========================================
 const APP_STATE = {
     currentUser: null,
     selectedSupermarketId: null,
-    teacherActiveTab: 'home', // 'home' | 'catalog' | 'currency' | 'users'
+    teacherActiveTab: 'home',
     teacherPreviewMode: false,
     adminCourseFilter: 'all',
     basket: [],
@@ -64,7 +99,7 @@ const CLP_CURRENCY_ITEMS = [
 ];
 
 // ==========================================
-// FUNCIONES AUXILIARES Y AUDIO
+// FUNCIONES AUXILIARES
 // ==========================================
 function speakText(text) {
     if (APP_STATE.telemetry) APP_STATE.telemetry.voiceHelpCount++;
@@ -128,9 +163,7 @@ function sendAutomaticCredentialsEmail(user) {
     }
 }
 
-// ==========================================
-// POBLADO AUTOMÁTICO DE DATOS DE EJEMPLO
-// ==========================================
+// POBLADO INICIAL SI BASE DE DATOS ESTÁ VACÍA
 function seedSampleData() {
     if (!db) return alert("Firebase no está listo.");
 
@@ -164,6 +197,7 @@ function seedSampleData() {
             batch.set(db.collection('products').doc(pId), {
                 id: pId,
                 supermarketId: s.id,
+                supermarketName: s.name,
                 name: p.name,
                 price: p.price,
                 iconEmoji: p.iconEmoji,
@@ -179,7 +213,7 @@ function seedSampleData() {
 }
 
 // ==========================================
-// RENDERIZADO Y CONTROL DE VISTAS
+// RENDERIZADO PRINCIPAL
 // ==========================================
 function renderApp() {
     const container = document.getElementById('appContainer');
@@ -324,7 +358,7 @@ function toggleStudentPreview(status) {
 }
 
 // ==========================================
-// DASHBOARD DOCENTE COMPLETO
+// DASHBOARD DOCENTE
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -383,7 +417,7 @@ function renderTeacherDashboard(container) {
 }
 
 // ------------------------------------------
-// PESTAÑA 1: EVALUACIONES, INSTRUMENTO Y CERTIFICADOS IA
+// PESTAÑA 1: EVALUACIONES E INFORMES
 // ------------------------------------------
 function renderTeacherHomeTab() {
     const totalEvals = (APP_STATE.evaluations || []).length;
@@ -479,115 +513,8 @@ function renderTeacherHomeTab() {
     `;
 }
 
-// INSTRUMENTO NEE
-function openEvaluationModal(evalId) {
-    const e = (APP_STATE.evaluations || []).find(item => item.id === evalId);
-    if (!e) return alert("Evaluación no encontrada.");
-
-    const modal = document.createElement('div');
-    modal.id = 'evalInstrumentModal';
-    modal.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto';
-
-    const accuracy = e.paidCLP >= e.totalCLP ? 100 : Math.round((e.paidCLP / e.totalCLP) * 100);
-    const scoreLevel = accuracy >= 100 ? 'Logrado Destacado' : (accuracy >= 70 ? 'En Proceso' : 'Requiere Apoyo');
-
-    modal.innerHTML = `
-        <div class="bg-white rounded-3xl max-w-2xl w-full border-4 border-indigo-600 shadow-2xl p-6 space-y-6 relative my-8">
-            <button onclick="document.getElementById('evalInstrumentModal').remove()" class="absolute top-4 right-4 bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600 font-black rounded-full w-8 h-8 flex items-center justify-center">✕</button>
-            <div class="border-b pb-3 space-y-1">
-                <span class="bg-indigo-100 text-indigo-900 text-[10px] font-black px-2.5 py-1 rounded-md uppercase">Pauta de Evaluación Adaptada PIE / NEE</span>
-                <h2 class="text-xl font-black text-slate-800">Instrumento de Valoración Pedagógica</h2>
-                <p class="text-xs text-slate-500">Estudiante: <b>${e.studentName}</b> | Fecha: ${e.date || 'Reciente'}</p>
-            </div>
-            <div class="space-y-4 text-xs font-bold">
-                <div class="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border">
-                    <div>
-                        <span class="text-slate-400 block text-[10px]">Supermercado Evaluado:</span>
-                        <span class="text-slate-800 text-sm font-black">${e.supermarketName}</span>
-                    </div>
-                    <div>
-                        <span class="text-slate-400 block text-[10px]">Nivel de Desempeño:</span>
-                        <span class="text-emerald-700 text-sm font-black">${scoreLevel} (${accuracy}%)</span>
-                    </div>
-                </div>
-                <h4 class="font-black text-slate-800 text-sm pt-2">Indicadores de Competencia Monetaria:</h4>
-                <div class="space-y-2">
-                    <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex justify-between items-center">
-                        <span>1. Selecciona e identifica productos en catálogo:</span>
-                        <span class="bg-emerald-600 text-white px-2 py-0.5 rounded text-[10px] font-black">LOGRADO (${e.itemCount} items)</span>
-                    </div>
-                    <div class="p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex justify-between items-center">
-                        <span>2. Discriminación de Billetes y Monedas CLP:</span>
-                        <span class="bg-indigo-600 text-white px-2 py-0.5 rounded text-[10px] font-black">${e.paidCLP >= e.totalCLP ? 'LOGRADO' : 'EN PROCESO'}</span>
-                    </div>
-                    <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl flex justify-between items-center">
-                        <span>3. Cálculo e ingreso de efectivo en caja:</span>
-                        <span class="bg-amber-600 text-white px-2 py-0.5 rounded text-[10px] font-black">$${(e.paidCLP || 0).toLocaleString('es-CL')} pagados</span>
-                    </div>
-                    <div class="p-3 bg-sky-50 border border-sky-200 rounded-xl flex justify-between items-center">
-                        <span>4. Uso de apoyos auditivos (Síntesis de voz):</span>
-                        <span class="bg-sky-600 text-white px-2 py-0.5 rounded text-[10px] font-black">${e.voiceHelpCount || 0} interacciones</span>
-                    </div>
-                </div>
-            </div>
-            <div class="flex justify-end gap-2 pt-2 border-t">
-                <button onclick="window.print()" class="bg-slate-800 text-white font-black text-xs px-4 py-2.5 rounded-xl">🖨️ Imprimir Reporte</button>
-                <button onclick="document.getElementById('evalInstrumentModal').remove()" class="bg-indigo-600 text-white font-black text-xs px-4 py-2.5 rounded-xl">Cerrar</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-}
-
-// CERTIFICADO IA
-function generateAICertificate(evalId) {
-    const e = (APP_STATE.evaluations || []).find(item => item.id === evalId);
-    if (!e) return alert("Evaluación no encontrada.");
-
-    const aiComments = [
-        `Demostró una excelente capacidad de autonomía en el reconocimiento de la moneda nacional chilena (CLP), tomando decisiones económicas acertadas en ${e.supermarketName}.`,
-        `Completó satisfactoriamente la experiencia de compra inclusiva, mostrando gran motivación, tolerancia a la frustración y uso autónomo del apoyo de voz.`,
-        `Ha superado con éxito la experiencia formativa de cálculo y pago en caja, alcanzando los objetivos del Programa de Integración Escolar (PIE).`
-    ];
-    const randomComment = aiComments[Math.floor(Math.random() * aiComments.length)];
-
-    const certModal = document.createElement('div');
-    certModal.id = 'aiCertificateModal';
-    certModal.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto';
-
-    certModal.innerHTML = `
-        <div class="bg-amber-50 rounded-3xl max-w-3xl w-full border-8 border-amber-400 shadow-2xl p-8 space-y-6 relative my-8 text-center text-slate-800">
-            <button onclick="document.getElementById('aiCertificateModal').remove()" class="absolute top-4 right-4 bg-slate-200 text-slate-700 hover:bg-rose-100 hover:text-rose-600 font-black rounded-full w-8 h-8 flex items-center justify-center">✕</button>
-            <div class="space-y-2">
-                <div class="text-6xl">🏆</div>
-                <span class="text-xs font-black tracking-widest uppercase text-amber-700 bg-amber-200 px-3 py-1 rounded-full">CERTIFICADO DE LOGRO PEDAGÓGICO - IA NEE</span>
-                <h1 class="text-3xl font-black text-indigo-950 pt-2">¡Felicitaciones!</h1>
-            </div>
-            <div class="space-y-4 my-6">
-                <p class="text-sm font-bold text-slate-600">Se otorga el presente reconocimiento con inteligencia artificial a:</p>
-                <h2 class="text-3xl font-black text-indigo-600 border-b-4 border-indigo-200 pb-2 inline-block px-6">${e.studentName}</h2>
-                <p class="text-xs font-bold text-slate-600 max-w-lg mx-auto leading-relaxed">
-                    Por haber completado con éxito la actividad práctica de inclusión financiera en el supermercado <b>${e.supermarketName}</b>.
-                </p>
-            </div>
-            <div class="bg-white p-5 rounded-2xl border-2 border-amber-300 text-left space-y-2 shadow-sm">
-                <div class="flex items-center gap-2 text-amber-800 font-black text-xs">
-                    <span>🤖</span><span>Análisis Generado por IA:</span>
-                </div>
-                <p class="text-xs font-semibold text-slate-700 italic">"${randomComment}"</p>
-            </div>
-            <div class="flex justify-center gap-3 pt-2">
-                <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-6 py-3 rounded-xl shadow-lg border-b-4 border-indigo-900 active:scale-95">
-                    🖨️ Imprimir Certificado
-                </button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(certModal);
-}
-
 // ------------------------------------------
-// PESTAÑA 2: CATALOGO Y SUPERMERCADOS
+// PESTAÑA 2: CATÁLOGO Y SUPERMERCADOS
 // ------------------------------------------
 function renderTeacherCatalogTab() {
     return `
@@ -632,11 +559,11 @@ function renderTeacherCatalogTab() {
                 <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
                     <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
                         <i class="fa-solid fa-boxes-stacked text-amber-600"></i>
-                        <span>Catálogo de Productos</span>
+                        <span>Catálogo de Productos (${(APP_STATE.products || []).length})</span>
                     </h3>
                     <div class="flex gap-2">
                         <button onclick="openCategoryModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-3 py-2 rounded-xl shadow active:scale-95">
-                            + Crear Categoría
+                            + Categoría
                         </button>
                         <button onclick="openProductModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-xs px-3 py-2 rounded-xl shadow border-b-2 border-amber-700 active:scale-95">
                             + Crear Producto
@@ -645,11 +572,12 @@ function renderTeacherCatalogTab() {
                 </div>
                 <div class="space-y-2 max-h-96 overflow-y-auto pr-1">
                     ${(APP_STATE.products || []).length === 0 ? `
-                        <p class="text-xs text-slate-400 italic py-4 text-center">No hay productos ingresados.</p>
+                        <p class="text-xs text-slate-400 italic py-4 text-center">No hay productos ingresados aún en el catálogo.</p>
                     ` : (APP_STATE.products || []).map(p => {
                         const prodImg = p.photoUrl 
                             ? `<img src="${p.photoUrl}" class="w-12 h-12 object-cover rounded-xl border border-slate-200">`
                             : `<span class="text-2xl">${p.iconEmoji || '📦'}</span>`;
+                        const supName = p.supermarketName || p.supermarketId || 'General';
                         return `
                             <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl flex justify-between items-center text-xs font-bold">
                                 <div class="flex items-center space-x-3">
@@ -657,12 +585,13 @@ function renderTeacherCatalogTab() {
                                     <div>
                                         <h4 class="font-black text-slate-800 text-sm">${p.name}</h4>
                                         <span class="text-emerald-700 font-black">$${(p.price || 0).toLocaleString('es-CL')}</span>
-                                        <span class="text-slate-400 font-normal">| ${p.category || 'General'}</span>
+                                        <span class="text-indigo-900 font-bold"> [${supName}]</span>
                                     </div>
                                 </div>
-                                <button onclick="openProductModal('${p.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-xl border border-amber-300 font-extrabold">
-                                    ✏️ Editar
-                                </button>
+                                <div class="space-x-1">
+                                    <button onclick="openProductModal('${p.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-2.5 py-1.5 rounded-xl border border-amber-300 font-extrabold">✏️</button>
+                                    <button onclick="deleteProduct('${p.id}')" class="bg-rose-100 hover:bg-rose-200 text-rose-900 px-2.5 py-1.5 rounded-xl border border-rose-300 font-extrabold">✕</button>
+                                </div>
                             </div>
                         `;
                     }).join('')}
@@ -703,7 +632,7 @@ function renderTeacherCurrencyTab() {
 }
 
 // ------------------------------------------
-// PESTAÑA 4: USUARIOS Y CURSOS PARA EDUCADORES (PERMISOS CORREGIDOS)
+// PESTAÑA 4: USUARIOS Y CURSOS
 // ------------------------------------------
 function renderTeacherUsersTab() {
     const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
@@ -779,7 +708,7 @@ function renderUserRoleList(role) {
 }
 
 // ==========================================
-// VISTAS DE TIENDA Y PRODUCTOS (RECONOCIMIENTO ROBUSTO)
+// VISTAS DE TIENDA Y PRODUCTOS (FILTRO UNIVERSAL MULTI-CAMPO)
 // ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
@@ -812,12 +741,19 @@ function selectSupermarket(id) {
 }
 
 function renderSupermarketView(container, supId) {
-    const sup = (APP_STATE.supermarkets || []).find(s => String(s.id).trim() === String(supId).trim());
-    
-    // Filtro mejorado: compara supermarketId o supermarket de forma flexible e insensible a espacios
+    const sup = (APP_STATE.supermarkets || []).find(s => 
+        String(s.id).trim().toLowerCase() === String(supId).trim().toLowerCase() ||
+        String(s.name).trim().toLowerCase() === String(supId).trim().toLowerCase()
+    );
+
+    const supNameClean = sup ? String(sup.name).trim().toLowerCase() : String(supId).trim().toLowerCase();
+    const supIdClean = sup ? String(sup.id).trim().toLowerCase() : String(supId).trim().toLowerCase();
+
+    // Filtro flexible: comprueba si la propiedad coincide por ID o Nombre de la tienda
     let products = (APP_STATE.products || []).filter(p => {
-        const prodSupId = p.supermarketId || p.supermarket || '';
-        return String(prodSupId).trim() === String(supId).trim();
+        const pSupId = String(p.supermarketId || p.supermarket || '').trim().toLowerCase();
+        const pSupName = String(p.supermarketName || '').trim().toLowerCase();
+        return pSupId === supIdClean || pSupId === supNameClean || pSupName === supIdClean || pSupName === supNameClean;
     });
 
     const supImgUrl = sup ? (sup.photoUrl || sup.photo || sup.imageUrl || sup.logoUrl || '') : '';
@@ -828,10 +764,13 @@ function renderSupermarketView(container, supId) {
     const productsHtml = products.length === 0 ? `
         <div class="col-span-full bg-white p-8 rounded-3xl border-4 border-dashed border-slate-300 text-center space-y-3 my-4">
             <div class="text-5xl">🛒</div>
-            <h3 class="text-lg font-black text-slate-700">No hay productos disponibles en este supermercado</h3>
+            <h3 class="text-lg font-black text-slate-700">No hay productos en ${sup ? sup.name : 'esta tienda'}</h3>
             <p class="text-xs text-slate-500 font-bold max-w-md mx-auto">
-                Para ingresar productos, ingresa al Panel Docente > "2. Catálogo & Tiendas" > "+ Crear Producto" y selecciona "<b>${sup ? sup.name : 'este supermercado'}</b>".
+                Haz clic abajo para crear productos para esta tienda o usa el botón "⚡ Cargar Datos Ejemplo" en el Panel Docente.
             </p>
+            <button onclick="openProductModalForSupermarket('${sup ? sup.id : supId}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-md border-b-2 border-indigo-900">
+                + Crear Producto para ${sup ? sup.name : 'este supermercado'}
+            </button>
         </div>
     ` : products.map(prod => {
         const prodImg = prod.photoUrl 
@@ -853,12 +792,15 @@ function renderSupermarketView(container, supId) {
 
     container.innerHTML = `
         <div class="space-y-6">
-            <div class="flex items-center justify-between bg-white p-4 rounded-2xl border-2 border-slate-300 shadow-sm">
+            <div class="flex items-center justify-between bg-white p-4 rounded-2xl border-2 border-slate-300 shadow-sm flex-wrap gap-2">
                 <button onclick="goHome()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-4 py-2 rounded-xl text-xs">← Volver</button>
                 <div class="flex items-center gap-3">
                     ${supIconHtml}
                     <h2 class="text-2xl font-black text-slate-800">${sup ? sup.name : 'Supermercado'}</h2>
                 </div>
+                <button onclick="openProductModalForSupermarket('${sup ? sup.id : supId}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow">
+                    + Agregar Producto Aquí
+                </button>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 ${productsHtml}
@@ -1036,7 +978,7 @@ function closeSuccessModalAndFinish() {
 }
 
 // ==========================================
-// CONTROLADORES DE MODALES Y EDICIÓN
+// CONTROLADORES DE MODALES Y CREACIÓN
 // ==========================================
 function updateCategoryDropdowns(selectedName = null) {
     const catSelect = document.getElementById('modalProdCategory');
@@ -1047,23 +989,12 @@ function updateCategoryDropdowns(selectedName = null) {
         : list.map(c => `<option value="${c.name}" ${selectedName === c.name ? 'selected' : ''}>${c.icon || '🏷️'} ${c.name}</option>`).join('');
 }
 
-function filterAdminByCourse(cId) {
-    APP_STATE.adminCourseFilter = cId;
-    renderApp();
+function openProductModalForSupermarket(supId) {
+    openProductModal();
+    const supSelect = document.getElementById('modalProdSupermarket');
+    if (supSelect) supSelect.value = supId;
 }
 
-function addNewCoursePrompt() {
-    const name = prompt("Nombre del nuevo curso:");
-    if (!name || !db) return;
-    const newId = 'c-' + Date.now();
-    db.collection('courses').doc(newId).set({ id: newId, name });
-}
-
-function deleteCourse(id) {
-    if (confirm("¿Eliminar este curso?") && db) db.collection('courses').doc(id).delete();
-}
-
-// PRODUCTOS
 function openProductModal(prodId = null) {
     const supSelect = document.getElementById('modalProdSupermarket');
     if (supSelect) supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
@@ -1120,12 +1051,13 @@ function handleProductPhotoUpload(event) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
-        const base64 = e.target.result;
-        document.getElementById('modalProdPhoto').value = base64;
-        const preview = document.getElementById('prodPhotoPreview');
-        const container = document.getElementById('prodPhotoPreviewContainer');
-        if (preview) preview.src = base64;
-        if (container) container.classList.remove('hidden');
+        compressImageBase64(e.target.result).then(compressed => {
+            document.getElementById('modalProdPhoto').value = compressed;
+            const preview = document.getElementById('prodPhotoPreview');
+            const container = document.getElementById('prodPhotoPreviewContainer');
+            if (preview) preview.src = compressed;
+            if (container) container.classList.remove('hidden');
+        });
     };
     reader.readAsDataURL(file);
 }
@@ -1148,7 +1080,10 @@ function saveProductFromModal() {
     const photoUrl = document.getElementById('modalProdPhoto')?.value || '';
     const replicateAll = document.getElementById('modalProdReplicateAll')?.checked || false;
 
-    if (!name || isNaN(price) || !db) return alert("Completa nombre y precio del producto.");
+    if (!name || isNaN(price) || !db) return alert("Completa el nombre y un precio válido.");
+
+    const supObj = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId));
+    const supName = supObj ? supObj.name : 'Supermercado';
 
     if (replicateAll) {
         if (!APP_STATE.supermarkets || APP_STATE.supermarkets.length === 0) {
@@ -1164,6 +1099,7 @@ function saveProductFromModal() {
             batch.set(ref, {
                 id: newId,
                 supermarketId: sup.id,
+                supermarketName: sup.name,
                 name: name,
                 category: category,
                 price: price,
@@ -1174,8 +1110,8 @@ function saveProductFromModal() {
 
         batch.commit().then(() => {
             closeProductModal();
-            alert(`✅ Producto replicado con éxito en los ${APP_STATE.supermarkets.length} supermercados.`);
-        }).catch(err => alert("Error al replicar producto: " + err.message));
+            alert(`✅ Producto "${name}" replicado en los ${APP_STATE.supermarkets.length} supermercados.`);
+        }).catch(err => alert("Error al replicar producto en Firebase: " + err.message));
 
     } else {
         if (!supId) return alert("Selecciona un supermercado.");
@@ -1183,6 +1119,7 @@ function saveProductFromModal() {
         db.collection('products').doc(id).set({
             id: id,
             supermarketId: supId,
+            supermarketName: supName,
             name: name,
             category: category,
             price: price,
@@ -1190,8 +1127,14 @@ function saveProductFromModal() {
             photoUrl: photoUrl
         }, { merge: true }).then(() => {
             closeProductModal();
-            alert("✅ Producto guardado correctamente.");
+            alert(`✅ Producto "${name}" guardado exitosamente.`);
         }).catch(err => alert("Error al guardar producto: " + err.message));
+    }
+}
+
+function deleteProduct(prodId) {
+    if (confirm("¿Eliminar este producto del catálogo?") && db) {
+        db.collection('products').doc(prodId).delete().then(() => alert("Producto eliminado."));
     }
 }
 
@@ -1235,12 +1178,13 @@ function handleSupermarketPhotoUpload(event) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
-        const base64 = e.target.result;
-        document.getElementById('modalSupPhoto').value = base64;
-        const preview = document.getElementById('supPhotoPreview');
-        const container = document.getElementById('supPhotoPreviewContainer');
-        if (preview) preview.src = base64;
-        if (container) container.classList.remove('hidden');
+        compressImageBase64(e.target.result).then(compressed => {
+            document.getElementById('modalSupPhoto').value = compressed;
+            const preview = document.getElementById('supPhotoPreview');
+            const container = document.getElementById('supPhotoPreviewContainer');
+            if (preview) preview.src = compressed;
+            if (container) container.classList.remove('hidden');
+        });
     };
     reader.readAsDataURL(file);
 }
@@ -1333,12 +1277,13 @@ function handleCurrencyFileSelect(event) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
-        const base64 = e.target.result;
-        document.getElementById('modalCurrencyPhotoUrl').value = base64;
-        const preview = document.getElementById('currencyPhotoPreview');
-        const container = document.getElementById('currencyPhotoPreviewContainer');
-        if (preview) preview.src = base64;
-        if (container) container.classList.remove('hidden');
+        compressImageBase64(e.target.result).then(compressed => {
+            document.getElementById('modalCurrencyPhotoUrl').value = compressed;
+            const preview = document.getElementById('currencyPhotoPreview');
+            const container = document.getElementById('currencyPhotoPreviewContainer');
+            if (preview) preview.src = compressed;
+            if (container) container.classList.remove('hidden');
+        });
     };
     reader.readAsDataURL(file);
 }
@@ -1366,18 +1311,20 @@ function takeCurrencySnapshot() {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/png');
 
-    document.getElementById('modalCurrencyPhotoUrl').value = dataUrl;
-    const preview = document.getElementById('currencyPhotoPreview');
-    const previewContainer = document.getElementById('currencyPhotoPreviewContainer');
-    if (preview) preview.src = dataUrl;
-    if (previewContainer) previewContainer.classList.remove('hidden');
+    compressImageBase64(dataUrl).then(compressed => {
+        document.getElementById('modalCurrencyPhotoUrl').value = compressed;
+        const preview = document.getElementById('currencyPhotoPreview');
+        const previewContainer = document.getElementById('currencyPhotoPreviewContainer');
+        if (preview) preview.src = compressed;
+        if (previewContainer) previewContainer.classList.remove('hidden');
 
-    if (currencyCameraStream) {
-        currencyCameraStream.getTracks().forEach(track => track.stop());
-        currencyCameraStream = null;
-    }
-    const container = document.getElementById('currencyCameraContainer');
-    if (container) container.classList.add('hidden');
+        if (currencyCameraStream) {
+            currencyCameraStream.getTracks().forEach(track => track.stop());
+            currencyCameraStream = null;
+        }
+        const container = document.getElementById('currencyCameraContainer');
+        if (container) container.classList.add('hidden');
+    });
 }
 
 function saveCurrencyPhotoFromModal() {
@@ -1391,7 +1338,7 @@ function saveCurrencyPhotoFromModal() {
     }).catch(err => alert("Error al guardar: " + err.message));
 }
 
-// USUARIOS (PERMISOS RESTRINGIDOS SEGÚN ROL)
+// USUARIOS
 function openCreateUserModal(role) {
     if (role === 'teacher' && (!APP_STATE.currentUser || APP_STATE.currentUser.role !== 'admin')) {
         return alert("⛔ Acceso Denegado: Solo el perfil Administrador tiene permisos para crear Educadores.");
@@ -1453,12 +1400,13 @@ function handleImageFileSelect(event) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
-        const base64 = e.target.result;
-        document.getElementById('modalPhotoUrl').value = base64;
-        const preview = document.getElementById('photoPreview');
-        const container = document.getElementById('photoPreviewContainer');
-        if (preview) preview.src = base64;
-        if (container) container.classList.remove('hidden');
+        compressImageBase64(e.target.result).then(compressed => {
+            document.getElementById('modalPhotoUrl').value = compressed;
+            const preview = document.getElementById('photoPreview');
+            const container = document.getElementById('photoPreviewContainer');
+            if (preview) preview.src = compressed;
+            if (container) container.classList.remove('hidden');
+        });
     };
     reader.readAsDataURL(file);
 }
@@ -1486,18 +1434,20 @@ function takeCameraSnapshot() {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/png');
 
-    document.getElementById('modalPhotoUrl').value = dataUrl;
-    const preview = document.getElementById('photoPreview');
-    const previewContainer = document.getElementById('photoPreviewContainer');
-    if (preview) preview.src = dataUrl;
-    if (previewContainer) previewContainer.classList.remove('hidden');
+    compressImageBase64(dataUrl).then(compressed => {
+        document.getElementById('modalPhotoUrl').value = compressed;
+        const preview = document.getElementById('photoPreview');
+        const previewContainer = document.getElementById('photoPreviewContainer');
+        if (preview) preview.src = compressed;
+        if (previewContainer) previewContainer.classList.remove('hidden');
 
-    if (cameraStream) {
-        cameraStream.getTracks().forEach(track => track.stop());
-        cameraStream = null;
-    }
-    const container = document.getElementById('cameraContainer');
-    if (container) container.classList.add('hidden');
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            cameraStream = null;
+        }
+        const container = document.getElementById('cameraContainer');
+        if (container) container.classList.add('hidden');
+    });
 }
 
 function removeUserPhoto() {
