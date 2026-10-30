@@ -27,11 +27,13 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
-// ESTADO GLOBAL
+// ESTADO GLOBAL DE LA APLICACIÓN
 // ==========================================
 const APP_STATE = {
     currentUser: null,
     selectedSupermarketId: null,
+    teacherActiveTab: 'home', // 'home' | 'catalog' | 'currency'
+    teacherPreviewMode: false,
     adminCourseFilter: 'all',
     selectedCategoryFilter: 'all',
     basket: [],
@@ -43,13 +45,6 @@ const APP_STATE = {
     products: [],
     evaluations: [],
     customCurrencies: {},
-    pdfTemplate: {
-        institutionName: "Escuela Especial NEE Chile",
-        headerTitle: "INFORME DE EVALUACIÓN PEDAGÓGICA Y COGNITIVA",
-        footerText: "Documento oficial del Equipo Multidisciplinario PIE",
-        primaryColor: "#3730a3",
-        logoUrl: ""
-    },
     telemetry: { voiceHelpCount: 0, paymentResetsCount: 0 },
     missionActive: false,
     missionStartTime: null,
@@ -109,20 +104,6 @@ function playChimeSound() {
     } catch(e) {}
 }
 
-function getUserCourseIds(user) {
-    if (!user) return [];
-    if (Array.isArray(user.courseIds) && user.courseIds.length > 0) return user.courseIds;
-    if (user.courseId) return [user.courseId];
-    return [];
-}
-
-function getCategoryIcon(catName) {
-    if (!catName) return '🏷️';
-    const catObj = (APP_STATE.categories || []).find(c => c.name.toLowerCase() === catName.toLowerCase());
-    if (catObj && catObj.icon) return catObj.icon;
-    return '🏷️';
-}
-
 function sendAutomaticCredentialsEmail(user) {
     if (!user || !user.email) return;
     if (typeof emailjs !== 'undefined') {
@@ -142,7 +123,7 @@ function sendAutomaticCredentialsEmail(user) {
 }
 
 // ==========================================
-// CICLO PRINCIPAL DE RENDERIZADO
+// RENDERIZADO PRINCIPAL
 // ==========================================
 function renderApp() {
     const container = document.getElementById('appContainer');
@@ -170,10 +151,15 @@ function renderApp() {
         return;
     }
 
-    if (APP_STATE.currentUser.role === 'admin') {
-        if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
-        renderAdminDashboard(container);
-    } else if (APP_STATE.currentUser.role === 'teacher') {
+    // Modo prueba del educador/admin simulando ser un alumno
+    if (APP_STATE.teacherPreviewMode) {
+        if (headerBasketBtn) headerBasketBtn.classList.remove('hidden');
+        renderStudentPreviewWrapper(container);
+        updateBasketBadge();
+        return;
+    }
+
+    if (APP_STATE.currentUser.role === 'admin' || APP_STATE.currentUser.role === 'teacher') {
         if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
         renderTeacherDashboard(container);
     } else {
@@ -234,6 +220,7 @@ function handleLogin() {
 function logout() {
     APP_STATE.currentUser = null;
     APP_STATE.selectedSupermarketId = null;
+    APP_STATE.teacherPreviewMode = false;
     localStorage.removeItem('nee_active_user');
     renderApp();
 }
@@ -244,59 +231,339 @@ function goHome() {
 }
 
 // ==========================================
-// VISTAS DE PANELES
+// WRAPPER DE MODO PRUEBA ALUMNO (EDUCADOR)
 // ==========================================
-function renderAdminDashboard(container) {
+function renderStudentPreviewWrapper(container) {
+    const previewBanner = `
+        <div class="bg-amber-400 border-4 border-amber-600 text-slate-900 p-3.5 rounded-2xl shadow-lg mb-6 flex justify-between items-center flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">🕹️</span>
+                <div>
+                    <h3 class="font-black text-sm tracking-tight">MODO PRUEBA: VISTA DEL ESTUDIANTE</h3>
+                    <p class="text-[11px] font-bold text-slate-800">Estás probando la tienda tal como interactúan los alumnos.</p>
+                </div>
+            </div>
+            <button onclick="toggleStudentPreview(false)" class="bg-slate-900 hover:bg-black text-white font-black text-xs px-4 py-2 rounded-xl border-b-2 border-slate-950 shadow active:scale-95">
+                ← Volver al Panel
+            </button>
+        </div>
+    `;
+
+    const subContainer = document.createElement('div');
+    if (APP_STATE.selectedSupermarketId) {
+        renderSupermarketView(subContainer, APP_STATE.selectedSupermarketId);
+    } else {
+        renderHomeView(subContainer);
+    }
+
+    container.innerHTML = previewBanner;
+    container.appendChild(subContainer);
+}
+
+function toggleStudentPreview(status) {
+    APP_STATE.teacherPreviewMode = status;
+    APP_STATE.selectedSupermarketId = null;
+    renderApp();
+}
+
+// ==========================================
+// DASHBOARD DEL EDUCADOR Y ADMINISTRADOR (CON PESTAÑAS)
+// ==========================================
+function setTeacherTab(tabName) {
+    APP_STATE.teacherActiveTab = tabName;
+    renderApp();
+}
+
+function renderTeacherDashboard(container) {
+    const activeTab = APP_STATE.teacherActiveTab || 'home';
+
     container.innerHTML = `
         <div class="space-y-6">
-            <div class="bg-indigo-900 text-white p-6 rounded-3xl shadow-lg flex flex-wrap justify-between items-center gap-4">
-                <div>
-                    <h2 class="text-2xl font-black">👑 Panel de Administración</h2>
-                    <p class="text-xs text-indigo-200 mt-1">Gestión completa de Cursos, Educadores, Alumnos y Claves.</p>
+            <!-- ENCABEZADO Y MENÚ DE PESTAÑAS -->
+            <div class="bg-indigo-900 text-white p-6 rounded-3xl shadow-xl space-y-4 border-b-4 border-indigo-700">
+                <div class="flex flex-wrap justify-between items-center gap-4">
+                    <div>
+                        <h2 class="text-2xl font-black flex items-center gap-2">
+                            <i class="fa-solid fa-chalkboard-user text-amber-400"></i>
+                            <span>Panel de Gestión y Métrica Pedagógica</span>
+                        </h2>
+                        <p class="text-xs text-indigo-200 mt-1">Supervisión, edición de catálogo y personalización adaptativa.</p>
+                    </div>
+
+                    <!-- BOTÓN VISTA DE JUEGO DEL ALUMNO -->
+                    <button onclick="toggleStudentPreview(true)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-4 py-2.5 rounded-2xl shadow-lg border-b-4 border-amber-600 flex items-center gap-2 active:scale-95 transition-transform">
+                        <span>🕹️</span>
+                        <span>Ver Juego (Vista Alumno)</span>
+                    </button>
                 </div>
-                <div class="bg-indigo-800 px-3 py-1.5 rounded-xl border border-indigo-700 flex items-center gap-2">
-                    <label class="text-xs font-bold uppercase text-indigo-200">Filtrar por Curso:</label>
-                    <select id="adminCourseFilter" onchange="filterAdminByCourse(this.value)" class="bg-white text-slate-900 text-xs font-bold px-2 py-1 rounded-lg">
-                        <option value="all" ${APP_STATE.adminCourseFilter === 'all' ? 'selected' : ''}>Todos los Cursos</option>
-                        ${(APP_STATE.courses || []).map(c => `<option value="${c.id}" ${APP_STATE.adminCourseFilter === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
-                    </select>
+
+                <!-- MENÚ DE NAVEGACIÓN PRINCIPAL (PESTAÑAS) -->
+                <div class="flex flex-wrap gap-2 pt-2 border-t border-indigo-800">
+                    <button onclick="setTeacherTab('home')" class="px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 ${activeTab === 'home' ? 'bg-white text-indigo-950 shadow-md scale-105' : 'bg-indigo-800 text-indigo-200 hover:bg-indigo-700'}">
+                        <span>📊</span><span>Inicio & Telemetría</span>
+                    </button>
+                    <button onclick="setTeacherTab('catalog')" class="px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 ${activeTab === 'catalog' ? 'bg-white text-indigo-950 shadow-md scale-105' : 'bg-indigo-800 text-indigo-200 hover:bg-indigo-700'}">
+                        <span>🏪</span><span>Supermercados y Catálogo</span>
+                    </button>
+                    <button onclick="setTeacherTab('currency')" class="px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 ${activeTab === 'currency' ? 'bg-white text-indigo-950 shadow-md scale-105' : 'bg-indigo-800 text-indigo-200 hover:bg-indigo-700'}">
+                        <span>💵</span><span>Billetes y Monedas (CLP)</span>
+                    </button>
+                    ${APP_STATE.currentUser.role === 'admin' ? `
+                        <button onclick="setTeacherTab('users')" class="px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 ${activeTab === 'users' ? 'bg-white text-indigo-950 shadow-md scale-105' : 'bg-indigo-800 text-indigo-200 hover:bg-indigo-700'}">
+                            <span>👑</span><span>Gestión de Usuarios</span>
+                        </button>
+                    ` : ''}
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
-                    <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-school text-indigo-600"></i> Cursos</h3>
-                        <button onclick="addNewCoursePrompt()" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Curso</button>
+            <!-- CONTENIDO DE LAS PESTAÑAS -->
+            <div id="teacherTabContent">
+                ${activeTab === 'home' ? renderTeacherHomeTab() : ''}
+                ${activeTab === 'catalog' ? renderTeacherCatalogTab() : ''}
+                ${activeTab === 'currency' ? renderTeacherCurrencyTab() : ''}
+                ${activeTab === 'users' && APP_STATE.currentUser.role === 'admin' ? renderAdminUsersTab() : ''}
+            </div>
+        </div>
+    `;
+}
+
+// ------------------------------------------
+// PESTAÑA 1: INICIO, TELEMETRÍA E HISTORIAL
+// ------------------------------------------
+function renderTeacherHomeTab() {
+    const totalEvals = (APP_STATE.evaluations || []).length;
+    const avgTime = totalEvals > 0 ? Math.round(APP_STATE.evaluations.reduce((a, e) => a + (e.timeSeconds || 0), 0) / totalEvals) : 0;
+    const totalVoiceHelp = APP_STATE.telemetry ? APP_STATE.telemetry.voiceHelpCount || 0 : 0;
+
+    return `
+        <div class="space-y-6">
+            <!-- TARJETAS DE MÉTRICA Y TELEMETRÍA AUTOMATIZADA -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-3xl border-4 border-indigo-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Compras Realizadas</span>
+                        <span class="text-2xl font-black text-indigo-950">${totalEvals}</span>
                     </div>
-                    <div class="space-y-2">
-                        ${(APP_STATE.courses || []).map(c => `
-                            <div class="p-3 bg-slate-50 border rounded-xl flex justify-between items-center text-sm font-bold">
-                                <span>${c.name}</span>
-                                <button onclick="deleteCourse('${c.id}')" class="text-rose-600 text-xs">Eliminar</button>
+                    <div class="bg-indigo-100 text-indigo-600 p-3 rounded-2xl text-xl">🛍️</div>
+                </div>
+                <div class="bg-white p-4 rounded-3xl border-4 border-emerald-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Promedio de Búsqueda</span>
+                        <span class="text-2xl font-black text-emerald-700">${Math.floor(avgTime / 60)}m ${avgTime % 60}s</span>
+                    </div>
+                    <div class="bg-emerald-100 text-emerald-600 p-3 rounded-2xl text-xl">⏱️</div>
+                </div>
+                <div class="bg-white p-4 rounded-3xl border-4 border-amber-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Alumnos Registrados</span>
+                        <span class="text-2xl font-black text-amber-900">${(APP_STATE.users || []).filter(u => u.role === 'student').length}</span>
+                    </div>
+                    <div class="bg-amber-100 text-amber-600 p-3 rounded-2xl text-xl">🎒</div>
+                </div>
+                <div class="bg-white p-4 rounded-3xl border-4 border-sky-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Usos Lectura por Voz</span>
+                        <span class="text-2xl font-black text-sky-800">${totalVoiceHelp}</span>
+                    </div>
+                    <div class="bg-sky-100 text-sky-600 p-3 rounded-2xl text-xl">🔊</div>
+                </div>
+            </div>
+
+            <!-- HISTORIAL DE COMPRAS -->
+            <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-md space-y-4">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i>
+                        <span>Historial de Compras de los Estudiantes</span>
+                    </h3>
+                    <span class="bg-indigo-100 text-indigo-900 text-xs font-extrabold px-3 py-1 rounded-xl">
+                        ${(APP_STATE.evaluations || []).length} Registros
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="border-b-2 border-slate-200 text-slate-500 uppercase font-black">
+                                <th class="py-2.5 px-3">Fecha</th>
+                                <th class="py-2.5 px-3">Alumno</th>
+                                <th class="py-2.5 px-3">Supermercado</th>
+                                <th class="py-2.5 px-3 text-center">Productos</th>
+                                <th class="py-2.5 px-3">Total ($)</th>
+                                <th class="py-2.5 px-3 text-center">Tiempo</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-bold">
+                            ${(APP_STATE.evaluations || []).length === 0 ? `
+                                <tr>
+                                    <td colspan="6" class="py-8 text-center text-slate-400 italic">Aún no hay compras registradas por los estudiantes.</td>
+                                </tr>
+                            ` : (APP_STATE.evaluations || []).map(e => `
+                                <tr class="hover:bg-slate-50">
+                                    <td class="py-3 px-3 text-slate-500">${e.date || 'Reciente'}</td>
+                                    <td class="py-3 px-3 font-black text-indigo-950">${e.studentName || 'Alumno'}</td>
+                                    <td class="py-3 px-3">${e.supermarketName || 'Supermercado'}</td>
+                                    <td class="py-3 px-3 text-center bg-slate-100 rounded-lg">${e.itemCount || 1}</td>
+                                    <td class="py-3 px-3 font-black text-emerald-700">$${(e.totalCLP || 0).toLocaleString('es-CL')}</td>
+                                    <td class="py-3 px-3 text-center font-mono">${Math.floor((e.timeSeconds || 0) / 60)}m ${(e.timeSeconds || 0) % 60}s</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ------------------------------------------
+// PESTAÑA 2: MÓDULO DE SUPERMERCADOS, PRODUCTOS Y CATEGORÍAS
+// ------------------------------------------
+function renderTeacherCatalogTab() {
+    return `
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- MÓDULO SUPERMERCADOS -->
+            <div class="bg-white p-6 rounded-3xl border-4 border-emerald-300 shadow-md space-y-4">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-store text-emerald-600"></i>
+                        <span>Gestión de Supermercados</span>
+                    </h3>
+                    <button onclick="openSupermarketModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow border-b-2 border-emerald-800 active:scale-95">
+                        + Crear Supermercado
+                    </button>
+                </div>
+
+                <div class="space-y-2 max-h-96 overflow-y-auto pr-1">
+                    ${(APP_STATE.supermarkets || []).length === 0 ? `
+                        <p class="text-xs text-slate-400 italic py-4 text-center">No hay supermercados creados.</p>
+                    ` : (APP_STATE.supermarkets || []).map(s => `
+                        <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl flex justify-between items-center text-xs font-bold">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-2xl">${s.icon || '🏪'}</span>
+                                <div>
+                                    <h4 class="font-black text-slate-800 text-sm">${s.name}</h4>
+                                    <p class="text-[11px] text-slate-500">${s.description || 'Sin descripción'}</p>
+                                </div>
                             </div>
-                        `).join('')}
+                            <button onclick="openSupermarketModal('${s.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-xl border border-amber-300 font-extrabold">
+                                ✏️ Editar
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- MÓDULO PRODUCTOS Y CATEGORÍAS -->
+            <div class="bg-white p-6 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
+                <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
+                    <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-boxes-stacked text-amber-600"></i>
+                        <span>Catálogo de Productos</span>
+                    </h3>
+                    <div class="flex gap-2">
+                        <button onclick="openCategoryModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-3 py-2 rounded-xl shadow active:scale-95">
+                            + Nueva Categoría
+                        </button>
+                        <button onclick="openProductModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-xs px-3 py-2 rounded-xl shadow border-b-2 border-amber-700 active:scale-95">
+                            + Nuevo Producto
+                        </button>
                     </div>
                 </div>
 
-                <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
-                    <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-chalkboard-user text-indigo-600"></i> Educadores</h3>
-                        <button onclick="openCreateUserModal('teacher')" class="bg-indigo-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Educador</button>
-                    </div>
-                    <div class="space-y-2 max-h-96 overflow-y-auto">
-                        ${renderUserRoleList('teacher')}
-                    </div>
+                <div class="space-y-2 max-h-96 overflow-y-auto pr-1">
+                    ${(APP_STATE.products || []).length === 0 ? `
+                        <p class="text-xs text-slate-400 italic py-4 text-center">No hay productos ingresados.</p>
+                    ` : (APP_STATE.products || []).map(p => `
+                        <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl flex justify-between items-center text-xs font-bold">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-2xl">${p.iconEmoji || '📦'}</span>
+                                <div>
+                                    <h4 class="font-black text-slate-800 text-sm">${p.name}</h4>
+                                    <span class="text-emerald-700 font-black">$${(p.price || 0).toLocaleString('es-CL')}</span>
+                                    <span class="text-slate-400 font-normal">| ${p.category || 'General'}</span>
+                                </div>
+                            </div>
+                            <button onclick="openProductModal('${p.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-xl border border-amber-300 font-extrabold">
+                                ✏️ Editar
+                            </button>
+                        </div>
+                    `).join('')}
                 </div>
+            </div>
+        </div>
+    `;
+}
 
-                <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
-                    <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-children text-indigo-600"></i> Alumnos</h3>
-                        <button onclick="openCreateUserModal('student')" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Alumno</button>
+// ------------------------------------------
+// PESTAÑA 3: BILLETES Y MONEDAS CLP
+// ------------------------------------------
+function renderTeacherCurrencyTab() {
+    return `
+        <div class="bg-white p-6 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
+            <div class="border-b pb-3">
+                <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-money-bill-wave text-amber-600"></i>
+                    <span>Personalizar Fotos de Billetes y Monedas (CLP)</span>
+                </h3>
+                <p class="text-xs text-slate-500 font-bold mt-1">Sube fotografías de los billetes y monedas reales utilizados en las actividades dinámicas.</p>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                ${CLP_CURRENCY_ITEMS.map(item => `
+                    <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-3xl flex flex-col items-center text-center space-y-3">
+                        <span class="text-xs font-black text-slate-800">${item.name}</span>
+                        <div class="w-full h-24 bg-white rounded-2xl border border-slate-200 overflow-hidden flex items-center justify-center p-1">
+                            <img src="${APP_STATE.customCurrencies[item.id] || item.img}" class="w-full h-full object-contain">
+                        </div>
+                        <button onclick="openCurrencyEditModal('${item.id}', '${item.name}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black px-3 py-1.5 rounded-xl text-xs w-full border-b-2 border-amber-600 active:scale-95 shadow">
+                            📷 Cambiar Foto
+                        </button>
                     </div>
-                    <div class="space-y-2 max-h-96 overflow-y-auto">
-                        ${renderUserRoleList('student')}
-                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+// ------------------------------------------
+// PESTAÑA 4: GESTIÓN DE USUARIOS (SÓLO ADMIN)
+// ------------------------------------------
+function renderAdminUsersTab() {
+    return `
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-school text-indigo-600"></i> Cursos</h3>
+                    <button onclick="addNewCoursePrompt()" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Curso</button>
+                </div>
+                <div class="space-y-2">
+                    ${(APP_STATE.courses || []).map(c => `
+                        <div class="p-3 bg-slate-50 border rounded-xl flex justify-between items-center text-sm font-bold">
+                            <span>${c.name}</span>
+                            <button onclick="deleteCourse('${c.id}')" class="text-rose-600 text-xs">Eliminar</button>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-chalkboard-user text-indigo-600"></i> Educadores</h3>
+                    <button onclick="openCreateUserModal('teacher')" class="bg-indigo-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Educador</button>
+                </div>
+                <div class="space-y-2 max-h-96 overflow-y-auto">
+                    ${renderUserRoleList('teacher')}
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-children text-indigo-600"></i> Alumnos</h3>
+                    <button onclick="openCreateUserModal('student')" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Alumno</button>
+                </div>
+                <div class="space-y-2 max-h-96 overflow-y-auto">
+                    ${renderUserRoleList('student')}
                 </div>
             </div>
         </div>
@@ -331,88 +598,9 @@ function renderUserRoleList(role) {
     `).join('');
 }
 
-function renderTeacherDashboard(container) {
-    const totalEvals = (APP_STATE.evaluations || []).length;
-    const avgTime = totalEvals > 0 ? Math.round(APP_STATE.evaluations.reduce((a, e) => a + (e.timeSeconds || 0), 0) / totalEvals) : 0;
-
-    container.innerHTML = `
-        <div class="space-y-6">
-            <div class="bg-indigo-900 text-white p-6 rounded-3xl shadow-xl flex flex-wrap justify-between items-center gap-4 border-b-4 border-indigo-700">
-                <div>
-                    <h2 class="text-2xl font-black flex items-center gap-2">
-                        <i class="fa-solid fa-chart-line text-amber-400"></i>
-                        <span>Centro de Evaluación y Métrica NEE</span>
-                    </h2>
-                    <p class="text-xs text-indigo-200 mt-1">Monitoreo pedagógico y gestión del catálogo.</p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    <button onclick="openTeacherCourseModal()" class="bg-indigo-700 hover:bg-indigo-600 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow flex items-center gap-1.5 border border-indigo-500">Mis Cursos</button>
-                    <button onclick="openCreateUserModal('student')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-3.5 py-2 rounded-xl shadow">+ Crear Alumno</button>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="bg-white p-4 rounded-2xl border-2 border-indigo-200 shadow-sm flex items-center justify-between">
-                    <div>
-                        <span class="text-xs font-extrabold text-slate-500 uppercase block">Compras Registradas</span>
-                        <span class="text-2xl font-black text-indigo-950">${totalEvals}</span>
-                    </div>
-                    <div class="bg-indigo-100 text-indigo-600 p-3 rounded-xl text-xl">🛍️</div>
-                </div>
-                <div class="bg-white p-4 rounded-2xl border-2 border-emerald-200 shadow-sm flex items-center justify-between">
-                    <div>
-                        <span class="text-xs font-extrabold text-slate-500 uppercase block">Promedio Búsqueda</span>
-                        <span class="text-2xl font-black text-emerald-700">${Math.floor(avgTime / 60)}m ${avgTime % 60}s</span>
-                    </div>
-                    <div class="bg-emerald-100 text-emerald-600 p-3 rounded-xl text-xl">⏱️</div>
-                </div>
-                <div class="bg-white p-4 rounded-2xl border-2 border-amber-200 shadow-sm flex items-center justify-between">
-                    <div>
-                        <span class="text-xs font-extrabold text-slate-500 uppercase block">Alumnos Activos</span>
-                        <span class="text-2xl font-black text-amber-900">${(APP_STATE.users || []).filter(u => u.role === 'student').length}</span>
-                    </div>
-                    <div class="bg-amber-100 text-amber-600 p-3 rounded-xl text-xl">🎒</div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white p-5 rounded-3xl border-4 border-emerald-200 shadow space-y-3">
-                    <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 text-sm">🏪 Supermercados Creados</h3>
-                        <button onclick="openSupermarketModal()" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Crear</button>
-                    </div>
-                    <div class="space-y-2 max-h-48 overflow-y-auto">
-                        ${(APP_STATE.supermarkets || []).map(s => `
-                            <div class="p-2 bg-slate-50 border rounded-xl flex justify-between items-center text-xs font-bold">
-                                <span>${s.icon || '🏪'} ${s.name}</span>
-                                <button onclick="openSupermarketModal('${s.id}')" class="text-amber-600">✏️ Editar</button>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-
-                <div class="bg-white p-5 rounded-3xl border-4 border-amber-200 shadow space-y-3">
-                    <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 text-sm">🍎 Productos y Categorías</h3>
-                        <div class="flex gap-2">
-                            <button onclick="openCategoryModal()" class="bg-indigo-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Categoría</button>
-                            <button onclick="openProductModal()" class="bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Producto</button>
-                        </div>
-                    </div>
-                    <div class="space-y-2 max-h-48 overflow-y-auto">
-                        ${(APP_STATE.products || []).map(p => `
-                            <div class="p-2 bg-slate-50 border rounded-xl flex justify-between items-center text-xs font-bold">
-                                <span>${p.iconEmoji || '📦'} ${p.name} ($${p.price})</span>
-                                <button onclick="openProductModal('${p.id}')" class="text-amber-600">✏️ Editar</button>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
+// ==========================================
+// VISTA DE LA TIENDA DE ESTUDIANTES
+// ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
         <div class="space-y-6">
@@ -422,7 +610,7 @@ function renderHomeView(container) {
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 ${(APP_STATE.supermarkets || []).map(sup => `
-                    <div onclick="selectSupermarket('${sup.id}')" class="bg-white rounded-3xl border-4 border-slate-300 p-6 shadow-lg hover:shadow-2xl cursor-pointer flex flex-col items-center text-center space-y-4 active:scale-95">
+                    <div onclick="selectSupermarket('${sup.id}')" class="bg-white rounded-3xl border-4 border-slate-300 p-6 shadow-lg hover:shadow-2xl cursor-pointer flex flex-col items-center text-center space-y-4 active:scale-95 transition-transform">
                         <div class="bg-amber-400 p-4 rounded-3xl text-5xl">${sup.icon || '🛒'}</div>
                         <h3 class="text-2xl font-black text-slate-800">${sup.name}</h3>
                     </div>
@@ -444,7 +632,7 @@ function renderSupermarketView(container, supId) {
     container.innerHTML = `
         <div class="space-y-6">
             <div class="flex items-center justify-between bg-white p-4 rounded-2xl border-2 border-slate-300">
-                <button onclick="goHome()" class="bg-slate-200 text-slate-800 font-bold px-4 py-2 rounded-xl">← Volver</button>
+                <button onclick="goHome()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-4 py-2 rounded-xl text-xs">← Volver</button>
                 <h2 class="text-2xl font-black text-slate-800">${sup ? sup.name : 'Supermercado'}</h2>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -454,10 +642,10 @@ function renderSupermarketView(container, supId) {
                             <span class="text-4xl">${prod.iconEmoji || '📦'}</span>
                             <div>
                                 <h3 class="text-lg font-black text-slate-800">${prod.name}</h3>
-                                <div class="text-2xl font-black text-emerald-700">$${prod.price.toLocaleString('es-CL')}</div>
+                                <div class="text-2xl font-black text-emerald-700">$${(prod.price || 0).toLocaleString('es-CL')}</div>
                             </div>
                         </div>
-                        <button onclick="addToBasket('${prod.id}')" class="bg-emerald-600 text-white font-black py-3 rounded-xl shadow border-b-4 border-emerald-800">Añadir al Canasto</button>
+                        <button onclick="addToBasket('${prod.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl shadow border-b-4 border-emerald-900 active:scale-95">Añadir al Canasto</button>
                     </div>
                 `).join('')}
             </div>
@@ -479,7 +667,7 @@ function updateCategoryDropdowns(selectedName = null) {
 
 function filterAdminByCourse(cId) {
     APP_STATE.adminCourseFilter = cId;
-    renderAdminDashboard(document.getElementById('appContainer'));
+    renderApp();
 }
 
 function addNewCoursePrompt() {
@@ -664,7 +852,6 @@ function closeProductModal() {
     if (el) el.classList.add('hidden');
 }
 
-// GUARDA Y REPLICA EL PRODUCTO EN TODOS LOS SUPERMERCADOS
 function saveProductFromModal() {
     const prodId = document.getElementById('modalProdId')?.value;
     const supSelect = document.getElementById('modalProdSupermarket');
@@ -721,6 +908,18 @@ function saveProductFromModal() {
     }
 }
 
+function openCurrencyEditModal(id, name) {
+    document.getElementById('modalCurrencyId').value = id;
+    document.getElementById('currencyModalTitle').textContent = `Foto de ${name}`;
+    const el = document.getElementById('currencyEditModal');
+    if (el) el.classList.remove('hidden');
+}
+
+function closeCurrencyEditModal() {
+    const el = document.getElementById('currencyEditModal');
+    if (el) el.classList.add('hidden');
+}
+
 function openBasketModal() {
     const el = document.getElementById('basketModal');
     if (el) el.classList.remove('hidden');
@@ -769,6 +968,12 @@ function initFirebaseListeners() {
     db.collection('supermarkets').onSnapshot(s => { APP_STATE.supermarkets = s.docs.map(d => d.data()); renderApp(); });
     db.collection('products').onSnapshot(s => { APP_STATE.products = s.docs.map(d => d.data()); renderApp(); });
     db.collection('evaluations').onSnapshot(s => { APP_STATE.evaluations = s.docs.map(d => d.data()); renderApp(); });
+    db.collection('currencies').onSnapshot(s => {
+        const map = {};
+        s.docs.forEach(doc => { map[doc.id] = doc.data().photoUrl; });
+        APP_STATE.customCurrencies = map;
+        renderApp();
+    });
 }
 
 // Inicialización de la app
