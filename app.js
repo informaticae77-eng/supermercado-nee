@@ -27,7 +27,7 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
-// ESTADO GLOBAL
+// ESTADO GLOBAL DE LA APLICACIÓN
 // ==========================================
 const APP_STATE = {
     currentUser: null,
@@ -36,6 +36,8 @@ const APP_STATE = {
     teacherPreviewMode: false,
     adminCourseFilter: 'all',
     basket: [],
+    userPaidAmount: 0,
+    userPaidTray: [],
     courses: [],
     categories: [],
     users: [],
@@ -43,7 +45,11 @@ const APP_STATE = {
     products: [],
     evaluations: [],
     customCurrencies: {},
-    telemetry: { voiceHelpCount: 0 }
+    telemetry: { voiceHelpCount: 0, paymentResetsCount: 0 },
+    missionActive: false,
+    missionStartTime: null,
+    missionTimerInterval: null,
+    missionElapsedSeconds: 0
 };
 
 let cameraStream = null;
@@ -62,7 +68,7 @@ const CLP_CURRENCY_ITEMS = [
 ];
 
 // ==========================================
-// FUNCIONES AUXILIARES
+// FUNCIONES AUXILIARES Y ACCESIBILIDAD
 // ==========================================
 function speakText(text) {
     if (APP_STATE.telemetry) APP_STATE.telemetry.voiceHelpCount++;
@@ -95,6 +101,19 @@ function playChimeSound() {
     } catch(e) {}
 }
 
+function calculateCLPBreakdown(amount) {
+    let remaining = amount;
+    const result = [];
+    CLP_CURRENCY_ITEMS.forEach(item => {
+        const count = Math.floor(remaining / item.value);
+        if (count > 0) {
+            result.push({ ...item, count });
+            remaining %= item.value;
+        }
+    });
+    return result;
+}
+
 function sendAutomaticCredentialsEmail(user) {
     if (!user || !user.email) return;
     if (typeof emailjs !== 'undefined') {
@@ -114,7 +133,7 @@ function sendAutomaticCredentialsEmail(user) {
 }
 
 // ==========================================
-// RENDERIZADO PRINCIPAL
+// RENDERIZADO GENERAL Y CONTROL DE VISTAS
 // ==========================================
 function renderApp() {
     const container = document.getElementById('appContainer');
@@ -126,9 +145,14 @@ function renderApp() {
         const roleTag = APP_STATE.currentUser.role === 'admin' ? '🔑 Admin' :
                        (APP_STATE.currentUser.role === 'teacher' ? '👨‍🏫 Educador' : '🎒 Alumno');
         
+        const avatarHtml = APP_STATE.currentUser.photoUrl 
+            ? `<img src="${APP_STATE.currentUser.photoUrl}" class="w-7 h-7 rounded-full object-cover border border-indigo-400">`
+            : '';
+
         if (userInfoHeader) {
             userInfoHeader.innerHTML = `
                 <div class="bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-xl text-xs flex items-center gap-2 shadow-sm">
+                    ${avatarHtml}
                     <span class="font-bold text-indigo-900">${APP_STATE.currentUser.name}</span>
                     <span class="bg-indigo-600 text-white font-black px-2 py-0.5 rounded-md text-[10px]">${roleTag}</span>
                 </div>
@@ -221,7 +245,7 @@ function goHome() {
 }
 
 // ==========================================
-// VISTA PREVIA DEL ALUMNO (MODO PRUEBA)
+// MODO PRUEBA DE ESTUDIANTE PARA DOCENTES
 // ==========================================
 function renderStudentPreviewWrapper(container) {
     const previewBanner = `
@@ -230,7 +254,7 @@ function renderStudentPreviewWrapper(container) {
                 <span class="text-2xl">🕹️</span>
                 <div>
                     <h3 class="font-black text-sm tracking-tight">MODO PRUEBA: VISTA DEL ESTUDIANTE</h3>
-                    <p class="text-[11px] font-bold text-slate-800">Prueba el juego tal como lo ven los alumnos.</p>
+                    <p class="text-[11px] font-bold text-slate-800">Prueba la tienda interactiva tal como la ven los alumnos.</p>
                 </div>
             </div>
             <button onclick="toggleStudentPreview(false)" class="bg-slate-900 hover:bg-black text-white font-black text-xs px-4 py-2 rounded-xl border-b-2 border-slate-950 shadow active:scale-95">
@@ -257,7 +281,7 @@ function toggleStudentPreview(status) {
 }
 
 // ==========================================
-// PANEL DE CONTROL DOCENTE Y ADMIN (PESTAÑAS)
+// DASHBOARD DEL EDUCADOR Y ADMINISTRADOR
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -274,9 +298,9 @@ function renderTeacherDashboard(container) {
                     <div>
                         <h2 class="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
                             <span>🏫</span>
-                            <span>Panel Docente y Administración</span>
+                            <span>Panel Docente y Evaluación NEE</span>
                         </h2>
-                        <p class="text-xs text-indigo-300 font-bold mt-0.5">Supervisión en tiempo real y catálogo adaptativo</p>
+                        <p class="text-xs text-indigo-300 font-bold mt-0.5">Supervisión en tiempo real, catálogo e informes pedagógicos</p>
                     </div>
 
                     <button onclick="toggleStudentPreview(true)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-4 py-2.5 rounded-xl shadow-lg border-b-4 border-amber-600 flex items-center gap-2 active:scale-95 transition-transform">
@@ -287,7 +311,7 @@ function renderTeacherDashboard(container) {
 
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800">
                     <button onclick="setTeacherTab('home')" class="py-3 px-3 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 ${activeTab === 'home' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>📊</span><span>1. Inicio & Telemetría</span>
+                        <span>📊</span><span>1. Evaluaciones & Métricas</span>
                     </button>
                     <button onclick="setTeacherTab('catalog')" class="py-3 px-3 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 ${activeTab === 'catalog' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
                         <span>🏪</span><span>2. Catálogo & Tiendas</span>
@@ -296,7 +320,7 @@ function renderTeacherDashboard(container) {
                         <span>💵</span><span>3. Billetes / Monedas</span>
                     </button>
                     <button onclick="setTeacherTab('users')" class="py-3 px-3 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 ${activeTab === 'users' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>🔑</span><span>4. Gestión Usuarios</span>
+                        <span>🔑</span><span>4. Usuarios & Cursos</span>
                     </button>
                 </div>
             </div>
@@ -311,7 +335,9 @@ function renderTeacherDashboard(container) {
     `;
 }
 
-// PESTAÑA 1: INICIO Y HISTORIAL
+// ------------------------------------------
+// MÓDULO DE EVALUACIÓN DE ACTIVIDADES E HISTORIAL
+// ------------------------------------------
 function renderTeacherHomeTab() {
     const totalEvals = (APP_STATE.evaluations || []).length;
     const avgTime = totalEvals > 0 ? Math.round(APP_STATE.evaluations.reduce((a, e) => a + (e.timeSeconds || 0), 0) / totalEvals) : 0;
@@ -336,28 +362,32 @@ function renderTeacherHomeTab() {
                 </div>
                 <div class="bg-white p-4 rounded-3xl border-4 border-amber-200 shadow-sm flex items-center justify-between">
                     <div>
-                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Alumnos Registrados</span>
+                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Alumnos Activos</span>
                         <span class="text-2xl font-black text-amber-900">${(APP_STATE.users || []).filter(u => u.role === 'student').length}</span>
                     </div>
                     <div class="bg-amber-100 text-amber-600 p-3 rounded-2xl text-xl">🎒</div>
                 </div>
                 <div class="bg-white p-4 rounded-3xl border-4 border-sky-200 shadow-sm flex items-center justify-between">
                     <div>
-                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Lectura por Voz</span>
+                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Uso Lectura por Voz</span>
                         <span class="text-2xl font-black text-sky-800">${totalVoiceHelp}</span>
                     </div>
                     <div class="bg-sky-100 text-sky-600 p-3 rounded-2xl text-xl">🔊</div>
                 </div>
             </div>
 
+            <!-- REGISTRO PEDAGÓGICO COMPLETO -->
             <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-md space-y-4">
-                <div class="flex justify-between items-center border-b pb-3">
-                    <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
-                        <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i>
-                        <span>Historial de Compras y Telemetría</span>
-                    </h3>
+                <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
+                    <div>
+                        <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-check text-indigo-600"></i>
+                            <span>Informe y Módulo de Evaluación de Actividades</span>
+                        </h3>
+                        <p class="text-xs text-slate-500">Resultados de las compras realizadas por los estudiantes.</p>
+                    </div>
                     <span class="bg-indigo-100 text-indigo-900 text-xs font-extrabold px-3 py-1 rounded-xl">
-                        ${(APP_STATE.evaluations || []).length} Registros
+                        ${totalEvals} Evaluaciones Guardadas
                     </span>
                 </div>
 
@@ -365,26 +395,28 @@ function renderTeacherHomeTab() {
                     <table class="w-full text-left text-xs">
                         <thead>
                             <tr class="border-b-2 border-slate-200 text-slate-500 uppercase font-black">
-                                <th class="py-2.5 px-3">Fecha</th>
-                                <th class="py-2.5 px-3">Alumno</th>
+                                <th class="py-2.5 px-3">Fecha y Hora</th>
+                                <th class="py-2.5 px-3">Estudiante</th>
                                 <th class="py-2.5 px-3">Supermercado</th>
-                                <th class="py-2.5 px-3 text-center">Items</th>
+                                <th class="py-2.5 px-3 text-center">Items Comprados</th>
                                 <th class="py-2.5 px-3">Total ($)</th>
-                                <th class="py-2.5 px-3 text-center">Tiempo</th>
+                                <th class="py-2.5 px-3">Pagado ($)</th>
+                                <th class="py-2.5 px-3 text-center">Tiempo Búsqueda</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 font-bold">
-                            ${(APP_STATE.evaluations || []).length === 0 ? `
+                            ${totalEvals === 0 ? `
                                 <tr>
-                                    <td colspan="6" class="py-8 text-center text-slate-400 italic">Aún no hay compras registradas por los estudiantes.</td>
+                                    <td colspan="7" class="py-8 text-center text-slate-400 italic">No hay evaluaciones registradas aún. Los resultados aparecerán automáticamente cuando los estudiantes paguen en caja.</td>
                                 </tr>
                             ` : (APP_STATE.evaluations || []).map(e => `
                                 <tr class="hover:bg-slate-50">
                                     <td class="py-3 px-3 text-slate-500">${e.date || 'Reciente'}</td>
-                                    <td class="py-3 px-3 font-black text-indigo-950">${e.studentName || 'Alumno'}</td>
+                                    <td class="py-3 px-3 font-black text-indigo-950">${e.studentName || 'Estudiante'}</td>
                                     <td class="py-3 px-3">${e.supermarketName || 'Supermercado'}</td>
-                                    <td class="py-3 px-3 text-center bg-slate-100 rounded-lg">${e.itemCount || 1}</td>
+                                    <td class="py-3 px-3 text-center bg-slate-100 rounded-lg font-black">${e.itemCount || 1}</td>
                                     <td class="py-3 px-3 font-black text-emerald-700">$${(e.totalCLP || 0).toLocaleString('es-CL')}</td>
+                                    <td class="py-3 px-3 font-black text-indigo-900">$${(e.paidCLP || 0).toLocaleString('es-CL')}</td>
                                     <td class="py-3 px-3 text-center font-mono">${Math.floor((e.timeSeconds || 0) / 60)}m ${(e.timeSeconds || 0) % 60}s</td>
                                 </tr>
                             `).join('')}
@@ -396,7 +428,9 @@ function renderTeacherHomeTab() {
     `;
 }
 
-// PESTAÑA 2: SUPERMERCADOS Y PRODUCTOS
+// ------------------------------------------
+// MÓDULO DE SUPERMERCADOS, PRODUCTOS Y CATEGORÍAS
+// ------------------------------------------
 function renderTeacherCatalogTab() {
     return `
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -404,7 +438,7 @@ function renderTeacherCatalogTab() {
                 <div class="flex justify-between items-center border-b pb-3">
                     <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
                         <i class="fa-solid fa-store text-emerald-600"></i>
-                        <span>Crear y Gestionar Supermercados</span>
+                        <span>Supermercados Creados</span>
                     </h3>
                     <button onclick="openSupermarketModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow border-b-2 border-emerald-800 active:scale-95">
                         + Crear Supermercado
@@ -440,14 +474,14 @@ function renderTeacherCatalogTab() {
                 <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
                     <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
                         <i class="fa-solid fa-boxes-stacked text-amber-600"></i>
-                        <span>Catálogo de Productos</span>
+                        <span>Productos y Categorías</span>
                     </h3>
                     <div class="flex gap-2">
                         <button onclick="openCategoryModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-3 py-2 rounded-xl shadow active:scale-95">
-                            + Crear Categoría
+                            + Nueva Categoría
                         </button>
                         <button onclick="openProductModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-xs px-3 py-2 rounded-xl shadow border-b-2 border-amber-700 active:scale-95">
-                            + Crear Producto
+                            + Nuevo Producto
                         </button>
                     </div>
                 </div>
@@ -481,16 +515,18 @@ function renderTeacherCatalogTab() {
     `;
 }
 
-// PESTAÑA 3: BILLETES Y MONEDAS CLP
+// ------------------------------------------
+// MÓDULO DE BILLETES Y MONEDAS CLP
+// ------------------------------------------
 function renderTeacherCurrencyTab() {
     return `
         <div class="bg-white p-6 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
             <div class="border-b pb-3">
                 <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
                     <i class="fa-solid fa-money-bill-wave text-amber-600"></i>
-                    <span>Personalizar Fotos de Billetes y Monedas (CLP)</span>
+                    <span>Personalización de Billetes y Monedas Chilenas (CLP)</span>
                 </h3>
-                <p class="text-xs text-slate-500 font-bold mt-1">Sube fotografías de las denominaciones para adaptar la experiencia visual.</p>
+                <p class="text-xs text-slate-500 font-bold mt-1">Sube fotografías reales o captúralas con la cámara para adaptar el material didáctico.</p>
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
@@ -510,7 +546,9 @@ function renderTeacherCurrencyTab() {
     `;
 }
 
-// PESTAÑA 4: GESTIÓN DE USUARIOS
+// ------------------------------------------
+// MÓDULO DE USUARIOS Y CURSOS
+// ------------------------------------------
 function renderTeacherUsersTab() {
     return `
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -646,7 +684,178 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// CONTROLADORES DE MODALES Y ARCHIVOS
+// CANASTO Y PROCESO DE PAGO CON CLP
+// ==========================================
+function updateBasketBadge() {
+    const badge = document.getElementById('basketBadge');
+    if (badge) badge.textContent = (APP_STATE.basket || []).length;
+}
+
+function addToBasket(prodId) {
+    const prod = (APP_STATE.products || []).find(p => p.id === prodId);
+    if (!prod) return;
+    APP_STATE.basket.push({ productId: prodId, quantity: 1 });
+    playChimeSound();
+    updateBasketBadge();
+    speakText(`Añadido ${prod.name}`);
+}
+
+function clearBasket() {
+    APP_STATE.basket = [];
+    APP_STATE.userPaidAmount = 0;
+    APP_STATE.userPaidTray = [];
+    updateBasketBadge();
+    renderBasketModalContent();
+}
+
+function openBasketModal() {
+    renderBasketModalContent();
+    const el = document.getElementById('basketModal');
+    if (el) el.classList.remove('hidden');
+}
+
+function closeBasketModal() {
+    const el = document.getElementById('basketModal');
+    if (el) el.classList.add('hidden');
+}
+
+function renderBasketModalContent() {
+    const listEl = document.getElementById('basketItemsList');
+    const totalEl = document.getElementById('basketTotalCLP');
+    const paidEl = document.getElementById('userPaidTotal');
+    const trayEl = document.getElementById('paymentMoneyTray');
+    const breakdownEl = document.getElementById('basketCurrencyBreakdown');
+
+    if (!listEl) return;
+
+    let total = 0;
+    listEl.innerHTML = (APP_STATE.basket || []).length === 0 
+        ? `<p class="text-center text-slate-400 py-6 font-bold text-xs">Tu canasto está vacío.</p>`
+        : APP_STATE.basket.map((item, idx) => {
+            const p = (APP_STATE.products || []).find(x => x.id === item.productId);
+            if (!p) return '';
+            total += (p.price || 0);
+            const imgHtml = p.photoUrl 
+                ? `<img src="${p.photoUrl}" class="w-10 h-10 object-cover rounded-xl border border-slate-200">`
+                : `<span class="text-2xl">${p.iconEmoji || '📦'}</span>`;
+            return `
+                <div class="flex items-center justify-between p-2.5 bg-slate-50 border rounded-2xl text-xs font-bold">
+                    <div class="flex items-center space-x-3">
+                        ${imgHtml}
+                        <span class="text-slate-800">${p.name}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-black text-emerald-700">$${(p.price || 0).toLocaleString('es-CL')}</span>
+                        <button onclick="removeFromBasket(${idx})" class="text-rose-600 font-bold px-2 py-1 rounded bg-rose-50">✕</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    if (totalEl) totalEl.textContent = `$${total.toLocaleString('es-CL')}`;
+    if (paidEl) paidEl.textContent = `$${(APP_STATE.userPaidAmount || 0).toLocaleString('es-CL')}`;
+
+    if (breakdownEl) {
+        const breakdown = calculateCLPBreakdown(total);
+        breakdownEl.innerHTML = breakdown.length === 0 
+            ? `<span class="text-xs text-slate-400">$0</span>`
+            : breakdown.map(b => `<span class="inline-block bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md text-[11px] font-black mr-1 mb-1">${b.count}x $${b.value.toLocaleString('es-CL')}</span>`).join('');
+    }
+
+    if (trayEl) {
+        trayEl.innerHTML = CLP_CURRENCY_ITEMS.map(item => `
+            <button onclick="addPaymentMoney(${item.value})" class="bg-white border-2 border-slate-200 hover:border-indigo-500 rounded-xl p-1.5 flex flex-col items-center justify-center space-y-1 active:scale-95 shadow-sm">
+                <img src="${APP_STATE.customCurrencies[item.id] || item.img}" class="h-10 object-contain">
+                <span class="text-[10px] font-black text-slate-800">$${item.value.toLocaleString('es-CL')}</span>
+            </button>
+        `).join('');
+    }
+}
+
+function removeFromBasket(index) {
+    APP_STATE.basket.splice(index, 1);
+    updateBasketBadge();
+    renderBasketModalContent();
+}
+
+function addPaymentMoney(val) {
+    APP_STATE.userPaidAmount += val;
+    playChimeSound();
+    renderBasketModalContent();
+}
+
+function resetUserPayment() {
+    APP_STATE.userPaidAmount = 0;
+    renderBasketModalContent();
+}
+
+// GUARDA LA EVALUACIÓN Y COMPLETA EL CHECKOUT EN CAJA
+function verifyAndCheckout() {
+    let total = 0;
+    (APP_STATE.basket || []).forEach(item => {
+        const p = (APP_STATE.products || []).find(x => x.id === item.productId);
+        if (p) total += (p.price || 0);
+    });
+
+    if (total === 0) return alert("Tu canasto está vacío.");
+    if (APP_STATE.userPaidAmount < total) {
+        const falta = total - APP_STATE.userPaidAmount;
+        speakText(`Te faltan ${falta} pesos para completar la compra.`);
+        return alert(`⚠️ Monto insuficiente. Te faltan $${falta.toLocaleString('es-CL')} para pagar.`);
+    }
+
+    const vuelto = APP_STATE.userPaidAmount - total;
+    const sup = (APP_STATE.supermarkets || []).find(s => s.id === APP_STATE.selectedSupermarketId);
+
+    // REGISTRO DE LA EVALUACIÓN
+    const evalData = {
+        id: 'eval-' + Date.now(),
+        studentId: APP_STATE.currentUser ? APP_STATE.currentUser.id : 'anonimo',
+        studentName: APP_STATE.currentUser ? APP_STATE.currentUser.name : 'Estudiante',
+        rut: APP_STATE.currentUser ? APP_STATE.currentUser.rut || '' : '',
+        supermarketId: APP_STATE.selectedSupermarketId || '',
+        supermarketName: sup ? sup.name : 'Supermercado',
+        totalCLP: total,
+        paidCLP: APP_STATE.userPaidAmount,
+        changeCLP: vuelto,
+        itemCount: APP_STATE.basket.length,
+        timeSeconds: APP_STATE.missionElapsedSeconds || 25,
+        voiceHelpCount: APP_STATE.telemetry.voiceHelpCount,
+        date: new Date().toLocaleString('es-CL'),
+        timestamp: firebase.firestore ? firebase.firestore.FieldValue.serverTimestamp() : null
+    };
+
+    if (db) {
+        db.collection('evaluations').doc(evalData.id).set(evalData);
+    }
+
+    if (typeof confetti !== 'undefined') confetti();
+
+    document.getElementById('successModalTotal').textContent = `$${total.toLocaleString('es-CL')}`;
+    document.getElementById('successModalPaid').textContent = `$${APP_STATE.userPaidAmount.toLocaleString('es-CL')}`;
+    document.getElementById('successModalVueltoAmount').textContent = `$${vuelto.toLocaleString('es-CL')}`;
+
+    const vueltoBreakdown = calculateCLPBreakdown(vuelto);
+    const vueltoContainer = document.getElementById('successModalVueltoBreakdown');
+    if (vueltoContainer) {
+        vueltoContainer.innerHTML = vueltoBreakdown.length === 0
+            ? `<p class="text-xs font-bold text-slate-500">Monto exacto. No requiere vuelto.</p>`
+            : vueltoBreakdown.map(b => `<span class="inline-block bg-emerald-100 text-emerald-900 px-2.5 py-1 rounded-lg text-xs font-black mr-1 mb-1">${b.count}x $${b.value.toLocaleString('es-CL')}</span>`).join('');
+    }
+
+    closeBasketModal();
+    document.getElementById('checkoutSuccessModal').classList.remove('hidden');
+    speakText(`¡Excelente compra! Tu vuelto es de ${vuelto} pesos.`);
+}
+
+function closeSuccessModalAndFinish() {
+    document.getElementById('checkoutSuccessModal').classList.add('hidden');
+    clearBasket();
+    goHome();
+}
+
+// ==========================================
+// CONTROLADORES DE ARCHIVOS Y REPLICACIÓN
 // ==========================================
 function updateCategoryDropdowns(selectedName = null) {
     const catSelect = document.getElementById('modalProdCategory');
@@ -673,7 +882,7 @@ function deleteCourse(id) {
     if (confirm("¿Eliminar este curso?") && db) db.collection('courses').doc(id).delete();
 }
 
-// --- PRODUCTOS ---
+// REPLICACIÓN Y GUARDADO DE PRODUCTOS
 function openProductModal(prodId = null) {
     const supSelect = document.getElementById('modalProdSupermarket');
     if (supSelect) supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
@@ -816,7 +1025,7 @@ function saveProductFromModal() {
     }
 }
 
-// --- SUPERMERCADOS ---
+// SUPERMERCADOS
 function openSupermarketModal(supId = null) {
     const el = document.getElementById('supermarketModal');
     if (el) {
@@ -887,7 +1096,7 @@ function saveSupermarketFromModal() {
     });
 }
 
-// --- CATEGORÍAS ---
+// CATEGORÍAS
 function openCategoryModal(catId = null) {
     const el = document.getElementById('categoryModal');
     if (el) {
@@ -923,7 +1132,7 @@ function selectCategoryIconEmoji(emoji) {
     if (el) el.value = emoji;
 }
 
-// --- BILLETES Y MONEDAS ---
+// BILLETES Y MONEDAS
 function openCurrencyEditModal(id, name) {
     document.getElementById('modalCurrencyId').value = id;
     document.getElementById('currencyModalTitle').textContent = `Foto de ${name}`;
@@ -1010,7 +1219,7 @@ function saveCurrencyPhotoFromModal() {
     }).catch(err => alert("Error al guardar: " + err.message));
 }
 
-// --- USUARIOS ---
+// USUARIOS
 function openCreateUserModal(role) {
     const el = document.getElementById('userModal');
     if (el) {
@@ -1150,33 +1359,8 @@ function resetUserPassword(userId) {
     });
 }
 
-// --- CANASTO ---
-function openBasketModal() {
-    const el = document.getElementById('basketModal');
-    if (el) el.classList.remove('hidden');
-}
-
-function closeBasketModal() {
-    const el = document.getElementById('basketModal');
-    if (el) el.classList.add('hidden');
-}
-
-function updateBasketBadge() {
-    const badge = document.getElementById('basketBadge');
-    if (badge) badge.textContent = (APP_STATE.basket || []).length;
-}
-
-function addToBasket(prodId) {
-    const prod = (APP_STATE.products || []).find(p => p.id === prodId);
-    if (!prod) return;
-    APP_STATE.basket.push({ productId: prodId, quantity: 1 });
-    playChimeSound();
-    updateBasketBadge();
-    speakText(`Añadido ${prod.name}`);
-}
-
 // ==========================================
-// ESCUCHADORES EN TIEMPO REAL
+// ESCUCHADORES EN TIEMPO REAL CON FIREBASE
 // ==========================================
 function initFirebaseListeners() {
     const storedUser = localStorage.getItem('nee_active_user');
@@ -1207,6 +1391,6 @@ function initFirebaseListeners() {
     });
 }
 
-// Inicialización
+// Inicialización de la aplicación
 initFirebaseListeners();
 renderApp();
