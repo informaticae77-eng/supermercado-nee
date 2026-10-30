@@ -27,7 +27,7 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
-// DATOS DE RESPALDO (INICIALES)
+// DATOS DE RESPALDO (SOLO PARA BOTÓN DE EJEMPLO)
 // ==========================================
 const DEFAULT_SUPERMARKETS = [
     { id: 'sup-lider', name: 'LIDER', icon: '🛒', description: 'Supermercado Lider - Variedad y Ofertas', photoUrl: '' },
@@ -196,8 +196,46 @@ function seedSampleData() {
     DEFAULT_PRODUCTS.forEach(p => batch.set(db.collection('products').doc(p.id), p));
 
     batch.commit().then(() => {
-        alert("✅ Base de datos restaurada con éxito.");
+        alert("✅ Base de datos restaurada con datos de ejemplo.");
     }).catch(err => alert("Error cargando ejemplo: " + err.message));
+}
+
+// ==========================================
+// ELIMINACIÓN TOTAL DEFINITIVA EN FIREBASE
+// ==========================================
+function deleteAllProducts() {
+    if (!confirm("⚠️ ¿Estás seguro de que deseas eliminar TODOS los productos del catálogo? Esta acción no se puede deshacer.")) return;
+
+    if (!db) {
+        APP_STATE.products = [];
+        renderApp();
+        alert("🗑️ Productos eliminados localmente.");
+        return;
+    }
+
+    // Consulta directa a la colección para eliminar absolutamente todos los registros
+    db.collection('products').get().then(snapshot => {
+        if (snapshot.empty) {
+            APP_STATE.products = [];
+            renderApp();
+            alert("🗑️ El catálogo ya está completamente vacío.");
+            return;
+        }
+
+        const batch = db.batch();
+        snapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        return batch.commit();
+    }).then(() => {
+        APP_STATE.products = [];
+        renderApp();
+        alert("🗑️ Todos los productos han sido eliminados del servidor con éxito.");
+    }).catch(err => {
+        console.error("Error al eliminar productos:", err);
+        alert("Error al eliminar productos: " + err.message);
+    });
 }
 
 // ==========================================
@@ -498,31 +536,10 @@ function renderTeacherHomeTab() {
     `;
 }
 
-function deleteAllProducts() {
-    if (!confirm("⚠️ ¿Estás seguro de que deseas eliminar TODOS los productos del catálogo? Esta acción no se puede deshacer.")) return;
-
-    if (!db) {
-        APP_STATE.products = [];
-        renderApp();
-        return;
-    }
-
-    const batch = db.batch();
-    (APP_STATE.products || []).forEach(p => {
-        batch.delete(db.collection('products').doc(p.id));
-    });
-
-    batch.commit().then(() => {
-        APP_STATE.products = [];
-        renderApp();
-        alert("🗑️ Todos los productos han sido eliminados.");
-    }).catch(err => alert("Error al eliminar productos: " + err.message));
-}
-
 function renderTeacherCatalogTab() {
     const totalSups = (APP_STATE.supermarkets || []).length;
 
-    // Conteo para determinar si un producto está presente en todos los supermercados
+    // Conteo para determinar si un producto está en todos los supermercados
     const nameCount = {};
     (APP_STATE.products || []).forEach(p => {
         if (p.name) {
@@ -775,7 +792,7 @@ function renderSupermarketView(container, supId) {
         if (targetName && (pSupId.includes(targetName) || pSupName.includes(targetName) || targetName.includes(pSupName))) {
             return true;
         }
-        if (p.isAll || p.supermarketId === 'all' || (!p.supermarketId && !p.supermarketName)) {
+        if (p.isAll || p.supermarketId === 'all') {
             return true;
         }
         return false;
@@ -790,7 +807,7 @@ function renderSupermarketView(container, supId) {
         <div class="col-span-full text-center py-12 bg-white rounded-3xl border-4 border-slate-200 shadow-sm">
             <span class="text-5xl">📦</span>
             <h3 class="text-lg font-black text-slate-700 mt-2">No hay productos disponibles</h3>
-            <p class="text-xs font-bold text-slate-400">El docente aún no ha agregado productos a esta tienda.</p>
+            <p class="text-xs font-bold text-slate-400">El catálogo está vacío o no hay productos en esta tienda.</p>
         </div>
     ` : products.map(prod => {
         const prodImg = prod.photoUrl 
@@ -1569,6 +1586,7 @@ function initFirebaseListeners() {
         renderApp(); 
     });
 
+    // Escuchador directo a la base de datos (se vacía completamente cuando eliminas todos)
     db.collection('products').onSnapshot(s => { 
         APP_STATE.products = s.docs.map(d => ({ id: d.id, ...d.data() })); 
         renderApp(); 
