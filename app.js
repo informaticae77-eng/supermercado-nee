@@ -981,6 +981,28 @@ function openProductModal(prodId = null) {
     const previewContainer = document.getElementById('prodPhotoPreviewContainer');
     const previewImg = document.getElementById('prodPhotoPreview');
 
+    // DESBLOQUEO Y FUERZA BRUTA PARA PERMITIR SELECCIÓN DEL CHECKBOX
+    if (repInput) {
+        repInput.disabled = false;
+        repInput.removeAttribute('disabled');
+        repInput.style.pointerEvents = 'auto';
+        repInput.style.cursor = 'pointer';
+        repInput.checked = false;
+
+        const parent = repInput.closest('label') || repInput.parentElement;
+        if (parent) {
+            parent.classList.remove('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
+            parent.style.pointerEvents = 'auto';
+            parent.style.cursor = 'pointer';
+            parent.style.opacity = '1';
+            parent.onclick = function(e) {
+                if (e.target !== repInput) {
+                    repInput.checked = !repInput.checked;
+                }
+            };
+        }
+    }
+
     if (prodId) {
         const p = (APP_STATE.products || []).find(item => String(item.id) === String(prodId));
         if (p) {
@@ -990,10 +1012,6 @@ function openProductModal(prodId = null) {
             if (priceInput) priceInput.value = p.price || '';
             if (emojiInput) emojiInput.value = p.iconEmoji || '📦';
             if (supSelect) supSelect.value = p.supermarketId || p.supermarket || '';
-            
-            // PERMITIR REPLICAR TAMBIÉN AL EDITAR
-            if (repInput) { repInput.checked = false; repInput.disabled = false; }
-            
             if (photoHidden) photoHidden.value = p.photoUrl || '';
             if (p.photoUrl && previewImg && previewContainer) {
                 previewImg.src = p.photoUrl;
@@ -1006,7 +1024,6 @@ function openProductModal(prodId = null) {
         if (nameInput) nameInput.value = '';
         if (priceInput) priceInput.value = '';
         if (emojiInput) emojiInput.value = '📦';
-        if (repInput) { repInput.checked = false; repInput.disabled = false; }
         if (photoHidden) photoHidden.value = '';
         if (previewContainer) previewContainer.classList.add('hidden');
     }
