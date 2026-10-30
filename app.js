@@ -27,7 +27,7 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
-// COMPRESOR AUTOMÁTICO DE IMÁGENES (MAX 1MB FIREBASE FIX)
+// COMPRESOR AUTOMÁTICO DE IMÁGENES
 // ==========================================
 function compressImageBase64(base64Data, maxWidth = 300, maxHeight = 300, quality = 0.7) {
     return new Promise((resolve) => {
@@ -163,7 +163,7 @@ function sendAutomaticCredentialsEmail(user) {
     }
 }
 
-// POBLADO INICIAL SI BASE DE DATOS ESTÁ VACÍA
+// POBLADO DE DATOS DE MUESTRA DESDE PANEL DOCENTE
 function seedSampleData() {
     if (!db) return alert("Firebase no está listo.");
 
@@ -208,7 +208,7 @@ function seedSampleData() {
     });
 
     batch.commit().then(() => {
-        alert("✅ Base de datos cargada con supermercados y productos de ejemplo.");
+        alert("✅ Productos y supermercados cargados exitosamente.");
     }).catch(err => alert("Error cargando ejemplo: " + err.message));
 }
 
@@ -514,7 +514,7 @@ function renderTeacherHomeTab() {
 }
 
 // ------------------------------------------
-// PESTAÑA 2: CATÁLOGO Y SUPERMERCADOS
+// PESTAÑA 2: CATÁLOGO Y SUPERMERCADOS (GESTIÓN DOCENTE EXCLUSIVA)
 // ------------------------------------------
 function renderTeacherCatalogTab() {
     return `
@@ -708,7 +708,7 @@ function renderUserRoleList(role) {
 }
 
 // ==========================================
-// VISTAS DE TIENDA Y PRODUCTOS (FILTRO UNIVERSAL MULTI-CAMPO)
+// VISTAS DE TIENDA Y PRODUCTOS (FILTRO OMNICANAL Y LIMPIO)
 // ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
@@ -746,14 +746,19 @@ function renderSupermarketView(container, supId) {
         String(s.name).trim().toLowerCase() === String(supId).trim().toLowerCase()
     );
 
-    const supNameClean = sup ? String(sup.name).trim().toLowerCase() : String(supId).trim().toLowerCase();
-    const supIdClean = sup ? String(sup.id).trim().toLowerCase() : String(supId).trim().toLowerCase();
+    const targetId = sup ? String(sup.id).trim().toLowerCase() : String(supId).trim().toLowerCase();
+    const targetName = sup ? String(sup.name).trim().toLowerCase() : String(supId).trim().toLowerCase();
 
-    // Filtro flexible: comprueba si la propiedad coincide por ID o Nombre de la tienda
+    // Búsqueda omnicanal por ID, nombre o tienda alternativa
     let products = (APP_STATE.products || []).filter(p => {
-        const pSupId = String(p.supermarketId || p.supermarket || '').trim().toLowerCase();
-        const pSupName = String(p.supermarketName || '').trim().toLowerCase();
-        return pSupId === supIdClean || pSupId === supNameClean || pSupName === supIdClean || pSupName === supNameClean;
+        if (!p) return false;
+        const pSupId = String(p.supermarketId || p.supermarket || p.supermarket_id || '').trim().toLowerCase();
+        const pSupName = String(p.supermarketName || p.tienda || '').trim().toLowerCase();
+        
+        return (pSupId === targetId) || 
+               (pSupId === targetName) || 
+               (pSupName === targetId) || 
+               (pSupName === targetName);
     });
 
     const supImgUrl = sup ? (sup.photoUrl || sup.photo || sup.imageUrl || sup.logoUrl || '') : '';
@@ -764,13 +769,10 @@ function renderSupermarketView(container, supId) {
     const productsHtml = products.length === 0 ? `
         <div class="col-span-full bg-white p-8 rounded-3xl border-4 border-dashed border-slate-300 text-center space-y-3 my-4">
             <div class="text-5xl">🛒</div>
-            <h3 class="text-lg font-black text-slate-700">No hay productos en ${sup ? sup.name : 'esta tienda'}</h3>
+            <h3 class="text-lg font-black text-slate-700">No hay productos disponibles en este supermercado</h3>
             <p class="text-xs text-slate-500 font-bold max-w-md mx-auto">
-                Haz clic abajo para crear productos para esta tienda o usa el botón "⚡ Cargar Datos Ejemplo" en el Panel Docente.
+                Pídele a tu educador que agregue productos a esta tienda desde el Panel Docente.
             </p>
-            <button onclick="openProductModalForSupermarket('${sup ? sup.id : supId}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-md border-b-2 border-indigo-900">
-                + Crear Producto para ${sup ? sup.name : 'este supermercado'}
-            </button>
         </div>
     ` : products.map(prod => {
         const prodImg = prod.photoUrl 
@@ -792,15 +794,13 @@ function renderSupermarketView(container, supId) {
 
     container.innerHTML = `
         <div class="space-y-6">
-            <div class="flex items-center justify-between bg-white p-4 rounded-2xl border-2 border-slate-300 shadow-sm flex-wrap gap-2">
+            <div class="flex items-center justify-between bg-white p-4 rounded-2xl border-2 border-slate-300 shadow-sm">
                 <button onclick="goHome()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-4 py-2 rounded-xl text-xs">← Volver</button>
                 <div class="flex items-center gap-3">
                     ${supIconHtml}
                     <h2 class="text-2xl font-black text-slate-800">${sup ? sup.name : 'Supermercado'}</h2>
                 </div>
-                <button onclick="openProductModalForSupermarket('${sup ? sup.id : supId}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow">
-                    + Agregar Producto Aquí
-                </button>
+                <div></div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 ${productsHtml}
@@ -978,7 +978,7 @@ function closeSuccessModalAndFinish() {
 }
 
 // ==========================================
-// CONTROLADORES DE MODALES Y CREACIÓN
+// CONTROLADORES DE MODALES
 // ==========================================
 function updateCategoryDropdowns(selectedName = null) {
     const catSelect = document.getElementById('modalProdCategory');
@@ -987,12 +987,6 @@ function updateCategoryDropdowns(selectedName = null) {
     catSelect.innerHTML = list.length === 0 
         ? `<option value="General">🏷️ General</option>` 
         : list.map(c => `<option value="${c.name}" ${selectedName === c.name ? 'selected' : ''}>${c.icon || '🏷️'} ${c.name}</option>`).join('');
-}
-
-function openProductModalForSupermarket(supId) {
-    openProductModal();
-    const supSelect = document.getElementById('modalProdSupermarket');
-    if (supSelect) supSelect.value = supId;
 }
 
 function openProductModal(prodId = null) {
