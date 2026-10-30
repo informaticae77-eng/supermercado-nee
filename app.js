@@ -27,7 +27,7 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
-// DATOS POR DEFECTO Y RESPALDO
+// DATOS POR DEFECTO
 // ==========================================
 const DEFAULT_SUPERMARKETS = [
     { id: 'sup-lider', name: 'LIDER', icon: '🛒', description: 'Supermercado Lider - Variedad y Ofertas', photoUrl: '' },
@@ -42,7 +42,9 @@ const DEFAULT_CATEGORIES = [
     { id: 'cat-3', name: 'Frutas y Verduras', icon: '🍎' },
     { id: 'cat-4', name: 'Abarrotes', icon: '🌾' },
     { id: 'cat-5', name: 'Aseo y Limpieza', icon: '🧼' },
-    { id: 'cat-6', name: 'Bebidas', icon: '🧃' }
+    { id: 'cat-6', name: 'Bebidas', icon: '🧃' },
+    { id: 'cat-7', name: 'Carnes y Pesca', icon: '🥩' },
+    { id: 'cat-8', name: 'Congelados', icon: '🧊' }
 ];
 
 const DEFAULT_PRODUCTS = [
@@ -99,7 +101,7 @@ const APP_STATE = {
     basket: [],
     userPaidAmount: 0,
     courses: [],
-    categories: [],
+    categories: [...DEFAULT_CATEGORIES],
     users: [],
     supermarkets: [...DEFAULT_SUPERMARKETS],
     products: [],
@@ -172,26 +174,36 @@ function seedSampleData() {
 }
 
 // ==========================================
-// ELIMINACIÓN DEFINITIVA EN BATCH
+// ELIMINACIÓN MASIVA EN LOTES FRAGMENTADOS (<500)
 // ==========================================
 async function deleteAllProducts() {
-    if (!confirm("⚠️ ¿Estás seguro de que deseas eliminar TODOS los productos del catálogo? Esta acción no se puede deshacer.")) return;
+    if (!confirm("⚠️ ¿Estás seguro de que deseas eliminar TODOS los productos del catálogo?")) return;
 
     try {
-        if (db) {
-            const snapshot = await db.collection('products').get();
-            if (!snapshot.empty) {
-                const batch = db.batch();
-                snapshot.docs.forEach(doc => batch.delete(doc.ref));
-                await batch.commit();
-            }
+        if (!db) return alert("Firebase no está conectado.");
+
+        const snapshot = await db.collection('products').get();
+        if (snapshot.empty) {
+            APP_STATE.products = [];
+            renderApp();
+            return alert("El catálogo ya está vacío.");
         }
+
+        // Fragmentación en bloques de 400 docs para no superar el límite de 500 de Firestore
+        const docs = [...snapshot.docs];
+        while (docs.length > 0) {
+            const chunk = docs.splice(0, 400);
+            const batch = db.batch();
+            chunk.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+        }
+
         APP_STATE.products = [];
         renderApp();
-        alert("🗑️ ¡Todos los productos han sido eliminados de Firebase!");
+        alert("🗑️ ¡Todos los productos borrados de Firestore con éxito!");
     } catch (err) {
-        console.error("Error al eliminar productos:", err);
-        alert("❌ Error al eliminar en Firebase: " + err.message);
+        console.error("Error al borrar productos:", err);
+        alert("❌ Error de Firebase: " + err.message);
     }
 }
 
@@ -712,7 +724,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// CANASTO Y PAGO
+// CANASTO
 // ==========================================
 function updateBasketBadge() {
     const badge = document.getElementById('basketBadge');
@@ -745,13 +757,13 @@ function closeBasketModal() {
 }
 
 // ==========================================
-// DESPLEGABLE Y CONTROLADOR DE CATEGORÍAS
+// CONTROLADOR DE CATEGORÍAS EN EL MODAL
 // ==========================================
 function updateCategoryDropdowns(selectedName = null) {
     const catSelect = document.getElementById('modalProdCategory');
     if (!catSelect) return;
 
-    // Si APP_STATE.categories está vacío, usamos DEFAULT_CATEGORIES
+    // Se cargan las categorías de Firebase o las predeterminadas si la BD está vacía
     const list = (APP_STATE.categories && APP_STATE.categories.length > 0) 
         ? APP_STATE.categories 
         : DEFAULT_CATEGORIES;
@@ -801,7 +813,6 @@ function openProductModal(prodId = null) {
         if (photoHidden) photoHidden.value = '';
     }
 
-    // AHORA SÍ LLEAMOS Y HABILITAMOS LAS CATEGORÍAS CORRECTAMENTE:
     updateCategoryDropdowns(currentCategory);
 
     const el = document.getElementById('productModal');
@@ -923,7 +934,8 @@ function initFirebaseListeners() {
     });
 
     db.collection('categories').onSnapshot(s => { 
-        APP_STATE.categories = s.docs.map(d => ({ id: d.id, ...d.data() })); 
+        const firebaseCats = s.docs.map(d => ({ id: d.id, ...d.data() })); 
+        APP_STATE.categories = firebaseCats.length > 0 ? firebaseCats : [...DEFAULT_CATEGORIES];
         updateCategoryDropdowns(); 
         renderApp(); 
     });
