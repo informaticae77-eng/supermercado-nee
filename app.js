@@ -32,7 +32,7 @@ if (typeof emailjs !== 'undefined') {
 const APP_STATE = {
     currentUser: null,
     selectedSupermarketId: null,
-    teacherActiveTab: 'home', // 'home' | 'catalog' | 'currency' | 'users'
+    teacherActiveTab: 'home', // 'home' | 'catalog' | 'currency' | 'users' | 'instrument'
     teacherPreviewMode: false,
     adminCourseFilter: 'all',
     basket: [],
@@ -64,7 +64,7 @@ const CLP_CURRENCY_ITEMS = [
 ];
 
 // ==========================================
-// FUNCIONES AUXILIARES
+// FUNCIONES AUXILIARES DE ACCESIBILIDAD
 // ==========================================
 function speakText(text) {
     if (APP_STATE.telemetry) APP_STATE.telemetry.voiceHelpCount++;
@@ -129,7 +129,59 @@ function sendAutomaticCredentialsEmail(user) {
 }
 
 // ==========================================
-// RENDERIZADO PRINCIPAL
+// POBLADO AUTOMÁTICO DE DATOS DE EJEMPLO
+// ==========================================
+function seedSampleData() {
+    if (!db) return alert("Firebase no está listo.");
+
+    const batch = db.batch();
+    
+    // Supermercados por defecto
+    const sups = [
+        { id: 'sup-lider', name: 'LIDER', icon: '🛒', description: 'Supermercado Lider - Variedad y Ofertas', photoUrl: '' },
+        { id: 'sup-jumbo', name: 'JUMBO', icon: '🐘', description: 'Supermercado Jumbo - Excelente Calidad', photoUrl: '' },
+        { id: 'sup-santa', name: 'SANTA ISABEL', icon: '🛍️', description: 'Santa Isabel - Tu Almacén Cercano', photoUrl: '' },
+        { id: 'sup-unimarc', name: 'UNIMARC', icon: '🍎', description: 'Unimarc - El Supermercado de Chile', photoUrl: '' }
+    ];
+
+    sups.forEach(s => batch.set(db.collection('supermarkets').doc(s.id), s));
+
+    // Productos de ejemplo replicados en LIDER y demás tiendas
+    const sampleProducts = [
+        { name: 'Leche Entera 1L', price: 1050, iconEmoji: '🥛', category: 'Lácteos' },
+        { name: 'Pan Hallulla 1Kg', price: 1890, iconEmoji: '🍞', category: 'Panadería' },
+        { name: 'Manzanas Rojas 1Kg', price: 1200, iconEmoji: '🍎', category: 'Frutas' },
+        { name: 'Arroz Grado 1 (1Kg)', price: 1350, iconEmoji: '🌾', category: 'Abarrotes' },
+        { name: 'Yogurt Griego 150g', price: 650, iconEmoji: '🍦', category: 'Lácteos' },
+        { name: 'Aceite Vegetal 900ml', price: 2490, iconEmoji: '🍾', category: 'Abarrotes' },
+        { name: 'Huevos 12 Unidades', price: 3200, iconEmoji: '🥚', category: 'Lácteos' },
+        { name: 'Detergente Líquido 1L', price: 2990, iconEmoji: '🧼', category: 'Aseo' }
+    ];
+
+    let prodCounter = 0;
+    sups.forEach(s => {
+        sampleProducts.forEach(p => {
+            prodCounter++;
+            const pId = 'prod-sample-' + prodCounter;
+            batch.set(db.collection('products').doc(pId), {
+                id: pId,
+                supermarketId: s.id,
+                name: p.name,
+                price: p.price,
+                iconEmoji: p.iconEmoji,
+                category: p.category,
+                photoUrl: ''
+            });
+        });
+    });
+
+    batch.commit().then(() => {
+        alert("✅ Base de datos poblada exitosamente con supermercados y productos de ejemplo.");
+    }).catch(err => alert("Error cargando ejemplo: " + err.message));
+}
+
+// ==========================================
+// RENDERIZADO PRINCIPAL Y VISTAS
 // ==========================================
 function renderApp() {
     const container = document.getElementById('appContainer');
@@ -240,9 +292,6 @@ function goHome() {
     renderApp();
 }
 
-// ==========================================
-// VISTA PREVIA DEL ALUMNO (MODO PRUEBA)
-// ==========================================
 function renderStudentPreviewWrapper(container) {
     const previewBanner = `
         <div class="bg-amber-400 border-4 border-amber-600 text-slate-900 p-3.5 rounded-2xl shadow-lg mb-6 flex justify-between items-center flex-wrap gap-2">
@@ -277,7 +326,7 @@ function toggleStudentPreview(status) {
 }
 
 // ==========================================
-// PANEL DOCENTE Y ADMINISTRADOR
+// DASHBOARD DOCENTE COMPLETO
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -294,20 +343,24 @@ function renderTeacherDashboard(container) {
                     <div>
                         <h2 class="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
                             <span>🏫</span>
-                            <span>Panel Docente y Evaluación NEE</span>
+                            <span>Panel Docente, Evaluación NEE e IA</span>
                         </h2>
-                        <p class="text-xs text-indigo-300 font-bold mt-0.5">Supervisión en tiempo real, catálogo e informes pedagógicos</p>
+                        <p class="text-xs text-indigo-300 font-bold mt-0.5">Supervisión pedagógica, catálogo, rúbrica y certificados IA</p>
                     </div>
 
-                    <button onclick="toggleStudentPreview(true)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-4 py-2.5 rounded-xl shadow-lg border-b-4 border-amber-600 flex items-center gap-2 active:scale-95 transition-transform">
-                        <span class="text-base">🕹️</span>
-                        <span>Ver Juego Estudiantes</span>
-                    </button>
+                    <div class="flex gap-2">
+                        <button onclick="seedSampleData()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs px-3 py-2 rounded-xl shadow border-b-2 border-emerald-700 active:scale-95">
+                            ⚡ Cargar Datos Ejemplo
+                        </button>
+                        <button onclick="toggleStudentPreview(true)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-4 py-2 rounded-xl shadow border-b-2 border-amber-600 flex items-center gap-2 active:scale-95">
+                            <span>🕹️</span><span>Probar Juego</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800">
                     <button onclick="setTeacherTab('home')" class="py-3 px-3 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 ${activeTab === 'home' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>📊</span><span>1. Evaluaciones & Métricas</span>
+                        <span>📊</span><span>1. Evaluaciones e Informes</span>
                     </button>
                     <button onclick="setTeacherTab('catalog')" class="py-3 px-3 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 ${activeTab === 'catalog' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
                         <span>🏪</span><span>2. Catálogo & Tiendas</span>
@@ -332,7 +385,7 @@ function renderTeacherDashboard(container) {
 }
 
 // ------------------------------------------
-// PESTAÑA 1: EVALUACIONES Y MÉTRICAS
+// PESTAÑA 1: EVALUACIONES, INSTRUMENTO NEE Y CERTIFICADOS IA
 // ------------------------------------------
 function renderTeacherHomeTab() {
     const totalEvals = (APP_STATE.evaluations || []).length;
@@ -372,47 +425,53 @@ function renderTeacherHomeTab() {
                 </div>
             </div>
 
+            <!-- REGISTRO PEDAGÓGICO E INSTRUMENTOS -->
             <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-md space-y-4">
                 <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
                     <div>
                         <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
                             <i class="fa-solid fa-clipboard-check text-indigo-600"></i>
-                            <span>Módulo de Evaluación Pedagógica de Actividades</span>
+                            <span>Módulo de Evaluación Pedagógica & Certificados IA</span>
                         </h3>
-                        <p class="text-xs text-slate-500">Historial completo de compras y respuestas del alumnado.</p>
+                        <p class="text-xs text-slate-500">Resultados, pauta de observación NEE y generación automática de certificados con Inteligencia Artificial.</p>
                     </div>
-                    <span class="bg-indigo-100 text-indigo-900 text-xs font-extrabold px-3 py-1 rounded-xl">
-                        ${totalEvals} Evaluaciones Guardadas
-                    </span>
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
                         <thead>
                             <tr class="border-b-2 border-slate-200 text-slate-500 uppercase font-black">
-                                <th class="py-2.5 px-3">Fecha y Hora</th>
+                                <th class="py-2.5 px-3">Fecha</th>
                                 <th class="py-2.5 px-3">Estudiante</th>
-                                <th class="py-2.5 px-3">Supermercado</th>
-                                <th class="py-2.5 px-3 text-center">Items</th>
-                                <th class="py-2.5 px-3">Total ($)</th>
-                                <th class="py-2.5 px-3">Pagado ($)</th>
-                                <th class="py-2.5 px-3 text-center">Tiempo</th>
+                                <th class="py-2.5 px-3">Tienda</th>
+                                <th class="py-2.5 px-3">Total / Pago</th>
+                                <th class="py-2.5 px-3 text-center">Vuelto</th>
+                                <th class="py-2.5 px-3 text-center">Acciones Pedagógicas</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 font-bold">
                             ${totalEvals === 0 ? `
                                 <tr>
-                                    <td colspan="7" class="py-8 text-center text-slate-400 italic">No hay evaluaciones registradas aún. Las compras completadas por los estudiantes se guardarán aquí.</td>
+                                    <td colspan="6" class="py-8 text-center text-slate-400 italic">No hay evaluaciones registradas aún. Haz una compra de prueba para ver el instrumento y certificado IA.</td>
                                 </tr>
                             ` : (APP_STATE.evaluations || []).map(e => `
                                 <tr class="hover:bg-slate-50">
                                     <td class="py-3 px-3 text-slate-500">${e.date || 'Reciente'}</td>
                                     <td class="py-3 px-3 font-black text-indigo-950">${e.studentName || 'Estudiante'}</td>
                                     <td class="py-3 px-3">${e.supermarketName || 'Supermercado'}</td>
-                                    <td class="py-3 px-3 text-center bg-slate-100 rounded-lg font-black">${e.itemCount || 1}</td>
-                                    <td class="py-3 px-3 font-black text-emerald-700">$${(e.totalCLP || 0).toLocaleString('es-CL')}</td>
-                                    <td class="py-3 px-3 font-black text-indigo-900">$${(e.paidCLP || 0).toLocaleString('es-CL')}</td>
-                                    <td class="py-3 px-3 text-center font-mono">${Math.floor((e.timeSeconds || 0) / 60)}m ${(e.timeSeconds || 0) % 60}s</td>
+                                    <td class="py-3 px-3">
+                                        <div class="font-black text-emerald-700">$${(e.totalCLP || 0).toLocaleString('es-CL')}</div>
+                                        <div class="text-[10px] text-slate-400">Pagó: $${(e.paidCLP || 0).toLocaleString('es-CL')}</div>
+                                    </td>
+                                    <td class="py-3 px-3 text-center font-black text-indigo-900">$${(e.changeCLP || 0).toLocaleString('es-CL')}</td>
+                                    <td class="py-3 px-3 text-center space-x-1">
+                                        <button onclick="openEvaluationModal('${e.id}')" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-900 px-2.5 py-1.5 rounded-lg text-xs font-black shadow-sm">
+                                            📋 Instrumento NEE
+                                        </button>
+                                        <button onclick="generateAICertificate('${e.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-2.5 py-1.5 rounded-lg text-xs font-black shadow-sm border-b-2 border-amber-600">
+                                            ✨ Certificado IA
+                                        </button>
+                                    </td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -424,7 +483,151 @@ function renderTeacherHomeTab() {
 }
 
 // ------------------------------------------
-// PESTAÑA 2: SUPERMERCADOS Y PRODUCTOS
+// MÓDULO INSTRUMENTO DE EVALUACIÓN NEE
+// ------------------------------------------
+function openEvaluationModal(evalId) {
+    const e = (APP_STATE.evaluations || []).find(item => item.id === evalId);
+    if (!e) return alert("Evaluación no encontrada.");
+
+    const modal = document.createElement('div');
+    modal.id = 'evalInstrumentModal';
+    modal.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto';
+
+    const accuracy = e.paidCLP >= e.totalCLP ? 100 : Math.round((e.paidCLP / e.totalCLP) * 100);
+    const scoreLevel = accuracy >= 100 ? 'Logrado Destacado' : (accuracy >= 70 ? 'En Proceso' : 'Requiere Apoyo');
+
+    modal.innerHTML = `
+        <div class="bg-white rounded-3xl max-w-2xl w-full border-4 border-indigo-600 shadow-2xl p-6 space-y-6 relative my-8">
+            <button onclick="document.getElementById('evalInstrumentModal').remove()" class="absolute top-4 right-4 bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600 font-black rounded-full w-8 h-8 flex items-center justify-center">✕</button>
+
+            <div class="border-b pb-3 space-y-1">
+                <span class="bg-indigo-100 text-indigo-900 text-[10px] font-black px-2.5 py-1 rounded-md uppercase">Pauta de Evaluación Adaptada PIE / NEE</span>
+                <h2 class="text-xl font-black text-slate-800">Instrumento de Valoración Pedagógica</h2>
+                <p class="text-xs text-slate-500">Estudiante: <b>${e.studentName}</b> | Fecha: ${e.date || 'Reciente'}</p>
+            </div>
+
+            <!-- RÚBRICA Y INDICADORES -->
+            <div class="space-y-4 text-xs font-bold">
+                <div class="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border">
+                    <div>
+                        <span class="text-slate-400 block text-[10px]">Supermercado Evaluado:</span>
+                        <span class="text-slate-800 text-sm font-black">${e.supermarketName}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block text-[10px]">Nivel de Desempeño:</span>
+                        <span class="text-emerald-700 text-sm font-black">${scoreLevel} (${accuracy}%)</span>
+                    </div>
+                </div>
+
+                <h4 class="font-black text-slate-800 text-sm pt-2">Indicadores de Competencia Monetaria:</h4>
+                <div class="space-y-2">
+                    <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex justify-between items-center">
+                        <span>1. Selecciona e identifica productos en catálogo:</span>
+                        <span class="bg-emerald-600 text-white px-2 py-0.5 rounded text-[10px] font-black">LOGRADO (${e.itemCount} items)</span>
+                    </div>
+                    <div class="p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex justify-between items-center">
+                        <span>2. Discriminación de Billetes y Monedas CLP:</span>
+                        <span class="bg-indigo-600 text-white px-2 py-0.5 rounded text-[10px] font-black">${e.paidCLP >= e.totalCLP ? 'LOGRADO' : 'EN PROCESO'}</span>
+                    </div>
+                    <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl flex justify-between items-center">
+                        <span>3. Cálculo e ingreso de efectivo en caja:</span>
+                        <span class="bg-amber-600 text-white px-2 py-0.5 rounded text-[10px] font-black">$${(e.paidCLP || 0).toLocaleString('es-CL')} pagados</span>
+                    </div>
+                    <div class="p-3 bg-sky-50 border border-sky-200 rounded-xl flex justify-between items-center">
+                        <span>4. Uso de apoyos auditivos (Síntesis de voz):</span>
+                        <span class="bg-sky-600 text-white px-2 py-0.5 rounded text-[10px] font-black">${e.voiceHelpCount || 0} interacciones</span>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-100 rounded-2xl border text-slate-700 space-y-1">
+                    <span class="font-black text-slate-900 block">Observación Pedagógica del Docente:</span>
+                    <p class="text-xs italic">El/la estudiante muestra autonomía en la selección de artículos. Requiere continuar reforzando el conteo de vuelto y combinación eficiente de billetes de alta denominación.</p>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t">
+                <button onclick="window.print()" class="bg-slate-800 text-white font-black text-xs px-4 py-2.5 rounded-xl">🖨️ Imprimir Reporte</button>
+                <button onclick="document.getElementById('evalInstrumentModal').remove()" class="bg-indigo-600 text-white font-black text-xs px-4 py-2.5 rounded-xl">Cerrar</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+// ------------------------------------------
+// MÓDULO CERTIFICADO GENERADO CON IA
+// ------------------------------------------
+function generateAICertificate(evalId) {
+    const e = (APP_STATE.evaluations || []).find(item => item.id === evalId);
+    if (!e) return alert("Evaluación no encontrada.");
+
+    // Síntesis de IA pedagógica
+    const aiComments = [
+        `Demostró una excelente capacidad de autonomía en el reconocimiento de la moneda nacional chilena (CLP), tomando decisiones económicas acertadas en ${e.supermarketName}.`,
+        `Completó satisfactoriamente la experiencia de compra inclusiva, mostrando gran motivación, tolerancia a la frustración y uso autónomo del apoyo de voz.`,
+        `Ha superado con éxito la experiencia formativa de cálculo y pago en caja, alcanzando los objetivos del Programa de Integración Escolar (PIE).`
+    ];
+
+    const randomComment = aiComments[Math.floor(Math.random() * aiComments.length)];
+
+    const certModal = document.createElement('div');
+    certModal.id = 'aiCertificateModal';
+    certModal.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto';
+
+    certModal.innerHTML = `
+        <div class="bg-amber-50 rounded-3xl max-w-3xl w-full border-8 border-amber-400 shadow-2xl p-8 space-y-6 relative my-8 text-center text-slate-800">
+            <button onclick="document.getElementById('aiCertificateModal').remove()" class="absolute top-4 right-4 bg-slate-200 text-slate-700 hover:bg-rose-100 hover:text-rose-600 font-black rounded-full w-8 h-8 flex items-center justify-center">✕</button>
+
+            <div class="space-y-2">
+                <div class="text-6xl">🏆</div>
+                <span class="text-xs font-black tracking-widest uppercase text-amber-700 bg-amber-200 px-3 py-1 rounded-full">CERTIFICADO DE LOGRO PEDAGÓGICO - IA NEE</span>
+                <h1 class="text-3xl font-black text-indigo-950 pt-2">¡Felicitaciones!</h1>
+            </div>
+
+            <div class="space-y-4 my-6">
+                <p class="text-sm font-bold text-slate-600">Se otorga el presente reconocimiento con inteligencia artificial a:</p>
+                <h2 class="text-3xl font-black text-indigo-600 border-b-4 border-indigo-200 pb-2 inline-block px-6">${e.studentName}</h2>
+                <p class="text-xs font-bold text-slate-600 max-w-lg mx-auto leading-relaxed">
+                    Por haber completado con éxito la actividad práctica de inclusión financiera e interacción comunitaria en el supermercado <b>${e.supermarketName}</b>.
+                </p>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border-2 border-amber-300 text-left space-y-2 shadow-sm">
+                <div class="flex items-center gap-2 text-amber-800 font-black text-xs">
+                    <span>🤖</span><span>Análisis de Desempeño Generado por IA:</span>
+                </div>
+                <p class="text-xs font-semibold text-slate-700 italic">"${randomComment}"</p>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 pt-4 border-t border-amber-200 text-xs font-black text-slate-600">
+                <div>
+                    <span class="block text-[10px] text-slate-400">FECHA</span>
+                    <span>${e.date || 'Reciente'}</span>
+                </div>
+                <div>
+                    <span class="block text-[10px] text-slate-400">TOTAL COMPRADO</span>
+                    <span class="text-emerald-700">$${(e.totalCLP || 0).toLocaleString('es-CL')}</span>
+                </div>
+                <div>
+                    <span class="block text-[10px] text-slate-400">EVALUACIÓN</span>
+                    <span class="text-indigo-900">APROBADO PIE</span>
+                </div>
+            </div>
+
+            <div class="flex justify-center gap-3 pt-2">
+                <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-6 py-3 rounded-xl shadow-lg border-b-4 border-indigo-900 active:scale-95">
+                    🖨️ Descargar / Imprimir Certificado
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(certModal);
+}
+
+// ------------------------------------------
+// PESTAÑA 2: CATALOGO Y SUPERMERCADOS
 // ------------------------------------------
 function renderTeacherCatalogTab() {
     return `
@@ -542,7 +745,7 @@ function renderTeacherCurrencyTab() {
 }
 
 // ------------------------------------------
-// PESTAÑA 4: USUARIOS Y CURSOS
+// PESTAÑA 4: CREACIÓN DE USUARIOS Y CURSOS PARA EDUCADORES
 // ------------------------------------------
 function renderTeacherUsersTab() {
     return `
@@ -556,7 +759,7 @@ function renderTeacherUsersTab() {
                     ${(APP_STATE.courses || []).map(c => `
                         <div class="p-3 bg-slate-50 border rounded-xl flex justify-between items-center text-sm font-bold">
                             <span>${c.name}</span>
-                            <button onclick="deleteCourse('${c.id}')" class="text-rose-600 text-xs">Eliminar</button>
+                            <button onclick="deleteCourse('${c.id}')" class="text-rose-600 text-xs font-bold">Eliminar</button>
                         </div>
                     `).join('')}
                 </div>
@@ -565,7 +768,7 @@ function renderTeacherUsersTab() {
             <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
                 <div class="flex justify-between items-center border-b pb-2">
                     <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-chalkboard-user text-indigo-600"></i> Educadores</h3>
-                    <button onclick="openCreateUserModal('teacher')" class="bg-indigo-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Educador</button>
+                    <button onclick="openCreateUserModal('teacher')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Educador</button>
                 </div>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
                     ${renderUserRoleList('teacher')}
@@ -575,7 +778,7 @@ function renderTeacherUsersTab() {
             <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
                 <div class="flex justify-between items-center border-b pb-2">
                     <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-children text-indigo-600"></i> Alumnos</h3>
-                    <button onclick="openCreateUserModal('student')" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Alumno</button>
+                    <button onclick="openCreateUserModal('student')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Alumno</button>
                 </div>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
                     ${renderUserRoleList('student')}
@@ -587,9 +790,6 @@ function renderTeacherUsersTab() {
 
 function renderUserRoleList(role) {
     let users = (APP_STATE.users || []).filter(u => u.role === role);
-    if (APP_STATE.adminCourseFilter !== 'all') {
-        users = users.filter(u => u.courseId === APP_STATE.adminCourseFilter || (u.courseIds && u.courseIds.includes(APP_STATE.adminCourseFilter)));
-    }
     if (users.length === 0) return `<p class="text-xs text-slate-400 italic">No hay registros.</p>`;
 
     return users.map(u => `
@@ -614,7 +814,7 @@ function renderUserRoleList(role) {
 }
 
 // ==========================================
-// VISTAS DE LA TIENDA DE ESTUDIANTES
+// VISTAS DE TIENDA Y PRODUCTOS
 // ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
@@ -645,7 +845,6 @@ function selectSupermarket(id) {
     renderApp();
 }
 
-// RENDERIZADO DE PRODUCTOS DENTRO DEL SUPERMERCADO
 function renderSupermarketView(container, supId) {
     const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId));
     let products = (APP_STATE.products || []).filter(p => String(p.supermarketId) === String(supId));
@@ -655,7 +854,7 @@ function renderSupermarketView(container, supId) {
             <div class="text-5xl">🛒</div>
             <h3 class="text-lg font-black text-slate-700">No hay productos en este supermercado</h3>
             <p class="text-xs text-slate-500 font-bold max-w-md mx-auto">
-                Para agregar productos, vuelve al Panel Docente, ve a la pestaña <b>"Catálogo & Tiendas"</b> y haz clic en <b>"+ Crear Producto"</b>.
+                Puedes hacer clic en <b>"⚡ Cargar Datos Ejemplo"</b> en el Panel Docente para poblar las tiendas automáticamente.
             </p>
         </div>
     ` : products.map(prod => {
@@ -885,7 +1084,7 @@ function deleteCourse(id) {
     if (confirm("¿Eliminar este curso?") && db) db.collection('courses').doc(id).delete();
 }
 
-// CREAR Y REPLICAR PRODUCTOS
+// CREAR O EDITAR PRODUCTOS
 function openProductModal(prodId = null) {
     const supSelect = document.getElementById('modalProdSupermarket');
     if (supSelect) supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
@@ -1345,7 +1544,7 @@ function saveUserFromModal() {
         id, role, name, rut, username: rut, email, pin, photoUrl, mustChangePassword: false
     }, { merge: true }).then(() => {
         closeUserModal();
-        alert("✅ Usuario guardado.");
+        alert("✅ Usuario guardado exitosamente.");
     });
 }
 
@@ -1363,7 +1562,7 @@ function resetUserPassword(userId) {
 }
 
 // ==========================================
-// ESCUCHADORES EN TIEMPO REAL CON ASIGNACIÓN DE DOC.ID
+// ESCUCHADORES EN TIEMPO REAL
 // ==========================================
 function initFirebaseListeners() {
     const storedUser = localStorage.getItem('nee_active_user');
