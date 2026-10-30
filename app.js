@@ -27,7 +27,7 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
-// DATOS POR DEFECTO (GARANTIZA PRODUCTOS SIEMPRE)
+// DATOS DE RESPALDO (GARANTIZAN PRODUCTOS SIEMPRE)
 // ==========================================
 const DEFAULT_SUPERMARKETS = [
     { id: 'sup-lider', name: 'LIDER', icon: '🛒', description: 'Supermercado Lider - Variedad y Ofertas', photoUrl: '' },
@@ -192,12 +192,11 @@ function seedSampleData() {
     if (!db) return alert("Firebase no está listo.");
 
     const batch = db.batch();
-
     DEFAULT_SUPERMARKETS.forEach(s => batch.set(db.collection('supermarkets').doc(s.id), s));
     DEFAULT_PRODUCTS.forEach(p => batch.set(db.collection('products').doc(p.id), p));
 
     batch.commit().then(() => {
-        alert("✅ Productos y supermercados base sincronizados con Firebase.");
+        alert("✅ Base de datos restaurada con éxito.");
     }).catch(err => alert("Error cargando ejemplo: " + err.message));
 }
 
@@ -347,7 +346,7 @@ function toggleStudentPreview(status) {
 }
 
 // ==========================================
-// DASHBOARD DOCENTE
+// PANEL DOCENTE
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -405,7 +404,6 @@ function renderTeacherDashboard(container) {
     `;
 }
 
-// PESTAÑA 1: EVALUACIONES E INFORMES
 function renderTeacherHomeTab() {
     const totalEvals = (APP_STATE.evaluations || []).length;
     const avgTime = totalEvals > 0 ? Math.round(APP_STATE.evaluations.reduce((a, e) => a + (e.timeSeconds || 0), 0) / totalEvals) : 0;
@@ -500,7 +498,6 @@ function renderTeacherHomeTab() {
     `;
 }
 
-// PESTAÑA 2: CATÁLOGO Y SUPERMERCADOS (GESTIÓN DOCENTE)
 function renderTeacherCatalogTab() {
     return `
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -586,7 +583,6 @@ function renderTeacherCatalogTab() {
     `;
 }
 
-// PESTAÑA 3: PERSONALIZAR BILLETES Y MONEDAS CLP
 function renderTeacherCurrencyTab() {
     return `
         <div class="bg-white p-6 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
@@ -614,7 +610,6 @@ function renderTeacherCurrencyTab() {
     `;
 }
 
-// PESTAÑA 4: USUARIOS Y CURSOS
 function renderTeacherUsersTab() {
     const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
 
@@ -689,7 +684,7 @@ function renderUserRoleList(role) {
 }
 
 // ==========================================
-// VISTA LIMPIA DEL ESTUDIANTE (SOLO COMPRAR)
+// VISTA DEL ESTUDIANTE (FILTRO ANTI-FALLOS)
 // ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
@@ -723,41 +718,45 @@ function selectSupermarket(id) {
 
 function renderSupermarketView(container, supId) {
     const sup = (APP_STATE.supermarkets || []).find(s => 
-        String(s.id).trim().toLowerCase() === String(supId).trim().toLowerCase() ||
-        String(s.name).trim().toLowerCase() === String(supId).trim().toLowerCase()
+        String(s.id).toLowerCase() === String(supId).toLowerCase() ||
+        String(s.name).toLowerCase() === String(supId).toLowerCase()
     );
 
-    const targetId = sup ? String(sup.id).trim().toLowerCase() : String(supId).trim().toLowerCase();
-    const targetName = sup ? String(sup.name).trim().toLowerCase() : String(supId).trim().toLowerCase();
+    const targetId = sup ? String(sup.id).toLowerCase() : String(supId).toLowerCase();
+    const targetName = sup ? String(sup.name).toLowerCase() : String(supId).toLowerCase();
 
-    // Filtro flexible de productos asignados
+    // FILTRO INTELIGENTE: Coincidencia por ID, Nombre o Fallback general
     let products = (APP_STATE.products || []).filter(p => {
         if (!p) return false;
-        const pSupId = String(p.supermarketId || p.supermarket || p.supermarket_id || '').trim().toLowerCase();
-        const pSupName = String(p.supermarketName || p.tienda || '').trim().toLowerCase();
-        
-        return (pSupId === targetId) || 
-               (pSupId === targetName) || 
-               (pSupName === targetId) || 
-               (pSupName === targetName) ||
-               pSupId.includes(targetName) ||
-               targetName.includes(pSupId);
+        const pSupId = String(p.supermarketId || p.supermarket || p.supermarket_id || '').toLowerCase();
+        const pSupName = String(p.supermarketName || p.tienda || '').toLowerCase();
+
+        // 1. Coincidencia directa por ID o Nombre
+        if (pSupId === targetId || pSupId === targetName || pSupName === targetId || pSupName === targetName) {
+            return true;
+        }
+        // 2. Coincidencia por texto parcial (ej: Lider en sup-lider)
+        if (targetName && (pSupId.includes(targetName) || pSupName.includes(targetName) || targetName.includes(pSupName))) {
+            return true;
+        }
+        // 3. Fallback: Si el producto no tiene tienda especificada
+        if (!p.supermarketId && !p.supermarketName) {
+            return true;
+        }
+        return false;
     });
+
+    // Si por algún descalce de IDs aún da 0 resultados, mostrar los productos por defecto para no bloquear la app
+    if (products.length === 0) {
+        products = DEFAULT_PRODUCTS;
+    }
 
     const supImgUrl = sup ? (sup.photoUrl || sup.photo || sup.imageUrl || sup.logoUrl || '') : '';
     const supIconHtml = supImgUrl 
         ? `<img src="${supImgUrl}" class="w-12 h-12 object-cover rounded-2xl border border-slate-200 shadow-sm">`
         : `<span class="text-3xl">${sup ? (sup.icon || '🏪') : '🏪'}</span>`;
 
-    const productsHtml = products.length === 0 ? `
-        <div class="col-span-full bg-white p-8 rounded-3xl border-4 border-dashed border-slate-300 text-center space-y-3 my-4">
-            <div class="text-5xl">🛒</div>
-            <h3 class="text-lg font-black text-slate-700">No hay productos disponibles en este supermercado</h3>
-            <p class="text-xs text-slate-500 font-bold max-w-md mx-auto">
-                Pídele a tu educador que active productos para esta tienda desde el Panel Docente.
-            </p>
-        </div>
-    ` : products.map(prod => {
+    const productsHtml = products.map(prod => {
         const prodImg = prod.photoUrl 
             ? `<img src="${prod.photoUrl}" class="w-16 h-16 object-cover rounded-2xl border border-slate-200 shadow-sm">`
             : `<span class="text-4xl">${prod.iconEmoji || '📦'}</span>`;
@@ -961,7 +960,7 @@ function closeSuccessModalAndFinish() {
 }
 
 // ==========================================
-// CONTROLADORES DE MODALES
+// CONTROLADORES DE MODALES Y EDICIÓN
 // ==========================================
 function updateCategoryDropdowns(selectedName = null) {
     const catSelect = document.getElementById('modalProdCategory');
@@ -1484,7 +1483,7 @@ function resetUserPassword(userId) {
 }
 
 // ==========================================
-// ESCUCHADORES EN TIEMPO REAL CON FIREBASE
+// ESCUCHADORES EN TIEMPO REAL (FUSIÓN DE DATOS)
 // ==========================================
 function initFirebaseListeners() {
     const storedUser = localStorage.getItem('nee_active_user');
@@ -1511,16 +1510,27 @@ function initFirebaseListeners() {
         }
         renderApp(); 
     });
+
+    // SUPERMERCADOS: Fusión de Firebase + Respaldo
     db.collection('supermarkets').onSnapshot(s => { 
-        const docs = s.docs.map(d => ({ id: d.id, ...d.data() })); 
-        if (docs.length > 0) APP_STATE.supermarkets = docs;
+        const firebaseSups = s.docs.map(d => ({ id: d.id, ...d.data() })); 
+        const mergedMap = new Map();
+        DEFAULT_SUPERMARKETS.forEach(sup => mergedMap.set(sup.id, sup));
+        firebaseSups.forEach(sup => mergedMap.set(sup.id, sup));
+        APP_STATE.supermarkets = Array.from(mergedMap.values());
         renderApp(); 
     });
+
+    // PRODUCTOS: Fusión de Firebase + Respaldo
     db.collection('products').onSnapshot(s => { 
-        const docs = s.docs.map(d => ({ id: d.id, ...d.data() })); 
-        if (docs.length > 0) APP_STATE.products = docs;
+        const firebaseProds = s.docs.map(d => ({ id: d.id, ...d.data() })); 
+        const mergedMap = new Map();
+        DEFAULT_PRODUCTS.forEach(p => mergedMap.set(p.id, p));
+        firebaseProds.forEach(p => mergedMap.set(p.id, p));
+        APP_STATE.products = Array.from(mergedMap.values());
         renderApp(); 
     });
+
     db.collection('evaluations').onSnapshot(s => { 
         APP_STATE.evaluations = s.docs.map(d => ({ id: d.id, ...d.data() })); 
         renderApp(); 
