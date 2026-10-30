@@ -725,28 +725,23 @@ function renderSupermarketView(container, supId) {
     const targetId = sup ? String(sup.id).toLowerCase() : String(supId).toLowerCase();
     const targetName = sup ? String(sup.name).toLowerCase() : String(supId).toLowerCase();
 
-    // FILTRO INTELIGENTE: Coincidencia por ID, Nombre o Fallback general
     let products = (APP_STATE.products || []).filter(p => {
         if (!p) return false;
         const pSupId = String(p.supermarketId || p.supermarket || p.supermarket_id || '').toLowerCase();
         const pSupName = String(p.supermarketName || p.tienda || '').toLowerCase();
 
-        // 1. Coincidencia directa por ID o Nombre
         if (pSupId === targetId || pSupId === targetName || pSupName === targetId || pSupName === targetName) {
             return true;
         }
-        // 2. Coincidencia por texto parcial (ej: Lider en sup-lider)
         if (targetName && (pSupId.includes(targetName) || pSupName.includes(targetName) || targetName.includes(pSupName))) {
             return true;
         }
-        // 3. Fallback: Si el producto no tiene tienda especificada
         if (!p.supermarketId && !p.supermarketName) {
             return true;
         }
         return false;
     });
 
-    // Si por algún descalce de IDs aún da 0 resultados, mostrar los productos por defecto para no bloquear la app
     if (products.length === 0) {
         products = DEFAULT_PRODUCTS;
     }
@@ -995,7 +990,10 @@ function openProductModal(prodId = null) {
             if (priceInput) priceInput.value = p.price || '';
             if (emojiInput) emojiInput.value = p.iconEmoji || '📦';
             if (supSelect) supSelect.value = p.supermarketId || p.supermarket || '';
-            if (repInput) { repInput.checked = false; repInput.disabled = true; }
+            
+            // PERMITIR REPLICAR TAMBIÉN AL EDITAR
+            if (repInput) { repInput.checked = false; repInput.disabled = false; }
+            
             if (photoHidden) photoHidden.value = p.photoUrl || '';
             if (p.photoUrl && previewImg && previewContainer) {
                 previewImg.src = p.photoUrl;
@@ -1511,7 +1509,6 @@ function initFirebaseListeners() {
         renderApp(); 
     });
 
-    // SUPERMERCADOS: Fusión de Firebase + Respaldo
     db.collection('supermarkets').onSnapshot(s => { 
         const firebaseSups = s.docs.map(d => ({ id: d.id, ...d.data() })); 
         const mergedMap = new Map();
@@ -1521,7 +1518,6 @@ function initFirebaseListeners() {
         renderApp(); 
     });
 
-    // PRODUCTOS: Fusión de Firebase + Respaldo
     db.collection('products').onSnapshot(s => { 
         const firebaseProds = s.docs.map(d => ({ id: d.id, ...d.data() })); 
         const mergedMap = new Map();
