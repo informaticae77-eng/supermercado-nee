@@ -37,7 +37,6 @@ const APP_STATE = {
     adminCourseFilter: 'all',
     basket: [],
     userPaidAmount: 0,
-    userPaidTray: [],
     courses: [],
     categories: [],
     users: [],
@@ -45,10 +44,7 @@ const APP_STATE = {
     products: [],
     evaluations: [],
     customCurrencies: {},
-    telemetry: { voiceHelpCount: 0, paymentResetsCount: 0 },
-    missionActive: false,
-    missionStartTime: null,
-    missionTimerInterval: null,
+    telemetry: { voiceHelpCount: 0 },
     missionElapsedSeconds: 0
 };
 
@@ -68,7 +64,7 @@ const CLP_CURRENCY_ITEMS = [
 ];
 
 // ==========================================
-// FUNCIONES AUXILIARES Y ACCESIBILIDAD
+// FUNCIONES AUXILIARES
 // ==========================================
 function speakText(text) {
     if (APP_STATE.telemetry) APP_STATE.telemetry.voiceHelpCount++;
@@ -133,7 +129,7 @@ function sendAutomaticCredentialsEmail(user) {
 }
 
 // ==========================================
-// RENDERIZADO GENERAL Y CONTROL DE VISTAS
+// RENDERIZADO PRINCIPAL
 // ==========================================
 function renderApp() {
     const container = document.getElementById('appContainer');
@@ -245,7 +241,7 @@ function goHome() {
 }
 
 // ==========================================
-// MODO PRUEBA DE ESTUDIANTE PARA DOCENTES
+// VISTA PREVIA DEL ALUMNO (MODO PRUEBA)
 // ==========================================
 function renderStudentPreviewWrapper(container) {
     const previewBanner = `
@@ -258,7 +254,7 @@ function renderStudentPreviewWrapper(container) {
                 </div>
             </div>
             <button onclick="toggleStudentPreview(false)" class="bg-slate-900 hover:bg-black text-white font-black text-xs px-4 py-2 rounded-xl border-b-2 border-slate-950 shadow active:scale-95">
-                ← Volver al Panel
+                ← Volver al Panel Docente
             </button>
         </div>
     `;
@@ -281,11 +277,11 @@ function toggleStudentPreview(status) {
 }
 
 // ==========================================
-// DASHBOARD DEL EDUCADOR Y ADMINISTRADOR
+// PANEL DOCENTE Y ADMINISTRADOR
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
-    renderApp();
+    renderTeacherDashboard(document.getElementById('appContainer'));
 }
 
 function renderTeacherDashboard(container) {
@@ -336,7 +332,7 @@ function renderTeacherDashboard(container) {
 }
 
 // ------------------------------------------
-// MÓDULO DE EVALUACIÓN DE ACTIVIDADES E HISTORIAL
+// PESTAÑA 1: EVALUACIONES Y MÉTRICAS
 // ------------------------------------------
 function renderTeacherHomeTab() {
     const totalEvals = (APP_STATE.evaluations || []).length;
@@ -362,7 +358,7 @@ function renderTeacherHomeTab() {
                 </div>
                 <div class="bg-white p-4 rounded-3xl border-4 border-amber-200 shadow-sm flex items-center justify-between">
                     <div>
-                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Alumnos Activos</span>
+                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Alumnos Registrados</span>
                         <span class="text-2xl font-black text-amber-900">${(APP_STATE.users || []).filter(u => u.role === 'student').length}</span>
                     </div>
                     <div class="bg-amber-100 text-amber-600 p-3 rounded-2xl text-xl">🎒</div>
@@ -376,15 +372,14 @@ function renderTeacherHomeTab() {
                 </div>
             </div>
 
-            <!-- REGISTRO PEDAGÓGICO COMPLETO -->
             <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-md space-y-4">
                 <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
                     <div>
                         <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
                             <i class="fa-solid fa-clipboard-check text-indigo-600"></i>
-                            <span>Informe y Módulo de Evaluación de Actividades</span>
+                            <span>Módulo de Evaluación Pedagógica de Actividades</span>
                         </h3>
-                        <p class="text-xs text-slate-500">Resultados de las compras realizadas por los estudiantes.</p>
+                        <p class="text-xs text-slate-500">Historial completo de compras y respuestas del alumnado.</p>
                     </div>
                     <span class="bg-indigo-100 text-indigo-900 text-xs font-extrabold px-3 py-1 rounded-xl">
                         ${totalEvals} Evaluaciones Guardadas
@@ -398,16 +393,16 @@ function renderTeacherHomeTab() {
                                 <th class="py-2.5 px-3">Fecha y Hora</th>
                                 <th class="py-2.5 px-3">Estudiante</th>
                                 <th class="py-2.5 px-3">Supermercado</th>
-                                <th class="py-2.5 px-3 text-center">Items Comprados</th>
+                                <th class="py-2.5 px-3 text-center">Items</th>
                                 <th class="py-2.5 px-3">Total ($)</th>
                                 <th class="py-2.5 px-3">Pagado ($)</th>
-                                <th class="py-2.5 px-3 text-center">Tiempo Búsqueda</th>
+                                <th class="py-2.5 px-3 text-center">Tiempo</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 font-bold">
                             ${totalEvals === 0 ? `
                                 <tr>
-                                    <td colspan="7" class="py-8 text-center text-slate-400 italic">No hay evaluaciones registradas aún. Los resultados aparecerán automáticamente cuando los estudiantes paguen en caja.</td>
+                                    <td colspan="7" class="py-8 text-center text-slate-400 italic">No hay evaluaciones registradas aún. Las compras completadas por los estudiantes se guardarán aquí.</td>
                                 </tr>
                             ` : (APP_STATE.evaluations || []).map(e => `
                                 <tr class="hover:bg-slate-50">
@@ -429,7 +424,7 @@ function renderTeacherHomeTab() {
 }
 
 // ------------------------------------------
-// MÓDULO DE SUPERMERCADOS, PRODUCTOS Y CATEGORÍAS
+// PESTAÑA 2: SUPERMERCADOS Y PRODUCTOS
 // ------------------------------------------
 function renderTeacherCatalogTab() {
     return `
@@ -438,7 +433,7 @@ function renderTeacherCatalogTab() {
                 <div class="flex justify-between items-center border-b pb-3">
                     <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
                         <i class="fa-solid fa-store text-emerald-600"></i>
-                        <span>Supermercados Creados</span>
+                        <span>Gestión de Supermercados</span>
                     </h3>
                     <button onclick="openSupermarketModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow border-b-2 border-emerald-800 active:scale-95">
                         + Crear Supermercado
@@ -474,14 +469,14 @@ function renderTeacherCatalogTab() {
                 <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
                     <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
                         <i class="fa-solid fa-boxes-stacked text-amber-600"></i>
-                        <span>Productos y Categorías</span>
+                        <span>Catálogo de Productos</span>
                     </h3>
                     <div class="flex gap-2">
                         <button onclick="openCategoryModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-3 py-2 rounded-xl shadow active:scale-95">
-                            + Nueva Categoría
+                            + Crear Categoría
                         </button>
                         <button onclick="openProductModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-xs px-3 py-2 rounded-xl shadow border-b-2 border-amber-700 active:scale-95">
-                            + Nuevo Producto
+                            + Crear Producto
                         </button>
                     </div>
                 </div>
@@ -516,7 +511,7 @@ function renderTeacherCatalogTab() {
 }
 
 // ------------------------------------------
-// MÓDULO DE BILLETES Y MONEDAS CLP
+// PESTAÑA 3: PERSONALIZAR BILLETES Y MONEDAS CLP
 // ------------------------------------------
 function renderTeacherCurrencyTab() {
     return `
@@ -524,9 +519,9 @@ function renderTeacherCurrencyTab() {
             <div class="border-b pb-3">
                 <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
                     <i class="fa-solid fa-money-bill-wave text-amber-600"></i>
-                    <span>Personalización de Billetes y Monedas Chilenas (CLP)</span>
+                    <span>Personalización de Billetes y Monedas (CLP)</span>
                 </h3>
-                <p class="text-xs text-slate-500 font-bold mt-1">Sube fotografías reales o captúralas con la cámara para adaptar el material didáctico.</p>
+                <p class="text-xs text-slate-500 font-bold mt-1">Sube fotografías reales para adaptar las imágenes utilizadas en las compras.</p>
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
@@ -547,7 +542,7 @@ function renderTeacherCurrencyTab() {
 }
 
 // ------------------------------------------
-// MÓDULO DE USUARIOS Y CURSOS
+// PESTAÑA 4: USUARIOS Y CURSOS
 // ------------------------------------------
 function renderTeacherUsersTab() {
     return `
@@ -619,7 +614,7 @@ function renderUserRoleList(role) {
 }
 
 // ==========================================
-// VISTA DE LA TIENDA DE ESTUDIANTES
+// VISTAS DE LA TIENDA DE ESTUDIANTES
 // ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
@@ -646,13 +641,40 @@ function renderHomeView(container) {
 }
 
 function selectSupermarket(id) {
-    APP_STATE.selectedSupermarketId = id;
+    APP_STATE.selectedSupermarketId = String(id);
     renderApp();
 }
 
+// RENDERIZADO DE PRODUCTOS DENTRO DEL SUPERMERCADO
 function renderSupermarketView(container, supId) {
-    const sup = (APP_STATE.supermarkets || []).find(s => s.id === supId);
-    let products = (APP_STATE.products || []).filter(p => p.supermarketId === supId);
+    const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId));
+    let products = (APP_STATE.products || []).filter(p => String(p.supermarketId) === String(supId));
+
+    const productsHtml = products.length === 0 ? `
+        <div class="col-span-full bg-white p-8 rounded-3xl border-4 border-dashed border-slate-300 text-center space-y-3 my-4">
+            <div class="text-5xl">🛒</div>
+            <h3 class="text-lg font-black text-slate-700">No hay productos en este supermercado</h3>
+            <p class="text-xs text-slate-500 font-bold max-w-md mx-auto">
+                Para agregar productos, vuelve al Panel Docente, ve a la pestaña <b>"Catálogo & Tiendas"</b> y haz clic en <b>"+ Crear Producto"</b>.
+            </p>
+        </div>
+    ` : products.map(prod => {
+        const prodImg = prod.photoUrl 
+            ? `<img src="${prod.photoUrl}" class="w-16 h-16 object-cover rounded-2xl border border-slate-200">`
+            : `<span class="text-4xl">${prod.iconEmoji || '📦'}</span>`;
+        return `
+            <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow-md flex flex-col justify-between space-y-4">
+                <div class="flex items-center space-x-4">
+                    ${prodImg}
+                    <div>
+                        <h3 class="text-lg font-black text-slate-800">${prod.name}</h3>
+                        <div class="text-2xl font-black text-emerald-700">$${(prod.price || 0).toLocaleString('es-CL')}</div>
+                    </div>
+                </div>
+                <button onclick="addToBasket('${prod.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl shadow border-b-4 border-emerald-900 active:scale-95">Añadir al Canasto</button>
+            </div>
+        `;
+    }).join('');
 
     container.innerHTML = `
         <div class="space-y-6">
@@ -661,30 +683,14 @@ function renderSupermarketView(container, supId) {
                 <h2 class="text-2xl font-black text-slate-800">${sup ? sup.name : 'Supermercado'}</h2>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                ${products.map(prod => {
-                    const prodImg = prod.photoUrl 
-                        ? `<img src="${prod.photoUrl}" class="w-16 h-16 object-cover rounded-2xl border border-slate-200">`
-                        : `<span class="text-4xl">${prod.iconEmoji || '📦'}</span>`;
-                    return `
-                        <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow-md flex flex-col justify-between space-y-4">
-                            <div class="flex items-center space-x-4">
-                                ${prodImg}
-                                <div>
-                                    <h3 class="text-lg font-black text-slate-800">${prod.name}</h3>
-                                    <div class="text-2xl font-black text-emerald-700">$${(prod.price || 0).toLocaleString('es-CL')}</div>
-                                </div>
-                            </div>
-                            <button onclick="addToBasket('${prod.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl shadow border-b-4 border-emerald-900 active:scale-95">Añadir al Canasto</button>
-                        </div>
-                    `;
-                }).join('')}
+                ${productsHtml}
             </div>
         </div>
     `;
 }
 
 // ==========================================
-// CANASTO Y PROCESO DE PAGO CON CLP
+// CANASTO Y PAGO EN CAJA
 // ==========================================
 function updateBasketBadge() {
     const badge = document.getElementById('basketBadge');
@@ -692,9 +698,9 @@ function updateBasketBadge() {
 }
 
 function addToBasket(prodId) {
-    const prod = (APP_STATE.products || []).find(p => p.id === prodId);
+    const prod = (APP_STATE.products || []).find(p => String(p.id) === String(prodId));
     if (!prod) return;
-    APP_STATE.basket.push({ productId: prodId, quantity: 1 });
+    APP_STATE.basket.push({ productId: prod.id, quantity: 1 });
     playChimeSound();
     updateBasketBadge();
     speakText(`Añadido ${prod.name}`);
@@ -703,7 +709,6 @@ function addToBasket(prodId) {
 function clearBasket() {
     APP_STATE.basket = [];
     APP_STATE.userPaidAmount = 0;
-    APP_STATE.userPaidTray = [];
     updateBasketBadge();
     renderBasketModalContent();
 }
@@ -732,7 +737,7 @@ function renderBasketModalContent() {
     listEl.innerHTML = (APP_STATE.basket || []).length === 0 
         ? `<p class="text-center text-slate-400 py-6 font-bold text-xs">Tu canasto está vacío.</p>`
         : APP_STATE.basket.map((item, idx) => {
-            const p = (APP_STATE.products || []).find(x => x.id === item.productId);
+            const p = (APP_STATE.products || []).find(x => String(x.id) === String(item.productId));
             if (!p) return '';
             total += (p.price || 0);
             const imgHtml = p.photoUrl 
@@ -789,11 +794,10 @@ function resetUserPayment() {
     renderBasketModalContent();
 }
 
-// GUARDA LA EVALUACIÓN Y COMPLETA EL CHECKOUT EN CAJA
 function verifyAndCheckout() {
     let total = 0;
     (APP_STATE.basket || []).forEach(item => {
-        const p = (APP_STATE.products || []).find(x => x.id === item.productId);
+        const p = (APP_STATE.products || []).find(x => String(x.id) === String(item.productId));
         if (p) total += (p.price || 0);
     });
 
@@ -805,9 +809,8 @@ function verifyAndCheckout() {
     }
 
     const vuelto = APP_STATE.userPaidAmount - total;
-    const sup = (APP_STATE.supermarkets || []).find(s => s.id === APP_STATE.selectedSupermarketId);
+    const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(APP_STATE.selectedSupermarketId));
 
-    // REGISTRO DE LA EVALUACIÓN
     const evalData = {
         id: 'eval-' + Date.now(),
         studentId: APP_STATE.currentUser ? APP_STATE.currentUser.id : 'anonimo',
@@ -855,7 +858,7 @@ function closeSuccessModalAndFinish() {
 }
 
 // ==========================================
-// CONTROLADORES DE ARCHIVOS Y REPLICACIÓN
+// CONTROLADORES DE MODALES Y EDICIÓN
 // ==========================================
 function updateCategoryDropdowns(selectedName = null) {
     const catSelect = document.getElementById('modalProdCategory');
@@ -882,7 +885,7 @@ function deleteCourse(id) {
     if (confirm("¿Eliminar este curso?") && db) db.collection('courses').doc(id).delete();
 }
 
-// REPLICACIÓN Y GUARDADO DE PRODUCTOS
+// CREAR Y REPLICAR PRODUCTOS
 function openProductModal(prodId = null) {
     const supSelect = document.getElementById('modalProdSupermarket');
     if (supSelect) supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
@@ -899,7 +902,7 @@ function openProductModal(prodId = null) {
     const previewImg = document.getElementById('prodPhotoPreview');
 
     if (prodId) {
-        const p = (APP_STATE.products || []).find(item => item.id === prodId);
+        const p = (APP_STATE.products || []).find(item => String(item.id) === String(prodId));
         if (p) {
             if (titleEl) titleEl.textContent = 'Editar Producto';
             if (idInput) idInput.value = p.id;
@@ -1038,7 +1041,7 @@ function openSupermarketModal(supId = null) {
         if (previewContainer) previewContainer.classList.add('hidden');
 
         if (supId) {
-            const s = (APP_STATE.supermarkets || []).find(item => item.id === supId);
+            const s = (APP_STATE.supermarkets || []).find(item => String(item.id) === String(supId));
             if (s) {
                 document.getElementById('modalSupName').value = s.name || '';
                 document.getElementById('modalSupIcon').value = s.icon || '🏪';
@@ -1236,7 +1239,7 @@ function openCreateUserModal(role) {
 }
 
 function openEditUserModal(userId) {
-    const user = (APP_STATE.users || []).find(u => u.id === userId);
+    const user = (APP_STATE.users || []).find(u => String(u.id) === String(userId));
     if (!user) return;
     const el = document.getElementById('userModal');
     if (el) {
@@ -1351,7 +1354,7 @@ function deleteUser(id) {
 }
 
 function resetUserPassword(userId) {
-    const user = (APP_STATE.users || []).find(u => u.id === userId);
+    const user = (APP_STATE.users || []).find(u => String(u.id) === String(userId));
     if (!user || !db) return;
     const initialPin = user.rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
     db.collection('users').doc(userId).update({ pin: initialPin }).then(() => {
@@ -1360,7 +1363,7 @@ function resetUserPassword(userId) {
 }
 
 // ==========================================
-// ESCUCHADORES EN TIEMPO REAL CON FIREBASE
+// ESCUCHADORES EN TIEMPO REAL CON ASIGNACIÓN DE DOC.ID
 // ==========================================
 function initFirebaseListeners() {
     const storedUser = localStorage.getItem('nee_active_user');
@@ -1370,19 +1373,35 @@ function initFirebaseListeners() {
 
     if (!db) return;
 
-    db.collection('courses').onSnapshot(s => { APP_STATE.courses = s.docs.map(d => d.data()); renderApp(); });
-    db.collection('categories').onSnapshot(s => { APP_STATE.categories = s.docs.map(d => d.data()); updateCategoryDropdowns(); renderApp(); });
+    db.collection('courses').onSnapshot(s => { 
+        APP_STATE.courses = s.docs.map(d => ({ id: d.id, ...d.data() })); 
+        renderApp(); 
+    });
+    db.collection('categories').onSnapshot(s => { 
+        APP_STATE.categories = s.docs.map(d => ({ id: d.id, ...d.data() })); 
+        updateCategoryDropdowns(); 
+        renderApp(); 
+    });
     db.collection('users').onSnapshot(s => { 
-        APP_STATE.users = s.docs.map(d => d.data()); 
+        APP_STATE.users = s.docs.map(d => ({ id: d.id, ...d.data() })); 
         if (APP_STATE.currentUser) {
-            const updated = APP_STATE.users.find(u => u.id === APP_STATE.currentUser.id);
+            const updated = APP_STATE.users.find(u => String(u.id) === String(APP_STATE.currentUser.id));
             if (updated) APP_STATE.currentUser = updated;
         }
         renderApp(); 
     });
-    db.collection('supermarkets').onSnapshot(s => { APP_STATE.supermarkets = s.docs.map(d => d.data()); renderApp(); });
-    db.collection('products').onSnapshot(s => { APP_STATE.products = s.docs.map(d => d.data()); renderApp(); });
-    db.collection('evaluations').onSnapshot(s => { APP_STATE.evaluations = s.docs.map(d => d.data()); renderApp(); });
+    db.collection('supermarkets').onSnapshot(s => { 
+        APP_STATE.supermarkets = s.docs.map(d => ({ id: d.id, ...d.data() })); 
+        renderApp(); 
+    });
+    db.collection('products').onSnapshot(s => { 
+        APP_STATE.products = s.docs.map(d => ({ id: d.id, ...d.data() })); 
+        renderApp(); 
+    });
+    db.collection('evaluations').onSnapshot(s => { 
+        APP_STATE.evaluations = s.docs.map(d => ({ id: d.id, ...d.data() })); 
+        renderApp(); 
+    });
     db.collection('currencies').onSnapshot(s => {
         const map = {};
         s.docs.forEach(doc => { map[doc.id] = doc.data().photoUrl; });
@@ -1391,6 +1410,6 @@ function initFirebaseListeners() {
     });
 }
 
-// Inicialización de la aplicación
+// Inicializar la aplicación
 initFirebaseListeners();
 renderApp();
