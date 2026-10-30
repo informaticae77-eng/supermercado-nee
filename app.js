@@ -27,17 +27,15 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
-// ESTADO GLOBAL DE LA APLICACIÓN
+// ESTADO GLOBAL
 // ==========================================
 const APP_STATE = {
     currentUser: null,
     selectedSupermarketId: null,
-    teacherActiveTab: 'home', // 'home' | 'catalog' | 'currency'
+    teacherActiveTab: 'home', // 'home' | 'catalog' | 'currency' | 'users'
     teacherPreviewMode: false,
     adminCourseFilter: 'all',
-    selectedCategoryFilter: 'all',
     basket: [],
-    userPaidAmount: 0,
     courses: [],
     categories: [],
     users: [],
@@ -45,18 +43,8 @@ const APP_STATE = {
     products: [],
     evaluations: [],
     customCurrencies: {},
-    telemetry: { voiceHelpCount: 0, paymentResetsCount: 0 },
-    missionActive: false,
-    missionStartTime: null,
-    missionTimerInterval: null,
-    missionElapsedSeconds: 0,
-    foundProductIds: [],
-    currentScanningProductId: null
+    telemetry: { voiceHelpCount: 0 }
 };
-
-let cameraStream = null;
-let currencyCameraStream = null;
-let aiScannerStream = null;
 
 const CLP_CURRENCY_ITEMS = [
     { id: 'b20k', value: 20000, type: 'bill', name: 'Billete $20.000', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/20000_pesos_chilenos_2010_anverso.jpg/320px-20000_pesos_chilenos_2010_anverso.jpg' },
@@ -123,7 +111,7 @@ function sendAutomaticCredentialsEmail(user) {
 }
 
 // ==========================================
-// RENDERIZADO PRINCIPAL
+// CICLO PRINCIPAL DE RENDERIZADO
 // ==========================================
 function renderApp() {
     const container = document.getElementById('appContainer');
@@ -151,7 +139,7 @@ function renderApp() {
         return;
     }
 
-    // Modo prueba del educador/admin simulando ser un alumno
+    // Modo vista previa de prueba para el Educador
     if (APP_STATE.teacherPreviewMode) {
         if (headerBasketBtn) headerBasketBtn.classList.remove('hidden');
         renderStudentPreviewWrapper(container);
@@ -231,7 +219,7 @@ function goHome() {
 }
 
 // ==========================================
-// WRAPPER DE MODO PRUEBA ALUMNO (EDUCADOR)
+// VISTA PREVIA DEL ALUMNO (MODO PRUEBA)
 // ==========================================
 function renderStudentPreviewWrapper(container) {
     const previewBanner = `
@@ -240,7 +228,7 @@ function renderStudentPreviewWrapper(container) {
                 <span class="text-2xl">🕹️</span>
                 <div>
                     <h3 class="font-black text-sm tracking-tight">MODO PRUEBA: VISTA DEL ESTUDIANTE</h3>
-                    <p class="text-[11px] font-bold text-slate-800">Estás probando la tienda tal como interactúan los alumnos.</p>
+                    <p class="text-[11px] font-bold text-slate-800">Prueba el juego tal como lo ven los alumnos.</p>
                 </div>
             </div>
             <button onclick="toggleStudentPreview(false)" class="bg-slate-900 hover:bg-black text-white font-black text-xs px-4 py-2 rounded-xl border-b-2 border-slate-950 shadow active:scale-95">
@@ -267,7 +255,7 @@ function toggleStudentPreview(status) {
 }
 
 // ==========================================
-// DASHBOARD DEL EDUCADOR Y ADMINISTRADOR (CON PESTAÑAS)
+// PANEL DE CONTROL CON PESTAÑAS
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -279,56 +267,54 @@ function renderTeacherDashboard(container) {
 
     container.innerHTML = `
         <div class="space-y-6">
-            <!-- ENCABEZADO Y MENÚ DE PESTAÑAS -->
-            <div class="bg-indigo-900 text-white p-6 rounded-3xl shadow-xl space-y-4 border-b-4 border-indigo-700">
-                <div class="flex flex-wrap justify-between items-center gap-4">
+            <!-- BARRA DE PESTAÑAS DEDICADAS -->
+            <div class="bg-slate-900 text-white p-5 rounded-3xl shadow-xl space-y-4 border-b-4 border-indigo-600">
+                <div class="flex flex-wrap justify-between items-center gap-3">
                     <div>
-                        <h2 class="text-2xl font-black flex items-center gap-2">
-                            <i class="fa-solid fa-chalkboard-user text-amber-400"></i>
-                            <span>Panel de Gestión y Métrica Pedagógica</span>
+                        <h2 class="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+                            <span>🏫</span>
+                            <span>Panel Docente y Administración</span>
                         </h2>
-                        <p class="text-xs text-indigo-200 mt-1">Supervisión, edición de catálogo y personalización adaptativa.</p>
+                        <p class="text-xs text-indigo-300 font-bold mt-0.5">Supervisión en tiempo real y catálogo adaptativo</p>
                     </div>
 
-                    <!-- BOTÓN VISTA DE JUEGO DEL ALUMNO -->
-                    <button onclick="toggleStudentPreview(true)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-4 py-2.5 rounded-2xl shadow-lg border-b-4 border-amber-600 flex items-center gap-2 active:scale-95 transition-transform">
-                        <span>🕹️</span>
-                        <span>Ver Juego (Vista Alumno)</span>
+                    <!-- BOTÓN DESTACADO PARA PROBAR EL JUEGO -->
+                    <button onclick="toggleStudentPreview(true)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-4 py-2.5 rounded-xl shadow-lg border-b-4 border-amber-600 flex items-center gap-2 active:scale-95 transition-transform">
+                        <span class="text-base">🕹️</span>
+                        <span>Ver Juego Estudiantes</span>
                     </button>
                 </div>
 
-                <!-- MENÚ DE NAVEGACIÓN PRINCIPAL (PESTAÑAS) -->
-                <div class="flex flex-wrap gap-2 pt-2 border-t border-indigo-800">
-                    <button onclick="setTeacherTab('home')" class="px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 ${activeTab === 'home' ? 'bg-white text-indigo-950 shadow-md scale-105' : 'bg-indigo-800 text-indigo-200 hover:bg-indigo-700'}">
-                        <span>📊</span><span>Inicio & Telemetría</span>
+                <!-- MENÚ VISIBLE DE PESTAÑAS -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800">
+                    <button onclick="setTeacherTab('home')" class="py-3 px-3 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 ${activeTab === 'home' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                        <span>📊</span><span>1. Inicio & Telemetría</span>
                     </button>
-                    <button onclick="setTeacherTab('catalog')" class="px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 ${activeTab === 'catalog' ? 'bg-white text-indigo-950 shadow-md scale-105' : 'bg-indigo-800 text-indigo-200 hover:bg-indigo-700'}">
-                        <span>🏪</span><span>Supermercados y Catálogo</span>
+                    <button onclick="setTeacherTab('catalog')" class="py-3 px-3 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 ${activeTab === 'catalog' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                        <span>🏪</span><span>2. Catálogo & Tiendas</span>
                     </button>
-                    <button onclick="setTeacherTab('currency')" class="px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 ${activeTab === 'currency' ? 'bg-white text-indigo-950 shadow-md scale-105' : 'bg-indigo-800 text-indigo-200 hover:bg-indigo-700'}">
-                        <span>💵</span><span>Billetes y Monedas (CLP)</span>
+                    <button onclick="setTeacherTab('currency')" class="py-3 px-3 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 ${activeTab === 'currency' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                        <span>💵</span><span>3. Billetes / Monedas</span>
                     </button>
-                    ${APP_STATE.currentUser.role === 'admin' ? `
-                        <button onclick="setTeacherTab('users')" class="px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 ${activeTab === 'users' ? 'bg-white text-indigo-950 shadow-md scale-105' : 'bg-indigo-800 text-indigo-200 hover:bg-indigo-700'}">
-                            <span>👑</span><span>Gestión de Usuarios</span>
-                        </button>
-                    ` : ''}
+                    <button onclick="setTeacherTab('users')" class="py-3 px-3 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 ${activeTab === 'users' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                        <span>🔑</span><span>4. Gestión Usuarios</span>
+                    </button>
                 </div>
             </div>
 
-            <!-- CONTENIDO DE LAS PESTAÑAS -->
+            <!-- RENDERIZADO DEL CONTENIDO DE LA PESTAÑA ACTIVA -->
             <div id="teacherTabContent">
                 ${activeTab === 'home' ? renderTeacherHomeTab() : ''}
                 ${activeTab === 'catalog' ? renderTeacherCatalogTab() : ''}
                 ${activeTab === 'currency' ? renderTeacherCurrencyTab() : ''}
-                ${activeTab === 'users' && APP_STATE.currentUser.role === 'admin' ? renderAdminUsersTab() : ''}
+                ${activeTab === 'users' ? renderTeacherUsersTab() : ''}
             </div>
         </div>
     `;
 }
 
 // ------------------------------------------
-// PESTAÑA 1: INICIO, TELEMETRÍA E HISTORIAL
+// PESTAÑA 1: INICIO, TELEMETRÍA Y COMPRAS
 // ------------------------------------------
 function renderTeacherHomeTab() {
     const totalEvals = (APP_STATE.evaluations || []).length;
@@ -337,11 +323,10 @@ function renderTeacherHomeTab() {
 
     return `
         <div class="space-y-6">
-            <!-- TARJETAS DE MÉTRICA Y TELEMETRÍA AUTOMATIZADA -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="bg-white p-4 rounded-3xl border-4 border-indigo-200 shadow-sm flex items-center justify-between">
                     <div>
-                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Compras Realizadas</span>
+                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Compras Registradas</span>
                         <span class="text-2xl font-black text-indigo-950">${totalEvals}</span>
                     </div>
                     <div class="bg-indigo-100 text-indigo-600 p-3 rounded-2xl text-xl">🛍️</div>
@@ -362,19 +347,18 @@ function renderTeacherHomeTab() {
                 </div>
                 <div class="bg-white p-4 rounded-3xl border-4 border-sky-200 shadow-sm flex items-center justify-between">
                     <div>
-                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Usos Lectura por Voz</span>
+                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Lectura por Voz</span>
                         <span class="text-2xl font-black text-sky-800">${totalVoiceHelp}</span>
                     </div>
                     <div class="bg-sky-100 text-sky-600 p-3 rounded-2xl text-xl">🔊</div>
                 </div>
             </div>
 
-            <!-- HISTORIAL DE COMPRAS -->
             <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-md space-y-4">
                 <div class="flex justify-between items-center border-b pb-3">
                     <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
                         <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i>
-                        <span>Historial de Compras de los Estudiantes</span>
+                        <span>Historial de Compras y Telemetría</span>
                     </h3>
                     <span class="bg-indigo-100 text-indigo-900 text-xs font-extrabold px-3 py-1 rounded-xl">
                         ${(APP_STATE.evaluations || []).length} Registros
@@ -388,7 +372,7 @@ function renderTeacherHomeTab() {
                                 <th class="py-2.5 px-3">Fecha</th>
                                 <th class="py-2.5 px-3">Alumno</th>
                                 <th class="py-2.5 px-3">Supermercado</th>
-                                <th class="py-2.5 px-3 text-center">Productos</th>
+                                <th class="py-2.5 px-3 text-center">Items</th>
                                 <th class="py-2.5 px-3">Total ($)</th>
                                 <th class="py-2.5 px-3 text-center">Tiempo</th>
                             </tr>
@@ -417,17 +401,17 @@ function renderTeacherHomeTab() {
 }
 
 // ------------------------------------------
-// PESTAÑA 2: MÓDULO DE SUPERMERCADOS, PRODUCTOS Y CATEGORÍAS
+// PESTAÑA 2: SUPERMERCADOS, PRODUCTOS Y CATEGORÍAS
 // ------------------------------------------
 function renderTeacherCatalogTab() {
     return `
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- MÓDULO SUPERMERCADOS -->
+            <!-- MÓDULO DE SUPERMERCADOS -->
             <div class="bg-white p-6 rounded-3xl border-4 border-emerald-300 shadow-md space-y-4">
                 <div class="flex justify-between items-center border-b pb-3">
                     <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
                         <i class="fa-solid fa-store text-emerald-600"></i>
-                        <span>Gestión de Supermercados</span>
+                        <span>Crear y Gestionar Supermercados</span>
                     </h3>
                     <button onclick="openSupermarketModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow border-b-2 border-emerald-800 active:scale-95">
                         + Crear Supermercado
@@ -454,7 +438,7 @@ function renderTeacherCatalogTab() {
                 </div>
             </div>
 
-            <!-- MÓDULO PRODUCTOS Y CATEGORÍAS -->
+            <!-- MÓDULO DE PRODUCTOS Y CATEGORÍAS -->
             <div class="bg-white p-6 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
                 <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
                     <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
@@ -463,10 +447,10 @@ function renderTeacherCatalogTab() {
                     </h3>
                     <div class="flex gap-2">
                         <button onclick="openCategoryModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-3 py-2 rounded-xl shadow active:scale-95">
-                            + Nueva Categoría
+                            + Crear Categoría
                         </button>
                         <button onclick="openProductModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-xs px-3 py-2 rounded-xl shadow border-b-2 border-amber-700 active:scale-95">
-                            + Nuevo Producto
+                            + Crear Producto
                         </button>
                     </div>
                 </div>
@@ -506,7 +490,7 @@ function renderTeacherCurrencyTab() {
                     <i class="fa-solid fa-money-bill-wave text-amber-600"></i>
                     <span>Personalizar Fotos de Billetes y Monedas (CLP)</span>
                 </h3>
-                <p class="text-xs text-slate-500 font-bold mt-1">Sube fotografías de los billetes y monedas reales utilizados en las actividades dinámicas.</p>
+                <p class="text-xs text-slate-500 font-bold mt-1">Sube fotografías de las denominaciones para adaptar la experiencia visual.</p>
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
@@ -527,9 +511,9 @@ function renderTeacherCurrencyTab() {
 }
 
 // ------------------------------------------
-// PESTAÑA 4: GESTIÓN DE USUARIOS (SÓLO ADMIN)
+// PESTAÑA 4: GESTIÓN DE USUARIOS
 // ------------------------------------------
-function renderAdminUsersTab() {
+function renderTeacherUsersTab() {
     return `
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
