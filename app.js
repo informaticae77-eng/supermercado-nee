@@ -27,7 +27,7 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
-// DATOS DE RESPALDO (GARANTIZAN PRODUCTOS SIEMPRE)
+// DATOS DE RESPALDO (INICIALES)
 // ==========================================
 const DEFAULT_SUPERMARKETS = [
     { id: 'sup-lider', name: 'LIDER', icon: '🛒', description: 'Supermercado Lider - Variedad y Ofertas', photoUrl: '' },
@@ -101,7 +101,7 @@ const APP_STATE = {
     categories: [],
     users: [],
     supermarkets: [...DEFAULT_SUPERMARKETS],
-    products: [...DEFAULT_PRODUCTS],
+    products: [],
     evaluations: [],
     customCurrencies: {},
     telemetry: { voiceHelpCount: 0 },
@@ -498,7 +498,39 @@ function renderTeacherHomeTab() {
     `;
 }
 
+function deleteAllProducts() {
+    if (!confirm("⚠️ ¿Estás seguro de que deseas eliminar TODOS los productos del catálogo? Esta acción no se puede deshacer.")) return;
+
+    if (!db) {
+        APP_STATE.products = [];
+        renderApp();
+        return;
+    }
+
+    const batch = db.batch();
+    (APP_STATE.products || []).forEach(p => {
+        batch.delete(db.collection('products').doc(p.id));
+    });
+
+    batch.commit().then(() => {
+        APP_STATE.products = [];
+        renderApp();
+        alert("🗑️ Todos los productos han sido eliminados.");
+    }).catch(err => alert("Error al eliminar productos: " + err.message));
+}
+
 function renderTeacherCatalogTab() {
+    const totalSups = (APP_STATE.supermarkets || []).length;
+
+    // Conteo para determinar si un producto está presente en todos los supermercados
+    const nameCount = {};
+    (APP_STATE.products || []).forEach(p => {
+        if (p.name) {
+            const key = p.name.trim().toLowerCase();
+            nameCount[key] = (nameCount[key] || 0) + 1;
+        }
+    });
+
     return `
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-white p-6 rounded-3xl border-4 border-emerald-300 shadow-md space-y-4">
@@ -543,11 +575,14 @@ function renderTeacherCatalogTab() {
                         <i class="fa-solid fa-boxes-stacked text-amber-600"></i>
                         <span>Catálogo de Productos (${(APP_STATE.products || []).length})</span>
                     </h3>
-                    <div class="flex gap-2">
-                        <button onclick="openCategoryModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-3 py-2 rounded-xl shadow active:scale-95">
+                    <div class="flex gap-1.5 flex-wrap">
+                        <button onclick="deleteAllProducts()" class="bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-2.5 py-2 rounded-xl shadow active:scale-95">
+                            🗑️ Eliminar Todos
+                        </button>
+                        <button onclick="openCategoryModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-2.5 py-2 rounded-xl shadow active:scale-95">
                             + Categoría
                         </button>
-                        <button onclick="openProductModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-xs px-3 py-2 rounded-xl shadow border-b-2 border-amber-700 active:scale-95">
+                        <button onclick="openProductModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-xs px-2.5 py-2 rounded-xl shadow border-b-2 border-amber-700 active:scale-95">
                             + Crear Producto
                         </button>
                     </div>
@@ -559,7 +594,11 @@ function renderTeacherCatalogTab() {
                         const prodImg = p.photoUrl 
                             ? `<img src="${p.photoUrl}" class="w-12 h-12 object-cover rounded-xl border border-slate-200">`
                             : `<span class="text-2xl">${p.iconEmoji || '📦'}</span>`;
-                        const supName = p.supermarketName || p.supermarketId || 'General';
+                        
+                        const key = (p.name || '').trim().toLowerCase();
+                        const isAll = p.isAll || p.supermarketId === 'all' || (totalSups > 0 && nameCount[key] >= totalSups);
+                        const supTag = isAll ? 'TODOS' : (p.supermarketName || p.supermarketId || 'General');
+
                         return `
                             <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl flex justify-between items-center text-xs font-bold">
                                 <div class="flex items-center space-x-3">
@@ -567,7 +606,7 @@ function renderTeacherCatalogTab() {
                                     <div>
                                         <h4 class="font-black text-slate-800 text-sm">${p.name}</h4>
                                         <span class="text-emerald-700 font-black">$${(p.price || 0).toLocaleString('es-CL')}</span>
-                                        <span class="text-indigo-900 font-bold"> [${supName}]</span>
+                                        <span class="text-indigo-900 font-bold"> [${supTag}]</span>
                                     </div>
                                 </div>
                                 <div class="space-x-1">
@@ -684,7 +723,7 @@ function renderUserRoleList(role) {
 }
 
 // ==========================================
-// VISTA DEL ESTUDIANTE (FILTRO ANTI-FALLOS)
+// VISTA DEL ESTUDIANTE
 // ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
@@ -736,22 +775,24 @@ function renderSupermarketView(container, supId) {
         if (targetName && (pSupId.includes(targetName) || pSupName.includes(targetName) || targetName.includes(pSupName))) {
             return true;
         }
-        if (!p.supermarketId && !p.supermarketName) {
+        if (p.isAll || p.supermarketId === 'all' || (!p.supermarketId && !p.supermarketName)) {
             return true;
         }
         return false;
     });
-
-    if (products.length === 0) {
-        products = DEFAULT_PRODUCTS;
-    }
 
     const supImgUrl = sup ? (sup.photoUrl || sup.photo || sup.imageUrl || sup.logoUrl || '') : '';
     const supIconHtml = supImgUrl 
         ? `<img src="${supImgUrl}" class="w-12 h-12 object-cover rounded-2xl border border-slate-200 shadow-sm">`
         : `<span class="text-3xl">${sup ? (sup.icon || '🏪') : '🏪'}</span>`;
 
-    const productsHtml = products.map(prod => {
+    const productsHtml = products.length === 0 ? `
+        <div class="col-span-full text-center py-12 bg-white rounded-3xl border-4 border-slate-200 shadow-sm">
+            <span class="text-5xl">📦</span>
+            <h3 class="text-lg font-black text-slate-700 mt-2">No hay productos disponibles</h3>
+            <p class="text-xs font-bold text-slate-400">El docente aún no ha agregado productos a esta tienda.</p>
+        </div>
+    ` : products.map(prod => {
         const prodImg = prod.photoUrl 
             ? `<img src="${prod.photoUrl}" class="w-16 h-16 object-cover rounded-2xl border border-slate-200 shadow-sm">`
             : `<span class="text-4xl">${prod.iconEmoji || '📦'}</span>`;
@@ -981,7 +1022,6 @@ function openProductModal(prodId = null) {
     const previewContainer = document.getElementById('prodPhotoPreviewContainer');
     const previewImg = document.getElementById('prodPhotoPreview');
 
-    // DESBLOQUEO Y FUERZA BRUTA PARA PERMITIR SELECCIÓN DEL CHECKBOX
     if (repInput) {
         repInput.disabled = false;
         repInput.removeAttribute('disabled');
@@ -995,11 +1035,6 @@ function openProductModal(prodId = null) {
             parent.style.pointerEvents = 'auto';
             parent.style.cursor = 'pointer';
             parent.style.opacity = '1';
-            parent.onclick = function(e) {
-                if (e.target !== repInput) {
-                    repInput.checked = !repInput.checked;
-                }
-            };
         }
     }
 
@@ -1095,7 +1130,8 @@ function saveProductFromModal() {
                 category: category,
                 price: price,
                 iconEmoji: iconEmoji,
-                photoUrl: photoUrl
+                photoUrl: photoUrl,
+                isAll: true
             });
         });
 
@@ -1115,7 +1151,8 @@ function saveProductFromModal() {
             category: category,
             price: price,
             iconEmoji: iconEmoji,
-            photoUrl: photoUrl
+            photoUrl: photoUrl,
+            isAll: false
         }, { merge: true }).then(() => {
             closeProductModal();
             alert(`✅ Producto "${name}" guardado exitosamente.`);
@@ -1498,7 +1535,7 @@ function resetUserPassword(userId) {
 }
 
 // ==========================================
-// ESCUCHADORES EN TIEMPO REAL (FUSIÓN DE DATOS)
+// ESCUCHADORES EN TIEMPO REAL
 // ==========================================
 function initFirebaseListeners() {
     const storedUser = localStorage.getItem('nee_active_user');
@@ -1528,19 +1565,12 @@ function initFirebaseListeners() {
 
     db.collection('supermarkets').onSnapshot(s => { 
         const firebaseSups = s.docs.map(d => ({ id: d.id, ...d.data() })); 
-        const mergedMap = new Map();
-        DEFAULT_SUPERMARKETS.forEach(sup => mergedMap.set(sup.id, sup));
-        firebaseSups.forEach(sup => mergedMap.set(sup.id, sup));
-        APP_STATE.supermarkets = Array.from(mergedMap.values());
+        APP_STATE.supermarkets = firebaseSups.length > 0 ? firebaseSups : [...DEFAULT_SUPERMARKETS];
         renderApp(); 
     });
 
     db.collection('products').onSnapshot(s => { 
-        const firebaseProds = s.docs.map(d => ({ id: d.id, ...d.data() })); 
-        const mergedMap = new Map();
-        DEFAULT_PRODUCTS.forEach(p => mergedMap.set(p.id, p));
-        firebaseProds.forEach(p => mergedMap.set(p.id, p));
-        APP_STATE.products = Array.from(mergedMap.values());
+        APP_STATE.products = s.docs.map(d => ({ id: d.id, ...d.data() })); 
         renderApp(); 
     });
 
