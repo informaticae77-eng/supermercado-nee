@@ -27,7 +27,7 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
-// DATOS DE RESPALDO (SOLO PARA BOTÓN DE EJEMPLO)
+// DATOS POR DEFECTO Y RESPALDO
 // ==========================================
 const DEFAULT_SUPERMARKETS = [
     { id: 'sup-lider', name: 'LIDER', icon: '🛒', description: 'Supermercado Lider - Variedad y Ofertas', photoUrl: '' },
@@ -36,10 +36,19 @@ const DEFAULT_SUPERMARKETS = [
     { id: 'sup-unimarc', name: 'UNIMARC', icon: '🍎', description: 'Unimarc - El Supermercado de Chile', photoUrl: '' }
 ];
 
+const DEFAULT_CATEGORIES = [
+    { id: 'cat-1', name: 'Lácteos', icon: '🥛' },
+    { id: 'cat-2', name: 'Panadería', icon: '🍞' },
+    { id: 'cat-3', name: 'Frutas y Verduras', icon: '🍎' },
+    { id: 'cat-4', name: 'Abarrotes', icon: '🌾' },
+    { id: 'cat-5', name: 'Aseo y Limpieza', icon: '🧼' },
+    { id: 'cat-6', name: 'Bebidas', icon: '🧃' }
+];
+
 const DEFAULT_PRODUCTS = [
     { id: 'p-lider-1', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Leche Entera 1L', price: 1050, iconEmoji: '🥛', category: 'Lácteos', photoUrl: '', isAll: false },
     { id: 'p-lider-2', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Pan Hallulla 1Kg', price: 1890, iconEmoji: '🍞', category: 'Panadería', photoUrl: '', isAll: false },
-    { id: 'p-lider-3', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Manzanas Rojas 1Kg', price: 1200, iconEmoji: '🍎', category: 'Frutas', photoUrl: '', isAll: false },
+    { id: 'p-lider-3', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Manzanas Rojas 1Kg', price: 1200, iconEmoji: '🍎', category: 'Frutas y Verduras', photoUrl: '', isAll: false },
     { id: 'p-lider-4', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Arroz Grado 1 (1Kg)', price: 1350, iconEmoji: '🌾', category: 'Abarrotes', photoUrl: '', isAll: false }
 ];
 
@@ -149,24 +158,12 @@ function playChimeSound() {
     } catch(e) {}
 }
 
-function calculateCLPBreakdown(amount) {
-    let remaining = amount;
-    const result = [];
-    CLP_CURRENCY_ITEMS.forEach(item => {
-        const count = Math.floor(remaining / item.value);
-        if (count > 0) {
-            result.push({ ...item, count });
-            remaining %= item.value;
-        }
-    });
-    return result;
-}
-
 function seedSampleData() {
     if (!db) return alert("Firebase no está listo.");
 
     const batch = db.batch();
     DEFAULT_SUPERMARKETS.forEach(s => batch.set(db.collection('supermarkets').doc(s.id), s));
+    DEFAULT_CATEGORIES.forEach(c => batch.set(db.collection('categories').doc(c.id), c));
     DEFAULT_PRODUCTS.forEach(p => batch.set(db.collection('products').doc(p.id), p));
 
     batch.commit().then(() => {
@@ -175,22 +172,23 @@ function seedSampleData() {
 }
 
 // ==========================================
-// ELIMINACIÓN DEFINITIVA EN FIREBASE
+// ELIMINACIÓN DEFINITIVA EN BATCH
 // ==========================================
 async function deleteAllProducts() {
-    if (!confirm("⚠️ ¿Estás seguro de que deseas eliminar TODOS los productos del catálogo?")) return;
+    if (!confirm("⚠️ ¿Estás seguro de que deseas eliminar TODOS los productos del catálogo? Esta acción no se puede deshacer.")) return;
 
     try {
         if (db) {
             const snapshot = await db.collection('products').get();
             if (!snapshot.empty) {
-                const deletePromises = snapshot.docs.map(doc => doc.ref.delete());
-                await Promise.all(deletePromises);
+                const batch = db.batch();
+                snapshot.docs.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
             }
         }
         APP_STATE.products = [];
         renderApp();
-        alert("🗑️ Todos los productos han sido eliminados correctamente de Firebase.");
+        alert("🗑️ ¡Todos los productos han sido eliminados de Firebase!");
     } catch (err) {
         console.error("Error al eliminar productos:", err);
         alert("❌ Error al eliminar en Firebase: " + err.message);
@@ -444,9 +442,8 @@ function renderTeacherHomeTab() {
                     <div>
                         <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
                             <i class="fa-solid fa-clipboard-check text-indigo-600"></i>
-                            <span>Módulo de Evaluación Pedagógica & Certificados IA</span>
+                            <span>Módulo de Evaluación Pedagógica</span>
                         </h3>
-                        <p class="text-xs text-slate-500">Resultados, pauta de observación NEE y generación automática de certificados con Inteligencia Artificial.</p>
                     </div>
                 </div>
 
@@ -457,7 +454,7 @@ function renderTeacherHomeTab() {
                                 <th class="py-2.5 px-3">Fecha</th>
                                 <th class="py-2.5 px-3">Estudiante</th>
                                 <th class="py-2.5 px-3">Tienda</th>
-                                <th class="py-2.5 px-3">Total / Pago</th>
+                                <th class="py-2.5 px-3">Total</th>
                                 <th class="py-2.5 px-3 text-center">Vuelto</th>
                             </tr>
                         </thead>
@@ -561,6 +558,7 @@ function renderTeacherCatalogTab() {
                                         <h4 class="font-black text-slate-800 text-sm">${p.name || 'Producto'}</h4>
                                         <span class="text-emerald-700 font-black">$${(p.price || 0).toLocaleString('es-CL')}</span>
                                         <span class="text-indigo-900 font-bold"> [${supTag}]</span>
+                                        <span class="text-slate-400 font-normal"> - ${p.category || 'General'}</span>
                                     </div>
                                 </div>
                                 <div class="space-x-1">
@@ -600,11 +598,11 @@ function renderTeacherCurrencyTab() {
 }
 
 function renderTeacherUsersTab() {
-    return `<div class="p-4 bg-white rounded-3xl border-2 font-bold text-slate-700">Gestión de Usuarios</div>`;
+    return `<div class="p-4 bg-white rounded-3xl border-2 font-bold text-slate-700">Módulo de Usuarios y Cursos</div>`;
 }
 
 // ==========================================
-// VISTA DEL ESTUDIANTE CON DEDUPLICACIÓN
+// VISTA DEL ESTUDIANTE
 // ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
@@ -645,7 +643,6 @@ function renderSupermarketView(container, supId) {
     const targetId = sup ? String(sup.id).toLowerCase() : String(supId).toLowerCase();
     const targetName = sup ? String(sup.name).toLowerCase() : String(supId).toLowerCase();
 
-    // 1. Filtrar productos pertenecientes a la tienda o aplicables a "TODOS"
     let rawProducts = (APP_STATE.products || []).filter(p => {
         if (!p) return false;
         if (p.isAll === true || p.supermarketId === 'ALL' || p.supermarketName === 'TODOS') {
@@ -657,7 +654,7 @@ function renderSupermarketView(container, supId) {
         return (pSupId === targetId || pSupId === targetName || pSupName === targetId || pSupName === targetName);
     });
 
-    // 2. DEDUPLICACIÓN EN TIEMPO REAL POR NOMBRE Y PRECIO
+    // Deduplicación en tiempo real por nombre y precio
     const uniqueProducts = [];
     const seen = new Set();
     rawProducts.forEach(p => {
@@ -715,7 +712,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// CANASTO
+// CANASTO Y PAGO
 // ==========================================
 function updateBasketBadge() {
     const badge = document.getElementById('basketBadge');
@@ -748,11 +745,29 @@ function closeBasketModal() {
 }
 
 // ==========================================
-// CONTROLADORES DE MODALES
+// DESPLEGABLE Y CONTROLADOR DE CATEGORÍAS
 // ==========================================
+function updateCategoryDropdowns(selectedName = null) {
+    const catSelect = document.getElementById('modalProdCategory');
+    if (!catSelect) return;
+
+    // Si APP_STATE.categories está vacío, usamos DEFAULT_CATEGORIES
+    const list = (APP_STATE.categories && APP_STATE.categories.length > 0) 
+        ? APP_STATE.categories 
+        : DEFAULT_CATEGORIES;
+
+    catSelect.innerHTML = list.map(c => 
+        `<option value="${c.name}" ${selectedName === c.name ? 'selected' : ''}>${c.icon || '🏷️'} ${c.name}</option>`
+    ).join('');
+}
+
 function openProductModal(prodId = null) {
     const supSelect = document.getElementById('modalProdSupermarket');
-    if (supSelect) supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    if (supSelect) {
+        supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => 
+            `<option value="${s.id}">${s.name}</option>`
+        ).join('');
+    }
 
     const titleEl = document.getElementById('prodModalTitle');
     const idInput = document.getElementById('modalProdId');
@@ -761,6 +776,8 @@ function openProductModal(prodId = null) {
     const emojiInput = document.getElementById('modalProdEmoji');
     const repInput = document.getElementById('modalProdReplicateAll');
     const photoHidden = document.getElementById('modalProdPhoto');
+
+    let currentCategory = null;
 
     if (prodId) {
         const p = (APP_STATE.products || []).find(item => String(item.id) === String(prodId));
@@ -772,6 +789,7 @@ function openProductModal(prodId = null) {
             if (emojiInput) emojiInput.value = p.iconEmoji || '📦';
             if (repInput) repInput.checked = (p.isAll || p.supermarketId === 'ALL');
             if (photoHidden) photoHidden.value = p.photoUrl || '';
+            currentCategory = p.category || null;
         }
     } else {
         if (titleEl) titleEl.textContent = 'Crear Producto';
@@ -782,6 +800,9 @@ function openProductModal(prodId = null) {
         if (repInput) repInput.checked = false;
         if (photoHidden) photoHidden.value = '';
     }
+
+    // AHORA SÍ LLEAMOS Y HABILITAMOS LAS CATEGORÍAS CORRECTAMENTE:
+    updateCategoryDropdowns(currentCategory);
 
     const el = document.getElementById('productModal');
     if (el) el.classList.remove('hidden');
@@ -798,7 +819,8 @@ function saveProductFromModal() {
     const supId = supSelect ? supSelect.value : null;
 
     const name = document.getElementById('modalProdName').value.trim();
-    const category = document.getElementById('modalProdCategory')?.value || 'General';
+    const categorySelect = document.getElementById('modalProdCategory');
+    const category = categorySelect ? categorySelect.value : 'General';
     const price = parseInt(document.getElementById('modalProdPrice').value);
     const iconEmoji = document.getElementById('modalProdEmoji').value.trim() || '📦';
     const photoUrl = document.getElementById('modalProdPhoto')?.value || '';
@@ -806,7 +828,6 @@ function saveProductFromModal() {
 
     if (!name || isNaN(price) || !db) return alert("Ingresa un nombre y precio válidos.");
 
-    // Un único ID de documento para evitar clonación masiva
     const id = prodId ? prodId : ('prod-' + Date.now());
 
     const productData = {
@@ -833,7 +854,7 @@ function deleteProduct(prodId) {
     }
 }
 
-// SUPERMERCADOS
+// SUPERMERCADOS Y CATEGORÍAS
 function openSupermarketModal(supId = null) {
     const el = document.getElementById('supermarketModal');
     if (el) {
@@ -860,14 +881,29 @@ function saveSupermarketFromModal() {
     });
 }
 
-// CATEGORÍAS
 function openCategoryModal() {
     const el = document.getElementById('categoryModal');
     if (el) el.classList.remove('hidden');
 }
+
 function closeCategoryModal() {
     const el = document.getElementById('categoryModal');
     if (el) el.classList.add('hidden');
+}
+
+function saveCategoryFromModal() {
+    const catId = document.getElementById('modalCatId').value;
+    const name = document.getElementById('modalCatName').value.trim();
+    const icon = document.getElementById('modalCatIcon').value.trim() || '🏷️';
+
+    if (!name || !db) return alert("Ingresa un nombre de categoría.");
+    const id = catId || ('cat-' + Date.now());
+
+    db.collection('categories').doc(id).set({ id, name, icon }).then(() => {
+        closeCategoryModal();
+        updateCategoryDropdowns(name);
+        alert(`✅ Categoría "${name}" guardada.`);
+    });
 }
 
 // ==========================================
@@ -883,6 +919,12 @@ function initFirebaseListeners() {
 
     db.collection('users').onSnapshot(s => { 
         APP_STATE.users = s.docs.map(d => ({ id: d.id, ...d.data() })); 
+        renderApp(); 
+    });
+
+    db.collection('categories').onSnapshot(s => { 
+        APP_STATE.categories = s.docs.map(d => ({ id: d.id, ...d.data() })); 
+        updateCategoryDropdowns(); 
         renderApp(); 
     });
 
