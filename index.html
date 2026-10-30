@@ -122,7 +122,7 @@
         </div>
     </div>
 
-    <!-- MODAL: CREAR / EDITAR CATEGORÍA (z-[100] para aparecer sobre productos) -->
+    <!-- MODAL: CREAR / EDITAR CATEGORÍA (z-[100]) -->
     <div id="categoryModal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-3xl border-4 border-indigo-600 shadow-2xl p-6 space-y-4">
             <div class="flex justify-between items-center border-b pb-2">
@@ -152,4 +152,280 @@
                     </div>
                 </div>
             </div>
-            <div class="grid grid-
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button type="button" onclick="closeCategoryModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl text-xs">Cancelar</button>
+                <button type="button" onclick="saveCategoryFromModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2.5 rounded-xl border-b-4 border-indigo-900 shadow text-xs">Guardar Categoría</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CREAR / EDITAR SUPERMERCADO -->
+    <div id="supermarketModal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white w-full max-w-md rounded-3xl border-4 border-emerald-500 shadow-2xl p-6 space-y-4 my-6">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 id="supModalTitle" class="text-xl font-black text-slate-800">Crear Supermercado</h3>
+                <button onclick="closeSupermarketModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">✕</button>
+            </div>
+
+            <input type="hidden" id="modalSupId">
+            <input type="hidden" id="modalSupPhoto">
+
+            <div class="space-y-3 text-xs font-bold">
+                <div>
+                    <label class="block uppercase text-slate-600 mb-1">Nombre del Local:</label>
+                    <input type="text" id="modalSupName" placeholder="Ej: Supermercado El Trebol" class="w-full px-3 py-2.5 border-2 border-slate-300 rounded-xl focus:border-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block uppercase text-slate-600 mb-1">Emoji Representativo:</label>
+                    <input type="text" id="modalSupIcon" value="🏪" class="w-full px-3 py-2.5 border-2 border-slate-300 rounded-xl text-center text-xl focus:border-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block uppercase text-slate-600 mb-1">Descripción Breve:</label>
+                    <input type="text" id="modalSupDesc" placeholder="Ej: Variedad de alimentos y aseo" class="w-full px-3 py-2.5 border-2 border-slate-300 rounded-xl focus:border-emerald-500 focus:outline-none">
+                </div>
+
+                <div class="border-t pt-3 space-y-2">
+                    <label class="block uppercase text-slate-600">Fotografía de Fachada:</label>
+                    <input type="file" id="supPhotoFileInput" accept="image/*" onchange="handleSupermarketPhotoUpload(event)" class="hidden">
+                    <button type="button" onclick="document.getElementById('supPhotoFileInput').click()" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-black px-3 py-1.5 rounded-xl border border-emerald-300">📷 Cargar Imagen</button>
+
+                    <div id="supPhotoPreviewContainer" class="hidden relative w-24 h-24 mt-2 border-2 border-emerald-500 rounded-2xl overflow-hidden">
+                        <img id="supPhotoPreview" class="w-full h-full object-cover">
+                        <button type="button" onclick="removeSupermarketPhoto()" class="absolute top-1 right-1 bg-rose-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">✕</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button type="button" onclick="closeSupermarketModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl text-xs">Cancelar</button>
+                <button type="button" onclick="saveSupermarketFromModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 rounded-xl border-b-4 border-emerald-900 shadow text-xs">Guardar Supermercado</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CREAR / EDITAR PRODUCTO -->
+    <div id="productModal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white w-full max-w-lg rounded-3xl border-4 border-amber-400 shadow-2xl p-6 space-y-4 my-6">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 id="prodModalTitle" class="text-xl font-black text-slate-800">Crear Producto</h3>
+                <button onclick="closeProductModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">✕</button>
+            </div>
+
+            <input type="hidden" id="modalProdId">
+            <input type="hidden" id="modalProdPhoto">
+
+            <div class="space-y-3 text-xs font-bold">
+                <div>
+                    <label class="block uppercase text-slate-600 mb-1">Supermercado:</label>
+                    <select id="modalProdSupermarket" class="w-full px-3 py-2.5 border-2 border-slate-300 rounded-xl focus:border-amber-500 focus:outline-none bg-white"></select>
+                </div>
+                <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-xl">
+                    <label class="flex items-center gap-2 cursor-pointer text-amber-950">
+                        <input type="checkbox" id="modalProdReplicateAll" class="w-4 h-4 text-amber-600 rounded">
+                        <span>Replicar y crear este producto en TODOS los supermercados</span>
+                    </label>
+                </div>
+                <div>
+                    <label class="block uppercase text-slate-600 mb-1">Nombre del Producto:</label>
+                    <input type="text" id="modalProdName" placeholder="Ej: Arroz Grado 1 (1 Kg)" class="w-full px-3 py-2.5 border-2 border-slate-300 rounded-xl focus:border-amber-500 focus:outline-none">
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block uppercase text-slate-600">Categoría:</label>
+                        <button type="button" onclick="openCategoryModal()" class="text-indigo-600 hover:underline font-black text-[11px]">+ Crear Nueva Categoría</button>
+                    </div>
+                    <select id="modalProdCategory" class="w-full px-3 py-2.5 border-2 border-slate-300 rounded-xl focus:border-amber-500 focus:outline-none bg-white"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block uppercase text-slate-600 mb-1">Precio ($ CLP):</label>
+                        <input type="number" id="modalProdPrice" placeholder="1500" class="w-full px-3 py-2.5 border-2 border-slate-300 rounded-xl focus:border-amber-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block uppercase text-slate-600 mb-1">Emoji / Ícono:</label>
+                        <input type="text" id="modalProdEmoji" value="📦" class="w-full px-3 py-2.5 border-2 border-slate-300 rounded-xl text-center text-lg focus:border-amber-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="border-t pt-3 space-y-2">
+                    <label class="block uppercase text-slate-600">Fotografía del Producto:</label>
+                    <div class="space-y-2">
+                        <input type="url" id="modalProdPhotoUrl" onchange="handleProductUrlInput(this.value)" placeholder="O pega URL de imagen (https://...)" class="w-full px-3 py-2 border-2 border-slate-300 rounded-xl focus:border-amber-500 focus:outline-none text-xs">
+                        <div class="flex items-center gap-2">
+                            <input type="file" id="prodPhotoFileInput" accept="image/*" onchange="handleProductPhotoUpload(event)" class="hidden">
+                            <button type="button" onclick="document.getElementById('prodPhotoFileInput').click()" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-black px-3 py-1.5 rounded-xl border border-amber-300">📷 Subir Fotografía</button>
+                        </div>
+                    </div>
+                    <div id="prodPhotoPreviewContainer" class="hidden relative w-24 h-24 mt-2 border-2 border-amber-400 rounded-2xl overflow-hidden bg-slate-50">
+                        <img id="prodPhotoPreview" class="w-full h-full object-cover">
+                        <button type="button" onclick="removeProductPhoto()" class="absolute top-1 right-1 bg-rose-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">✕</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button type="button" onclick="closeProductModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl text-xs">Cancelar</button>
+                <button type="button" onclick="saveProductFromModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-black py-2.5 rounded-xl border-b-4 border-amber-700 shadow text-xs">Guardar Producto</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PERSONALIZAR FOTO DE BILLETE O MONEDA -->
+    <div id="currencyEditModal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl border-4 border-amber-400 shadow-2xl p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 id="currencyModalTitle" class="text-lg font-black text-slate-800">Foto de Billete / Moneda</h3>
+                <button onclick="closeCurrencyEditModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">✕</button>
+            </div>
+
+            <input type="hidden" id="modalCurrencyId">
+            <input type="hidden" id="modalCurrencyPhotoUrl">
+
+            <div class="space-y-3 text-xs font-bold text-center">
+                <p class="text-slate-500">Sube una imagen clara o tómala con la cámara de tu dispositivo.</p>
+                <div class="flex justify-center gap-2">
+                    <input type="file" id="currencyFileInput" accept="image/*" onchange="handleCurrencyFileSelect(event)" class="hidden">
+                    <button type="button" onclick="document.getElementById('currencyFileInput').click()" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-black px-4 py-2 rounded-xl border border-amber-300">📁 Subir Imagen</button>
+                    <button type="button" onclick="startCurrencyCamera()" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-black px-4 py-2 rounded-xl border border-emerald-300">📹 Usar Cámara</button>
+                </div>
+
+                <div id="currencyCameraContainer" class="hidden space-y-2 pt-2">
+                    <video id="currencyCameraVideo" autoplay playsinline class="w-full h-40 object-cover rounded-2xl border-2 border-amber-400"></video>
+                    <button type="button" onclick="takeCurrencySnapshot()" class="w-full bg-emerald-600 text-white py-2 rounded-xl font-black">Tomar Captura</button>
+                </div>
+
+                <div id="currencyPhotoPreviewContainer" class="hidden flex justify-center pt-2">
+                    <div class="w-48 h-28 border-2 border-amber-500 rounded-2xl overflow-hidden p-1 bg-slate-50">
+                        <img id="currencyPhotoPreview" class="w-full h-full object-contain">
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button type="button" onclick="closeCurrencyEditModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl text-xs">Cancelar</button>
+                <button type="button" onclick="saveCurrencyPhotoFromModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-black py-2.5 rounded-xl border-b-4 border-amber-700 shadow text-xs">Guardar Foto</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ASIGNACIÓN DE CURSOS DEL EDUCADOR -->
+    <div id="teacherCourseModal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl border-4 border-indigo-600 shadow-2xl p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="text-lg font-black text-indigo-950">Mis Cursos Asignados</h3>
+                <button onclick="closeTeacherCourseModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">✕</button>
+            </div>
+
+            <div class="flex justify-between text-xs font-bold mb-1">
+                <span class="text-slate-500">Selecciona los cursos que estás a cargo:</span>
+                <div class="space-x-2 text-[11px]">
+                    <button type="button" onclick="selectAllTeacherSelfCourses(true)" class="text-indigo-600 underline">Todos</button>
+                    <button type="button" onclick="selectAllTeacherSelfCourses(false)" class="text-rose-600 underline">Ninguno</button>
+                </div>
+            </div>
+
+            <div id="teacherCourseCheckboxes" class="bg-slate-50 p-3 rounded-2xl border-2 border-slate-200 max-h-48 overflow-y-auto space-y-2"></div>
+
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button type="button" onclick="closeTeacherCourseModal()" class="bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs">Cancelar</button>
+                <button type="button" onclick="saveTeacherSelfCourses()" class="bg-indigo-600 text-white font-black py-2.5 rounded-xl border-b-4 border-indigo-900 shadow text-xs">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CANASTO DE COMPRA Y BANDEJA DE PAGO -->
+    <div id="basketModal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white w-full max-w-2xl rounded-3xl border-4 border-emerald-500 shadow-2xl p-6 space-y-5 my-6">
+            <div class="flex justify-between items-center border-b pb-3">
+                <div class="flex items-center space-x-2">
+                    <span class="text-2xl">🧺</span>
+                    <h3 class="text-xl font-black text-slate-800">Mi Canasto de Compras</h3>
+                </div>
+                <button onclick="closeBasketModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">✕</button>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                <button onclick="startSupermarketMission()" class="flex-1 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black py-2.5 px-4 rounded-xl shadow border-b-4 border-amber-600 text-xs flex items-center justify-center gap-2">
+                    <span>🎯</span><span>Iniciar Misión de Búsqueda</span>
+                </button>
+                <button onclick="clearBasket()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold py-2.5 px-4 rounded-xl border border-rose-300 text-xs">
+                    Vaciar Canasto
+                </button>
+            </div>
+
+            <div id="basketItemsList" class="space-y-2.5 max-h-60 overflow-y-auto pr-1"></div>
+
+            <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-200 space-y-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-black uppercase text-slate-500">Total a Pagar:</span>
+                    <span id="basketTotalCLP" class="text-2xl font-black text-emerald-700">$0</span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Combinación sugerida con billetes y monedas:</span>
+                    <div id="basketCurrencyBreakdown"></div>
+                </div>
+            </div>
+
+            <div class="bg-indigo-50 p-4 rounded-2xl border-2 border-indigo-200 space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-black text-indigo-950 uppercase">Tus Billetes y Monedas depositados:</span>
+                    <div class="flex items-center gap-2">
+                        <span id="userPaidTotal" class="text-xl font-black text-indigo-900">$0</span>
+                        <button onclick="resetUserPayment()" class="bg-rose-100 text-rose-700 font-extrabold px-2 py-1 rounded-lg text-[10px] border border-rose-300">Devolver</button>
+                    </div>
+                </div>
+                <div id="paymentMoneyTray" class="grid grid-cols-3 sm:grid-cols-5 gap-2 max-h-40 overflow-y-auto p-1"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-1">
+                <button onclick="closeBasketModal()" class="bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs">Seguir Comprando</button>
+                <button onclick="verifyAndCheckout()" class="bg-emerald-600 text-white font-black py-3 rounded-xl border-b-4 border-emerald-900 shadow text-xs flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-cash-register"></i><span>Pagar en Caja</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ESCÁNER / CONFIRMACIÓN EN GÓNDOLA -->
+    <div id="aiScannerModal" class="hidden fixed inset-0 bg-slate-900/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl border-4 border-sky-500 shadow-2xl p-6 text-center space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="text-lg font-black text-slate-800">Buscar Producto en Góndola</h3>
+                <button onclick="closeAiScannerModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">✕</button>
+            </div>
+            <div id="targetProductBanner" class="bg-sky-100 text-sky-950 p-2.5 rounded-xl font-black text-sm border border-sky-300"></div>
+            <div class="relative w-full h-56 bg-black rounded-2xl overflow-hidden border-2 border-sky-400">
+                <video id="aiScannerVideo" autoplay playsinline class="w-full h-full object-cover"></video>
+                <div class="absolute inset-0 border-4 border-amber-400/70 border-dashed rounded-2xl m-4 pointer-events-none flex items-center justify-center">
+                    <span class="text-white text-xs font-bold bg-black/60 px-3 py-1 rounded-full">Apunta al producto</span>
+                </div>
+            </div>
+            <button onclick="manualConfirmAiProduct()" class="w-full bg-emerald-600 text-white font-black py-3 rounded-xl border-b-4 border-emerald-900 shadow text-sm">
+                ✓ ¡Lo Encontré! Confirmar
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: ÉXITO EN EL PAGO -->
+    <div id="checkoutSuccessModal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl border-4 border-emerald-500 shadow-2xl p-6 text-center space-y-4">
+            <div class="text-6xl animate-bounce">🎉</div>
+            <h3 class="text-2xl font-black text-emerald-900">¡Compra Realizada con Éxito!</h3>
+            
+            <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 text-xs font-bold space-y-2 text-left">
+                <div class="flex justify-between"><span class="text-slate-600">Total Compra:</span><span id="successModalTotal" class="font-black text-slate-800">$0</span></div>
+                <div class="flex justify-between"><span class="text-slate-600">Entregaste:</span><span id="successModalPaid" class="font-black text-indigo-900">$0</span></div>
+                <div class="flex justify-between border-t border-emerald-200 pt-2 text-sm"><span class="text-emerald-900 font-black">Tu Vuelto:</span><span id="successModalVueltoAmount" class="font-black text-emerald-700">$0</span></div>
+                <div id="successModalVueltoBreakdown" class="pt-1"></div>
+            </div>
+
+            <button onclick="closeSuccessModalAndFinish()" class="w-full bg-emerald-600 text-white font-black py-3 rounded-xl border-b-4 border-emerald-900 shadow text-base">
+                Finalizar
+            </button>
+        </div>
+    </div>
+
+    <!-- SCRIPT DE APLICACIÓN -->
+    <script src="app.js"></script>
+</body>
+</html>
