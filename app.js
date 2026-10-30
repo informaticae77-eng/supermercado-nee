@@ -618,4 +618,159 @@ function saveSupermarketFromModal() {
     const id = supId || ('sup-' + Date.now());
 
     db.collection('supermarkets').doc(id).set({ id, name, icon, description }).then(() => {
-        closeSupermarket
+        closeSupermarketModal();
+        alert("✅ Supermercado guardado.");
+    });
+}
+
+function openProductModal(prodId = null) {
+    const supSelect = document.getElementById('modalProdSupermarket');
+    if (supSelect) supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    updateCategoryDropdowns();
+
+    const titleEl = document.getElementById('prodModalTitle');
+    const idInput = document.getElementById('modalProdId');
+    const nameInput = document.getElementById('modalProdName');
+    const priceInput = document.getElementById('modalProdPrice');
+    const emojiInput = document.getElementById('modalProdEmoji');
+    const repInput = document.getElementById('modalProdReplicateAll');
+
+    if (prodId) {
+        const p = (APP_STATE.products || []).find(item => item.id === prodId);
+        if (p) {
+            if (titleEl) titleEl.textContent = 'Editar Producto';
+            if (idInput) idInput.value = p.id;
+            if (nameInput) nameInput.value = p.name || '';
+            if (priceInput) priceInput.value = p.price || '';
+            if (emojiInput) emojiInput.value = p.iconEmoji || '📦';
+            if (supSelect) supSelect.value = p.supermarketId;
+            if (repInput) { repInput.checked = false; repInput.disabled = true; }
+        }
+    } else {
+        if (titleEl) titleEl.textContent = 'Crear Producto';
+        if (idInput) idInput.value = '';
+        if (nameInput) nameInput.value = '';
+        if (priceInput) priceInput.value = '';
+        if (emojiInput) emojiInput.value = '📦';
+        if (repInput) { repInput.checked = false; repInput.disabled = false; }
+    }
+
+    const el = document.getElementById('productModal');
+    if (el) el.classList.remove('hidden');
+}
+
+function closeProductModal() {
+    const el = document.getElementById('productModal');
+    if (el) el.classList.add('hidden');
+}
+
+// GUARDA Y REPLICA EL PRODUCTO EN TODOS LOS SUPERMERCADOS
+function saveProductFromModal() {
+    const prodId = document.getElementById('modalProdId')?.value;
+    const supSelect = document.getElementById('modalProdSupermarket');
+    if (!supSelect || !supSelect.value) return alert("Crea un supermercado primero.");
+
+    const supId = supSelect.value;
+    const name = document.getElementById('modalProdName').value.trim();
+    const category = document.getElementById('modalProdCategory').value;
+    const price = parseInt(document.getElementById('modalProdPrice').value);
+    const iconEmoji = document.getElementById('modalProdEmoji').value.trim() || '📦';
+    const replicateAll = document.getElementById('modalProdReplicateAll')?.checked || false;
+
+    if (!name || isNaN(price) || !db) return alert("Completa nombre y precio.");
+
+    if (replicateAll) {
+        if (!APP_STATE.supermarkets || APP_STATE.supermarkets.length === 0) {
+            return alert("No hay supermercados creados para replicar.");
+        }
+
+        const batch = db.batch();
+        const now = Date.now();
+
+        APP_STATE.supermarkets.forEach((sup, idx) => {
+            const newId = 'prod-' + now + '-' + idx;
+            const ref = db.collection('products').doc(newId);
+            batch.set(ref, {
+                id: newId,
+                supermarketId: sup.id,
+                name: name,
+                category: category,
+                price: price,
+                iconEmoji: iconEmoji
+            });
+        });
+
+        batch.commit().then(() => {
+            closeProductModal();
+            alert(`✅ Producto replicado con éxito en los ${APP_STATE.supermarkets.length} supermercados.`);
+        }).catch(err => alert("Error al replicar producto: " + err.message));
+
+    } else {
+        const id = prodId || ('prod-' + Date.now());
+        db.collection('products').doc(id).set({
+            id: id,
+            supermarketId: supId,
+            name: name,
+            category: category,
+            price: price,
+            iconEmoji: iconEmoji
+        }, { merge: true }).then(() => {
+            closeProductModal();
+            alert("✅ Producto guardado en la Nube.");
+        }).catch(err => alert("Error al guardar producto: " + err.message));
+    }
+}
+
+function openBasketModal() {
+    const el = document.getElementById('basketModal');
+    if (el) el.classList.remove('hidden');
+}
+
+function closeBasketModal() {
+    const el = document.getElementById('basketModal');
+    if (el) el.classList.add('hidden');
+}
+
+function updateBasketBadge() {
+    const badge = document.getElementById('basketBadge');
+    if (badge) badge.textContent = (APP_STATE.basket || []).length;
+}
+
+function addToBasket(prodId) {
+    const prod = (APP_STATE.products || []).find(p => p.id === prodId);
+    if (!prod) return;
+    APP_STATE.basket.push({ productId: prodId, quantity: 1 });
+    playChimeSound();
+    updateBasketBadge();
+    speakText(`Añadido ${prod.name}`);
+}
+
+// ==========================================
+// ESCUCHADORES EN TIEMPO REAL
+// ==========================================
+function initFirebaseListeners() {
+    const storedUser = localStorage.getItem('nee_active_user');
+    if (storedUser) {
+        try { APP_STATE.currentUser = JSON.parse(storedUser); } catch(e) {}
+    }
+
+    if (!db) return;
+
+    db.collection('courses').onSnapshot(s => { APP_STATE.courses = s.docs.map(d => d.data()); renderApp(); });
+    db.collection('categories').onSnapshot(s => { APP_STATE.categories = s.docs.map(d => d.data()); updateCategoryDropdowns(); renderApp(); });
+    db.collection('users').onSnapshot(s => { 
+        APP_STATE.users = s.docs.map(d => d.data()); 
+        if (APP_STATE.currentUser) {
+            const updated = APP_STATE.users.find(u => u.id === APP_STATE.currentUser.id);
+            if (updated) APP_STATE.currentUser = updated;
+        }
+        renderApp(); 
+    });
+    db.collection('supermarkets').onSnapshot(s => { APP_STATE.supermarkets = s.docs.map(d => d.data()); renderApp(); });
+    db.collection('products').onSnapshot(s => { APP_STATE.products = s.docs.map(d => d.data()); renderApp(); });
+    db.collection('evaluations').onSnapshot(s => { APP_STATE.evaluations = s.docs.map(d => d.data()); renderApp(); });
+}
+
+// Inicialización de la app
+initFirebaseListeners();
+renderApp();
