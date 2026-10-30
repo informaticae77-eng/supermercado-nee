@@ -46,6 +46,9 @@ const APP_STATE = {
     telemetry: { voiceHelpCount: 0 }
 };
 
+let cameraStream = null;
+let currencyCameraStream = null;
+
 const CLP_CURRENCY_ITEMS = [
     { id: 'b20k', value: 20000, type: 'bill', name: 'Billete $20.000', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/20000_pesos_chilenos_2010_anverso.jpg/320px-20000_pesos_chilenos_2010_anverso.jpg' },
     { id: 'b10k', value: 10000, type: 'bill', name: 'Billete $10.000', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/10000_pesos_chilenos_2010_anverso.jpg/320px-10000_pesos_chilenos_2010_anverso.jpg' },
@@ -111,7 +114,7 @@ function sendAutomaticCredentialsEmail(user) {
 }
 
 // ==========================================
-// CICLO PRINCIPAL DE RENDERIZADO
+// RENDERIZADO PRINCIPAL
 // ==========================================
 function renderApp() {
     const container = document.getElementById('appContainer');
@@ -139,7 +142,6 @@ function renderApp() {
         return;
     }
 
-    // Modo vista previa de prueba para el Educador
     if (APP_STATE.teacherPreviewMode) {
         if (headerBasketBtn) headerBasketBtn.classList.remove('hidden');
         renderStudentPreviewWrapper(container);
@@ -255,7 +257,7 @@ function toggleStudentPreview(status) {
 }
 
 // ==========================================
-// PANEL DE CONTROL CON PESTAÑAS
+// PANEL DE CONTROL DOCENTE Y ADMIN (PESTAÑAS)
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -267,7 +269,6 @@ function renderTeacherDashboard(container) {
 
     container.innerHTML = `
         <div class="space-y-6">
-            <!-- BARRA DE PESTAÑAS DEDICADAS -->
             <div class="bg-slate-900 text-white p-5 rounded-3xl shadow-xl space-y-4 border-b-4 border-indigo-600">
                 <div class="flex flex-wrap justify-between items-center gap-3">
                     <div>
@@ -278,14 +279,12 @@ function renderTeacherDashboard(container) {
                         <p class="text-xs text-indigo-300 font-bold mt-0.5">Supervisión en tiempo real y catálogo adaptativo</p>
                     </div>
 
-                    <!-- BOTÓN DESTACADO PARA PROBAR EL JUEGO -->
                     <button onclick="toggleStudentPreview(true)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-4 py-2.5 rounded-xl shadow-lg border-b-4 border-amber-600 flex items-center gap-2 active:scale-95 transition-transform">
                         <span class="text-base">🕹️</span>
                         <span>Ver Juego Estudiantes</span>
                     </button>
                 </div>
 
-                <!-- MENÚ VISIBLE DE PESTAÑAS -->
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800">
                     <button onclick="setTeacherTab('home')" class="py-3 px-3 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 ${activeTab === 'home' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
                         <span>📊</span><span>1. Inicio & Telemetría</span>
@@ -302,7 +301,6 @@ function renderTeacherDashboard(container) {
                 </div>
             </div>
 
-            <!-- RENDERIZADO DEL CONTENIDO DE LA PESTAÑA ACTIVA -->
             <div id="teacherTabContent">
                 ${activeTab === 'home' ? renderTeacherHomeTab() : ''}
                 ${activeTab === 'catalog' ? renderTeacherCatalogTab() : ''}
@@ -313,9 +311,7 @@ function renderTeacherDashboard(container) {
     `;
 }
 
-// ------------------------------------------
-// PESTAÑA 1: INICIO, TELEMETRÍA Y COMPRAS
-// ------------------------------------------
+// PESTAÑA 1: INICIO Y HISTORIAL
 function renderTeacherHomeTab() {
     const totalEvals = (APP_STATE.evaluations || []).length;
     const avgTime = totalEvals > 0 ? Math.round(APP_STATE.evaluations.reduce((a, e) => a + (e.timeSeconds || 0), 0) / totalEvals) : 0;
@@ -400,13 +396,10 @@ function renderTeacherHomeTab() {
     `;
 }
 
-// ------------------------------------------
-// PESTAÑA 2: SUPERMERCADOS, PRODUCTOS Y CATEGORÍAS
-// ------------------------------------------
+// PESTAÑA 2: SUPERMERCADOS Y PRODUCTOS
 function renderTeacherCatalogTab() {
     return `
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- MÓDULO DE SUPERMERCADOS -->
             <div class="bg-white p-6 rounded-3xl border-4 border-emerald-300 shadow-md space-y-4">
                 <div class="flex justify-between items-center border-b pb-3">
                     <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
@@ -421,24 +414,28 @@ function renderTeacherCatalogTab() {
                 <div class="space-y-2 max-h-96 overflow-y-auto pr-1">
                     ${(APP_STATE.supermarkets || []).length === 0 ? `
                         <p class="text-xs text-slate-400 italic py-4 text-center">No hay supermercados creados.</p>
-                    ` : (APP_STATE.supermarkets || []).map(s => `
-                        <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl flex justify-between items-center text-xs font-bold">
-                            <div class="flex items-center space-x-3">
-                                <span class="text-2xl">${s.icon || '🏪'}</span>
-                                <div>
-                                    <h4 class="font-black text-slate-800 text-sm">${s.name}</h4>
-                                    <p class="text-[11px] text-slate-500">${s.description || 'Sin descripción'}</p>
+                    ` : (APP_STATE.supermarkets || []).map(s => {
+                        const supImg = s.photoUrl 
+                            ? `<img src="${s.photoUrl}" class="w-12 h-12 object-cover rounded-xl border border-slate-200">`
+                            : `<span class="text-2xl">${s.icon || '🏪'}</span>`;
+                        return `
+                            <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl flex justify-between items-center text-xs font-bold">
+                                <div class="flex items-center space-x-3">
+                                    ${supImg}
+                                    <div>
+                                        <h4 class="font-black text-slate-800 text-sm">${s.name}</h4>
+                                        <p class="text-[11px] text-slate-500">${s.description || 'Sin descripción'}</p>
+                                    </div>
                                 </div>
+                                <button onclick="openSupermarketModal('${s.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-xl border border-amber-300 font-extrabold">
+                                    ✏️ Editar
+                                </button>
                             </div>
-                            <button onclick="openSupermarketModal('${s.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-xl border border-amber-300 font-extrabold">
-                                ✏️ Editar
-                            </button>
-                        </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
             </div>
 
-            <!-- MÓDULO DE PRODUCTOS Y CATEGORÍAS -->
             <div class="bg-white p-6 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
                 <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
                     <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
@@ -458,30 +455,33 @@ function renderTeacherCatalogTab() {
                 <div class="space-y-2 max-h-96 overflow-y-auto pr-1">
                     ${(APP_STATE.products || []).length === 0 ? `
                         <p class="text-xs text-slate-400 italic py-4 text-center">No hay productos ingresados.</p>
-                    ` : (APP_STATE.products || []).map(p => `
-                        <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl flex justify-between items-center text-xs font-bold">
-                            <div class="flex items-center space-x-3">
-                                <span class="text-2xl">${p.iconEmoji || '📦'}</span>
-                                <div>
-                                    <h4 class="font-black text-slate-800 text-sm">${p.name}</h4>
-                                    <span class="text-emerald-700 font-black">$${(p.price || 0).toLocaleString('es-CL')}</span>
-                                    <span class="text-slate-400 font-normal">| ${p.category || 'General'}</span>
+                    ` : (APP_STATE.products || []).map(p => {
+                        const prodImg = p.photoUrl 
+                            ? `<img src="${p.photoUrl}" class="w-12 h-12 object-cover rounded-xl border border-slate-200">`
+                            : `<span class="text-2xl">${p.iconEmoji || '📦'}</span>`;
+                        return `
+                            <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl flex justify-between items-center text-xs font-bold">
+                                <div class="flex items-center space-x-3">
+                                    ${prodImg}
+                                    <div>
+                                        <h4 class="font-black text-slate-800 text-sm">${p.name}</h4>
+                                        <span class="text-emerald-700 font-black">$${(p.price || 0).toLocaleString('es-CL')}</span>
+                                        <span class="text-slate-400 font-normal">| ${p.category || 'General'}</span>
+                                    </div>
                                 </div>
+                                <button onclick="openProductModal('${p.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-xl border border-amber-300 font-extrabold">
+                                    ✏️ Editar
+                                </button>
                             </div>
-                            <button onclick="openProductModal('${p.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-xl border border-amber-300 font-extrabold">
-                                ✏️ Editar
-                            </button>
-                        </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
             </div>
         </div>
     `;
 }
 
-// ------------------------------------------
 // PESTAÑA 3: BILLETES Y MONEDAS CLP
-// ------------------------------------------
 function renderTeacherCurrencyTab() {
     return `
         <div class="bg-white p-6 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
@@ -510,9 +510,7 @@ function renderTeacherCurrencyTab() {
     `;
 }
 
-// ------------------------------------------
 // PESTAÑA 4: GESTIÓN DE USUARIOS
-// ------------------------------------------
 function renderTeacherUsersTab() {
     return `
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -593,12 +591,17 @@ function renderHomeView(container) {
                 <p class="text-slate-600 font-medium">Elige un supermercado para comenzar tu compra.</p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                ${(APP_STATE.supermarkets || []).map(sup => `
-                    <div onclick="selectSupermarket('${sup.id}')" class="bg-white rounded-3xl border-4 border-slate-300 p-6 shadow-lg hover:shadow-2xl cursor-pointer flex flex-col items-center text-center space-y-4 active:scale-95 transition-transform">
-                        <div class="bg-amber-400 p-4 rounded-3xl text-5xl">${sup.icon || '🛒'}</div>
-                        <h3 class="text-2xl font-black text-slate-800">${sup.name}</h3>
-                    </div>
-                `).join('')}
+                ${(APP_STATE.supermarkets || []).map(sup => {
+                    const iconHtml = sup.photoUrl 
+                        ? `<img src="${sup.photoUrl}" class="w-24 h-24 object-cover rounded-3xl shadow-sm border-2 border-slate-200">`
+                        : `<div class="bg-amber-400 p-4 rounded-3xl text-5xl">${sup.icon || '🛒'}</div>`;
+                    return `
+                        <div onclick="selectSupermarket('${sup.id}')" class="bg-white rounded-3xl border-4 border-slate-300 p-6 shadow-lg hover:shadow-2xl cursor-pointer flex flex-col items-center text-center space-y-4 active:scale-95 transition-transform">
+                            ${iconHtml}
+                            <h3 class="text-2xl font-black text-slate-800">${sup.name}</h3>
+                        </div>
+                    `;
+                }).join('')}
             </div>
         </div>
     `;
@@ -620,25 +623,30 @@ function renderSupermarketView(container, supId) {
                 <h2 class="text-2xl font-black text-slate-800">${sup ? sup.name : 'Supermercado'}</h2>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                ${products.map(prod => `
-                    <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow-md flex flex-col justify-between space-y-4">
-                        <div class="flex items-center space-x-4">
-                            <span class="text-4xl">${prod.iconEmoji || '📦'}</span>
-                            <div>
-                                <h3 class="text-lg font-black text-slate-800">${prod.name}</h3>
-                                <div class="text-2xl font-black text-emerald-700">$${(prod.price || 0).toLocaleString('es-CL')}</div>
+                ${products.map(prod => {
+                    const prodImg = prod.photoUrl 
+                        ? `<img src="${prod.photoUrl}" class="w-16 h-16 object-cover rounded-2xl border border-slate-200">`
+                        : `<span class="text-4xl">${prod.iconEmoji || '📦'}</span>`;
+                    return `
+                        <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow-md flex flex-col justify-between space-y-4">
+                            <div class="flex items-center space-x-4">
+                                ${prodImg}
+                                <div>
+                                    <h3 class="text-lg font-black text-slate-800">${prod.name}</h3>
+                                    <div class="text-2xl font-black text-emerald-700">$${(prod.price || 0).toLocaleString('es-CL')}</div>
+                                </div>
                             </div>
+                            <button onclick="addToBasket('${prod.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl shadow border-b-4 border-emerald-900 active:scale-95">Añadir al Canasto</button>
                         </div>
-                        <button onclick="addToBasket('${prod.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl shadow border-b-4 border-emerald-900 active:scale-95">Añadir al Canasto</button>
-                    </div>
-                `).join('')}
+                    `;
+                }).join('')}
             </div>
         </div>
     `;
 }
 
 // ==========================================
-// CONTROLADORES DE MODALES Y ACCIONES
+// CONTROLADORES DE MODALES Y ARCHIVOS
 // ==========================================
 function updateCategoryDropdowns(selectedName = null) {
     const catSelect = document.getElementById('modalProdCategory');
@@ -665,70 +673,221 @@ function deleteCourse(id) {
     if (confirm("¿Eliminar este curso?") && db) db.collection('courses').doc(id).delete();
 }
 
-function openCreateUserModal(role) {
-    const el = document.getElementById('userModal');
-    if (el) {
-        document.getElementById('modalUserId').value = '';
-        document.getElementById('modalUserRole').value = role;
-        document.getElementById('modalName').value = '';
-        document.getElementById('modalRut').value = '';
-        document.getElementById('modalEmail').value = '';
-        el.classList.remove('hidden');
+// --- PRODUCTOS ---
+function openProductModal(prodId = null) {
+    const supSelect = document.getElementById('modalProdSupermarket');
+    if (supSelect) supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    updateCategoryDropdowns();
+
+    const titleEl = document.getElementById('prodModalTitle');
+    const idInput = document.getElementById('modalProdId');
+    const nameInput = document.getElementById('modalProdName');
+    const priceInput = document.getElementById('modalProdPrice');
+    const emojiInput = document.getElementById('modalProdEmoji');
+    const repInput = document.getElementById('modalProdReplicateAll');
+    const photoHidden = document.getElementById('modalProdPhoto');
+    const previewContainer = document.getElementById('prodPhotoPreviewContainer');
+    const previewImg = document.getElementById('prodPhotoPreview');
+
+    if (prodId) {
+        const p = (APP_STATE.products || []).find(item => item.id === prodId);
+        if (p) {
+            if (titleEl) titleEl.textContent = 'Editar Producto';
+            if (idInput) idInput.value = p.id;
+            if (nameInput) nameInput.value = p.name || '';
+            if (priceInput) priceInput.value = p.price || '';
+            if (emojiInput) emojiInput.value = p.iconEmoji || '📦';
+            if (supSelect) supSelect.value = p.supermarketId;
+            if (repInput) { repInput.checked = false; repInput.disabled = true; }
+            if (photoHidden) photoHidden.value = p.photoUrl || '';
+            if (p.photoUrl && previewImg && previewContainer) {
+                previewImg.src = p.photoUrl;
+                previewContainer.classList.remove('hidden');
+            }
+        }
+    } else {
+        if (titleEl) titleEl.textContent = 'Crear Producto';
+        if (idInput) idInput.value = '';
+        if (nameInput) nameInput.value = '';
+        if (priceInput) priceInput.value = '';
+        if (emojiInput) emojiInput.value = '📦';
+        if (repInput) { repInput.checked = false; repInput.disabled = false; }
+        if (photoHidden) photoHidden.value = '';
+        if (previewContainer) previewContainer.classList.add('hidden');
     }
+
+    const el = document.getElementById('productModal');
+    if (el) el.classList.remove('hidden');
 }
 
-function openEditUserModal(userId) {
-    const user = (APP_STATE.users || []).find(u => u.id === userId);
-    if (!user) return;
-    const el = document.getElementById('userModal');
-    if (el) {
-        document.getElementById('modalUserId').value = user.id;
-        document.getElementById('modalUserRole').value = user.role;
-        document.getElementById('modalName').value = user.name || '';
-        document.getElementById('modalRut').value = user.rut || '';
-        document.getElementById('modalEmail').value = user.email || '';
-        el.classList.remove('hidden');
-    }
-}
-
-function closeUserModal() {
-    const el = document.getElementById('userModal');
+function closeProductModal() {
+    const el = document.getElementById('productModal');
     if (el) el.classList.add('hidden');
 }
 
-function saveUserFromModal() {
-    const userId = document.getElementById('modalUserId').value;
-    const role = document.getElementById('modalUserRole').value;
-    const name = document.getElementById('modalName').value.trim();
-    const rut = document.getElementById('modalRut').value.trim();
-    const email = document.getElementById('modalEmail').value.trim();
+function handleProductPhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64 = e.target.result;
+        document.getElementById('modalProdPhoto').value = base64;
+        const preview = document.getElementById('prodPhotoPreview');
+        const container = document.getElementById('prodPhotoPreviewContainer');
+        if (preview) preview.src = base64;
+        if (container) container.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+}
 
-    if (!name || !rut || !db) return alert("Completa al menos el nombre y RUT.");
+function handleProductUrlInput(val) {
+    if (!val) return;
+    document.getElementById('modalProdPhoto').value = val;
+    const preview = document.getElementById('prodPhotoPreview');
+    const container = document.getElementById('prodPhotoPreviewContainer');
+    if (preview) preview.src = val;
+    if (container) container.classList.remove('hidden');
+}
 
-    const id = userId || ('u-' + Date.now());
-    const pin = rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
+function removeProductPhoto() {
+    document.getElementById('modalProdPhoto').value = '';
+    const urlInput = document.getElementById('modalProdPhotoUrl');
+    if (urlInput) urlInput.value = '';
+    const container = document.getElementById('prodPhotoPreviewContainer');
+    if (container) container.classList.add('hidden');
+}
 
-    db.collection('users').doc(id).set({
-        id, role, name, rut, username: rut, email, pin, mustChangePassword: false
-    }, { merge: true }).then(() => {
-        closeUserModal();
-        alert("✅ Usuario guardado.");
+function saveProductFromModal() {
+    const prodId = document.getElementById('modalProdId')?.value;
+    const supSelect = document.getElementById('modalProdSupermarket');
+    const supId = supSelect ? supSelect.value : null;
+
+    const name = document.getElementById('modalProdName').value.trim();
+    const category = document.getElementById('modalProdCategory').value;
+    const price = parseInt(document.getElementById('modalProdPrice').value);
+    const iconEmoji = document.getElementById('modalProdEmoji').value.trim() || '📦';
+    const photoUrl = document.getElementById('modalProdPhoto')?.value || document.getElementById('modalProdPhotoUrl')?.value || '';
+    const replicateAll = document.getElementById('modalProdReplicateAll')?.checked || false;
+
+    if (!name || isNaN(price) || !db) return alert("Completa nombre y precio del producto.");
+
+    if (replicateAll) {
+        if (!APP_STATE.supermarkets || APP_STATE.supermarkets.length === 0) {
+            return alert("No hay supermercados creados para replicar.");
+        }
+
+        const batch = db.batch();
+        const now = Date.now();
+
+        APP_STATE.supermarkets.forEach((sup, idx) => {
+            const newId = 'prod-' + now + '-' + idx;
+            const ref = db.collection('products').doc(newId);
+            batch.set(ref, {
+                id: newId,
+                supermarketId: sup.id,
+                name: name,
+                category: category,
+                price: price,
+                iconEmoji: iconEmoji,
+                photoUrl: photoUrl
+            });
+        });
+
+        batch.commit().then(() => {
+            closeProductModal();
+            alert(`✅ Producto replicado con éxito en los ${APP_STATE.supermarkets.length} supermercados.`);
+        }).catch(err => alert("Error al replicar producto: " + err.message));
+
+    } else {
+        if (!supId) return alert("Selecciona un supermercado.");
+        const id = prodId || ('prod-' + Date.now());
+        db.collection('products').doc(id).set({
+            id: id,
+            supermarketId: supId,
+            name: name,
+            category: category,
+            price: price,
+            iconEmoji: iconEmoji,
+            photoUrl: photoUrl
+        }, { merge: true }).then(() => {
+            closeProductModal();
+            alert("✅ Producto guardado en la Nube.");
+        }).catch(err => alert("Error al guardar producto: " + err.message));
+    }
+}
+
+// --- SUPERMERCADOS ---
+function openSupermarketModal(supId = null) {
+    const el = document.getElementById('supermarketModal');
+    if (el) {
+        document.getElementById('modalSupId').value = supId || '';
+        document.getElementById('modalSupName').value = '';
+        document.getElementById('modalSupIcon').value = '🏪';
+        document.getElementById('modalSupDesc').value = '';
+        document.getElementById('modalSupPhoto').value = '';
+        const previewContainer = document.getElementById('supPhotoPreviewContainer');
+        if (previewContainer) previewContainer.classList.add('hidden');
+
+        if (supId) {
+            const s = (APP_STATE.supermarkets || []).find(item => item.id === supId);
+            if (s) {
+                document.getElementById('modalSupName').value = s.name || '';
+                document.getElementById('modalSupIcon').value = s.icon || '🏪';
+                document.getElementById('modalSupDesc').value = s.description || '';
+                document.getElementById('modalSupPhoto').value = s.photoUrl || '';
+                if (s.photoUrl && previewContainer) {
+                    document.getElementById('supPhotoPreview').src = s.photoUrl;
+                    previewContainer.classList.remove('hidden');
+                }
+            }
+        }
+        el.classList.remove('hidden');
+    }
+}
+
+function closeSupermarketModal() {
+    const el = document.getElementById('supermarketModal');
+    if (el) el.classList.add('hidden');
+}
+
+function handleSupermarketPhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64 = e.target.result;
+        document.getElementById('modalSupPhoto').value = base64;
+        const preview = document.getElementById('supPhotoPreview');
+        const container = document.getElementById('supPhotoPreviewContainer');
+        if (preview) preview.src = base64;
+        if (container) container.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeSupermarketPhoto() {
+    document.getElementById('modalSupPhoto').value = '';
+    const container = document.getElementById('supPhotoPreviewContainer');
+    if (container) container.classList.add('hidden');
+}
+
+function saveSupermarketFromModal() {
+    const supId = document.getElementById('modalSupId').value;
+    const name = document.getElementById('modalSupName').value.trim();
+    const icon = document.getElementById('modalSupIcon').value.trim() || '🏪';
+    const description = document.getElementById('modalSupDesc').value.trim();
+    const photoUrl = document.getElementById('modalSupPhoto').value;
+
+    if (!name || !db) return alert("Ingresa el nombre del supermercado.");
+    const id = supId || ('sup-' + Date.now());
+
+    db.collection('supermarkets').doc(id).set({ id, name, icon, description, photoUrl }, { merge: true }).then(() => {
+        closeSupermarketModal();
+        alert("✅ Supermercado guardado.");
     });
 }
 
-function deleteUser(id) {
-    if (confirm("¿Eliminar usuario del sistema?") && db) db.collection('users').doc(id).delete();
-}
-
-function resetUserPassword(userId) {
-    const user = (APP_STATE.users || []).find(u => u.id === userId);
-    if (!user || !db) return;
-    const initialPin = user.rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
-    db.collection('users').doc(userId).update({ pin: initialPin }).then(() => {
-        alert(`🔒 Clave de ${user.name} reiniciada a: ${initialPin}`);
-    });
-}
-
+// --- CATEGORÍAS ---
 function openCategoryModal(catId = null) {
     const el = document.getElementById('categoryModal');
     if (el) {
@@ -764,146 +923,234 @@ function selectCategoryIconEmoji(emoji) {
     if (el) el.value = emoji;
 }
 
-function openSupermarketModal(supId = null) {
-    const el = document.getElementById('supermarketModal');
-    if (el) {
-        document.getElementById('modalSupId').value = supId || '';
-        document.getElementById('modalSupName').value = '';
-        document.getElementById('modalSupIcon').value = '🏪';
-        document.getElementById('modalSupDesc').value = '';
-        el.classList.remove('hidden');
-    }
-}
-
-function closeSupermarketModal() {
-    const el = document.getElementById('supermarketModal');
-    if (el) el.classList.add('hidden');
-}
-
-function saveSupermarketFromModal() {
-    const supId = document.getElementById('modalSupId').value;
-    const name = document.getElementById('modalSupName').value.trim();
-    const icon = document.getElementById('modalSupIcon').value.trim() || '🏪';
-    const description = document.getElementById('modalSupDesc').value.trim();
-
-    if (!name || !db) return alert("Ingresa el nombre del supermercado.");
-    const id = supId || ('sup-' + Date.now());
-
-    db.collection('supermarkets').doc(id).set({ id, name, icon, description }).then(() => {
-        closeSupermarketModal();
-        alert("✅ Supermercado guardado.");
-    });
-}
-
-function openProductModal(prodId = null) {
-    const supSelect = document.getElementById('modalProdSupermarket');
-    if (supSelect) supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-    updateCategoryDropdowns();
-
-    const titleEl = document.getElementById('prodModalTitle');
-    const idInput = document.getElementById('modalProdId');
-    const nameInput = document.getElementById('modalProdName');
-    const priceInput = document.getElementById('modalProdPrice');
-    const emojiInput = document.getElementById('modalProdEmoji');
-    const repInput = document.getElementById('modalProdReplicateAll');
-
-    if (prodId) {
-        const p = (APP_STATE.products || []).find(item => item.id === prodId);
-        if (p) {
-            if (titleEl) titleEl.textContent = 'Editar Producto';
-            if (idInput) idInput.value = p.id;
-            if (nameInput) nameInput.value = p.name || '';
-            if (priceInput) priceInput.value = p.price || '';
-            if (emojiInput) emojiInput.value = p.iconEmoji || '📦';
-            if (supSelect) supSelect.value = p.supermarketId;
-            if (repInput) { repInput.checked = false; repInput.disabled = true; }
-        }
-    } else {
-        if (titleEl) titleEl.textContent = 'Crear Producto';
-        if (idInput) idInput.value = '';
-        if (nameInput) nameInput.value = '';
-        if (priceInput) priceInput.value = '';
-        if (emojiInput) emojiInput.value = '📦';
-        if (repInput) { repInput.checked = false; repInput.disabled = false; }
-    }
-
-    const el = document.getElementById('productModal');
-    if (el) el.classList.remove('hidden');
-}
-
-function closeProductModal() {
-    const el = document.getElementById('productModal');
-    if (el) el.classList.add('hidden');
-}
-
-function saveProductFromModal() {
-    const prodId = document.getElementById('modalProdId')?.value;
-    const supSelect = document.getElementById('modalProdSupermarket');
-    if (!supSelect || !supSelect.value) return alert("Crea un supermercado primero.");
-
-    const supId = supSelect.value;
-    const name = document.getElementById('modalProdName').value.trim();
-    const category = document.getElementById('modalProdCategory').value;
-    const price = parseInt(document.getElementById('modalProdPrice').value);
-    const iconEmoji = document.getElementById('modalProdEmoji').value.trim() || '📦';
-    const replicateAll = document.getElementById('modalProdReplicateAll')?.checked || false;
-
-    if (!name || isNaN(price) || !db) return alert("Completa nombre y precio.");
-
-    if (replicateAll) {
-        if (!APP_STATE.supermarkets || APP_STATE.supermarkets.length === 0) {
-            return alert("No hay supermercados creados para replicar.");
-        }
-
-        const batch = db.batch();
-        const now = Date.now();
-
-        APP_STATE.supermarkets.forEach((sup, idx) => {
-            const newId = 'prod-' + now + '-' + idx;
-            const ref = db.collection('products').doc(newId);
-            batch.set(ref, {
-                id: newId,
-                supermarketId: sup.id,
-                name: name,
-                category: category,
-                price: price,
-                iconEmoji: iconEmoji
-            });
-        });
-
-        batch.commit().then(() => {
-            closeProductModal();
-            alert(`✅ Producto replicado con éxito en los ${APP_STATE.supermarkets.length} supermercados.`);
-        }).catch(err => alert("Error al replicar producto: " + err.message));
-
-    } else {
-        const id = prodId || ('prod-' + Date.now());
-        db.collection('products').doc(id).set({
-            id: id,
-            supermarketId: supId,
-            name: name,
-            category: category,
-            price: price,
-            iconEmoji: iconEmoji
-        }, { merge: true }).then(() => {
-            closeProductModal();
-            alert("✅ Producto guardado en la Nube.");
-        }).catch(err => alert("Error al guardar producto: " + err.message));
-    }
-}
-
+// --- BILLETES Y MONEDAS ---
 function openCurrencyEditModal(id, name) {
     document.getElementById('modalCurrencyId').value = id;
     document.getElementById('currencyModalTitle').textContent = `Foto de ${name}`;
+    document.getElementById('modalCurrencyPhotoUrl').value = '';
+    const container = document.getElementById('currencyPhotoPreviewContainer');
+    if (container) container.classList.add('hidden');
+
     const el = document.getElementById('currencyEditModal');
     if (el) el.classList.remove('hidden');
 }
 
 function closeCurrencyEditModal() {
+    if (currencyCameraStream) {
+        currencyCameraStream.getTracks().forEach(track => track.stop());
+        currencyCameraStream = null;
+    }
+    const cameraContainer = document.getElementById('currencyCameraContainer');
+    if (cameraContainer) cameraContainer.classList.add('hidden');
+
     const el = document.getElementById('currencyEditModal');
     if (el) el.classList.add('hidden');
 }
 
+function handleCurrencyFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64 = e.target.result;
+        document.getElementById('modalCurrencyPhotoUrl').value = base64;
+        const preview = document.getElementById('currencyPhotoPreview');
+        const container = document.getElementById('currencyPhotoPreviewContainer');
+        if (preview) preview.src = base64;
+        if (container) container.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+}
+
+function startCurrencyCamera() {
+    const video = document.getElementById('currencyCameraVideo');
+    const container = document.getElementById('currencyCameraContainer');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return alert("Tu navegador no soporta el acceso a la cámara.");
+    }
+    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+        currencyCameraStream = stream;
+        if (video) video.srcObject = stream;
+        if (container) container.classList.remove('hidden');
+    }).catch(err => alert("No se pudo acceder a la cámara: " + err.message));
+}
+
+function takeCurrencySnapshot() {
+    const video = document.getElementById('currencyCameraVideo');
+    if (!video) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 320;
+    canvas.height = video.videoHeight || 240;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/png');
+
+    document.getElementById('modalCurrencyPhotoUrl').value = dataUrl;
+    const preview = document.getElementById('currencyPhotoPreview');
+    const previewContainer = document.getElementById('currencyPhotoPreviewContainer');
+    if (preview) preview.src = dataUrl;
+    if (previewContainer) previewContainer.classList.remove('hidden');
+
+    if (currencyCameraStream) {
+        currencyCameraStream.getTracks().forEach(track => track.stop());
+        currencyCameraStream = null;
+    }
+    const container = document.getElementById('currencyCameraContainer');
+    if (container) container.classList.add('hidden');
+}
+
+function saveCurrencyPhotoFromModal() {
+    const id = document.getElementById('modalCurrencyId').value;
+    const photoUrl = document.getElementById('modalCurrencyPhotoUrl').value;
+    if (!id || !photoUrl) return alert("Por favor selecciona una imagen o toma una foto.");
+
+    db.collection('currencies').doc(id).set({ photoUrl }).then(() => {
+        closeCurrencyEditModal();
+        alert("✅ Foto guardada exitosamente.");
+    }).catch(err => alert("Error al guardar: " + err.message));
+}
+
+// --- USUARIOS ---
+function openCreateUserModal(role) {
+    const el = document.getElementById('userModal');
+    if (el) {
+        document.getElementById('modalUserId').value = '';
+        document.getElementById('modalUserRole').value = role;
+        document.getElementById('modalName').value = '';
+        document.getElementById('modalRut').value = '';
+        document.getElementById('modalEmail').value = '';
+        document.getElementById('modalPhotoUrl').value = '';
+        const container = document.getElementById('photoPreviewContainer');
+        if (container) container.classList.add('hidden');
+        el.classList.remove('hidden');
+    }
+}
+
+function openEditUserModal(userId) {
+    const user = (APP_STATE.users || []).find(u => u.id === userId);
+    if (!user) return;
+    const el = document.getElementById('userModal');
+    if (el) {
+        document.getElementById('modalUserId').value = user.id;
+        document.getElementById('modalUserRole').value = user.role;
+        document.getElementById('modalName').value = user.name || '';
+        document.getElementById('modalRut').value = user.rut || '';
+        document.getElementById('modalEmail').value = user.email || '';
+        document.getElementById('modalPhotoUrl').value = user.photoUrl || '';
+        const container = document.getElementById('photoPreviewContainer');
+        if (user.photoUrl && container) {
+            document.getElementById('photoPreview').src = user.photoUrl;
+            container.classList.remove('hidden');
+        }
+        el.classList.remove('hidden');
+    }
+}
+
+function closeUserModal() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+    const cameraContainer = document.getElementById('cameraContainer');
+    if (cameraContainer) cameraContainer.classList.add('hidden');
+
+    const el = document.getElementById('userModal');
+    if (el) el.classList.add('hidden');
+}
+
+function handleImageFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64 = e.target.result;
+        document.getElementById('modalPhotoUrl').value = base64;
+        const preview = document.getElementById('photoPreview');
+        const container = document.getElementById('photoPreviewContainer');
+        if (preview) preview.src = base64;
+        if (container) container.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+}
+
+function startCameraStream() {
+    const video = document.getElementById('cameraVideo');
+    const container = document.getElementById('cameraContainer');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return alert("Tu navegador no soporta el acceso a la cámara.");
+    }
+    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+        cameraStream = stream;
+        if (video) video.srcObject = stream;
+        if (container) container.classList.remove('hidden');
+    }).catch(err => alert("No se pudo acceder a la cámara: " + err.message));
+}
+
+function takeCameraSnapshot() {
+    const video = document.getElementById('cameraVideo');
+    if (!video) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 320;
+    canvas.height = video.videoHeight || 240;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/png');
+
+    document.getElementById('modalPhotoUrl').value = dataUrl;
+    const preview = document.getElementById('photoPreview');
+    const previewContainer = document.getElementById('photoPreviewContainer');
+    if (preview) preview.src = dataUrl;
+    if (previewContainer) previewContainer.classList.remove('hidden');
+
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+    const container = document.getElementById('cameraContainer');
+    if (container) container.classList.add('hidden');
+}
+
+function removeUserPhoto() {
+    document.getElementById('modalPhotoUrl').value = '';
+    const container = document.getElementById('photoPreviewContainer');
+    if (container) container.classList.add('hidden');
+}
+
+function saveUserFromModal() {
+    const userId = document.getElementById('modalUserId').value;
+    const role = document.getElementById('modalUserRole').value;
+    const name = document.getElementById('modalName').value.trim();
+    const rut = document.getElementById('modalRut').value.trim();
+    const email = document.getElementById('modalEmail').value.trim();
+    const photoUrl = document.getElementById('modalPhotoUrl').value;
+
+    if (!name || !rut || !db) return alert("Completa al menos el nombre y RUT.");
+
+    const id = userId || ('u-' + Date.now());
+    const pin = rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
+
+    db.collection('users').doc(id).set({
+        id, role, name, rut, username: rut, email, pin, photoUrl, mustChangePassword: false
+    }, { merge: true }).then(() => {
+        closeUserModal();
+        alert("✅ Usuario guardado.");
+    });
+}
+
+function deleteUser(id) {
+    if (confirm("¿Eliminar usuario del sistema?") && db) db.collection('users').doc(id).delete();
+}
+
+function resetUserPassword(userId) {
+    const user = (APP_STATE.users || []).find(u => u.id === userId);
+    if (!user || !db) return;
+    const initialPin = user.rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
+    db.collection('users').doc(userId).update({ pin: initialPin }).then(() => {
+        alert(`🔒 Clave de ${user.name} reiniciada a: ${initialPin}`);
+    });
+}
+
+// --- CANASTO ---
 function openBasketModal() {
     const el = document.getElementById('basketModal');
     if (el) el.classList.remove('hidden');
@@ -960,6 +1207,6 @@ function initFirebaseListeners() {
     });
 }
 
-// Inicialización de la app
+// Inicialización
 initFirebaseListeners();
 renderApp();
