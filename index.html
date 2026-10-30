@@ -73,7 +73,7 @@
             </div>
             <div class="flex gap-2">
                 <button onclick="clearBasket()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-black py-3 px-4 rounded-xl text-xs w-1/3">Vaciar</button>
-                <button onclick="verifyAndCheckout()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 px-4 rounded-xl text-xs w-2/3 shadow-lg border-b-4 border-emerald-900 active:scale-95 text-sm">PAGAR EN CAJA 💳</button>
+                <button onclick="verifyAndCheckout()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 px-4 rounded-xl shadow-lg border-b-4 border-emerald-900 active:scale-95 text-sm">PAGAR EN CAJA 💳</button>
             </div>
         </div>
     </div>
@@ -105,7 +105,7 @@
             <div class="space-y-3 text-xs font-bold">
                 <div>
                     <label class="block mb-1 text-slate-700">Nombre del Producto:</label>
-                    <input type="text" id="modalProdName" placeholder="Ej: Milk 1L" class="w-full p-2.5 rounded-xl border-2 border-slate-300">
+                    <input type="text" id="modalProdName" placeholder="Ej: Leche 1L" class="w-full p-2.5 rounded-xl border-2 border-slate-300">
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
@@ -286,7 +286,7 @@
         </div>
     </div>
 
-    <!-- CARGA DEL SCRIPT DE LA APLICACIÓN -->
-    <script src="app.js"></script>
+    <!-- CARGA DE SCRIPT CON CACHE BUSTER PARA FORZAR ACTUALIZACIÓN INMEDIATA -->
+    <script src="app.js?v=100"></script>
 </body>
 </html>
