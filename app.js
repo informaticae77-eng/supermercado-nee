@@ -64,7 +64,7 @@ const CLP_CURRENCY_ITEMS = [
 ];
 
 // ==========================================
-// ACCESIBILIDAD Y AUDIO
+// FUNCIONES AUXILIARES Y AUDIO
 // ==========================================
 function speakText(text) {
     if (APP_STATE.telemetry) APP_STATE.telemetry.voiceHelpCount++;
@@ -129,7 +129,7 @@ function sendAutomaticCredentialsEmail(user) {
 }
 
 // ==========================================
-// POBLADO AUTOMÁTICO DE DATOS EN FIREBASE
+// POBLADO AUTOMÁTICO DE DATOS DE EJEMPLO
 // ==========================================
 function seedSampleData() {
     if (!db) return alert("Firebase no está listo.");
@@ -324,7 +324,7 @@ function toggleStudentPreview(status) {
 }
 
 // ==========================================
-// DASHBOARD DOCENTE
+// DASHBOARD DOCENTE COMPLETO
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -606,8 +606,9 @@ function renderTeacherCatalogTab() {
                     ${(APP_STATE.supermarkets || []).length === 0 ? `
                         <p class="text-xs text-slate-400 italic py-4 text-center">No hay supermercados creados.</p>
                     ` : (APP_STATE.supermarkets || []).map(s => {
-                        const supImg = s.photoUrl 
-                            ? `<img src="${s.photoUrl}" class="w-12 h-12 object-cover rounded-xl border border-slate-200">`
+                        const supImgUrl = s.photoUrl || s.photo || s.imageUrl || s.logoUrl || '';
+                        const supImg = supImgUrl 
+                            ? `<img src="${supImgUrl}" class="w-12 h-12 object-cover rounded-xl border border-slate-200">`
                             : `<span class="text-2xl">${s.icon || '🏪'}</span>`;
                         return `
                             <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl flex justify-between items-center text-xs font-bold">
@@ -702,18 +703,20 @@ function renderTeacherCurrencyTab() {
 }
 
 // ------------------------------------------
-// PESTAÑA 4: USUARIOS Y CURSOS PARA EDUCADORES
+// PESTAÑA 4: USUARIOS Y CURSOS PARA EDUCADORES (PERMISOS CORREGIDOS)
 // ------------------------------------------
 function renderTeacherUsersTab() {
+    const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
+
     return `
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
                 <div class="flex justify-between items-center border-b pb-2">
                     <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-school text-indigo-600"></i> Cursos</h3>
-                    <button onclick="addNewCoursePrompt()" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Curso</button>
+                    <button onclick="addNewCoursePrompt()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow">+ Curso</button>
                 </div>
                 <div class="space-y-2">
-                    ${(APP_STATE.courses || []).map(c => `
+                    ${(APP_STATE.courses || []).length === 0 ? `<p class="text-xs text-slate-400 italic">No hay cursos creados.</p>` : (APP_STATE.courses || []).map(c => `
                         <div class="p-3 bg-slate-50 border rounded-xl flex justify-between items-center text-sm font-bold">
                             <span>${c.name}</span>
                             <button onclick="deleteCourse('${c.id}')" class="text-rose-600 text-xs font-bold">Eliminar</button>
@@ -725,7 +728,7 @@ function renderTeacherUsersTab() {
             <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
                 <div class="flex justify-between items-center border-b pb-2">
                     <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-chalkboard-user text-indigo-600"></i> Educadores</h3>
-                    <button onclick="openCreateUserModal('teacher')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Educador</button>
+                    ${isAdmin ? `<button onclick="openCreateUserModal('teacher')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow">+ Educador</button>` : `<span class="text-[10px] font-extrabold text-slate-400 uppercase">Solo lectura</span>`}
                 </div>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
                     ${renderUserRoleList('teacher')}
@@ -735,7 +738,7 @@ function renderTeacherUsersTab() {
             <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow space-y-4">
                 <div class="flex justify-between items-center border-b pb-2">
                     <h3 class="font-black text-slate-800 flex items-center gap-2"><i class="fa-solid fa-children text-indigo-600"></i> Alumnos</h3>
-                    <button onclick="openCreateUserModal('student')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg">+ Alumno</button>
+                    <button onclick="openCreateUserModal('student')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow">+ Alumno</button>
                 </div>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
                     ${renderUserRoleList('student')}
@@ -746,6 +749,7 @@ function renderTeacherUsersTab() {
 }
 
 function renderUserRoleList(role) {
+    const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
     let users = (APP_STATE.users || []).filter(u => u.role === role);
     if (users.length === 0) return `<p class="text-xs text-slate-400 italic">No hay registros.</p>`;
 
@@ -754,24 +758,28 @@ function renderUserRoleList(role) {
             <div class="flex justify-between items-center font-black">
                 <span class="text-indigo-950">${u.name}</span>
                 <div class="space-x-1">
-                    <button onclick="openEditUserModal('${u.id}')" class="text-amber-600">✏️</button>
-                    <button onclick="deleteUser('${u.id}')" class="text-rose-600">✕</button>
+                    ${(isAdmin || role === 'student') ? `
+                        <button onclick="openEditUserModal('${u.id}')" class="text-amber-600 hover:text-amber-800 font-bold">✏️</button>
+                        <button onclick="deleteUser('${u.id}')" class="text-rose-600 hover:text-rose-800 font-bold">✕</button>
+                    ` : ''}
                 </div>
             </div>
             <div class="text-[11px] text-slate-600">
                 <div>RUT: <b>${u.rut || 'N/A'}</b> | Clave: <code class="bg-slate-200 px-1 font-bold">${u.pin}</code></div>
                 <div>📧 ${u.email || 'Sin correo'}</div>
             </div>
-            <div class="flex gap-1 pt-1">
-                <button onclick="resetUserPassword('${u.id}')" class="bg-amber-100 text-amber-900 font-bold px-2 py-1 rounded w-full">🔄 Reset Clave</button>
-                <button onclick="sendAutomaticCredentialsEmail(APP_STATE.users.find(x=>x.id==='${u.id}'))" class="bg-sky-100 text-sky-900 font-bold px-2 py-1 rounded w-full">✉️ Correo</button>
-            </div>
+            ${(isAdmin || role === 'student') ? `
+                <div class="flex gap-1 pt-1">
+                    <button onclick="resetUserPassword('${u.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-2 py-1 rounded w-full">🔄 Reset Clave</button>
+                    <button onclick="sendAutomaticCredentialsEmail(APP_STATE.users.find(x=>x.id==='${u.id}'))" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold px-2 py-1 rounded w-full">✉️ Correo</button>
+                </div>
+            ` : ''}
         </div>
     `).join('');
 }
 
 // ==========================================
-// VISTAS DE TIENDA Y PRODUCTOS
+// VISTAS DE TIENDA Y PRODUCTOS (RECONOCIMIENTO ROBUSTO)
 // ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
@@ -782,9 +790,10 @@ function renderHomeView(container) {
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 ${(APP_STATE.supermarkets || []).map(sup => {
-                    const iconHtml = sup.photoUrl 
-                        ? `<img src="${sup.photoUrl}" class="w-24 h-24 object-cover rounded-3xl shadow-sm border-2 border-slate-200">`
-                        : `<div class="bg-amber-400 p-4 rounded-3xl text-5xl">${sup.icon || '🛒'}</div>`;
+                    const supImgUrl = sup.photoUrl || sup.photo || sup.imageUrl || sup.logoUrl || '';
+                    const iconHtml = supImgUrl 
+                        ? `<img src="${supImgUrl}" class="w-24 h-24 object-cover rounded-3xl shadow-md border-2 border-slate-200">`
+                        : `<div class="bg-amber-400 p-4 rounded-3xl text-5xl flex items-center justify-center w-24 h-24 shadow-sm">${sup.icon || '🛒'}</div>`;
                     return `
                         <div onclick="selectSupermarket('${sup.id}')" class="bg-white rounded-3xl border-4 border-slate-300 p-6 shadow-lg hover:shadow-2xl cursor-pointer flex flex-col items-center text-center space-y-4 active:scale-95 transition-transform">
                             ${iconHtml}
@@ -803,20 +812,30 @@ function selectSupermarket(id) {
 }
 
 function renderSupermarketView(container, supId) {
-    const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId));
-    let products = (APP_STATE.products || []).filter(p => String(p.supermarketId) === String(supId));
+    const sup = (APP_STATE.supermarkets || []).find(s => String(s.id).trim() === String(supId).trim());
+    
+    // Filtro mejorado: compara supermarketId o supermarket de forma flexible e insensible a espacios
+    let products = (APP_STATE.products || []).filter(p => {
+        const prodSupId = p.supermarketId || p.supermarket || '';
+        return String(prodSupId).trim() === String(supId).trim();
+    });
+
+    const supImgUrl = sup ? (sup.photoUrl || sup.photo || sup.imageUrl || sup.logoUrl || '') : '';
+    const supIconHtml = supImgUrl 
+        ? `<img src="${supImgUrl}" class="w-12 h-12 object-cover rounded-2xl border border-slate-200 shadow-sm">`
+        : `<span class="text-3xl">${sup ? (sup.icon || '🏪') : '🏪'}</span>`;
 
     const productsHtml = products.length === 0 ? `
         <div class="col-span-full bg-white p-8 rounded-3xl border-4 border-dashed border-slate-300 text-center space-y-3 my-4">
             <div class="text-5xl">🛒</div>
-            <h3 class="text-lg font-black text-slate-700">No hay productos en este supermercado</h3>
+            <h3 class="text-lg font-black text-slate-700">No hay productos disponibles en este supermercado</h3>
             <p class="text-xs text-slate-500 font-bold max-w-md mx-auto">
-                Puedes hacer clic en <b>"⚡ Cargar Datos Ejemplo"</b> en el Panel Docente para poblar las tiendas automáticamente.
+                Para ingresar productos, ingresa al Panel Docente > "2. Catálogo & Tiendas" > "+ Crear Producto" y selecciona "<b>${sup ? sup.name : 'este supermercado'}</b>".
             </p>
         </div>
     ` : products.map(prod => {
         const prodImg = prod.photoUrl 
-            ? `<img src="${prod.photoUrl}" class="w-16 h-16 object-cover rounded-2xl border border-slate-200">`
+            ? `<img src="${prod.photoUrl}" class="w-16 h-16 object-cover rounded-2xl border border-slate-200 shadow-sm">`
             : `<span class="text-4xl">${prod.iconEmoji || '📦'}</span>`;
         return `
             <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow-md flex flex-col justify-between space-y-4">
@@ -834,9 +853,12 @@ function renderSupermarketView(container, supId) {
 
     container.innerHTML = `
         <div class="space-y-6">
-            <div class="flex items-center justify-between bg-white p-4 rounded-2xl border-2 border-slate-300">
+            <div class="flex items-center justify-between bg-white p-4 rounded-2xl border-2 border-slate-300 shadow-sm">
                 <button onclick="goHome()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-4 py-2 rounded-xl text-xs">← Volver</button>
-                <h2 class="text-2xl font-black text-slate-800">${sup ? sup.name : 'Supermercado'}</h2>
+                <div class="flex items-center gap-3">
+                    ${supIconHtml}
+                    <h2 class="text-2xl font-black text-slate-800">${sup ? sup.name : 'Supermercado'}</h2>
+                </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 ${productsHtml}
@@ -1014,7 +1036,7 @@ function closeSuccessModalAndFinish() {
 }
 
 // ==========================================
-// MODALES Y EDICIÓN
+// CONTROLADORES DE MODALES Y EDICIÓN
 // ==========================================
 function updateCategoryDropdowns(selectedName = null) {
     const catSelect = document.getElementById('modalProdCategory');
@@ -1065,7 +1087,7 @@ function openProductModal(prodId = null) {
             if (nameInput) nameInput.value = p.name || '';
             if (priceInput) priceInput.value = p.price || '';
             if (emojiInput) emojiInput.value = p.iconEmoji || '📦';
-            if (supSelect) supSelect.value = p.supermarketId;
+            if (supSelect) supSelect.value = p.supermarketId || p.supermarket || '';
             if (repInput) { repInput.checked = false; repInput.disabled = true; }
             if (photoHidden) photoHidden.value = p.photoUrl || '';
             if (p.photoUrl && previewImg && previewContainer) {
@@ -1168,7 +1190,7 @@ function saveProductFromModal() {
             photoUrl: photoUrl
         }, { merge: true }).then(() => {
             closeProductModal();
-            alert("✅ Producto guardado en la Nube.");
+            alert("✅ Producto guardado correctamente.");
         }).catch(err => alert("Error al guardar producto: " + err.message));
     }
 }
@@ -1188,12 +1210,13 @@ function openSupermarketModal(supId = null) {
         if (supId) {
             const s = (APP_STATE.supermarkets || []).find(item => String(item.id) === String(supId));
             if (s) {
+                const currentImg = s.photoUrl || s.photo || s.imageUrl || s.logoUrl || '';
                 document.getElementById('modalSupName').value = s.name || '';
                 document.getElementById('modalSupIcon').value = s.icon || '🏪';
                 document.getElementById('modalSupDesc').value = s.description || '';
-                document.getElementById('modalSupPhoto').value = s.photoUrl || '';
-                if (s.photoUrl && previewContainer) {
-                    document.getElementById('supPhotoPreview').src = s.photoUrl;
+                document.getElementById('modalSupPhoto').value = currentImg;
+                if (currentImg && previewContainer) {
+                    document.getElementById('supPhotoPreview').src = currentImg;
                     previewContainer.classList.remove('hidden');
                 }
             }
@@ -1238,9 +1261,15 @@ function saveSupermarketFromModal() {
     if (!name || !db) return alert("Ingresa el nombre del supermercado.");
     const id = supId || ('sup-' + Date.now());
 
-    db.collection('supermarkets').doc(id).set({ id, name, icon, description, photoUrl }, { merge: true }).then(() => {
+    db.collection('supermarkets').doc(id).set({ 
+        id: id, 
+        name: name, 
+        icon: icon, 
+        description: description, 
+        photoUrl: photoUrl 
+    }, { merge: true }).then(() => {
         closeSupermarketModal();
-        alert("✅ Supermercado guardado.");
+        alert("✅ Supermercado e imagen guardados.");
     });
 }
 
@@ -1362,8 +1391,12 @@ function saveCurrencyPhotoFromModal() {
     }).catch(err => alert("Error al guardar: " + err.message));
 }
 
-// USUARIOS
+// USUARIOS (PERMISOS RESTRINGIDOS SEGÚN ROL)
 function openCreateUserModal(role) {
+    if (role === 'teacher' && (!APP_STATE.currentUser || APP_STATE.currentUser.role !== 'admin')) {
+        return alert("⛔ Acceso Denegado: Solo el perfil Administrador tiene permisos para crear Educadores.");
+    }
+
     const el = document.getElementById('userModal');
     if (el) {
         document.getElementById('modalUserId').value = '';
@@ -1381,6 +1414,11 @@ function openCreateUserModal(role) {
 function openEditUserModal(userId) {
     const user = (APP_STATE.users || []).find(u => String(u.id) === String(userId));
     if (!user) return;
+
+    if (user.role === 'teacher' && (!APP_STATE.currentUser || APP_STATE.currentUser.role !== 'admin')) {
+        return alert("⛔ Acceso Denegado: Solo el Administrador puede modificar datos de Educadores.");
+    }
+
     const el = document.getElementById('userModal');
     if (el) {
         document.getElementById('modalUserId').value = user.id;
@@ -1476,6 +1514,10 @@ function saveUserFromModal() {
     const email = document.getElementById('modalEmail').value.trim();
     const photoUrl = document.getElementById('modalPhotoUrl').value;
 
+    if (role === 'teacher' && (!APP_STATE.currentUser || APP_STATE.currentUser.role !== 'admin')) {
+        return alert("⛔ Acceso Denegado: Solo el Administrador puede guardar Educadores.");
+    }
+
     if (!name || !rut || !db) return alert("Completa al menos el nombre y RUT.");
 
     const id = userId || ('u-' + Date.now());
@@ -1490,12 +1532,24 @@ function saveUserFromModal() {
 }
 
 function deleteUser(id) {
-    if (confirm("¿Eliminar usuario del sistema?") && db) db.collection('users').doc(id).delete();
+    const user = (APP_STATE.users || []).find(u => String(u.id) === String(id));
+    if (user && user.role === 'teacher' && (!APP_STATE.currentUser || APP_STATE.currentUser.role !== 'admin')) {
+        return alert("⛔ Acceso Denegado: Solo el Administrador puede eliminar Educadores.");
+    }
+
+    if (confirm("¿Eliminar este usuario del sistema?") && db) {
+        db.collection('users').doc(id).delete();
+    }
 }
 
 function resetUserPassword(userId) {
     const user = (APP_STATE.users || []).find(u => String(u.id) === String(userId));
     if (!user || !db) return;
+
+    if (user.role === 'teacher' && (!APP_STATE.currentUser || APP_STATE.currentUser.role !== 'admin')) {
+        return alert("⛔ Acceso Denegado: Solo el Administrador puede reiniciar contraseñas de Educadores.");
+    }
+
     const initialPin = user.rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
     db.collection('users').doc(userId).update({ pin: initialPin }).then(() => {
         alert(`🔒 Clave de ${user.name} reiniciada a: ${initialPin}`);
