@@ -27,6 +27,31 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
+// DATOS POR DEFECTO (GARANTIZA PRODUCTOS SIEMPRE)
+// ==========================================
+const DEFAULT_SUPERMARKETS = [
+    { id: 'sup-lider', name: 'LIDER', icon: '🛒', description: 'Supermercado Lider - Variedad y Ofertas', photoUrl: '' },
+    { id: 'sup-jumbo', name: 'JUMBO', icon: '🐘', description: 'Supermercado Jumbo - Excelente Calidad', photoUrl: '' },
+    { id: 'sup-santa', name: 'SANTA ISABEL', icon: '🛍️', description: 'Santa Isabel - Tu Almacén Cercano', photoUrl: '' },
+    { id: 'sup-unimarc', name: 'UNIMARC', icon: '🍎', description: 'Unimarc - El Supermercado de Chile', photoUrl: '' }
+];
+
+const DEFAULT_PRODUCTS = [
+    { id: 'p-lider-1', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Leche Entera 1L', price: 1050, iconEmoji: '🥛', category: 'Lácteos', photoUrl: '' },
+    { id: 'p-lider-2', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Pan Hallulla 1Kg', price: 1890, iconEmoji: '🍞', category: 'Panadería', photoUrl: '' },
+    { id: 'p-lider-3', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Manzanas Rojas 1Kg', price: 1200, iconEmoji: '🍎', category: 'Frutas', photoUrl: '' },
+    { id: 'p-lider-4', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Arroz Grado 1 (1Kg)', price: 1350, iconEmoji: '🌾', category: 'Abarrotes', photoUrl: '' },
+    { id: 'p-lider-5', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Yogurt Griego 150g', price: 650, iconEmoji: '🍦', category: 'Lácteos', photoUrl: '' },
+    { id: 'p-lider-6', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Aceite Vegetal 900ml', price: 2490, iconEmoji: '🍾', category: 'Abarrotes', photoUrl: '' },
+    
+    { id: 'p-jumbo-1', supermarketId: 'sup-jumbo', supermarketName: 'JUMBO', name: 'Queso Gauda 250g', price: 2890, iconEmoji: '🧀', category: 'Lácteos', photoUrl: '' },
+    { id: 'p-jumbo-2', supermarketId: 'sup-jumbo', supermarketName: 'JUMBO', name: 'Cereal Avena 500g', price: 1990, iconEmoji: '🥣', category: 'Abarrotes', photoUrl: '' },
+    
+    { id: 'p-santa-1', supermarketId: 'sup-santa', supermarketName: 'SANTA ISABEL', name: 'Huevos 12 Unidades', price: 3200, iconEmoji: '🥚', category: 'Lácteos', photoUrl: '' },
+    { id: 'p-unimarc-1', supermarketId: 'sup-unimarc', supermarketName: 'UNIMARC', name: 'Detergente Líquido 1L', price: 2990, iconEmoji: '🧼', category: 'Aseo', photoUrl: '' }
+];
+
+// ==========================================
 // COMPRESOR AUTOMÁTICO DE IMÁGENES
 // ==========================================
 function compressImageBase64(base64Data, maxWidth = 300, maxHeight = 300, quality = 0.7) {
@@ -75,8 +100,8 @@ const APP_STATE = {
     courses: [],
     categories: [],
     users: [],
-    supermarkets: [],
-    products: [],
+    supermarkets: [...DEFAULT_SUPERMARKETS],
+    products: [...DEFAULT_PRODUCTS],
     evaluations: [],
     customCurrencies: {},
     telemetry: { voiceHelpCount: 0 },
@@ -163,52 +188,16 @@ function sendAutomaticCredentialsEmail(user) {
     }
 }
 
-// POBLADO DE DATOS DE MUESTRA DESDE PANEL DOCENTE
 function seedSampleData() {
     if (!db) return alert("Firebase no está listo.");
 
     const batch = db.batch();
-    
-    const sups = [
-        { id: 'sup-lider', name: 'LIDER', icon: '🛒', description: 'Supermercado Lider - Variedad y Ofertas', photoUrl: '' },
-        { id: 'sup-jumbo', name: 'JUMBO', icon: '🐘', description: 'Supermercado Jumbo - Excelente Calidad', photoUrl: '' },
-        { id: 'sup-santa', name: 'SANTA ISABEL', icon: '🛍️', description: 'Santa Isabel - Tu Almacén Cercano', photoUrl: '' },
-        { id: 'sup-unimarc', name: 'UNIMARC', icon: '🍎', description: 'Unimarc - El Supermercado de Chile', photoUrl: '' }
-    ];
 
-    sups.forEach(s => batch.set(db.collection('supermarkets').doc(s.id), s));
-
-    const sampleProducts = [
-        { name: 'Leche Entera 1L', price: 1050, iconEmoji: '🥛', category: 'Lácteos' },
-        { name: 'Pan Hallulla 1Kg', price: 1890, iconEmoji: '🍞', category: 'Panadería' },
-        { name: 'Manzanas Rojas 1Kg', price: 1200, iconEmoji: '🍎', category: 'Frutas' },
-        { name: 'Arroz Grado 1 (1Kg)', price: 1350, iconEmoji: '🌾', category: 'Abarrotes' },
-        { name: 'Yogurt Griego 150g', price: 650, iconEmoji: '🍦', category: 'Lácteos' },
-        { name: 'Aceite Vegetal 900ml', price: 2490, iconEmoji: '🍾', category: 'Abarrotes' },
-        { name: 'Huevos 12 Unidades', price: 3200, iconEmoji: '🥚', category: 'Lácteos' },
-        { name: 'Detergente Líquido 1L', price: 2990, iconEmoji: '🧼', category: 'Aseo' }
-    ];
-
-    let prodCounter = 0;
-    sups.forEach(s => {
-        sampleProducts.forEach(p => {
-            prodCounter++;
-            const pId = 'prod-sample-' + prodCounter;
-            batch.set(db.collection('products').doc(pId), {
-                id: pId,
-                supermarketId: s.id,
-                supermarketName: s.name,
-                name: p.name,
-                price: p.price,
-                iconEmoji: p.iconEmoji,
-                category: p.category,
-                photoUrl: ''
-            });
-        });
-    });
+    DEFAULT_SUPERMARKETS.forEach(s => batch.set(db.collection('supermarkets').doc(s.id), s));
+    DEFAULT_PRODUCTS.forEach(p => batch.set(db.collection('products').doc(p.id), p));
 
     batch.commit().then(() => {
-        alert("✅ Productos y supermercados cargados exitosamente.");
+        alert("✅ Productos y supermercados base sincronizados con Firebase.");
     }).catch(err => alert("Error cargando ejemplo: " + err.message));
 }
 
@@ -416,9 +405,7 @@ function renderTeacherDashboard(container) {
     `;
 }
 
-// ------------------------------------------
 // PESTAÑA 1: EVALUACIONES E INFORMES
-// ------------------------------------------
 function renderTeacherHomeTab() {
     const totalEvals = (APP_STATE.evaluations || []).length;
     const avgTime = totalEvals > 0 ? Math.round(APP_STATE.evaluations.reduce((a, e) => a + (e.timeSeconds || 0), 0) / totalEvals) : 0;
@@ -513,9 +500,7 @@ function renderTeacherHomeTab() {
     `;
 }
 
-// ------------------------------------------
-// PESTAÑA 2: CATÁLOGO Y SUPERMERCADOS (GESTIÓN DOCENTE EXCLUSIVA)
-// ------------------------------------------
+// PESTAÑA 2: CATÁLOGO Y SUPERMERCADOS (GESTIÓN DOCENTE)
 function renderTeacherCatalogTab() {
     return `
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -601,9 +586,7 @@ function renderTeacherCatalogTab() {
     `;
 }
 
-// ------------------------------------------
 // PESTAÑA 3: PERSONALIZAR BILLETES Y MONEDAS CLP
-// ------------------------------------------
 function renderTeacherCurrencyTab() {
     return `
         <div class="bg-white p-6 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
@@ -631,9 +614,7 @@ function renderTeacherCurrencyTab() {
     `;
 }
 
-// ------------------------------------------
 // PESTAÑA 4: USUARIOS Y CURSOS
-// ------------------------------------------
 function renderTeacherUsersTab() {
     const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
 
@@ -708,7 +689,7 @@ function renderUserRoleList(role) {
 }
 
 // ==========================================
-// VISTAS DE TIENDA Y PRODUCTOS (FILTRO OMNICANAL Y LIMPIO)
+// VISTA LIMPIA DEL ESTUDIANTE (SOLO COMPRAR)
 // ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
@@ -749,7 +730,7 @@ function renderSupermarketView(container, supId) {
     const targetId = sup ? String(sup.id).trim().toLowerCase() : String(supId).trim().toLowerCase();
     const targetName = sup ? String(sup.name).trim().toLowerCase() : String(supId).trim().toLowerCase();
 
-    // Búsqueda omnicanal por ID, nombre o tienda alternativa
+    // Filtro flexible de productos asignados
     let products = (APP_STATE.products || []).filter(p => {
         if (!p) return false;
         const pSupId = String(p.supermarketId || p.supermarket || p.supermarket_id || '').trim().toLowerCase();
@@ -758,7 +739,9 @@ function renderSupermarketView(container, supId) {
         return (pSupId === targetId) || 
                (pSupId === targetName) || 
                (pSupName === targetId) || 
-               (pSupName === targetName);
+               (pSupName === targetName) ||
+               pSupId.includes(targetName) ||
+               targetName.includes(pSupId);
     });
 
     const supImgUrl = sup ? (sup.photoUrl || sup.photo || sup.imageUrl || sup.logoUrl || '') : '';
@@ -771,7 +754,7 @@ function renderSupermarketView(container, supId) {
             <div class="text-5xl">🛒</div>
             <h3 class="text-lg font-black text-slate-700">No hay productos disponibles en este supermercado</h3>
             <p class="text-xs text-slate-500 font-bold max-w-md mx-auto">
-                Pídele a tu educador que agregue productos a esta tienda desde el Panel Docente.
+                Pídele a tu educador que active productos para esta tienda desde el Panel Docente.
             </p>
         </div>
     ` : products.map(prod => {
@@ -1529,11 +1512,13 @@ function initFirebaseListeners() {
         renderApp(); 
     });
     db.collection('supermarkets').onSnapshot(s => { 
-        APP_STATE.supermarkets = s.docs.map(d => ({ id: d.id, ...d.data() })); 
+        const docs = s.docs.map(d => ({ id: d.id, ...d.data() })); 
+        if (docs.length > 0) APP_STATE.supermarkets = docs;
         renderApp(); 
     });
     db.collection('products').onSnapshot(s => { 
-        APP_STATE.products = s.docs.map(d => ({ id: d.id, ...d.data() })); 
+        const docs = s.docs.map(d => ({ id: d.id, ...d.data() })); 
+        if (docs.length > 0) APP_STATE.products = docs;
         renderApp(); 
     });
     db.collection('evaluations').onSnapshot(s => { 
