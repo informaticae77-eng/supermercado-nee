@@ -37,18 +37,18 @@ const DEFAULT_SUPERMARKETS = [
 ];
 
 const DEFAULT_PRODUCTS = [
-    { id: 'p-lider-1', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Leche Entera 1L', price: 1050, iconEmoji: '🥛', category: 'Lácteos', photoUrl: '' },
-    { id: 'p-lider-2', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Pan Hallulla 1Kg', price: 1890, iconEmoji: '🍞', category: 'Panadería', photoUrl: '' },
-    { id: 'p-lider-3', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Manzanas Rojas 1Kg', price: 1200, iconEmoji: '🍎', category: 'Frutas', photoUrl: '' },
-    { id: 'p-lider-4', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Arroz Grado 1 (1Kg)', price: 1350, iconEmoji: '🌾', category: 'Abarrotes', photoUrl: '' },
-    { id: 'p-lider-5', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Yogurt Griego 150g', price: 650, iconEmoji: '🍦', category: 'Lácteos', photoUrl: '' },
-    { id: 'p-lider-6', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Aceite Vegetal 900ml', price: 2490, iconEmoji: '🍾', category: 'Abarrotes', photoUrl: '' },
+    { id: 'p-lider-1', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Leche Entera 1L', price: 1050, iconEmoji: '🥛', category: 'Lácteos', photoUrl: '', isAll: false },
+    { id: 'p-lider-2', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Pan Hallulla 1Kg', price: 1890, iconEmoji: '🍞', category: 'Panadería', photoUrl: '', isAll: false },
+    { id: 'p-lider-3', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Manzanas Rojas 1Kg', price: 1200, iconEmoji: '🍎', category: 'Frutas', photoUrl: '', isAll: false },
+    { id: 'p-lider-4', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Arroz Grado 1 (1Kg)', price: 1350, iconEmoji: '🌾', category: 'Abarrotes', photoUrl: '', isAll: false },
+    { id: 'p-lider-5', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Yogurt Griego 150g', price: 650, iconEmoji: '🍦', category: 'Lácteos', photoUrl: '', isAll: false },
+    { id: 'p-lider-6', supermarketId: 'sup-lider', supermarketName: 'LIDER', name: 'Aceite Vegetal 900ml', price: 2490, iconEmoji: '🍾', category: 'Abarrotes', photoUrl: '', isAll: false },
     
-    { id: 'p-jumbo-1', supermarketId: 'sup-jumbo', supermarketName: 'JUMBO', name: 'Queso Gauda 250g', price: 2890, iconEmoji: '🧀', category: 'Lácteos', photoUrl: '' },
-    { id: 'p-jumbo-2', supermarketId: 'sup-jumbo', supermarketName: 'JUMBO', name: 'Cereal Avena 500g', price: 1990, iconEmoji: '🥣', category: 'Abarrotes', photoUrl: '' },
+    { id: 'p-jumbo-1', supermarketId: 'sup-jumbo', supermarketName: 'JUMBO', name: 'Queso Gauda 250g', price: 2890, iconEmoji: '🧀', category: 'Lácteos', photoUrl: '', isAll: false },
+    { id: 'p-jumbo-2', supermarketId: 'sup-jumbo', supermarketName: 'JUMBO', name: 'Cereal Avena 500g', price: 1990, iconEmoji: '🥣', category: 'Abarrotes', photoUrl: '', isAll: false },
     
-    { id: 'p-santa-1', supermarketId: 'sup-santa', supermarketName: 'SANTA ISABEL', name: 'Huevos 12 Unidades', price: 3200, iconEmoji: '🥚', category: 'Lácteos', photoUrl: '' },
-    { id: 'p-unimarc-1', supermarketId: 'sup-unimarc', supermarketName: 'UNIMARC', name: 'Detergente Líquido 1L', price: 2990, iconEmoji: '🧼', category: 'Aseo', photoUrl: '' }
+    { id: 'p-santa-1', supermarketId: 'sup-santa', supermarketName: 'SANTA ISABEL', name: 'Huevos 12 Unidades', price: 3200, iconEmoji: '🥚', category: 'Lácteos', photoUrl: '', isAll: false },
+    { id: 'p-unimarc-1', supermarketId: 'sup-unimarc', supermarketName: 'UNIMARC', name: 'Detergente Líquido 1L', price: 2990, iconEmoji: '🧼', category: 'Aseo', photoUrl: '', isAll: false }
 ];
 
 // ==========================================
@@ -196,46 +196,35 @@ function seedSampleData() {
     DEFAULT_PRODUCTS.forEach(p => batch.set(db.collection('products').doc(p.id), p));
 
     batch.commit().then(() => {
-        alert("✅ Base de datos restaurada con datos de ejemplo.");
+        alert("✅ Base de datos cargada con productos de ejemplo.");
     }).catch(err => alert("Error cargando ejemplo: " + err.message));
 }
 
 // ==========================================
-// ELIMINACIÓN TOTAL DEFINITIVA EN FIREBASE
+// ELIMINACIÓN TOTAL DEFINITIVA
 // ==========================================
-function deleteAllProducts() {
+async function deleteAllProducts() {
     if (!confirm("⚠️ ¿Estás seguro de que deseas eliminar TODOS los productos del catálogo? Esta acción no se puede deshacer.")) return;
 
-    if (!db) {
-        APP_STATE.products = [];
-        renderApp();
-        alert("🗑️ Productos eliminados localmente.");
-        return;
-    }
-
-    // Consulta directa a la colección para eliminar absolutamente todos los registros
-    db.collection('products').get().then(snapshot => {
-        if (snapshot.empty) {
-            APP_STATE.products = [];
-            renderApp();
-            alert("🗑️ El catálogo ya está completamente vacío.");
-            return;
+    try {
+        if (db) {
+            const snapshot = await db.collection('products').get();
+            if (snapshot.size > 0) {
+                const docs = snapshot.docs;
+                for (let i = 0; i < docs.length; i += 400) {
+                    const batch = db.batch();
+                    docs.slice(i, i + 400).forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                }
+            }
         }
-
-        const batch = db.batch();
-        snapshot.docs.forEach(doc => {
-            batch.delete(doc.ref);
-        });
-
-        return batch.commit();
-    }).then(() => {
         APP_STATE.products = [];
         renderApp();
-        alert("🗑️ Todos los productos han sido eliminados del servidor con éxito.");
-    }).catch(err => {
+        alert("🗑️ Todos los productos han sido eliminados correctamente.");
+    } catch (err) {
         console.error("Error al eliminar productos:", err);
         alert("Error al eliminar productos: " + err.message);
-    });
+    }
 }
 
 // ==========================================
@@ -537,17 +526,6 @@ function renderTeacherHomeTab() {
 }
 
 function renderTeacherCatalogTab() {
-    const totalSups = (APP_STATE.supermarkets || []).length;
-
-    // Conteo para determinar si un producto está en todos los supermercados
-    const nameCount = {};
-    (APP_STATE.products || []).forEach(p => {
-        if (p.name) {
-            const key = p.name.trim().toLowerCase();
-            nameCount[key] = (nameCount[key] || 0) + 1;
-        }
-    });
-
     return `
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-white p-6 rounded-3xl border-4 border-emerald-300 shadow-md space-y-4">
@@ -612,8 +590,7 @@ function renderTeacherCatalogTab() {
                             ? `<img src="${p.photoUrl}" class="w-12 h-12 object-cover rounded-xl border border-slate-200">`
                             : `<span class="text-2xl">${p.iconEmoji || '📦'}</span>`;
                         
-                        const key = (p.name || '').trim().toLowerCase();
-                        const isAll = p.isAll || p.supermarketId === 'all' || (totalSups > 0 && nameCount[key] >= totalSups);
+                        const isAll = p.isAll || p.supermarketId === 'ALL' || p.supermarketName === 'TODOS';
                         const supTag = isAll ? 'TODOS' : (p.supermarketName || p.supermarketId || 'General');
 
                         return `
@@ -783,16 +760,16 @@ function renderSupermarketView(container, supId) {
 
     let products = (APP_STATE.products || []).filter(p => {
         if (!p) return false;
-        const pSupId = String(p.supermarketId || p.supermarket || p.supermarket_id || '').toLowerCase();
+        if (p.isAll === true || p.supermarketId === 'ALL' || p.supermarketName === 'TODOS') {
+            return true;
+        }
+        const pSupId = String(p.supermarketId || p.supermarket || '').toLowerCase();
         const pSupName = String(p.supermarketName || p.tienda || '').toLowerCase();
 
         if (pSupId === targetId || pSupId === targetName || pSupName === targetId || pSupName === targetName) {
             return true;
         }
         if (targetName && (pSupId.includes(targetName) || pSupName.includes(targetName) || targetName.includes(pSupName))) {
-            return true;
-        }
-        if (p.isAll || p.supermarketId === 'all') {
             return true;
         }
         return false;
@@ -1063,7 +1040,8 @@ function openProductModal(prodId = null) {
             if (nameInput) nameInput.value = p.name || '';
             if (priceInput) priceInput.value = p.price || '';
             if (emojiInput) emojiInput.value = p.iconEmoji || '📦';
-            if (supSelect) supSelect.value = p.supermarketId || p.supermarket || '';
+            if (supSelect) supSelect.value = (p.supermarketId === 'ALL' ? (APP_STATE.supermarkets[0]?.id || '') : (p.supermarketId || p.supermarket || ''));
+            if (repInput) repInput.checked = (p.isAll || p.supermarketId === 'ALL');
             if (photoHidden) photoHidden.value = p.photoUrl || '';
             if (p.photoUrl && previewImg && previewContainer) {
                 previewImg.src = p.photoUrl;
@@ -1125,41 +1103,28 @@ function saveProductFromModal() {
 
     if (!name || isNaN(price) || !db) return alert("Completa el nombre y un precio válido.");
 
-    const supObj = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId));
-    const supName = supObj ? supObj.name : 'Supermercado';
+    const id = prodId || ('prod-' + Date.now());
 
     if (replicateAll) {
-        if (!APP_STATE.supermarkets || APP_STATE.supermarkets.length === 0) {
-            return alert("No hay supermercados creados para replicar.");
-        }
-
-        const batch = db.batch();
-        const now = Date.now();
-
-        APP_STATE.supermarkets.forEach((sup, idx) => {
-            const newId = 'prod-' + now + '-' + idx;
-            const ref = db.collection('products').doc(newId);
-            batch.set(ref, {
-                id: newId,
-                supermarketId: sup.id,
-                supermarketName: sup.name,
-                name: name,
-                category: category,
-                price: price,
-                iconEmoji: iconEmoji,
-                photoUrl: photoUrl,
-                isAll: true
-            });
-        });
-
-        batch.commit().then(() => {
+        db.collection('products').doc(id).set({
+            id: id,
+            supermarketId: 'ALL',
+            supermarketName: 'TODOS',
+            name: name,
+            category: category,
+            price: price,
+            iconEmoji: iconEmoji,
+            photoUrl: photoUrl,
+            isAll: true
+        }, { merge: true }).then(() => {
             closeProductModal();
-            alert(`✅ Producto "${name}" replicado en los ${APP_STATE.supermarkets.length} supermercados.`);
-        }).catch(err => alert("Error al replicar producto en Firebase: " + err.message));
-
+            alert(`✅ Producto "${name}" guardado para TODOS los supermercados.`);
+        }).catch(err => alert("Error al guardar: " + err.message));
     } else {
         if (!supId) return alert("Selecciona un supermercado.");
-        const id = prodId || ('prod-' + Date.now());
+        const supObj = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId));
+        const supName = supObj ? supObj.name : 'Supermercado';
+
         db.collection('products').doc(id).set({
             id: id,
             supermarketId: supId,
@@ -1586,7 +1551,6 @@ function initFirebaseListeners() {
         renderApp(); 
     });
 
-    // Escuchador directo a la base de datos (se vacía completamente cuando eliminas todos)
     db.collection('products').onSnapshot(s => { 
         APP_STATE.products = s.docs.map(d => ({ id: d.id, ...d.data() })); 
         renderApp(); 
