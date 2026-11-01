@@ -12,7 +12,7 @@ const firebaseConfig = {
 };
 
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
+    try { firebase.initializeApp(firebaseConfig); } catch(e) {}
 }
 const db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
 
@@ -23,12 +23,34 @@ const EMAILJS_CONFIG = {
 };
 
 if (typeof emailjs !== 'undefined') {
-    emailjs.init(EMAILJS_CONFIG.publicKey);
+    try { emailjs.init(EMAILJS_CONFIG.publicKey); } catch(e) {}
 }
 
 // ==========================================
-// DATOS DE RESPALDO Y HOLA NEE
+// SVGs VECTORIALES INDESTRUCTIBLES DE MONEDAS Y BILLETES CHILENOS
 // ==========================================
+const SVG_B20K = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="%23e67e22"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="%23f39c12" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$20.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="%23fdebd0" text-anchor="middle">PESOS CHILENOS</text></svg>`;
+const SVG_B10K = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="%232980b9"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="%235499c7" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$10.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="%23d4e6f1" text-anchor="middle">PESOS CHILENOS</text></svg>`;
+const SVG_B5K  = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="%23c0392b"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="%23ec7063" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$5.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="%23fadbd8" text-anchor="middle">PESOS CHILENOS</text></svg>`;
+const SVG_B2K  = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="%238e44ad"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="%23bb8fce" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$2.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="%23ebdef0" text-anchor="middle">PESOS CHILENOS</text></svg>`;
+const SVG_B1K  = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="%2327ae60"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="%2358d68d" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$1.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="%23d4efdf" text-anchor="middle">PESOS CHILENOS</text></svg>`;
+const SVG_C500 = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="%23f39c12"/><circle cx="50" cy="50" r="34" fill="%23bdc3c7"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="%232c3e50" text-anchor="middle">$500</text></svg>`;
+const SVG_C100 = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="%23f1c40f"/><circle cx="50" cy="50" r="36" fill="%23f39c12"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="white" text-anchor="middle">$100</text></svg>`;
+const SVG_C50  = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><polygon points="50,4 82,18 96,50 82,82 50,96 18,82 4,50 18,18" fill="%23bdc3c7"/><circle cx="50" cy="50" r="32" fill="%23ecf0f1"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="%232c3e50" text-anchor="middle">$50</text></svg>`;
+const SVG_C10  = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="%23d35400"/><circle cx="50" cy="50" r="36" fill="%23e67e22"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="white" text-anchor="middle">$10</text></svg>`;
+
+const CLP_CURRENCY_ITEMS = [
+    { id: 'b20k', value: 20000, type: 'bill', name: 'Billete $20.000', img: SVG_B20K },
+    { id: 'b10k', value: 10000, type: 'bill', name: 'Billete $10.000', img: SVG_B10K },
+    { id: 'b5k',  value: 5000,  type: 'bill', name: 'Billete $5.000',  img: SVG_B5K },
+    { id: 'b2k',  value: 2000,  type: 'bill', name: 'Billete $2.000',  img: SVG_B2K },
+    { id: 'b1k',  value: 1000,  type: 'bill', name: 'Billete $1.000',  img: SVG_B1K },
+    { id: 'c500', value: 500,   type: 'coin', name: 'Moneda $500',    img: SVG_C500 },
+    { id: 'c100', value: 100,   type: 'coin', name: 'Moneda $100',    img: SVG_C100 },
+    { id: 'c50',  value: 50,    type: 'coin', name: 'Moneda $50',     img: SVG_C50 },
+    { id: 'c10',  value: 10,    type: 'coin', name: 'Moneda $10',     img: SVG_C10 }
+];
+
 const DEFAULT_SUPERMARKETS = [
     { id: 'sup-lider', name: 'LIDER', icon: '🛒', description: 'Supermercado Lider - Variedad y Ofertas', photoUrl: '' },
     { id: 'sup-jumbo', name: 'JUMBO', icon: '🐘', description: 'Supermercado Jumbo - Excelente Calidad', photoUrl: '' },
@@ -46,24 +68,12 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const DEFAULT_SETTINGS = {
-    schoolName: "Escuela Especial & Programa PIE",
+    schoolName: "Escuela Especial & Programa de Integración Escolar PIE",
     schoolSubHeader: "Unidad de Evaluación Psicopedagógica y Autonomía Funcional",
     schoolLogo: "",
     footerText: "Documento oficial generado con soporte de Inteligencia Artificial pedagógica.",
     directorName: "Dirección Académica / Equipo PIE"
 };
-
-const CLP_CURRENCY_ITEMS = [
-    { id: 'b20k', value: 20000, type: 'bill', name: 'Billete $20.000', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/20000_pesos_chilenos_2010_anverso.jpg/320px-20000_pesos_chilenos_2010_anverso.jpg' },
-    { id: 'b10k', value: 10000, type: 'bill', name: 'Billete $10.000', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/10000_pesos_chilenos_2010_anverso.jpg/320px-10000_pesos_chilenos_2010_anverso.jpg' },
-    { id: 'b5k',  value: 5000,  type: 'bill', name: 'Billete $5.000',  img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/5000_pesos_chilenos_2009_anverso.jpg/320px-5000_pesos_chilenos_2009_anverso.jpg' },
-    { id: 'b2k',  value: 2000,  type: 'bill', name: 'Billete $2.000',  img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/2000_pesos_chilenos_2009_anverso.jpg/320px-2000_pesos_chilenos_2009_anverso.jpg' },
-    { id: 'b1k',  value: 1000,  type: 'bill', name: 'Billete $1.000',  img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/1000_pesos_chilenos_2011_anverso.jpg/320px-1000_pesos_chilenos_2011_anverso.jpg' },
-    { id: 'c500', value: 500,   type: 'coin', name: 'Moneda $500',    img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/500_pesos_chilenos_anverso.png/220px-500_pesos_chilenos_anverso.png' },
-    { id: 'c100', value: 100,   type: 'coin', name: 'Moneda $100',    img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/100_pesos_chilenos_anverso.png/220px-100_pesos_chilenos_anverso.png' },
-    { id: 'c50',  value: 50,    type: 'coin', name: 'Moneda $50',     img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/50_pesos_chilenos_anverso.png/220px-10_pesos_chilenos_anverso.png' },
-    { id: 'c10',  value: 10,    type: 'coin', name: 'Moneda $10',     img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/10_pesos_chilenos_anverso.png/220px-10_pesos_chilenos_anverso.png' }
-];
 
 const DEFAULT_ADMIN = {
     id: 'u-admin-default',
@@ -98,7 +108,7 @@ const APP_STATE = {
 };
 
 // ==========================================
-// FUNCIONES AUXILIARES: LECTURA DE VOZ Y SONIDO
+// FUNCIONES AUXILIARES: VOZ Y SONIDO
 // ==========================================
 function speakText(text) {
     if (APP_STATE.telemetry) APP_STATE.telemetry.voiceHelpCount++;
@@ -144,8 +154,30 @@ function calculateCLPBreakdown(amount) {
     return result;
 }
 
+function compressImageBase64(base64Data, maxWidth = 300, maxHeight = 300, quality = 0.75) {
+    return new Promise((resolve) => {
+        if (!base64Data || !base64Data.startsWith('data:image')) return resolve(base64Data || '');
+        const img = new Image();
+        img.onload = () => {
+            let width = img.width, height = img.height;
+            if (width > height) {
+                if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+            } else {
+                if (height > maxHeight) { width = Math.round((width * maxHeight) / height); height = maxHeight; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => resolve(base64Data);
+        img.src = base64Data;
+    });
+}
+
 // ==========================================
-// RENDERIZADO PRINCIPAL (RESPETANDO DOM READY)
+// RENDERIZADO PRINCIPAL
 // ==========================================
 function renderApp() {
     const container = document.getElementById('appContainer');
@@ -204,7 +236,7 @@ function renderLoginView(container) {
         <div class="max-w-md mx-auto bg-white border-4 border-slate-300 rounded-3xl p-6 shadow-xl space-y-6">
             <div class="text-center space-y-2">
                 <div class="text-5xl">🔐</div>
-                <h2 class="text-2xl font-black text-slate-800">Iniciar Sesión</h2>
+                <h2 class="text-2xl font-black text-slate-800">Acceso Institucional</h2>
                 <p class="text-xs font-semibold text-slate-500">Ingresa tu RUT (o Usuario) y tu PIN</p>
             </div>
             <div class="space-y-4">
@@ -257,7 +289,7 @@ function goHome() {
 }
 
 // ==========================================
-// MÓDULO DEL ESTUDIANTE: TIENDAS Y PRODUCTOS
+// MÓDULO ALUMNO: TIENDAS Y COMPRAS
 // ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
@@ -401,7 +433,7 @@ function toggleStudentPreview(status) {
 }
 
 // ==========================================
-// CARRO DE COMPRAS E INTERACCIÓN CON DINERO
+// CANASTO DE COMPRAS Y PAGOS
 // ==========================================
 function updateBasketBadge() {
     const badge = document.getElementById('basketBadge');
@@ -575,7 +607,7 @@ function closeSuccessModalAndFinish() {
 }
 
 // ==========================================
-// PANEL DOCENTE Y DE ADMINISTRACIÓN
+// PANEL DOCENTE Y ADMINISTRACIÓN GENERAL
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -595,9 +627,8 @@ function renderTeacherDashboard(container) {
                             <span>🏫</span>
                             <span>${isAdmin ? 'Panel de Administración General & PIE' : 'Panel Docente & Evaluación NEE'}</span>
                         </h2>
-                        <p class="text-xs text-indigo-300 font-bold mt-0.5">Gestión pedagógica, catálogo, rúbrica e informes con IA.</p>
+                        <p class="text-xs text-indigo-300 font-bold mt-0.5">Gestión pedagógica, catálogo, usuarios e informes con IA.</p>
                     </div>
-
                     <div class="flex gap-2">
                         <button onclick="toggleStudentPreview(true)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-4 py-2 rounded-xl shadow border-b-2 border-amber-600 flex items-center gap-2 active:scale-95">
                             <span>🕹️</span><span>Probar Juego</span>
@@ -635,6 +666,9 @@ function renderTeacherDashboard(container) {
     `;
 }
 
+// ------------------------------------------
+// PESTAÑA 1: EVALUACIONES E INFORMES CON IA
+// ------------------------------------------
 function renderTeacherHomeTab() {
     const totalEvals = (APP_STATE.evaluations || []).length;
     const avgTime = totalEvals > 0 ? Math.round(APP_STATE.evaluations.reduce((a, e) => a + (e.timeSeconds || 0), 0) / totalEvals) : 0;
@@ -674,13 +708,10 @@ function renderTeacherHomeTab() {
             </div>
 
             <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-md space-y-4">
-                <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
-                    <div>
-                        <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
-                            <span>✨</span>
-                            <span>Módulo de Evaluación Pedagógica e Informes Psicopedagógicos con IA</span>
-                        </h3>
-                    </div>
+                <div class="border-b pb-3">
+                    <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                        <span>✨</span> <span>Módulo de Evaluación Pedagógica e Informes Psicopedagógicos con IA</span>
+                    </h3>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -692,13 +723,13 @@ function renderTeacherHomeTab() {
                                 <th class="py-2.5 px-3">Tienda</th>
                                 <th class="py-2.5 px-3">Total / Pago</th>
                                 <th class="py-2.5 px-3 text-center">Vuelto</th>
-                                <th class="py-2.5 px-3 text-center">Acciones Profesionales</th>
+                                <th class="py-2.5 px-3 text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 font-bold">
                             ${totalEvals === 0 ? `
                                 <tr>
-                                    <td colspan="6" class="py-8 text-center text-slate-400 italic">No hay evaluaciones registradas aún. Realiza una prueba para visualizar reportes.</td>
+                                    <td colspan="6" class="py-8 text-center text-slate-400 italic">No hay evaluaciones registradas. Realiza una compra para generar informes.</td>
                                 </tr>
                             ` : (APP_STATE.evaluations || []).map(e => `
                                 <tr class="hover:bg-slate-50">
@@ -783,6 +814,46 @@ function closeAIReportModal() {
     if (reportModal) reportModal.classList.add('hidden');
 }
 
+function printCurrentReport() {
+    const reportContent = document.getElementById('printableReport')?.outerHTML;
+    if (!reportContent) return;
+
+    const win = window.open('', '_blank');
+    win.document.write(`
+        <html>
+            <head>
+                <title>Informe Pedagógico PDF</title>
+                <script src="https://cdn.tailwindcss.com"></script>
+            </head>
+            <body class="bg-white p-6">
+                ${reportContent}
+                <script>setTimeout(() => { window.print(); window.close(); }, 750);</script>
+            </body>
+        </html>
+    `);
+    win.document.close();
+}
+
+function sendReportByEmail() {
+    const ev = (APP_STATE.evaluations || []).find(x => String(x.id) === String(window.currentReportEvalId));
+    if (!ev) return alert("Selecciona un informe válido.");
+    const destEmail = prompt("Ingresa el correo del apoderado:");
+    if (!destEmail) return;
+
+    if (typeof emailjs !== 'undefined') {
+        emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+            to_email: destEmail,
+            to_name: ev.studentName,
+            user_rut: ev.rut || 'N/A',
+            user_pin: 'Informe Pedagógico Disponible',
+            app_url: window.location.href
+        }, EMAILJS_CONFIG.publicKey).then(() => alert("📧 Informe enviado con éxito.")).catch(e => alert("Error: " + e.message));
+    }
+}
+
+// ------------------------------------------
+// PESTAÑA 2: CATÁLOGO Y SUPERMERCADOS
+// ------------------------------------------
 function renderTeacherCatalogTab() {
     return `
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -791,11 +862,13 @@ function renderTeacherCatalogTab() {
                     <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
                         <span>🏪</span> <span>Supermercados</span>
                     </h3>
+                    <button onclick="openSupermarketModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-3 py-2 rounded-xl">+ Crear Tienda</button>
                 </div>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
                     ${(APP_STATE.supermarkets || []).map(s => `
                         <div class="p-3 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
                             <span class="font-black text-slate-800">${s.name}</span>
+                            <button onclick="openSupermarketModal('${s.id}')" class="bg-amber-100 text-amber-900 px-3 py-1 rounded-xl">✏️ Editar</button>
                         </div>
                     `).join('')}
                 </div>
@@ -808,15 +881,19 @@ function renderTeacherCatalogTab() {
                     </h3>
                     <div class="flex gap-1.5">
                         <button onclick="deleteAllProducts()" class="bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-2.5 py-2 rounded-xl">🗑️ Eliminar Todos</button>
+                        <button onclick="openCategoryModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-2.5 py-2 rounded-xl">+ Categoría</button>
                         <button onclick="openProductModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-xs px-2.5 py-2 rounded-xl">+ Crear Producto</button>
                     </div>
                 </div>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
-                    ${(APP_STATE.products || []).map(p => `
+                    ${(APP_STATE.products || []).length === 0 ? `
+                        <p class="text-xs text-slate-400 italic py-4 text-center">No hay productos en el catálogo.</p>
+                    ` : (APP_STATE.products || []).map(p => `
                         <div class="p-3 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
                             <div>
                                 <span class="font-black text-slate-800">${p.name}</span>
                                 <span class="text-emerald-700 font-black"> $${(p.price || 0).toLocaleString('es-CL')}</span>
+                                <span class="text-slate-400"> (${p.category || 'General'})</span>
                             </div>
                             <button onclick="deleteProduct('${p.id}')" class="bg-rose-100 text-rose-900 px-2.5 py-1 rounded-xl">✕</button>
                         </div>
@@ -827,34 +904,270 @@ function renderTeacherCatalogTab() {
     `;
 }
 
+// ------------------------------------------
+// PESTAÑA 3: MONEDAS Y FOTOS CON CARGA PERSONALIZADA
+// ------------------------------------------
 function renderTeacherCurrencyTab() {
     return `
         <div class="bg-white p-6 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
-            <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                <span>💵</span> <span>Billetes y Monedas Chilenas</span>
-            </h3>
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                ${CLP_CURRENCY_ITEMS.map(item => `
-                    <div class="p-3 bg-slate-50 border-2 rounded-3xl flex flex-col items-center text-center space-y-2">
-                        <span class="text-xs font-black">${item.name}</span>
-                        <img src="${APP_STATE.customCurrencies[item.id] || item.img}" class="h-20 object-contain">
-                    </div>
-                `).join('')}
+            <div class="border-b pb-3">
+                <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
+                    <span>💵</span> <span>Billetes y Monedas Chilenas (CLP)</span>
+                </h3>
+                <p class="text-xs text-slate-500 font-bold">Haz clic en '📁 Cambiar Imagen' en cualquier billete o moneda para subir tu propia fotografía o diseño visual.</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                ${CLP_CURRENCY_ITEMS.map(item => {
+                    const currentImg = APP_STATE.customCurrencies[item.id] || item.img;
+                    const isCustom = !!APP_STATE.customCurrencies[item.id];
+                    return `
+                        <div class="p-4 bg-slate-50 border-2 border-slate-200 rounded-3xl flex flex-col items-center text-center space-y-3 shadow-sm">
+                            <span class="text-xs font-black text-slate-800">${item.name}</span>
+                            <div class="h-24 w-full flex items-center justify-center p-1 bg-white rounded-2xl border">
+                                <img src="${currentImg}" class="max-h-full max-w-full object-contain">
+                            </div>
+                            <div class="w-full space-y-1">
+                                <label class="block bg-indigo-600 hover:bg-indigo-700 text-white font-black py-1.5 rounded-xl text-[10px] cursor-pointer shadow text-center">
+                                    📁 Cambiar Imagen
+                                    <input type="file" accept="image/*" class="hidden" onchange="uploadCustomCurrencyImage(event, '${item.id}')">
+                                </label>
+                                ${isCustom ? `
+                                    <button onclick="resetCustomCurrencyImage('${item.id}')" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-1 rounded-xl text-[9px]">
+                                        🔄 Restablecer Vector
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
             </div>
         </div>
     `;
 }
 
-function renderTeacherUsersTab() {
-    return `<div class="p-6 bg-white rounded-3xl border-4 font-bold text-slate-800">Gestión de Usuarios (Administradores, Educadores, Alumnos).</div>`;
+function uploadCustomCurrencyImage(event, itemId) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        compressImageBase64(e.target.result, 400, 400).then(compressed => {
+            APP_STATE.customCurrencies[itemId] = compressed;
+            if (db) {
+                db.collection('settings').doc('currencies').set({ [itemId]: compressed }, { merge: true });
+            }
+            try { localStorage.setItem('nee_custom_currencies', JSON.stringify(APP_STATE.customCurrencies)); } catch(err) {}
+            renderApp();
+            alert("✅ Imagen de moneda/billete cargada y guardada.");
+        });
+    };
+    reader.readAsDataURL(file);
 }
 
+function resetCustomCurrencyImage(itemId) {
+    delete APP_STATE.customCurrencies[itemId];
+    if (db) {
+        const update = {};
+        update[itemId] = firebase.firestore.FieldValue.delete();
+        db.collection('settings').doc('currencies').update(update);
+    }
+    try { localStorage.setItem('nee_custom_currencies', JSON.stringify(APP_STATE.customCurrencies)); } catch(e) {}
+    renderApp();
+}
+
+// ------------------------------------------
+// PESTAÑA 4: GESTIÓN DE USUARIOS Y CURSOS
+// ------------------------------------------
+function renderTeacherUsersTab() {
+    const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
+
+    return `
+        <div class="space-y-6">
+            <!-- SECCIÓN CURSOS -->
+            <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-sm space-y-4">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <div>
+                        <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                            <span>🏫</span> <span>Cursos Registrados</span>
+                        </h3>
+                        <p class="text-xs text-slate-500 font-bold">Niveles educativos configurados en la escuela.</p>
+                    </div>
+                    <button onclick="addNewCoursePrompt()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow active:scale-95">
+                        + Crear Curso
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    ${(APP_STATE.courses || []).length === 0 ? `
+                        <p class="col-span-full text-xs text-slate-400 italic text-center py-2">No hay cursos creados. Haz clic en '+ Crear Curso'.</p>
+                    ` : (APP_STATE.courses || []).map(c => `
+                        <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl flex justify-between items-center font-bold text-xs">
+                            <span class="text-slate-800 font-black">${c.name}</span>
+                            <button onclick="deleteCourse('${c.id}')" class="text-rose-600 hover:text-rose-800 font-black px-2 py-1 rounded-lg bg-rose-50">✕</button>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- SECCIÓN DE USUARIOS: ADMIN, EDUCADOR Y ESTUDIANTE -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- COLUMNA 1: ADMIN GENERAL -->
+                <div class="bg-white p-5 rounded-3xl border-4 border-purple-200 shadow space-y-4">
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                            <span>🔑</span> Admin General
+                        </h3>
+                        ${isAdmin ? `<button onclick="openCreateUserModal('admin')" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Admin</button>` : `<span class="text-[10px] font-black text-slate-400">Protegido</span>`}
+                    </div>
+                    <div class="space-y-2 max-h-96 overflow-y-auto">
+                        ${renderUserRoleList('admin')}
+                    </div>
+                </div>
+
+                <!-- COLUMNA 2: EDUCADORES PIE -->
+                <div class="bg-white p-5 rounded-3xl border-4 border-indigo-200 shadow space-y-4">
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                            <span>👨‍🏫</span> Educadores PIE
+                        </h3>
+                        ${isAdmin ? `<button onclick="openCreateUserModal('teacher')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Educador</button>` : `<span class="text-[10px] font-black text-slate-400">Protegido</span>`}
+                    </div>
+                    <div class="space-y-2 max-h-96 overflow-y-auto">
+                        ${renderUserRoleList('teacher')}
+                    </div>
+                </div>
+
+                <!-- COLUMNA 3: ESTUDIANTES -->
+                <div class="bg-white p-5 rounded-3xl border-4 border-emerald-200 shadow space-y-4">
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                            <span>🎒</span> Estudiantes
+                        </h3>
+                        <button onclick="openCreateUserModal('student')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Alumno</button>
+                    </div>
+                    <div class="space-y-2 max-h-96 overflow-y-auto">
+                        ${renderUserRoleList('student')}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderUserRoleList(role) {
+    const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
+    const users = (APP_STATE.users || []).filter(u => u.role === role);
+    if (users.length === 0) return `<p class="text-xs text-slate-400 italic py-4 text-center">No hay usuarios registrados.</p>`;
+
+    return users.map(u => `
+        <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl space-y-2 text-xs font-bold">
+            <div class="flex justify-between items-center">
+                <span class="text-indigo-950 font-black">${u.name}</span>
+                <div class="space-x-1">
+                    ${(isAdmin || role === 'student') ? `
+                        <button onclick="openEditUserModal('${u.id}')" class="text-amber-600 hover:text-amber-800 font-extrabold">✏️</button>
+                        <button onclick="deleteUser('${u.id}')" class="text-rose-600 hover:text-rose-800 font-extrabold">✕</button>
+                    ` : ''}
+                </div>
+            </div>
+            <div class="text-[11px] text-slate-600">
+                <div>RUT: <b>${u.rut || 'N/A'}</b> | Clave: <code class="bg-slate-200 px-1 py-0.5 rounded text-indigo-900 font-black">${u.pin}</code></div>
+                <div>📧 ${u.email || 'Sin correo'}</div>
+            </div>
+            ${(isAdmin || role === 'student') ? `
+                <div class="flex gap-1 pt-1">
+                    <button onclick="resetUserPassword('${u.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-black px-2 py-1 rounded-xl text-[10px] w-full">🔄 Reset Clave</button>
+                    <button onclick="sendAutomaticCredentialsEmail(APP_STATE.users.find(x=>x.id==='${u.id}'))" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-black px-2 py-1 rounded-xl text-[10px] w-full">✉️ Correo</button>
+                </div>
+            ` : ''}
+        </div>
+    `).join('');
+}
+
+// ------------------------------------------
+// PESTAÑA 5: PLANTILLA Y LOGO
+// ------------------------------------------
 function renderTeacherSettingsTab() {
-    return `<div class="p-6 bg-white rounded-3xl border-4 font-bold text-slate-800">Configuración Institucional de Plantillas en PDF.</div>`;
+    const st = APP_STATE.settings || DEFAULT_SETTINGS;
+    return `
+        <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow-md space-y-6 max-w-4xl mx-auto">
+            <div class="border-b pb-3">
+                <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
+                    <span>⚙️</span> <span>Diseñador de Plantilla Institucional de Informes (PDF)</span>
+                </h3>
+                <p class="text-xs text-slate-500 font-bold mt-1">Configura el membrete, logo e insignia de la escuela para los informes en PDF emitidos con IA.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Nombre de la Escuela / Colegio:</label>
+                        <input type="text" id="settingSchoolName" value="${st.schoolName || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Subtítulo / Unidad PIE:</label>
+                        <input type="text" id="settingSubHeader" value="${st.schoolSubHeader || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Dirección Académica / Firma:</label>
+                        <input type="text" id="settingDirectorName" value="${st.directorName || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Pie de Página Oficial PDF:</label>
+                        <textarea id="settingFooterText" rows="2" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs focus:border-indigo-500">${st.footerText || ''}</textarea>
+                    </div>
+                </div>
+                <div class="space-y-4 flex flex-col justify-between">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Logo Institucional (Cargar Imagen):</label>
+                        <input type="file" accept="image/*" onchange="handleSchoolLogoUpload(event)" class="w-full text-xs font-bold text-slate-600 border border-slate-300 p-2 rounded-xl">
+                        <input type="hidden" id="settingSchoolLogo" value="${st.schoolLogo || ''}">
+                    </div>
+                    <div class="border-2 border-dashed border-indigo-200 p-4 rounded-2xl flex flex-col items-center justify-center text-center space-y-2 bg-indigo-50/50">
+                        <span class="text-xs font-black text-indigo-900">Vista Previa del Logo</span>
+                        <div id="schoolLogoPreviewContainer" class="w-full h-28 flex items-center justify-center">
+                            ${st.schoolLogo ? `<img src="${st.schoolLogo}" class="h-full object-contain">` : `<span class="text-xs text-slate-400 font-bold">Sin logo seleccionado</span>`}
+                        </div>
+                    </div>
+                    <button onclick="saveInstitutionalSettings()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl text-xs uppercase shadow border-b-4 border-emerald-900 active:scale-95">
+                        💾 Guardar Plantilla Institucional PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function handleSchoolLogoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        compressImageBase64(e.target.result, 300, 300).then(compressed => {
+            document.getElementById('settingSchoolLogo').value = compressed;
+            const container = document.getElementById('schoolLogoPreviewContainer');
+            if (container) container.innerHTML = `<img src="${compressed}" class="h-full object-contain">`;
+        });
+    };
+    reader.readAsDataURL(file);
+}
+
+function saveInstitutionalSettings() {
+    const settingsData = {
+        schoolName: document.getElementById('settingSchoolName').value.trim(),
+        schoolSubHeader: document.getElementById('settingSubHeader').value.trim(),
+        directorName: document.getElementById('settingDirectorName').value.trim(),
+        footerText: document.getElementById('settingFooterText').value.trim(),
+        schoolLogo: document.getElementById('settingSchoolLogo').value
+    };
+
+    if (db) {
+        db.collection('settings').doc('institutional').set(settingsData, { merge: true }).then(() => {
+            APP_STATE.settings = settingsData;
+            alert("✅ Configuración de plantilla guardada exitosamente.");
+        });
+    }
 }
 
 // ==========================================
-// CONTROLADORES DE MODALES Y OPERACIONES DB
+// CONTROLADORES DE MODALES Y OPERACIONES
 // ==========================================
 function updateCategoryDropdowns(selectedName = null) {
     const catSelect = document.getElementById('modalProdCategory');
@@ -867,7 +1180,6 @@ function openProductModal(prodId = null) {
     const supSelect = document.getElementById('modalProdSupermarket');
     if (supSelect) supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
     updateCategoryDropdowns();
-
     const el = document.getElementById('productModal');
     if (el) el.classList.remove('hidden');
 }
@@ -902,13 +1214,12 @@ function saveProductFromModal() {
         supermarketName: replicateAll ? 'TODOS' : ((APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId))?.name || 'Supermercado')
     }, { merge: true }).then(() => {
         closeProductModal();
-        alert(`✅ Producto "${name}" guardado exitosamente.`);
+        alert(`✅ Producto "${name}" guardado.`);
     });
 }
 
 async function deleteAllProducts() {
-    if (!confirm("⚠️ ¿Estás seguro de que deseas eliminar TODOS los productos del catálogo?")) return;
-
+    if (!confirm("⚠️ ¿Deseas eliminar TODOS los productos?")) return;
     try {
         if (!db) return;
         const snapshot = await db.collection('products').get();
@@ -921,7 +1232,7 @@ async function deleteAllProducts() {
         }
         APP_STATE.products = [];
         renderApp();
-        alert("🗑️ ¡Productos borrados exitosamente!");
+        alert("🗑️ ¡Catálogo vaciado!");
     } catch (err) {
         alert("Error: " + err.message);
     }
@@ -933,48 +1244,211 @@ function deleteProduct(prodId) {
     }
 }
 
-// ==========================================
-// ESCUCHADORES EN TIEMPO REAL
-// ==========================================
-function initFirebaseListeners() {
-    const storedUser = localStorage.getItem('nee_active_user');
-    if (storedUser) {
-        try { APP_STATE.currentUser = JSON.parse(storedUser); } catch(e) {}
-    }
+function openSupermarketModal(supId = null) {
+    const el = document.getElementById('supermarketModal');
+    if (el) el.classList.remove('hidden');
+}
+function closeSupermarketModal() {
+    const el = document.getElementById('supermarketModal');
+    if (el) el.classList.add('hidden');
+}
 
-    if (!db) return;
-
-    db.collection('users').onSnapshot(s => { 
-        APP_STATE.users = s.docs.map(d => ({ id: d.id, ...d.data() })); 
-        renderApp(); 
-    });
-
-    db.collection('categories').onSnapshot(s => { 
-        const firebaseCats = s.docs.map(d => ({ id: d.id, ...d.data() })); 
-        APP_STATE.categories = firebaseCats.length > 0 ? firebaseCats : [...DEFAULT_CATEGORIES];
-        updateCategoryDropdowns(); 
-        renderApp(); 
-    });
-
-    db.collection('supermarkets').onSnapshot(s => { 
-        const firebaseSups = s.docs.map(d => ({ id: d.id, ...d.data() })); 
-        APP_STATE.supermarkets = firebaseSups.length > 0 ? firebaseSups : [...DEFAULT_SUPERMARKETS];
-        renderApp(); 
-    });
-
-    db.collection('products').onSnapshot(s => { 
-        APP_STATE.products = s.docs.map(d => ({ id: d.id, ...d.data() })); 
-        renderApp(); 
-    });
-
-    db.collection('evaluations').onSnapshot(s => { 
-        APP_STATE.evaluations = s.docs.map(d => ({ id: d.id, ...d.data() })); 
-        renderApp(); 
+function saveSupermarketFromModal() {
+    const name = document.getElementById('modalSupName').value.trim();
+    if (!name || !db) return alert("Ingresa nombre de la tienda.");
+    const id = 'sup-' + Date.now();
+    db.collection('supermarkets').doc(id).set({ id, name, icon: '🏪', description: 'Supermercado' }).then(() => {
+        closeSupermarketModal();
+        alert("✅ Tienda guardada.");
     });
 }
 
-// INICIALIZACIÓN PROTEGIDA TRAS LA CARGA COMPLETA DEL DOM
-document.addEventListener('DOMContentLoaded', () => {
+function openCategoryModal() {
+    const el = document.getElementById('categoryModal');
+    if (el) el.classList.remove('hidden');
+}
+function closeCategoryModal() {
+    const el = document.getElementById('categoryModal');
+    if (el) el.classList.add('hidden');
+}
+
+function saveCategoryFromModal() {
+    const name = document.getElementById('modalCatName').value.trim();
+    if (!name || !db) return alert("Ingresa nombre de categoría.");
+    const id = 'cat-' + Date.now();
+    db.collection('categories').doc(id).set({ id, name, icon: '🏷️' }).then(() => {
+        closeCategoryModal();
+        updateCategoryDropdowns(name);
+        alert(`✅ Categoría "${name}" creada.`);
+    });
+}
+
+function openCreateUserModal(role) {
+    const el = document.getElementById('userModal');
+    if (el) {
+        document.getElementById('modalUserId').value = '';
+        document.getElementById('modalUserRole').value = role;
+        document.getElementById('modalName').value = '';
+        document.getElementById('modalRut').value = '';
+        document.getElementById('modalEmail').value = '';
+        document.getElementById('userModalTitle').textContent = `Crear nuevo ${role === 'admin' ? 'Administrador' : (role === 'teacher' ? 'Educador PIE' : 'Alumno')}`;
+        el.classList.remove('hidden');
+    }
+}
+
+function openEditUserModal(userId) {
+    const user = (APP_STATE.users || []).find(u => String(u.id) === String(userId));
+    if (!user) return;
+    const el = document.getElementById('userModal');
+    if (el) {
+        document.getElementById('modalUserId').value = user.id;
+        document.getElementById('modalUserRole').value = user.role;
+        document.getElementById('modalName').value = user.name || '';
+        document.getElementById('modalRut').value = user.rut || '';
+        document.getElementById('modalEmail').value = user.email || '';
+        document.getElementById('userModalTitle').textContent = `Editar Usuario (${user.name})`;
+        el.classList.remove('hidden');
+    }
+}
+
+function closeUserModal() {
+    const el = document.getElementById('userModal');
+    if (el) el.classList.add('hidden');
+}
+
+function saveUserFromModal() {
+    const userId = document.getElementById('modalUserId').value;
+    const role = document.getElementById('modalUserRole').value;
+    const name = document.getElementById('modalName').value.trim();
+    const rut = document.getElementById('modalRut').value.trim();
+    const email = document.getElementById('modalEmail').value.trim();
+
+    if (!name || !rut || !db) return alert("Completa el nombre y RUT.");
+
+    const id = userId || ('u-' + Date.now());
+    const pin = rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
+
+    db.collection('users').doc(id).set({ id, role, name, rut, username: rut, email, pin }, { merge: true }).then(() => {
+        closeUserModal();
+        alert("✅ Usuario guardado exitosamente.");
+    });
+}
+
+function deleteUser(id) {
+    if (confirm("¿Eliminar este usuario?") && db) {
+        db.collection('users').doc(id).delete();
+    }
+}
+
+function resetUserPassword(userId) {
+    const user = (APP_STATE.users || []).find(u => String(u.id) === String(userId));
+    if (!user || !db) return;
+    const initialPin = user.rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
+    db.collection('users').doc(userId).update({ pin: initialPin }).then(() => {
+        alert(`🔒 Clave de ${user.name} reiniciada a: ${initialPin}`);
+    });
+}
+
+function sendAutomaticCredentialsEmail(user) {
+    if (!user || !user.email) return alert("El usuario no tiene un correo registrado.");
+    if (typeof emailjs !== 'undefined') {
+        emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+            to_email: user.email,
+            to_name: user.name,
+            user_rut: user.rut,
+            user_pin: user.pin,
+            app_url: window.location.href
+        }, EMAILJS_CONFIG.publicKey).then(() => alert("✉️ Credenciales enviadas por correo a: " + user.email));
+    }
+}
+
+function addNewCoursePrompt() {
+    const courseName = prompt("Nombre del nuevo curso (Ej: 1° Básico A, Taller Laboral 2):");
+    if (!courseName || !courseName.trim() || !db) return;
+    const id = 'course-' + Date.now();
+    db.collection('courses').doc(id).set({ id, name: courseName.trim() });
+}
+
+function deleteCourse(courseId) {
+    if (confirm("¿Eliminar este curso?") && db) {
+        db.collection('courses').doc(courseId).delete();
+    }
+}
+
+// ==========================================
+// ESCUCHADORES FIRESTORE TIEMPO REAL
+// ==========================================
+function initFirebaseListeners() {
+    try {
+        const storedUser = localStorage.getItem('nee_active_user');
+        if (storedUser) APP_STATE.currentUser = JSON.parse(storedUser);
+        const storedCurrencies = localStorage.getItem('nee_custom_currencies');
+        if (storedCurrencies) APP_STATE.customCurrencies = JSON.parse(storedCurrencies);
+    } catch(e) {}
+
+    if (!db) {
+        renderApp();
+        return;
+    }
+
+    const listenCol = (name, callback) => {
+        try {
+            db.collection(name).onSnapshot(
+                s => {
+                    const data = s.docs.map(d => ({ id: d.id, ...d.data() }));
+                    callback(data);
+                    renderApp();
+                },
+                err => {
+                    console.warn(`Error en Firestore [${name}]:`, err.message);
+                    renderApp();
+                }
+            );
+        } catch(e) { renderApp(); }
+    };
+
+    listenCol('users', data => {
+        APP_STATE.users = (data && data.length > 0) ? data : [DEFAULT_ADMIN];
+    });
+
+    listenCol('courses', data => { APP_STATE.courses = data || []; });
+    listenCol('categories', data => {
+        APP_STATE.categories = (data && data.length > 0) ? data : [...DEFAULT_CATEGORIES];
+        updateCategoryDropdowns();
+    });
+    listenCol('supermarkets', data => {
+        APP_STATE.supermarkets = (data && data.length > 0) ? data : [...DEFAULT_SUPERMARKETS];
+    });
+    listenCol('products', data => { APP_STATE.products = data || []; });
+    listenCol('evaluations', data => { APP_STATE.evaluations = data || []; });
+
+    try {
+        db.collection('settings').doc('institutional').onSnapshot(
+            doc => {
+                if (doc.exists) APP_STATE.settings = { ...DEFAULT_SETTINGS, ...doc.data() };
+                renderApp();
+            },
+            err => renderApp()
+        );
+
+        db.collection('settings').doc('currencies').onSnapshot(
+            doc => {
+                if (doc.exists) APP_STATE.customCurrencies = { ...APP_STATE.customCurrencies, ...doc.data() };
+                renderApp();
+            },
+            err => renderApp()
+        );
+    } catch(e) { renderApp(); }
+}
+
+// INICIALIZACIÓN PROTEGIDA
+function mainInit() {
     initFirebaseListeners();
     renderApp();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mainInit);
+} else {
+    mainInit();
+}
