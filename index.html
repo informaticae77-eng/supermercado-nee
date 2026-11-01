@@ -144,10 +144,42 @@
         </div>
     </div>
 
-    <!-- MODAL 5: USUARIOS (ADMIN, TEACHER, STUDENT) -->
+    <!-- MODAL 5: SUPERMERCADOS -->
+    <div id="supermarketModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <h3 class="text-xl font-black text-slate-800">Supermercado</h3>
+            <input type="hidden" id="modalSupId">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre de Tienda:</label>
+                <input type="text" id="modalSupName" placeholder="Ej: Supermercado Lider" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
+            </div>
+            <div class="flex gap-2 pt-4">
+                <button onclick="closeSupermarketModal()" class="w-1/3 bg-slate-200 text-slate-800 font-bold py-2.5 rounded-xl text-xs">Cancelar</button>
+                <button onclick="saveSupermarketFromModal()" class="w-2/3 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 rounded-xl text-xs shadow">Guardar Tienda</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 6: FORMULARIO DE CATEGORÍAS -->
+    <div id="categoryModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <h3 class="text-xl font-black text-slate-800">Nueva Categoría de Producto</h3>
+            <input type="hidden" id="modalCatId">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre Categoría:</label>
+                <input type="text" id="modalCatName" placeholder="Ej: Congelados, Mascotas" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
+            </div>
+            <div class="flex gap-2 pt-4">
+                <button onclick="closeCategoryModal()" class="w-1/3 bg-slate-200 text-slate-800 font-bold py-2.5 rounded-xl text-xs">Cancelar</button>
+                <button onclick="saveCategoryFromModal()" class="w-2/3 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2.5 rounded-xl text-xs shadow">Guardar Categoría</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 7: USUARIOS (ADMIN GENERAL, EDUCADOR Y ALUMNO) -->
     <div id="userModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <h3 class="text-xl font-black text-slate-800">Gestión de Usuario</h3>
+            <h3 id="userModalTitle" class="text-xl font-black text-slate-800">Gestión de Usuario</h3>
             <input type="hidden" id="modalUserId">
             <input type="hidden" id="modalUserRole">
             <div>
@@ -169,7 +201,7 @@
         </div>
     </div>
 
-    <!-- CARGA DE LÓGICA CON PARÁMETRO DE VERSIÓN -->
-    <script src="app.js?v=99999"></script>
+    <!-- CARGA DE LÓGICA PRINCIPAL CON VERSIÓN NUEVA -->
+    <script src="app.js?v=200000"></script>
 </body>
 </html>
