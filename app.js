@@ -27,28 +27,33 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
-// SVGs VECTORIALES INDESTRUCTIBLES DE MONEDAS Y BILLETES CHILENOS
+// FUNCIÓN PARA GENERAR DATA URIS SEGURAS DE SVG
 // ==========================================
-const SVG_B20K = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="%23e67e22"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="%23f39c12" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$20.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="%23fdebd0" text-anchor="middle">PESOS CHILENOS</text></svg>`;
-const SVG_B10K = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="%232980b9"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="%235499c7" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$10.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="%23d4e6f1" text-anchor="middle">PESOS CHILENOS</text></svg>`;
-const SVG_B5K  = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="%23c0392b"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="%23ec7063" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$5.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="%23fadbd8" text-anchor="middle">PESOS CHILENOS</text></svg>`;
-const SVG_B2K  = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="%238e44ad"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="%23bb8fce" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$2.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="%23ebdef0" text-anchor="middle">PESOS CHILENOS</text></svg>`;
-const SVG_B1K  = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="%2327ae60"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="%2358d68d" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$1.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="%23d4efdf" text-anchor="middle">PESOS CHILENOS</text></svg>`;
-const SVG_C500 = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="%23f39c12"/><circle cx="50" cy="50" r="34" fill="%23bdc3c7"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="%232c3e50" text-anchor="middle">$500</text></svg>`;
-const SVG_C100 = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="%23f1c40f"/><circle cx="50" cy="50" r="36" fill="%23f39c12"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="white" text-anchor="middle">$100</text></svg>`;
-const SVG_C50  = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><polygon points="50,4 82,18 96,50 82,82 50,96 18,82 4,50 18,18" fill="%23bdc3c7"/><circle cx="50" cy="50" r="32" fill="%23ecf0f1"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="%232c3e50" text-anchor="middle">$50</text></svg>`;
-const SVG_C10  = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="%23d35400"/><circle cx="50" cy="50" r="36" fill="%23e67e22"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="white" text-anchor="middle">$10</text></svg>`;
+function makeSvgDataUrl(svgString) {
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+}
+
+// VECTORIALES SVG INDESTRUCTIBLES DE MONEDAS Y BILLETES CHILENOS
+const SVG_B20K_RAW = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#e67e22"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="#f39c12" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$20.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#fdebd0" text-anchor="middle">PESOS CHILENOS</text></svg>`;
+const SVG_B10K_RAW = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#2980b9"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="#5499c7" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$10.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#d4e6f1" text-anchor="middle">PESOS CHILENOS</text></svg>`;
+const SVG_B5K_RAW  = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#c0392b"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="#ec7063" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$5.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#fadbd8" text-anchor="middle">PESOS CHILENOS</text></svg>`;
+const SVG_B2K_RAW  = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#8e44ad"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="#bb8fce" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$2.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#ebdef0" text-anchor="middle">PESOS CHILENOS</text></svg>`;
+const SVG_B1K_RAW  = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#27ae60"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="#58d68d" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$1.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#d4efdf" text-anchor="middle">PESOS CHILENOS</text></svg>`;
+const SVG_C500_RAW = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#f39c12"/><circle cx="50" cy="50" r="34" fill="#bdc3c7"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="#2c3e50" text-anchor="middle">$500</text></svg>`;
+const SVG_C100_RAW = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#f1c40f"/><circle cx="50" cy="50" r="36" fill="#f39c12"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="white" text-anchor="middle">$100</text></svg>`;
+const SVG_C50_RAW  = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><polygon points="50,4 82,18 96,50 82,82 50,96 18,82 4,50 18,18" fill="#bdc3c7"/><circle cx="50" cy="50" r="32" fill="#ecf0f1"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="#2c3e50" text-anchor="middle">$50</text></svg>`;
+const SVG_C10_RAW  = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#d35400"/><circle cx="50" cy="50" r="36" fill="#e67e22"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="white" text-anchor="middle">$10</text></svg>`;
 
 const CLP_CURRENCY_ITEMS = [
-    { id: 'b20k', value: 20000, type: 'bill', name: 'Billete $20.000', img: SVG_B20K },
-    { id: 'b10k', value: 10000, type: 'bill', name: 'Billete $10.000', img: SVG_B10K },
-    { id: 'b5k',  value: 5000,  type: 'bill', name: 'Billete $5.000',  img: SVG_B5K },
-    { id: 'b2k',  value: 2000,  type: 'bill', name: 'Billete $2.000',  img: SVG_B2K },
-    { id: 'b1k',  value: 1000,  type: 'bill', name: 'Billete $1.000',  img: SVG_B1K },
-    { id: 'c500', value: 500,   type: 'coin', name: 'Moneda $500',    img: SVG_C500 },
-    { id: 'c100', value: 100,   type: 'coin', name: 'Moneda $100',    img: SVG_C100 },
-    { id: 'c50',  value: 50,    type: 'coin', name: 'Moneda $50',     img: SVG_C50 },
-    { id: 'c10',  value: 10,    type: 'coin', name: 'Moneda $10',     img: SVG_C10 }
+    { id: 'b20k', value: 20000, type: 'bill', name: 'Billete $20.000', img: makeSvgDataUrl(SVG_B20K_RAW) },
+    { id: 'b10k', value: 10000, type: 'bill', name: 'Billete $10.000', img: makeSvgDataUrl(SVG_B10K_RAW) },
+    { id: 'b5k',  value: 5000,  type: 'bill', name: 'Billete $5.000',  img: makeSvgDataUrl(SVG_B5K_RAW) },
+    { id: 'b2k',  value: 2000,  type: 'bill', name: 'Billete $2.000',  img: makeSvgDataUrl(SVG_B2K_RAW) },
+    { id: 'b1k',  value: 1000,  type: 'bill', name: 'Billete $1.000',  img: makeSvgDataUrl(SVG_B1K_RAW) },
+    { id: 'c500', value: 500,   type: 'coin', name: 'Moneda $500',    img: makeSvgDataUrl(SVG_C500_RAW) },
+    { id: 'c100', value: 100,   type: 'coin', name: 'Moneda $100',    img: makeSvgDataUrl(SVG_C100_RAW) },
+    { id: 'c50',  value: 50,    type: 'coin', name: 'Moneda $50',     img: makeSvgDataUrl(SVG_C50_RAW) },
+    { id: 'c10',  value: 10,    type: 'coin', name: 'Moneda $10',     img: makeSvgDataUrl(SVG_C10_RAW) }
 ];
 
 const DEFAULT_SUPERMARKETS = [
@@ -852,50 +857,69 @@ function sendReportByEmail() {
 }
 
 // ------------------------------------------
-// PESTAÑA 2: CATÁLOGO Y SUPERMERCADOS
+// PESTAÑA 2: CATÁLOGO, TIENDAS Y CATEGORÍAS
 // ------------------------------------------
 function renderTeacherCatalogTab() {
     return `
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="bg-white p-6 rounded-3xl border-4 border-emerald-300 shadow-md space-y-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- COLUMNA 1: SUPERMERCADOS -->
+            <div class="bg-white p-5 rounded-3xl border-4 border-emerald-300 shadow-md space-y-4">
                 <div class="flex justify-between items-center border-b pb-3">
-                    <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                    <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
                         <span>🏪</span> <span>Supermercados</span>
                     </h3>
-                    <button onclick="openSupermarketModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-3 py-2 rounded-xl">+ Crear Tienda</button>
+                    <button onclick="openSupermarketModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Tienda</button>
                 </div>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
                     ${(APP_STATE.supermarkets || []).map(s => `
-                        <div class="p-3 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
+                        <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
                             <span class="font-black text-slate-800">${s.name}</span>
-                            <button onclick="openSupermarketModal('${s.id}')" class="bg-amber-100 text-amber-900 px-3 py-1 rounded-xl">✏️ Editar</button>
+                            <button onclick="openSupermarketModal('${s.id}')" class="bg-amber-100 text-amber-900 px-2 py-1 rounded-xl text-[10px]">✏️ Editar</button>
                         </div>
                     `).join('')}
                 </div>
             </div>
 
-            <div class="bg-white p-6 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
-                <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
-                    <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
-                        <span>📦</span> <span>Catálogo (${(APP_STATE.products || []).length})</span>
+            <!-- COLUMNA 2: CATEGORÍAS CON ÍCONOS -->
+            <div class="bg-white p-5 rounded-3xl border-4 border-indigo-300 shadow-md space-y-4">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                        <span>🏷️</span> <span>Categorías (${(APP_STATE.categories || []).length})</span>
                     </h3>
-                    <div class="flex gap-1.5">
-                        <button onclick="deleteAllProducts()" class="bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-2.5 py-2 rounded-xl">🗑️ Eliminar Todos</button>
-                        <button onclick="openCategoryModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-2.5 py-2 rounded-xl">+ Categoría</button>
-                        <button onclick="openProductModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-xs px-2.5 py-2 rounded-xl">+ Crear Producto</button>
+                    <button onclick="openCategoryModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Categoría</button>
+                </div>
+                <div class="space-y-2 max-h-96 overflow-y-auto">
+                    ${(APP_STATE.categories || []).map(c => `
+                        <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
+                            <span class="font-black text-slate-800">${c.icon || '🏷️'} ${c.name}</span>
+                            <button onclick="deleteCategory('${c.id}')" class="text-rose-600 font-bold px-2 py-1 rounded-lg bg-rose-50 text-[10px]">✕</button>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- COLUMNA 3: CATÁLOGO DE PRODUCTOS -->
+            <div class="bg-white p-5 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
+                <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
+                    <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                        <span>📦</span> <span>Productos (${(APP_STATE.products || []).length})</span>
+                    </h3>
+                    <div class="flex gap-1">
+                        <button onclick="deleteAllProducts()" class="bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] px-2 py-1 rounded-xl">🗑️ Todos</button>
+                        <button onclick="openProductModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-xs px-2.5 py-1 rounded-xl shadow">+ Producto</button>
                     </div>
                 </div>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
                     ${(APP_STATE.products || []).length === 0 ? `
                         <p class="text-xs text-slate-400 italic py-4 text-center">No hay productos en el catálogo.</p>
                     ` : (APP_STATE.products || []).map(p => `
-                        <div class="p-3 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
+                        <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
                             <div>
                                 <span class="font-black text-slate-800">${p.name}</span>
                                 <span class="text-emerald-700 font-black"> $${(p.price || 0).toLocaleString('es-CL')}</span>
-                                <span class="text-slate-400"> (${p.category || 'General'})</span>
+                                <span class="text-slate-400 text-[10px]"> (${p.category || 'General'})</span>
                             </div>
-                            <button onclick="deleteProduct('${p.id}')" class="bg-rose-100 text-rose-900 px-2.5 py-1 rounded-xl">✕</button>
+                            <button onclick="deleteProduct('${p.id}')" class="bg-rose-100 text-rose-900 px-2 py-1 rounded-xl text-[10px]">✕</button>
                         </div>
                     `).join('')}
                 </div>
@@ -905,7 +929,7 @@ function renderTeacherCatalogTab() {
 }
 
 // ------------------------------------------
-// PESTAÑA 3: MONEDAS Y FOTOS CON CARGA PERSONALIZADA
+// PESTAÑA 3: MONEDAS Y FOTOS CON CARGA PERSONALIZADA Y SVGS ENCODED
 // ------------------------------------------
 function renderTeacherCurrencyTab() {
     return `
@@ -957,7 +981,7 @@ function uploadCustomCurrencyImage(event, itemId) {
             }
             try { localStorage.setItem('nee_custom_currencies', JSON.stringify(APP_STATE.customCurrencies)); } catch(err) {}
             renderApp();
-            alert("✅ Imagen de moneda/billete cargada y guardada.");
+            alert("✅ Imagen de moneda/billete cargada exitosamente.");
         });
     };
     reader.readAsDataURL(file);
@@ -1265,8 +1289,13 @@ function saveSupermarketFromModal() {
 
 function openCategoryModal() {
     const el = document.getElementById('categoryModal');
-    if (el) el.classList.remove('hidden');
+    if (el) {
+        document.getElementById('modalCatName').value = '';
+        document.getElementById('modalCatIcon').selectedIndex = 0;
+        el.classList.remove('hidden');
+    }
 }
+
 function closeCategoryModal() {
     const el = document.getElementById('categoryModal');
     if (el) el.classList.add('hidden');
@@ -1274,13 +1303,20 @@ function closeCategoryModal() {
 
 function saveCategoryFromModal() {
     const name = document.getElementById('modalCatName').value.trim();
+    const icon = document.getElementById('modalCatIcon').value;
     if (!name || !db) return alert("Ingresa nombre de categoría.");
     const id = 'cat-' + Date.now();
-    db.collection('categories').doc(id).set({ id, name, icon: '🏷️' }).then(() => {
+    db.collection('categories').doc(id).set({ id, name, icon: icon || '🏷️' }).then(() => {
         closeCategoryModal();
         updateCategoryDropdowns(name);
-        alert(`✅ Categoría "${name}" creada.`);
+        alert(`✅ Categoría "${icon} ${name}" creada exitosamente.`);
     });
+}
+
+function deleteCategory(catId) {
+    if (confirm("¿Eliminar esta categoría?") && db) {
+        db.collection('categories').doc(catId).delete();
+    }
 }
 
 function openCreateUserModal(role) {
