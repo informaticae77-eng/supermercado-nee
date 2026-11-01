@@ -160,7 +160,7 @@
         </div>
     </div>
 
-    <!-- MODAL 6: FORMULARIO DE CATEGORÍAS -->
+    <!-- MODAL 6: FORMULARIO DE CATEGORÍAS CON ÍCONO -->
     <div id="categoryModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <h3 class="text-xl font-black text-slate-800">Nueva Categoría de Producto</h3>
@@ -168,6 +168,24 @@
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre Categoría:</label>
                 <input type="text" id="modalCatName" placeholder="Ej: Congelados, Mascotas" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Ícono / Emoji Pictograma:</label>
+                <select id="modalCatIcon" class="w-full px-3 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
+                    <option value="🥛">🥛 Lácteos</option>
+                    <option value="🍞">🍞 Panadería</option>
+                    <option value="🍎">🍎 Frutas y Verduras</option>
+                    <option value="🌾">🌾 Abarrotes</option>
+                    <option value="🧼">🧼 Aseo y Limpieza</option>
+                    <option value="🧃">🧃 Bebidas</option>
+                    <option value="🥩">🥩 Carnes y Pesca</option>
+                    <option value="🧀">🧀 Quesos y Fiambrería</option>
+                    <option value="🍦">🍦 Congelados</option>
+                    <option value="🍪">🍪 Galletas y Dulces</option>
+                    <option value="🥫">🥫 Conservas</option>
+                    <option value="🐶">🐶 Mascotas</option>
+                    <option value="🏷️">🏷️ Otro / General</option>
+                </select>
             </div>
             <div class="flex gap-2 pt-4">
                 <button onclick="closeCategoryModal()" class="w-1/3 bg-slate-200 text-slate-800 font-bold py-2.5 rounded-xl text-xs">Cancelar</button>
@@ -202,6 +220,6 @@
     </div>
 
     <!-- CARGA DE LÓGICA PRINCIPAL CON VERSIÓN NUEVA -->
-    <script src="app.js?v=300000"></script>
+    <script src="app.js?v=400000"></script>
 </body>
 </html>
