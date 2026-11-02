@@ -416,9 +416,14 @@ function selectSupermarket(id) {
     renderApp();
 }
 
+// CAMBIO CON LECTURA DE VOZ PARA AYUDA AUDITIVA DE CATEGORÍAS
 function setCategoryFilter(catName) {
     APP_STATE.selectedCategoryFilter = catName;
     playChimeSound();
+
+    const labelToSpeak = (catName === 'ALL') ? 'Todos los productos' : catName;
+    speakText(`Categoría ${labelToSpeak}`);
+
     renderApp();
 }
 
@@ -511,7 +516,7 @@ function renderSupermarketView(container, supId) {
             </div>
 
             <div class="space-y-2">
-                <label class="text-xs font-black text-slate-600 uppercase tracking-wider block px-1">📁 Filtrar por Categoría (Toca para seleccionar):</label>
+                <label class="text-xs font-black text-slate-600 uppercase tracking-wider block px-1">📁 Filtrar por Categoría (Toca para escuchar y seleccionar):</label>
                 <div class="flex gap-2 overflow-x-auto pb-3 pt-1 scrollbar-thin">
                     ${categoryList.map(c => {
                         const active = (currentFilter.toLowerCase() === c.name.toLowerCase());
