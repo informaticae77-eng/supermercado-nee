@@ -190,8 +190,8 @@ function playChimeSound() {
     } catch(e) {}
 }
 
-function compressImageBase64(base64Data, maxWidth = 350, maxHeight = 350, quality = 0.75) {
-    return new Promise((resolve) => {
+function compressImageBase64(base64Data, maxWidth = 300, maxHeight = 300, quality = 0.7) {
+    return new Promise((resolve, reject) => {
         if (!base64Data || !base64Data.startsWith('data:image')) return resolve(base64Data || '');
         const img = new Image();
         img.onload = () => {
@@ -356,7 +356,7 @@ function goHome() {
 }
 
 // ==========================================
-// VISTA ESTUDIANTE (CON TEMÁTICA Y MASCOTA)
+// VISTA ESTUDIANTE
 // ==========================================
 function renderHomeView(container) {
     const activeThemeKey = APP_STATE.settings.activeTheme || 'standard';
@@ -365,7 +365,6 @@ function renderHomeView(container) {
 
     container.innerHTML = `
         <div class="space-y-6">
-            <!-- Bóveda/Header Estacional -->
             <div class="${theme.bannerBg} p-6 rounded-3xl shadow-xl flex justify-between items-center relative overflow-hidden border-4 border-white/30">
                 <div class="space-y-2 z-10">
                     <h2 class="text-2xl sm:text-4xl font-black ${theme.bannerText}">${theme.titleMsg}</h2>
@@ -379,7 +378,6 @@ function renderHomeView(container) {
                 ` : `<div class="text-6xl sm:text-8xl z-10 opacity-90">${theme.emoji}</div>`}
             </div>
 
-            <!-- Listado de Supermercados Orientado a Tablet -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 ${(APP_STATE.supermarkets || []).length === 0 ? `
                     <div class="col-span-full text-center py-12 bg-white rounded-3xl border-4 border-slate-200 shadow-sm">
@@ -433,7 +431,6 @@ function renderSupermarketView(container, supId) {
     const targetId = sup ? String(sup.id).toLowerCase() : String(supId).toLowerCase();
     const targetName = sup ? String(sup.name).toLowerCase() : String(supId).toLowerCase();
 
-    // Filtrar productos de la tienda actual
     let rawProducts = (APP_STATE.products || []).filter(p => {
         if (!p) return false;
         if (p.isAll === true || p.supermarketId === 'ALL' || p.supermarketName === 'TODOS') return true;
@@ -442,7 +439,6 @@ function renderSupermarketView(container, supId) {
         return (pSupId === targetId || pSupId === targetName || pSupName === targetId || pSupName === targetName);
     });
 
-    // Eliminar duplicados
     const uniqueProducts = [];
     const seen = new Set();
     rawProducts.forEach(p => {
@@ -453,7 +449,6 @@ function renderSupermarketView(container, supId) {
         }
     });
 
-    // Filtrar por categoría seleccionada
     const currentFilter = APP_STATE.selectedCategoryFilter || 'ALL';
     const filteredProducts = currentFilter === 'ALL' 
         ? uniqueProducts 
@@ -464,7 +459,6 @@ function renderSupermarketView(container, supId) {
         ? `<img src="${supLogo}" class="w-14 h-14 object-contain rounded-2xl border-2 border-slate-200 shadow-sm p-1 bg-white">`
         : `<span class="text-4xl">${sup ? (sup.icon || '🏪') : '🏪'}</span>`;
 
-    // Obtener categorías presentes o de la lista general
     const categoryList = [{ name: 'ALL', label: 'Todos los Productos', icon: '🛒' }];
     PRESET_CATEGORIES.forEach(c => categoryList.push({ name: c.name, label: c.name, icon: c.icon }));
 
@@ -477,8 +471,9 @@ function renderSupermarketView(container, supId) {
             <button onclick="setCategoryFilter('ALL')" class="mt-4 bg-indigo-600 text-white font-black px-6 py-3 rounded-2xl text-sm">Ver todos los productos</button>
         </div>
     ` : filteredProducts.map(prod => {
-        const prodImg = prod.photoUrl 
-            ? `<img src="${prod.photoUrl}" class="w-24 h-24 object-cover rounded-2xl border-2 border-slate-200 shadow-sm">`
+        const imgUrl = prod.photoUrl || prod.photo || prod.image || '';
+        const prodImg = imgUrl 
+            ? `<img src="${imgUrl}" class="w-24 h-24 object-cover rounded-2xl border-2 border-slate-200 shadow-sm">`
             : `<span class="text-6xl">${prod.iconEmoji || '📦'}</span>`;
             
         const pricePictograms = getPricePictogramsHtml(prod.price || 0);
@@ -506,7 +501,6 @@ function renderSupermarketView(container, supId) {
 
     container.innerHTML = `
         <div class="space-y-6">
-            <!-- Header Superior de la Tienda -->
             <div class="flex items-center justify-between bg-white p-4 rounded-3xl border-4 border-slate-300 shadow-md">
                 <button onclick="goHome()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-black px-4 py-3 rounded-2xl text-xs sm:text-sm active:scale-95">← Volver a Tiendas</button>
                 <div class="flex items-center gap-3">
@@ -516,7 +510,6 @@ function renderSupermarketView(container, supId) {
                 ${mascot ? `<img src="${mascot}" class="h-12 w-12 object-contain hidden sm:block">` : ''}
             </div>
 
-            <!-- BARRA DE CATEGORÍAS TÁCTIL (MODO TABLET) -->
             <div class="space-y-2">
                 <label class="text-xs font-black text-slate-600 uppercase tracking-wider block px-1">📁 Filtrar por Categoría (Toca para seleccionar):</label>
                 <div class="flex gap-2 overflow-x-auto pb-3 pt-1 scrollbar-thin">
@@ -532,7 +525,6 @@ function renderSupermarketView(container, supId) {
                 </div>
             </div>
 
-            <!-- GRILLA DE PRODUCTOS -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 ${productsHtml}
             </div>
@@ -541,7 +533,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// ESCÁNER Y MODO AUTO-APRENDIZAJE DE CÓDIGOS DE BARRA
+// ESCÁNER Y CÓDIGOS DE BARRA
 // ==========================================
 function openScannerModal() {
     const modal = document.getElementById('scannerModal');
@@ -733,7 +725,7 @@ function toggleStudentPreview(status) {
 }
 
 // ==========================================
-// CANASTO Y CAJA DE PAGO CON DINERO DEL ALUMNO
+// CANASTO Y CAJA DE PAGO
 // ==========================================
 function updateBasketBadge() {
     const badge = document.getElementById('basketBadge');
@@ -791,8 +783,9 @@ function renderBasketModalContent() {
         : APP_STATE.basket.map((item, idx) => {
             const p = (APP_STATE.products || []).find(x => String(x.id) === String(item.productId)) || { name: 'Producto', price: 2000 };
             total += (p.price || 0);
-            const imgHtml = p.photoUrl 
-                ? `<img src="${p.photoUrl}" class="w-10 h-10 object-cover rounded-xl border border-slate-200">`
+            const imgUrl = p.photoUrl || p.photo || p.image || '';
+            const imgHtml = imgUrl 
+                ? `<img src="${imgUrl}" class="w-10 h-10 object-cover rounded-xl border border-slate-200">`
                 : `<span class="text-2xl">${p.iconEmoji || '📦'}</span>`;
             return `
                 <div class="flex items-center justify-between p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl text-xs font-bold">
@@ -936,7 +929,7 @@ function closeSuccessModalAndFinish() {
 }
 
 // ==========================================
-// PANEL DOCENTE Y PESTAÑAS
+// PANEL DOCENTE
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -1254,8 +1247,9 @@ function renderTeacherCatalogTab() {
                             supBadge = `<span class="inline-block bg-amber-100 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded-md my-0.5">🏪 Solo en: ${supName}</span>`;
                         }
 
-                        const photoThumb = p.photoUrl 
-                            ? `<img src="${p.photoUrl}" class="w-10 h-10 object-cover rounded-xl border border-slate-300">`
+                        const imgUrl = p.photoUrl || p.photo || p.image || '';
+                        const photoThumb = imgUrl 
+                            ? `<img src="${imgUrl}" class="w-10 h-10 object-cover rounded-xl border border-slate-300">`
                             : `<div class="w-10 h-10 bg-slate-200 rounded-xl flex items-center justify-center text-lg">📦</div>`;
 
                         return `
@@ -1429,9 +1423,6 @@ function renderUserRoleList(role) {
     `).join('');
 }
 
-// ==========================================
-// PESTAÑA CONFIGURACIÓN: PLANTILLA, TEMAS Y MASCOTA
-// ==========================================
 function renderTeacherSettingsTab() {
     const st = APP_STATE.settings || DEFAULT_SETTINGS;
     return `
@@ -1442,7 +1433,6 @@ function renderTeacherSettingsTab() {
                 </h3>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Columna Izquierda: Datos Institucionales -->
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Nombre Colegio:</label>
@@ -1466,7 +1456,6 @@ function renderTeacherSettingsTab() {
                     </div>
                 </div>
 
-                <!-- Columna Derecha: Logos y Mascota -->
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Logo Institucional (PDF e Informe):</label>
@@ -1629,7 +1618,7 @@ function deleteSupermarket(supId) {
     }
 }
 
-// MODAL DE PRODUCTO: SOPORTA CREAR, EDITAR E INCLUIR IMAGEN DEL PRODUCTO
+// FUNCIONES DEL PRODUCTO CON SUBIDA Y COMPRESIÓN DE FOTO REAL
 function updateCategoryDropdowns(selectedName = null) {
     const catSelect = document.getElementById('modalProdCategory');
     if (!catSelect) return;
@@ -1640,13 +1629,25 @@ function updateCategoryDropdowns(selectedName = null) {
 function handleProductPhotoUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
+
+    const preview = document.getElementById('modalProdPhotoPreview');
+    const saveBtn = document.getElementById('btnSaveProduct');
+    
+    if (preview) preview.innerHTML = `<span class="text-xs font-black text-amber-600 animate-pulse">⏳ Procesando...</span>`;
+    if (saveBtn) saveBtn.disabled = true;
+
     const reader = new FileReader();
     reader.onload = function(e) {
-        compressImageBase64(e.target.result, 350, 350).then(compressed => {
+        compressImageBase64(e.target.result, 300, 300, 0.7).then(compressed => {
             const photoInput = document.getElementById('modalProdPhoto');
             if (photoInput) photoInput.value = compressed;
-            const preview = document.getElementById('modalProdPhotoPreview');
-            if (preview) preview.innerHTML = `<img src="${compressed}" class="h-full object-contain p-1">`;
+            if (preview) {
+                preview.innerHTML = `<img src="${compressed}" class="h-full w-full object-contain rounded-xl">`;
+            }
+            if (saveBtn) saveBtn.disabled = false;
+        }).catch(() => {
+            if (preview) preview.innerHTML = `<span class="text-xs font-bold text-rose-500">Error en foto</span>`;
+            if (saveBtn) saveBtn.disabled = false;
         });
     };
     reader.readAsDataURL(file);
@@ -1654,7 +1655,9 @@ function handleProductPhotoUpload(event) {
 
 function openProductModal(prodId = null) {
     const supSelect = document.getElementById('modalProdSupermarket');
-    if (supSelect) supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    if (supSelect) {
+        supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    }
 
     const titleEl = document.getElementById('modalProdTitle');
     const idInput = document.getElementById('modalProdId');
@@ -1664,22 +1667,26 @@ function openProductModal(prodId = null) {
     const replicateInput = document.getElementById('modalProdReplicateAll');
     const photoInput = document.getElementById('modalProdPhoto');
     const previewEl = document.getElementById('modalProdPhotoPreview');
+    const saveBtn = document.getElementById('btnSaveProduct');
+
+    if (saveBtn) saveBtn.disabled = false;
 
     if (prodId) {
         const p = (APP_STATE.products || []).find(x => String(x.id) === String(prodId));
         if (p) {
+            const currentImg = p.photoUrl || p.photo || p.image || '';
             if (titleEl) titleEl.textContent = 'Editar Producto';
             if (idInput) idInput.value = p.id;
             if (nameInput) nameInput.value = p.name || '';
             if (codeInput) codeInput.value = p.code || p.id || '';
             if (priceInput) priceInput.value = p.price || 0;
-            if (photoInput) photoInput.value = p.photoUrl || '';
+            if (photoInput) photoInput.value = currentImg;
             if (replicateInput) replicateInput.checked = !!p.isAll;
             if (supSelect && p.supermarketId) supSelect.value = p.supermarketId;
             if (previewEl) {
-                previewEl.innerHTML = p.photoUrl 
-                    ? `<img src="${p.photoUrl}" class="h-full object-contain p-1">`
-                    : `<span class="text-xs font-bold text-slate-400">Sin foto cargada</span>`;
+                previewEl.innerHTML = currentImg 
+                    ? `<img src="${currentImg}" class="h-full w-full object-contain rounded-xl">`
+                    : `<span class="text-[10px] font-bold text-slate-400">Sin foto</span>`;
             }
             updateCategoryDropdowns(p.category);
         }
@@ -1691,7 +1698,7 @@ function openProductModal(prodId = null) {
         if (priceInput) priceInput.value = '';
         if (photoInput) photoInput.value = '';
         if (replicateInput) replicateInput.checked = false;
-        if (previewEl) previewEl.innerHTML = `<span class="text-xs font-bold text-slate-400">Sin foto cargada</span>`;
+        if (previewEl) previewEl.innerHTML = `<span class="text-[10px] font-bold text-slate-400">Sin foto</span>`;
         updateCategoryDropdowns();
     }
 
@@ -1717,7 +1724,8 @@ function saveProductFromModal() {
     const replicateAll = document.getElementById('modalProdReplicateAll')?.checked || false;
     const photoUrl = document.getElementById('modalProdPhoto')?.value || '';
 
-    if (!name || isNaN(price) || !db) return alert("Ingresa un nombre y precio válidos.");
+    if (!name || isNaN(price)) return alert("Por favor ingresa un nombre y precio válidos.");
+    if (!db) return alert("Error de conexión con la base de datos.");
 
     const id = prodId ? prodId : ('prod-' + Date.now());
 
@@ -1728,12 +1736,15 @@ function saveProductFromModal() {
         category: category,
         price: price,
         photoUrl: photoUrl,
+        photo: photoUrl,
         isAll: replicateAll,
         supermarketId: replicateAll ? 'ALL' : supId,
         supermarketName: replicateAll ? 'TODOS' : ((APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId))?.name || 'Supermercado')
     }, { merge: true }).then(() => {
         closeProductModal();
-        alert(`✅ Producto "${name}" guardado.`);
+        alert(`✅ Producto "${name}" guardado con éxito.`);
+    }).catch(err => {
+        alert("Error al guardar en Firebase: " + err.message);
     });
 }
 
