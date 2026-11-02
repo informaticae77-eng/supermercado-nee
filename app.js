@@ -99,6 +99,7 @@ const APP_STATE = {
     teacherPreviewMode: false,
     basket: [],
     userPaidAmount: 0,
+    userPaidItems: [], // Guarda la lista exacta de billetes y monedas que el alumno selecciona
     courses: [],
     categories: [...DEFAULT_CATEGORIES],
     users: [DEFAULT_ADMIN],
@@ -117,11 +118,8 @@ const APP_STATE = {
 // ==========================================
 function calculateCLPBreakdown(amount) {
     if (!amount || amount <= 0) return [];
-    
-    // Si el valor es muy pequeño (ej. $2 de prueba), usamos moneda de $10 o aproximado para no romper el desglose
     let remaining = amount < 10 ? 10 : amount;
     const result = [];
-    
     CLP_CURRENCY_ITEMS.forEach(item => {
         const count = Math.floor(remaining / item.value);
         if (count > 0) {
@@ -132,7 +130,6 @@ function calculateCLPBreakdown(amount) {
     return result;
 }
 
-// Genera el HTML de pictogramas con imágenes personalizadas o por defecto
 function getPricePictogramsHtml(amount) {
     if (amount === undefined || amount === null) return '';
     const breakdown = calculateCLPBreakdown(amount);
@@ -140,7 +137,6 @@ function getPricePictogramsHtml(amount) {
     
     return `<div class="flex flex-wrap items-center gap-1.5 mt-1.5 font-bold">` +
         breakdown.map(b => {
-            // Usa la imagen cargada por el docente si existe, o el SVG por defecto
             const imgSrc = APP_STATE.customCurrencies[b.id] || b.img;
             return `<div class="inline-flex items-center gap-1 bg-amber-50 border-2 border-amber-300 rounded-xl px-2 py-1 shadow-sm" title="${b.name}">
                 <img src="${imgSrc}" class="h-8 object-contain">
@@ -316,7 +312,7 @@ function goHome() {
 }
 
 // ==========================================
-// VISTA DEL ESTUDIANTE Y VISTA DE SUPERMERCADOS
+// VISTA DEL ESTUDIANTE Y TIENDAS
 // ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
@@ -391,7 +387,6 @@ function renderSupermarketView(container, supId) {
             ? `<img src="${prod.photoUrl}" class="w-20 h-20 object-cover rounded-2xl border border-slate-200 shadow-sm">`
             : `<span class="text-5xl">${prod.iconEmoji || '📦'}</span>`;
             
-        // AQUÍ SE MUESTRA EL PRECIO NUMÉRICO Y LOS PICTOGRAMAS EN CADA PRODUCTO
         const pricePictograms = getPricePictogramsHtml(prod.price || 0);
 
         return `
@@ -542,7 +537,7 @@ function toggleStudentPreview(status) {
 }
 
 // ==========================================
-// CANASTO Y CAJA DE PAGO (PICTOGRAMAS Y PRECIO)
+// CANASTO Y CAJA DE PAGO (BILLETERA SELECCIONADA POR EL ALUMNO)
 // ==========================================
 function updateBasketBadge() {
     const badge = document.getElementById('basketBadge');
@@ -569,6 +564,7 @@ function removeFromBasket(index) {
 function clearBasket() {
     APP_STATE.basket = [];
     APP_STATE.userPaidAmount = 0;
+    APP_STATE.userPaidItems = [];
     updateBasketBadge();
     renderBasketModalContent();
 }
@@ -619,7 +615,6 @@ function renderBasketModalContent() {
             `;
         }).join('');
 
-    // TOTAL NUMÉRICO Y EN PICTOGRAMAS DENTRO DE LA CAJA
     if (totalEl) {
         totalEl.innerHTML = `
             <div>$${total.toLocaleString('es-CL')}</div>
@@ -628,26 +623,34 @@ function renderBasketModalContent() {
     }
     if (paidEl) paidEl.textContent = `$${(APP_STATE.userPaidAmount || 0).toLocaleString('es-CL')}`;
 
-    // DESGLOSE EN BILLETES Y MONEDAS SUGERIDOS EN CAJA
+    // AHORA MUESTRA EN TIEMPO REAL LOS BILLETES/MONEDAS QUE EL ESTUDIANTE VA SELECCIONANDO
     if (breakdownEl) {
-        const breakdown = calculateCLPBreakdown(total);
-        breakdownEl.innerHTML = breakdown.length === 0 
-            ? `<span class="text-xs text-slate-400 font-bold">$0 (Sin productos)</span>`
-            : breakdown.map(b => {
-                const imgSrc = APP_STATE.customCurrencies[b.id] || b.img;
-                return `<div class="inline-flex items-center gap-1 bg-white border border-amber-300 rounded-xl px-2 py-1 shadow-sm">
+        if (!APP_STATE.userPaidItems || APP_STATE.userPaidItems.length === 0) {
+            breakdownEl.innerHTML = `<span class="text-xs text-slate-400 font-bold italic">Haz clic abajo en los billetes y monedas para añadirlos aquí.</span>`;
+        } else {
+            const counts = {};
+            APP_STATE.userPaidItems.forEach(item => {
+                counts[item.id] = (counts[item.id] || 0) + 1;
+            });
+
+            breakdownEl.innerHTML = Object.keys(counts).map(id => {
+                const item = CLP_CURRENCY_ITEMS.find(c => c.id === id);
+                if (!item) return '';
+                const count = counts[id];
+                const imgSrc = APP_STATE.customCurrencies[id] || item.img;
+                return `<div class="inline-flex items-center gap-1.5 bg-white border-2 border-amber-400 rounded-xl px-2.5 py-1 shadow-sm">
                     <img src="${imgSrc}" class="h-8 object-contain">
-                    <span class="text-xs font-black text-amber-950">${b.count}x</span>
+                    <span class="text-xs font-black text-amber-950">${count > 1 ? count + 'x' : ''}</span>
                 </div>`;
             }).join('');
+        }
     }
 
-    // BANDEJA INTERACTIVA PARA PAGAR
     if (trayEl) {
         trayEl.innerHTML = CLP_CURRENCY_ITEMS.map(item => {
             const imgSrc = APP_STATE.customCurrencies[item.id] || item.img;
             return `
-                <button onclick="addPaymentMoney(${item.value})" class="bg-white border-2 border-slate-200 hover:border-indigo-500 rounded-2xl p-2 flex flex-col items-center justify-center space-y-1 active:scale-95 shadow transition-all">
+                <button onclick="addPaymentMoney('${item.id}')" class="bg-white border-2 border-slate-200 hover:border-indigo-500 rounded-2xl p-2 flex flex-col items-center justify-center space-y-1 active:scale-95 shadow transition-all">
                     <img src="${imgSrc}" class="h-10 object-contain">
                     <span class="text-[10px] font-black text-slate-800">$${item.value.toLocaleString('es-CL')}</span>
                 </button>
@@ -656,15 +659,22 @@ function renderBasketModalContent() {
     }
 }
 
-function addPaymentMoney(val) {
-    APP_STATE.userPaidAmount += val;
+function addPaymentMoney(itemId) {
+    const item = CLP_CURRENCY_ITEMS.find(c => c.id === itemId);
+    if (!item) return;
+
+    if (!APP_STATE.userPaidItems) APP_STATE.userPaidItems = [];
+    APP_STATE.userPaidItems.push(item);
+    APP_STATE.userPaidAmount += item.value;
+
     playChimeSound();
-    speakText(`Entregaste ${val} pesos`);
+    speakText(`Entregaste ${item.value} pesos`);
     renderBasketModalContent();
 }
 
 function resetUserPayment() {
     APP_STATE.userPaidAmount = 0;
+    APP_STATE.userPaidItems = [];
     speakText("Pago reiniciado");
     renderBasketModalContent();
 }
