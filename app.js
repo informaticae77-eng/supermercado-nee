@@ -40,7 +40,7 @@ const SVG_B2K_RAW  = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height
 const SVG_B1K_RAW  = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#27ae60"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="#58d68d" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$1.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#d4efdf" text-anchor="middle">PESOS CHILENOS</text></svg>`;
 const SVG_C500_RAW = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#f39c12"/><circle cx="50" cy="50" r="34" fill="#bdc3c7"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="#2c3e50" text-anchor="middle">$500</text></svg>`;
 const SVG_C100_RAW = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#f1c40f"/><circle cx="50" cy="50" r="36" fill="#f39c12"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="white" text-anchor="middle">$100</text></svg>`;
-const SVG_C50_RAW  = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><polygon points="50,4 82,18 96,50 82,82 50,96 18,82 4,50 18,18" fill="#bdc3c7"/><circle cx="50" cy="50" r="32" fill="#ecf0f1"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="#2c3e50" text-anchor="middle">$50</text></svg>`;
+const SVG_C50_RAW  = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><polygon points="50,4 82,18 96,50 82,82 50,96 18,18" fill="#bdc3c7"/><circle cx="50" cy="50" r="32" fill="#ecf0f1"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="#2c3e50" text-anchor="middle">$50</text></svg>`;
 const SVG_C10_RAW  = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#d35400"/><circle cx="50" cy="50" r="36" fill="#e67e22"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="white" text-anchor="middle">$10</text></svg>`;
 
 const CLP_CURRENCY_ITEMS = [
@@ -56,10 +56,10 @@ const CLP_CURRENCY_ITEMS = [
 ];
 
 const DEFAULT_SUPERMARKETS = [
-    { id: 'sup-lider', name: 'LIDER', icon: '🛒', description: 'Supermercado Lider', photoUrl: '' },
-    { id: 'sup-jumbo', name: 'JUMBO', icon: '🐘', description: 'Supermercado Jumbo', photoUrl: '' },
-    { id: 'sup-santa', name: 'SANTA ISABEL', icon: '🛍️', description: 'Santa Isabel', photoUrl: '' },
-    { id: 'sup-unimarc', name: 'UNIMARC', icon: '🍎', description: 'Unimarc', photoUrl: '' }
+    { id: 'sup-lider', name: 'LIDER', icon: '🛒', photoUrl: '' },
+    { id: 'sup-jumbo', name: 'JUMBO', icon: '🐘', photoUrl: '' },
+    { id: 'sup-santa', name: 'SANTA ISABEL', icon: '🛍️', photoUrl: '' },
+    { id: 'sup-unimarc', name: 'UNIMARC', icon: '🍎', photoUrl: '' }
 ];
 
 const DEFAULT_CATEGORIES = [
@@ -75,7 +75,6 @@ const DEFAULT_SETTINGS = {
     schoolName: "Escuela Especial & Programa PIE",
     schoolSubHeader: "Unidad de Autonomía Funcional",
     schoolLogo: "",
-    footerText: "Informe generado con IA pedagógica.",
     directorName: "Equipo PIE"
 };
 
@@ -114,38 +113,8 @@ const APP_STATE = {
 };
 
 // ==========================================
-// CÁLCULO Y GENERACIÓN DE PICTOGRAMAS DE PRECIO
+// UTILIDADES DE AUDIO, VOZ E IMAGEN
 // ==========================================
-function calculateCLPBreakdown(amount) {
-    if (!amount || amount <= 0) return [];
-    let remaining = amount < 10 ? 10 : amount;
-    const result = [];
-    CLP_CURRENCY_ITEMS.forEach(item => {
-        const count = Math.floor(remaining / item.value);
-        if (count > 0) {
-            result.push({ ...item, count });
-            remaining %= item.value;
-        }
-    });
-    return result;
-}
-
-function getPricePictogramsHtml(amount) {
-    if (amount === undefined || amount === null) return '';
-    const breakdown = calculateCLPBreakdown(amount);
-    if (breakdown.length === 0) return '';
-    
-    return `<div class="flex flex-wrap items-center gap-1.5 mt-1.5 font-bold">` +
-        breakdown.map(b => {
-            const imgSrc = APP_STATE.customCurrencies[b.id] || b.img;
-            return `<div class="inline-flex items-center gap-1 bg-amber-50 border-2 border-amber-300 rounded-xl px-2 py-1 shadow-sm" title="${b.name}">
-                <img src="${imgSrc}" class="h-8 object-contain">
-                <span class="text-xs font-black text-amber-950">${b.count > 1 ? b.count + 'x' : ''}</span>
-            </div>`;
-        }).join('') +
-    `</div>`;
-}
-
 function speakText(text) {
     if (APP_STATE.telemetry) APP_STATE.telemetry.voiceHelpCount++;
     if (!('speechSynthesis' in window)) return;
@@ -177,21 +146,6 @@ function playChimeSound() {
     } catch(e) {}
 }
 
-function playErrorSound() {
-    try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.3);
-        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.35);
-    } catch(e) {}
-}
-
 function compressImageBase64(base64Data, maxWidth = 300, maxHeight = 300, quality = 0.75) {
     return new Promise((resolve) => {
         if (!base64Data || !base64Data.startsWith('data:image')) return resolve(base64Data || '');
@@ -212,6 +166,36 @@ function compressImageBase64(base64Data, maxWidth = 300, maxHeight = 300, qualit
         img.onerror = () => resolve(base64Data);
         img.src = base64Data;
     });
+}
+
+function calculateCLPBreakdown(amount) {
+    if (!amount || amount <= 0) return [];
+    let remaining = amount < 10 ? 10 : amount;
+    const result = [];
+    CLP_CURRENCY_ITEMS.forEach(item => {
+        const count = Math.floor(remaining / item.value);
+        if (count > 0) {
+            result.push({ ...item, count });
+            remaining %= item.value;
+        }
+    });
+    return result;
+}
+
+function getPricePictogramsHtml(amount) {
+    if (amount === undefined || amount === null) return '';
+    const breakdown = calculateCLPBreakdown(amount);
+    if (breakdown.length === 0) return '';
+    
+    return `<div class="flex flex-wrap items-center gap-1.5 mt-1.5 font-bold">` +
+        breakdown.map(b => {
+            const imgSrc = APP_STATE.customCurrencies[b.id] || b.img;
+            return `<div class="inline-flex items-center gap-1 bg-amber-50 border-2 border-amber-300 rounded-xl px-2 py-1 shadow-sm" title="${b.name}">
+                <img src="${imgSrc}" class="h-8 object-contain">
+                <span class="text-xs font-black text-amber-950">${b.count > 1 ? b.count + 'x' : ''}</span>
+            </div>`;
+        }).join('') +
+    `</div>`;
 }
 
 // ==========================================
@@ -338,13 +322,13 @@ function renderHomeView(container) {
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 ${(APP_STATE.supermarkets || []).map(sup => {
-                    const supImgUrl = sup.photoUrl || sup.photo || sup.imageUrl || sup.logoUrl || '';
-                    const iconHtml = supImgUrl 
-                        ? `<img src="${supImgUrl}" class="w-24 h-24 object-cover rounded-3xl shadow-md border-2 border-slate-200">`
+                    const supLogo = sup.photoUrl || sup.photo || sup.logoUrl || '';
+                    const logoHtml = supLogo 
+                        ? `<img src="${supLogo}" class="w-24 h-24 object-contain rounded-3xl p-1 bg-white border-2 border-slate-200 shadow-sm">`
                         : `<div class="bg-amber-400 p-4 rounded-3xl text-5xl flex items-center justify-center w-24 h-24 shadow-sm">${sup.icon || '🛒'}</div>`;
                     return `
                         <div onclick="selectSupermarket('${sup.id}')" class="bg-white rounded-3xl border-4 border-slate-300 p-6 shadow-lg hover:shadow-2xl cursor-pointer flex flex-col items-center text-center space-y-4 active:scale-95 transition-transform">
-                            ${iconHtml}
+                            ${logoHtml}
                             <h3 class="text-2xl font-black text-slate-800">${sup.name}</h3>
                         </div>
                     `;
@@ -387,9 +371,9 @@ function renderSupermarketView(container, supId) {
         }
     });
 
-    const supImgUrl = sup ? (sup.photoUrl || sup.photo || sup.imageUrl || sup.logoUrl || '') : '';
-    const supIconHtml = supImgUrl 
-        ? `<img src="${supImgUrl}" class="w-12 h-12 object-cover rounded-2xl border border-slate-200 shadow-sm">`
+    const supLogo = sup ? (sup.photoUrl || sup.photo || sup.logoUrl || '') : '';
+    const supIconHtml = supLogo 
+        ? `<img src="${supLogo}" class="w-12 h-12 object-contain rounded-2xl border border-slate-200 shadow-sm p-0.5 bg-white">`
         : `<span class="text-3xl">${sup ? (sup.icon || '🏪') : '🏪'}</span>`;
 
     const productsHtml = uniqueProducts.length === 0 ? `
@@ -446,7 +430,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// ACTIVIDAD DE ESCÁNER DE PRODUCTOS CON CÁMARA
+// ESCÁNER Y MODO AUTO-APRENDIZAJE DE CÓDIGOS DE BARRA
 // ==========================================
 function openScannerModal() {
     const modal = document.getElementById('scannerModal');
@@ -463,7 +447,7 @@ function startCameraScanner() {
     const placeholder = document.getElementById('scannerPlaceholder');
     const laser = document.getElementById('laserLine');
     if (placeholder) placeholder.classList.add('hidden');
-    if (laser) laser.style.display = 'block';
+    if (laser) laser.classList.remove('hidden');
 
     if (typeof Html5Qrcode !== 'undefined') {
         if (APP_STATE.html5QrcodeScanner) {
@@ -472,7 +456,7 @@ function startCameraScanner() {
             initHtml5Qrcode();
         }
     } else {
-        alert("Escáner de cámara en modo manual.");
+        alert("Escáner en modo interactivo.");
         simulateAIScan();
     }
 }
@@ -488,7 +472,7 @@ function initHtml5Qrcode() {
             },
             (errorMessage) => {}
         ).catch(err => {
-            alert("No se pudo acceder a la cámara directa. Usa 'Escaneo Rápido IA'.");
+            alert("Usa la opción de Escaneo Rápido.");
             simulateAIScan();
         });
     } catch(e) {
@@ -499,7 +483,7 @@ function initHtml5Qrcode() {
 function stopCameraScanner() {
     const laser = document.getElementById('laserLine');
     const placeholder = document.getElementById('scannerPlaceholder');
-    if (laser) laser.style.display = 'none';
+    if (laser) laser.classList.add('hidden');
     if (placeholder) placeholder.classList.remove('hidden');
 
     if (APP_STATE.html5QrcodeScanner) {
@@ -509,60 +493,86 @@ function stopCameraScanner() {
     }
 }
 
-// LÓGICA ESTRICTA DE VERIFICACIÓN DE PRODUCTO POR CÓDIGO/ID
 function onProductScanned(scannedCode) {
     const cleanCode = String(scannedCode).trim().toLowerCase();
 
-    // Busca estrictamente por ID, Código de Barras o Nombre exacto
     const foundProduct = (APP_STATE.products || []).find(p => 
         String(p.id).toLowerCase() === cleanCode ||
         String(p.code || '').toLowerCase() === cleanCode ||
         String(p.name || '').toLowerCase() === cleanCode
     );
 
-    if (!foundProduct) {
-        // SI NO EXISTE, GENERA ERROR Y ADVERTENCIA
-        playErrorSound();
-        speakText("Error. Producto no reconocido en el catálogo.");
-        showScannedError(`Código ID "${scannedCode}" no registrado.`);
-        return;
+    if (foundProduct) {
+        playChimeSound();
+        displayScannedProductResult(foundProduct);
+    } else {
+        playChimeSound();
+        speakText("¡Nuevo producto detectado! Elige su pictograma.");
+        promptAssignProductToBarcode(scannedCode);
     }
-
-    playChimeSound();
-    displayScannedProductResult(foundProduct);
 }
 
-function showScannedError(errorMessage) {
+function promptAssignProductToBarcode(barcode) {
     const resContainer = document.getElementById('scannerResultContainer');
     if (!resContainer) return;
 
-    resContainer.className = "p-4 bg-rose-50 border-2 border-rose-400 rounded-2xl text-left space-y-2";
+    const availableProducts = (APP_STATE.products && APP_STATE.products.length > 0) ? APP_STATE.products : [
+        { id: 'p-jabon', name: 'Jabón Gel', price: 1500, category: 'Aseo y Limpieza' },
+        { id: 'p-manzana', name: 'Kilo de Manzanas', price: 1200, category: 'Frutas y Verduras' },
+        { id: 'p-leche', name: 'Leche Entera 1L', price: 1000, category: 'Lácteos' },
+        { id: 'p-pan', name: 'Pan de Molde', price: 2000, category: 'Panadería' }
+    ];
+
+    resContainer.className = "p-4 bg-amber-50 border-4 border-amber-400 rounded-2xl text-left space-y-3";
     resContainer.innerHTML = `
-        <div class="flex items-center gap-2 text-rose-800 font-black text-sm">
-            <span>❌</span> <span>¡PRODUCTO NO RECONOCIDO!</span>
+        <div class="text-amber-900 font-black text-xs uppercase flex items-center gap-1.5">
+            <span>✨</span> <span>¡Código Nuevo Escaneado (${barcode})!</span>
         </div>
-        <p class="text-xs text-rose-700 font-bold">${errorMessage}</p>
-        <p class="text-[11px] text-slate-600 font-semibold">Asegúrate de haber registrado previamente el código ID de este producto en el panel docente.</p>
+        <p class="text-xs font-extrabold text-slate-800">¿Qué producto es este envase? Toca para vincularlo:</p>
+        <div class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+            ${availableProducts.map(p => `
+                <button onclick="bindBarcodeToProduct('${barcode}', '${p.id}')" class="p-2.5 bg-white border-2 border-amber-300 hover:border-indigo-600 rounded-xl flex items-center justify-between text-left active:scale-95 shadow-sm">
+                    <div>
+                        <span class="font-black text-slate-800 text-xs block">${p.name}</span>
+                        <span class="text-emerald-700 font-black text-xs">$${(p.price || 0).toLocaleString('es-CL')}</span>
+                    </div>
+                    <span class="text-xl">🛒</span>
+                </button>
+            `).join('')}
+        </div>
     `;
+
     resContainer.classList.remove('hidden');
 }
 
-function simulateAIScan() {
-    const available = (APP_STATE.products && APP_STATE.products.length > 0) ? APP_STATE.products : [];
+function bindBarcodeToProduct(barcode, productId) {
+    let targetProduct = (APP_STATE.products || []).find(p => p.id === productId);
     
-    if (available.length === 0) {
-        showScannedError("No hay productos cargados en la base de datos.");
-        speakText("Error: No hay productos en la tienda.");
-        return;
+    if (!targetProduct) {
+        targetProduct = { id: productId, name: 'Producto', price: 1500, code: barcode };
+    } else {
+        targetProduct.code = barcode;
     }
 
-    // Permite elegir entre un producto de la tienda o simular un código no registrado
-    const randomChoice = available[Math.floor(Math.random() * available.length)];
-    onProductScanned(randomChoice.code || randomChoice.id);
+    if (db) {
+        db.collection('products').doc(targetProduct.id).set({
+            code: barcode
+        }, { merge: true });
+    }
+
+    playChimeSound();
+    speakText(`¡Excelente! Ahora este código es ${targetProduct.name}.`);
+    displayScannedProductResult(targetProduct);
+}
+
+function simulateAIScan() {
+    const fakeBarcodes = ['780123456789', '780999888777', '780555444333'];
+    const chosenCode = fakeBarcodes[Math.floor(Math.random() * fakeBarcodes.length)];
+    onProductScanned(chosenCode);
 }
 
 function displayScannedProductResult(product) {
-    speakText(`¡Producto escaneado! ${product.name}, precio ${product.price} pesos.`);
+    speakText(`¡Producto identificado! ${product.name}, precio ${product.price} pesos.`);
 
     const resContainer = document.getElementById('scannerResultContainer');
     if (!resContainer) return;
@@ -572,7 +582,7 @@ function displayScannedProductResult(product) {
         <div class="flex items-center justify-between">
             <div>
                 <span class="font-black text-slate-800 text-base block">${product.name}</span>
-                <span class="text-[10px] font-bold text-slate-500 uppercase">Código ID: ${product.code || product.id}</span>
+                <span class="text-[10px] font-bold text-slate-500 uppercase">Código Vinculado: ${product.code || product.id}</span>
             </div>
             <span class="font-black text-emerald-700 text-xl">$${(product.price || 0).toLocaleString('es-CL')}</span>
         </div>
@@ -820,7 +830,7 @@ function closeSuccessModalAndFinish() {
 }
 
 // ==========================================
-// PANEL DOCENTE
+// PANEL DOCENTE Y LAS 5 PESTAÑAS
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -1072,12 +1082,21 @@ function renderTeacherCatalogTab() {
                     <button onclick="openSupermarketModal()" class="bg-emerald-600 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Tienda</button>
                 </div>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
-                    ${(APP_STATE.supermarkets || []).map(s => `
-                        <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
-                            <span class="font-black text-slate-800">${s.name}</span>
-                            <button onclick="openSupermarketModal('${s.id}')" class="bg-amber-100 text-amber-900 px-2 py-1 rounded-xl text-[10px]">✏️ Editar</button>
-                        </div>
-                    `).join('')}
+                    ${(APP_STATE.supermarkets || []).map(s => {
+                        const logo = s.photoUrl || s.photo || s.logoUrl || '';
+                        const imgHtml = logo 
+                            ? `<img src="${logo}" class="w-8 h-8 object-contain rounded-lg border bg-white p-0.5">`
+                            : `<span class="text-base">${s.icon || '🏪'}</span>`;
+                        return `
+                            <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
+                                <div class="flex items-center gap-2">
+                                    ${imgHtml}
+                                    <span class="font-black text-slate-800">${s.name}</span>
+                                </div>
+                                <button onclick="openSupermarketModal('${s.id}')" class="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-xl text-[10px]">✏️ Editar</button>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             </div>
 
@@ -1343,6 +1362,87 @@ function saveInstitutionalSettings() {
 }
 
 // ==========================================
+// GESTIÓN DE SUPERMERCADOS (NOMBRE Y LOGO)
+// ==========================================
+function handleSupermarketLogoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        compressImageBase64(e.target.result, 300, 300).then(compressed => {
+            document.getElementById('modalSupLogo').value = compressed;
+            const preview = document.getElementById('modalSupLogoPreview');
+            if (preview) {
+                preview.innerHTML = `<img src="${compressed}" class="h-full object-contain p-1">`;
+            }
+        });
+    };
+    reader.readAsDataURL(file);
+}
+
+function openSupermarketModal(supId = null) {
+    const el = document.getElementById('supermarketModal');
+    if (!el) return;
+
+    const titleEl = document.getElementById('modalSupTitle');
+    const idInput = document.getElementById('modalSupId');
+    const nameInput = document.getElementById('modalSupName');
+    const logoInput = document.getElementById('modalSupLogo');
+    const previewEl = document.getElementById('modalSupLogoPreview');
+
+    if (supId) {
+        const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId));
+        if (sup) {
+            if (titleEl) titleEl.textContent = 'Editar Supermercado';
+            if (idInput) idInput.value = sup.id;
+            if (nameInput) nameInput.value = sup.name || '';
+            if (logoInput) logoInput.value = sup.photoUrl || sup.photo || sup.logoUrl || '';
+            if (previewEl) {
+                const img = sup.photoUrl || sup.photo || sup.logoUrl;
+                previewEl.innerHTML = img 
+                    ? `<img src="${img}" class="h-full object-contain p-1">`
+                    : `<span class="text-xs font-bold text-slate-400">Sin logo cargado</span>`;
+            }
+        }
+    } else {
+        if (titleEl) titleEl.textContent = 'Agregar Supermercado';
+        if (idInput) idInput.value = '';
+        if (nameInput) nameInput.value = '';
+        if (logoInput) logoInput.value = '';
+        if (previewEl) previewEl.innerHTML = `<span class="text-xs font-bold text-slate-400">Sin logo cargado</span>`;
+    }
+
+    el.classList.remove('hidden');
+}
+
+function closeSupermarketModal() {
+    const el = document.getElementById('supermarketModal');
+    if (el) el.classList.add('hidden');
+}
+
+function saveSupermarketFromModal() {
+    const idInput = document.getElementById('modalSupId')?.value;
+    const name = document.getElementById('modalSupName').value.trim();
+    const photoUrl = document.getElementById('modalSupLogo').value;
+
+    if (!name) return alert("Por favor ingresa el nombre del supermercado.");
+    if (!db) return alert("Error de conexión a Firebase.");
+
+    const id = idInput ? idInput : ('sup-' + Date.now());
+
+    db.collection('supermarkets').doc(id).set({
+        id: id,
+        name: name,
+        photoUrl: photoUrl || '',
+        icon: '🏪',
+        description: 'Supermercado'
+    }, { merge: true }).then(() => {
+        closeSupermarketModal();
+        alert(`✅ Supermercado "${name}" guardado con éxito.`);
+    });
+}
+
+// ==========================================
 // MODALES Y OPERACIONES DE PRODUCTOS Y USUARIOS
 // ==========================================
 function updateCategoryDropdowns(selectedName = null) {
@@ -1420,25 +1520,6 @@ function deleteProduct(prodId) {
     if (confirm("¿Eliminar este producto?") && db) {
         db.collection('products').doc(prodId).delete();
     }
-}
-
-function openSupermarketModal(supId = null) {
-    const el = document.getElementById('supermarketModal');
-    if (el) el.classList.remove('hidden');
-}
-function closeSupermarketModal() {
-    const el = document.getElementById('supermarketModal');
-    if (el) el.classList.add('hidden');
-}
-
-function saveSupermarketFromModal() {
-    const name = document.getElementById('modalSupName').value.trim();
-    if (!name || !db) return alert("Ingresa nombre de la tienda.");
-    const id = 'sup-' + Date.now();
-    db.collection('supermarkets').doc(id).set({ id, name, icon: '🏪', description: 'Supermercado' }).then(() => {
-        closeSupermarketModal();
-        alert("✅ Tienda guardada.");
-    });
 }
 
 function openCategoryModal() {
