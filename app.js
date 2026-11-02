@@ -99,7 +99,7 @@ const APP_STATE = {
     teacherPreviewMode: false,
     basket: [],
     userPaidAmount: 0,
-    userPaidItems: [], // Guarda la lista exacta de billetes y monedas que el alumno selecciona
+    userPaidItems: [],
     courses: [],
     categories: [...DEFAULT_CATEGORIES],
     users: [DEFAULT_ADMIN],
@@ -110,7 +110,7 @@ const APP_STATE = {
     settings: { ...DEFAULT_SETTINGS },
     telemetry: { voiceHelpCount: 0 },
     missionStartTime: null,
-    scannerStream: null
+    html5QrcodeScanner: null
 };
 
 // ==========================================
@@ -312,7 +312,7 @@ function goHome() {
 }
 
 // ==========================================
-// VISTA DEL ESTUDIANTE Y TIENDAS
+// VISTA ESTUDIANTE Y SUPERMERCADO
 // ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
@@ -394,7 +394,10 @@ function renderSupermarketView(container, supId) {
                 <div class="flex items-start space-x-4">
                     ${prodImg}
                     <div class="space-y-1 w-full">
-                        <h3 class="text-xl font-black text-slate-800">${prod.name}</h3>
+                        <div class="flex justify-between items-start">
+                            <h3 class="text-xl font-black text-slate-800">${prod.name}</h3>
+                            <span class="bg-indigo-100 text-indigo-800 text-[10px] font-black px-2 py-0.5 rounded-md">ID: ${prod.code || prod.id}</span>
+                        </div>
                         <div class="text-2xl font-black text-emerald-700">$${(prod.price || 0).toLocaleString('es-CL')}</div>
                         ${pricePictograms}
                         <span class="inline-block bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold mt-1">${prod.category || 'General'}</span>
@@ -428,7 +431,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// FUNCIONALIDAD ESCÁNER IA / JUEGO DE CÁMARA
+// ACTIVIDAD DE ESCÁNER DE PRODUCTOS CON CÁMARA
 // ==========================================
 function openScannerModal() {
     const modal = document.getElementById('scannerModal');
@@ -442,60 +445,108 @@ function closeScannerModal() {
 }
 
 function startCameraScanner() {
-    const video = document.getElementById('scannerVideo');
     const placeholder = document.getElementById('scannerPlaceholder');
-    if (!video) return;
+    const laser = document.getElementById('laserLine');
+    if (placeholder) placeholder.classList.add('hidden');
+    if (laser) laser.style.display = 'block';
 
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(stream => {
-            APP_STATE.scannerStream = stream;
-            video.srcObject = stream;
-            video.classList.remove('hidden');
-            if (placeholder) placeholder.classList.add('hidden');
-            speakText("Cámara activada. Apunta a un producto.");
-        }).catch(err => {
-            alert("No se pudo acceder a la cámara. Usa el 'Escaneo Rápido IA'.");
-        });
+    if (typeof Html5Qrcode !== 'undefined') {
+        if (APP_STATE.html5QrcodeScanner) {
+            APP_STATE.html5QrcodeScanner.stop().catch(() => {}).then(() => initHtml5Qrcode());
+        } else {
+            initHtml5Qrcode();
+        }
     } else {
-        alert("Navegador no soporta vídeo directo. Usa 'Escaneo Rápido IA'.");
+        alert("Escáner de cámara inicializado en modo simulado.");
+        simulateAIScan();
+    }
+}
+
+function initHtml5Qrcode() {
+    try {
+        APP_STATE.html5QrcodeScanner = new Html5Qrcode("qrScannerReader");
+        APP_STATE.html5QrcodeScanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 220, height: 220 } },
+            (decodedText, decodedResult) => {
+                onProductScanned(decodedText);
+            },
+            (errorMessage) => {}
+        ).catch(err => {
+            alert("No se pudo acceder a la cámara en vivo. Usando modo de escaneo rápido.");
+            simulateAIScan();
+        });
+    } catch(e) {
+        simulateAIScan();
     }
 }
 
 function stopCameraScanner() {
-    if (APP_STATE.scannerStream) {
-        APP_STATE.scannerStream.getTracks().forEach(track => track.stop());
-        APP_STATE.scannerStream = null;
-    }
-    const video = document.getElementById('scannerVideo');
+    const laser = document.getElementById('laserLine');
     const placeholder = document.getElementById('scannerPlaceholder');
-    if (video) video.classList.add('hidden');
+    if (laser) laser.style.display = 'none';
     if (placeholder) placeholder.classList.remove('hidden');
+
+    if (APP_STATE.html5QrcodeScanner) {
+        try {
+            APP_STATE.html5QrcodeScanner.stop().catch(() => {});
+        } catch(e) {}
+    }
+}
+
+function onProductScanned(scannedCode) {
+    playChimeSound();
+
+    // Buscar el producto por ID, Código de Barras o Nombre
+    const cleanCode = String(scannedCode).trim().toLowerCase();
+    let foundProduct = (APP_STATE.products || []).find(p => 
+        String(p.id).toLowerCase() === cleanCode ||
+        String(p.code || '').toLowerCase() === cleanCode ||
+        String(p.name || '').toLowerCase() === cleanCode
+    );
+
+    if (!foundProduct) {
+        // Si no coincide con ninguno, asigna uno aleatorio o crea respuesta
+        foundProduct = (APP_STATE.products && APP_STATE.products.length > 0)
+            ? APP_STATE.products[Math.floor(Math.random() * APP_STATE.products.length)]
+            : { id: 'p-code-' + scannedCode, name: 'Producto ID #' + scannedCode, price: 2000 };
+    }
+
+    displayScannedProductResult(foundProduct);
 }
 
 function simulateAIScan() {
+    playChimeSound();
+    const laser = document.getElementById('laserLine');
+    if (laser) laser.style.display = 'block';
+
     const prods = (APP_STATE.products && APP_STATE.products.length > 0) ? APP_STATE.products : [
-        { id: 'p-demo-1', name: 'Leche Entera 1L', price: 2000, category: 'Lácteos' },
-        { id: 'p-demo-2', name: 'Pan de Molde', price: 1000, category: 'Panadería' }
+        { id: 'p-demo-1', code: 'PROD-1000', name: 'Leche Entera 1L', price: 1000, category: 'Lácteos' },
+        { id: 'p-demo-2', code: 'PROD-2000', name: 'Pan de Molde', price: 2000, category: 'Panadería' }
     ];
 
     const randomProd = prods[Math.floor(Math.random() * prods.length)];
-    
-    playChimeSound();
-    speakText(`Producto detectado: ${randomProd.name}, valor ${randomProd.price} pesos.`);
+    displayScannedProductResult(randomProd);
+}
+
+function displayScannedProductResult(product) {
+    speakText(`¡Producto escaneado! ${product.name}, precio ${product.price} pesos.`);
 
     const resContainer = document.getElementById('scannerResultContainer');
     const nameEl = document.getElementById('scannedProductName');
+    const idEl = document.getElementById('scannedProductID');
     const priceEl = document.getElementById('scannedProductPrice');
     const pictosEl = document.getElementById('scannedPricePictograms');
     const addBtn = document.getElementById('scannedAddBtn');
 
-    if (nameEl) nameEl.textContent = randomProd.name;
-    if (priceEl) priceEl.textContent = `$${randomProd.price.toLocaleString('es-CL')}`;
-    if (pictosEl) pictosEl.innerHTML = getPricePictogramsHtml(randomProd.price);
+    if (nameEl) nameEl.textContent = product.name;
+    if (idEl) idEl.textContent = `Código ID: ${product.code || product.id}`;
+    if (priceEl) priceEl.textContent = `$${(product.price || 0).toLocaleString('es-CL')}`;
+    if (pictosEl) pictosEl.innerHTML = getPricePictogramsHtml(product.price || 0);
 
     if (addBtn) {
         addBtn.onclick = function() {
-            addToBasket(randomProd.id);
+            addToBasket(product.id);
             closeScannerModal();
         };
     }
@@ -537,7 +588,7 @@ function toggleStudentPreview(status) {
 }
 
 // ==========================================
-// CANASTO Y CAJA DE PAGO (BILLETERA SELECCIONADA POR EL ALUMNO)
+// CANASTO Y CAJA DE PAGO CON DINERO DEL ALUMNO
 // ==========================================
 function updateBasketBadge() {
     const badge = document.getElementById('basketBadge');
@@ -623,7 +674,6 @@ function renderBasketModalContent() {
     }
     if (paidEl) paidEl.textContent = `$${(APP_STATE.userPaidAmount || 0).toLocaleString('es-CL')}`;
 
-    // AHORA MUESTRA EN TIEMPO REAL LOS BILLETES/MONEDAS QUE EL ESTUDIANTE VA SELECCIONANDO
     if (breakdownEl) {
         if (!APP_STATE.userPaidItems || APP_STATE.userPaidItems.length === 0) {
             breakdownEl.innerHTML = `<span class="text-xs text-slate-400 font-bold italic">Haz clic abajo en los billetes y monedas para añadirlos aquí.</span>`;
@@ -1036,7 +1086,8 @@ function renderTeacherCatalogTab() {
                         <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
                             <div>
                                 <span class="font-black text-slate-800">${p.name}</span>
-                                <span class="text-emerald-700 font-black"> $${(p.price || 0).toLocaleString('es-CL')}</span>
+                                <span class="bg-indigo-100 text-indigo-900 text-[9px] font-black px-1.5 py-0.5 rounded ml-1">ID: ${p.code || p.id}</span>
+                                <span class="text-emerald-700 font-black block">$${(p.price || 0).toLocaleString('es-CL')}</span>
                                 ${getPricePictogramsHtml(p.price || 0)}
                             </div>
                             <button onclick="deleteProduct('${p.id}')" class="bg-rose-100 text-rose-900 px-2 py-1 rounded-xl text-[10px]">✕</button>
@@ -1263,7 +1314,7 @@ function saveInstitutionalSettings() {
 }
 
 // ==========================================
-// MODALES Y OPERACIONES
+// MODALES Y OPERACIONES DE PRODUCTOS Y USUARIOS
 // ==========================================
 function updateCategoryDropdowns(selectedName = null) {
     const catSelect = document.getElementById('modalProdCategory');
@@ -1291,6 +1342,7 @@ function saveProductFromModal() {
     const supId = supSelect ? supSelect.value : null;
 
     const name = document.getElementById('modalProdName').value.trim();
+    const code = document.getElementById('modalProdCode').value.trim();
     const categorySelect = document.getElementById('modalProdCategory');
     const category = categorySelect ? categorySelect.value : 'General';
     const price = parseInt(document.getElementById('modalProdPrice').value);
@@ -1302,6 +1354,7 @@ function saveProductFromModal() {
 
     db.collection('products').doc(id).set({
         id: id,
+        code: code || ('COD-' + Math.floor(Math.random() * 8999 + 1000)),
         name: name,
         category: category,
         price: price,
