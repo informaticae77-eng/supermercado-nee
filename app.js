@@ -1052,7 +1052,9 @@ function sendReportByEmail() {
     }
 }
 
-// CATÁLOGO CON EDITAR Y ELIMINAR SUPERMERCADOS
+// ==========================================
+// CATÁLOGO CON EDITAR Y ELIMINAR SUPERMERCADOS Y PRODUCTOS
+// ==========================================
 function renderTeacherCatalogTab() {
     return `
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1112,7 +1114,7 @@ function renderTeacherCatalogTab() {
                         <span>📦</span> <span>Productos (${(APP_STATE.products || []).length})</span>
                     </h3>
                     <div class="flex gap-1">
-                        <button onclick="deleteAllProducts()" class="bg-rose-600 text-white font-black text-[10px] px-2 py-1 rounded-xl">🗑️ Todos</button>
+                        <button onclick="deleteAllProducts(event)" class="bg-rose-600 text-white font-black text-[10px] px-2 py-1 rounded-xl">🗑️ Todos</button>
                         <button onclick="openProductModal()" class="bg-amber-500 text-white font-black text-xs px-2.5 py-1 rounded-xl shadow">+ Producto</button>
                     </div>
                 </div>
@@ -1496,23 +1498,29 @@ function saveProductFromModal() {
     });
 }
 
-async function deleteAllProducts() {
-    if (!confirm("⚠️ ¿Deseas eliminar TODOS los productos?")) return;
-    try {
-        if (!db) return;
-        const snapshot = await db.collection('products').get();
-        const docs = [...snapshot.docs];
-        while (docs.length > 0) {
-            const chunk = docs.splice(0, 400);
-            const batch = db.batch();
-            chunk.forEach(doc => batch.delete(doc.ref));
-            await batch.commit();
-        }
+async function deleteAllProducts(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    if (!confirm("⚠️ ¿Deseas eliminar TODOS los productos del catálogo?")) return;
+
+    if (!db) {
         APP_STATE.products = [];
         renderApp();
-        alert("🗑️ ¡Catálogo vaciado!");
+        return;
+    }
+
+    try {
+        const snapshot = await db.collection('products').get();
+        
+        if (!snapshot.empty) {
+            const batch = db.batch();
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+        }
+
+        APP_STATE.products = [];
+        renderApp();
     } catch (err) {
-        alert("Error: " + err.message);
+        alert("Error al eliminar: " + err.message);
     }
 }
 
