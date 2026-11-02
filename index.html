@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SuperMercado NEE - Chile PIE Gamificado</title>
+    <title>SuperMercado NEE - Chile PIE</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome -->
@@ -15,29 +15,23 @@
     <!-- Firebase SDK (v8) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
-    <!-- LIBRERÍAS DE VISIÓN COMPUTACIONAL POR IA (TensorFlow.js + COCO-SSD) -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
-
+    <!-- Librería para Escáner de Cámara y Código de Barras / QR / ID -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
-        @keyframes scanRadar {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100%); }
+        @keyframes laserMove {
+            0% { top: 10%; }
+            50% { top: 85%; }
+            100% { top: 10%; }
         }
-        .radar-sweep {
+        .laser-line {
             position: absolute;
-            left: 0; right: 0; top: 0; bottom: 0;
-            background: linear-gradient(to bottom, rgba(59, 130, 246, 0) 0%, rgba(59, 130, 246, 0.3) 50%, rgba(59, 130, 246, 0) 100%);
-            animation: scanRadar 2.5s infinite linear;
-            pointer-events: none;
-        }
-        .bounce-gentle {
-            animation: bounceGentle 2s infinite ease-in-out;
-        }
-        @keyframes bounceGentle {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-6px); }
+            left: 5%;
+            right: 5%;
+            height: 3px;
+            background-color: #ef4444;
+            box-shadow: 0 0 12px #ef4444, 0 0 4px #f87171;
+            animation: laserMove 2s infinite ease-in-out;
+            z-index: 20;
         }
     </style>
 </head>
@@ -49,95 +43,26 @@
             <div class="bg-indigo-600 text-white p-3 rounded-2xl text-2xl shadow-sm">🛒</div>
             <div>
                 <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">SuperMercado NEE</h1>
-                <p class="text-[10px] font-extrabold text-indigo-600 tracking-wider uppercase">Chile PIE - Juego Gamificado IA</p>
+                <p class="text-[10px] font-extrabold text-indigo-600 tracking-wider uppercase">Chile PIE Inclusivo</p>
             </div>
         </div>
 
         <div class="flex items-center gap-3">
-            <button id="headerMissionBtn" onclick="openGameMissionModal()" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 shadow border-b-2 border-amber-600 active:scale-95 hidden">
-                <span>🎯 Ver Misión de Búsqueda</span>
-                <span id="missionBadge" class="bg-slate-950 text-white font-black text-[10px] px-2 py-0.5 rounded-full">0/0</span>
+            <button id="headerScannerBtn" onclick="openScannerModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 shadow border-b-2 border-amber-700 active:scale-95 hidden">
+                <span>📷 Escanear Producto</span>
             </button>
             <button id="headerBasketBtn" onclick="openBasketModal()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow border-b-2 border-emerald-700 active:scale-95 hidden">
-                <span>🛍️ Pagar en Caja</span>
+                <span>🛍️ Canasto</span>
                 <span id="basketBadge" class="bg-slate-950 text-white font-black text-[10px] px-2 py-0.5 rounded-full">0</span>
             </button>
             <div id="userInfoHeader" class="flex items-center gap-2"></div>
         </div>
     </header>
 
-    <!-- CONTENEDOR PRINCIPAL DE LA APLICACIÓN -->
+    <!-- CONTENEDOR PRINCIPAL -->
     <main id="appContainer" class="max-w-7xl mx-auto"></main>
 
-    <!-- MODAL 1: MISIÓN DE BÚSQUEDA GAMIFICADA -->
-    <div id="gameMissionModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden overflow-y-auto">
-        <div class="bg-white rounded-3xl max-w-xl w-full p-6 space-y-5 shadow-2xl relative border-4 border-amber-400">
-            <div class="flex justify-between items-center border-b pb-3">
-                <div class="flex items-center gap-2">
-                    <span class="text-3xl">🎯</span>
-                    <div>
-                        <h3 class="font-black text-slate-900 text-xl">Tu Misión de Búsqueda</h3>
-                        <p class="text-xs text-amber-700 font-bold">Encuentra estos productos en el supermercado real</p>
-                    </div>
-                </div>
-                <button onclick="closeGameMissionModal()" class="text-slate-500 font-bold bg-slate-100 px-3 py-1 rounded-xl">✕ Cerrar</button>
-            </div>
-
-            <div id="missionItemsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-1"></div>
-
-            <div class="bg-amber-50 p-4 rounded-2xl border-2 border-amber-300 flex justify-between items-center">
-                <div>
-                    <span class="text-xs font-black text-amber-900 block uppercase">Progreso de la Misión:</span>
-                    <span id="missionProgressText" class="text-lg font-black text-slate-800">0 / 0 Encontrados</span>
-                </div>
-                <button onclick="startVisualAIScannerGame()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-5 py-3 rounded-2xl text-sm shadow-lg flex items-center gap-2 active:scale-95">
-                    <span>📷 ¡Usar Escáner IA Visual!</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL 2: ESCÁNER IA VISUAL EN TIEMPO REAL -->
-    <div id="visualAIScannerModal" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border-4 border-indigo-500 rounded-3xl max-w-lg w-full p-5 space-y-4 shadow-2xl text-center relative text-white">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                <div class="flex items-center gap-2">
-                    <span class="text-2xl">🤖</span>
-                    <h3 class="font-black text-lg text-amber-400">Escáner IA Reconocedor de Objetos</h3>
-                </div>
-                <button onclick="closeVisualAIScannerModal()" class="text-rose-400 bg-rose-950/60 font-bold px-3 py-1 rounded-xl">✕ Salir</button>
-            </div>
-
-            <p class="text-xs font-bold text-slate-300">Apunta la cámara directamente al producto físico (fruta, botella, etc.)</p>
-
-            <!-- VISOR DE CÁMARA Y DETECCIÓN IA -->
-            <div class="relative bg-black rounded-2xl h-64 overflow-hidden border-2 border-indigo-400 shadow-inner flex items-center justify-center">
-                <video id="aiWebcam" autoplay playsinline muted class="w-full h-full object-cover"></video>
-                <canvas id="aiCanvasOverlay" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
-                <div class="radar-sweep"></div>
-
-                <div id="aiLoadingStatus" class="absolute bg-slate-950/80 p-3 rounded-2xl text-xs font-bold text-amber-300 flex items-center gap-2">
-                    <span class="animate-spin">⏳</span> <span>Cargando Motor Visión IA...</span>
-                </div>
-            </div>
-
-            <div id="aiRecognitionFeedback" class="p-3 bg-slate-800 rounded-2xl border border-slate-700 text-left min-h-[70px] flex items-center justify-between">
-                <div id="aiFeedbackText" class="text-xs font-bold text-slate-200">
-                    Buscando productos frente a la cámara...
-                </div>
-                <button id="manualMatchBtn" onclick="manualAssistIdentify()" class="hidden bg-amber-400 text-slate-950 font-black px-3 py-2 rounded-xl text-xs shadow">
-                    ✨ Elegir Manual
-                </button>
-            </div>
-
-            <div class="flex justify-between items-center pt-1 text-xs">
-                <span class="text-slate-400 font-bold">Objetivo actual:</span>
-                <span id="currentTargetProductName" class="font-black text-amber-300 text-sm">Buscando en la lista...</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL 3: CAJA REGISTRADORA Y BILLETERA DEL ESTUDIANTE -->
+    <!-- MODAL 1: CAJA REGISTRADORA Y BILLETERA DEL ESTUDIANTE -->
     <div id="basketModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden overflow-y-auto">
         <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6 shadow-2xl">
             <div class="flex justify-between items-center border-b pb-3">
@@ -177,15 +102,11 @@
         </div>
     </div>
 
-    <!-- MODAL 4: COMPRA EXITOSA Y VUELTO GAMIFICADO -->
+    <!-- MODAL 2: COMPRA EXITOSA Y VUELTO -->
     <div id="checkoutSuccessModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 text-center shadow-2xl">
-            <div class="text-6xl bounce-gentle">🏆</div>
-            <h3 class="text-2xl font-black text-slate-800">¡Misión Cumplida, SuperCazador!</h3>
-            <div class="bg-amber-50 p-3 rounded-2xl border-2 border-amber-300 text-xs font-bold text-amber-950 flex justify-around">
-                <div><span>Ganaste:</span> <div class="text-lg font-black text-amber-600">⭐⭐⭐ 3 Estrellas</div></div>
-                <div><span>Nivel:</span> <div class="text-lg font-black text-indigo-700">Comprador Experto</div></div>
-            </div>
+            <div class="text-6xl">🎉</div>
+            <h3 class="text-2xl font-black text-slate-800">¡Excelente Compra!</h3>
             <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-200 space-y-2 text-xs font-bold">
                 <div class="flex justify-between"><span>Total Compra:</span> <span id="successModalTotal" class="text-emerald-700 font-black">$0</span></div>
                 <div class="flex justify-between"><span>Pagaste con:</span> <span id="successModalPaid" class="text-indigo-900 font-black">$0</span></div>
@@ -195,16 +116,16 @@
                 <label class="block text-xs font-black text-slate-600 uppercase mb-1">Desglose de Vuelto en Pictogramas:</label>
                 <div id="successModalVueltoBreakdown" class="flex flex-wrap justify-center gap-2"></div>
             </div>
-            <button onclick="closeSuccessModalAndFinish()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl text-base shadow">Continuar Jugando</button>
+            <button onclick="closeSuccessModalAndFinish()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl text-base shadow">Continuar Comprando</button>
         </div>
     </div>
 
-    <!-- MODAL 5: INFORME IA & IMPRESIÓN PDF CON MÉTRICAS GAMIFICADAS PIE -->
+    <!-- MODAL 3: INFORME IA & IMPRESIÓN PDF -->
     <div id="aiReportModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden overflow-y-auto">
         <div class="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl relative">
             <div class="flex justify-between items-center border-b pb-3 sticky top-0 bg-white z-10">
                 <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                    <span>✨</span> <span>Informe Pedagógico NEE - Evaluación Gamificada</span>
+                    <span>✨</span> <span>Informe Pedagógico NEE con IA</span>
                 </h3>
                 <div class="flex items-center gap-2">
                     <button onclick="printCurrentReport()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow">🖨️ Imprimir PDF</button>
@@ -216,25 +137,55 @@
         </div>
     </div>
 
-    <!-- MODAL 6: PRODUCTOS Y CLASES IA -->
+    <!-- MODAL 4: JUEGO / ACTIVIDAD ESCÁNER IA DE PRODUCTOS CON CÁMARA E IDENTIFICACIÓN POR ID -->
+    <div id="scannerModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl text-center relative">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
+                    <span>📷</span> <span>Juego del Escáner de Productos</span>
+                </h3>
+                <button onclick="closeScannerModal()" class="text-rose-600 font-bold bg-rose-50 px-3 py-1 rounded-xl">✕ Cerrar</button>
+            </div>
+            
+            <p class="text-xs text-slate-600 font-bold">Apunta la cámara al producto para identificar su ID/Código o ingresa/simula un escaneo.</p>
+
+            <div class="relative bg-slate-950 rounded-2xl h-64 flex items-center justify-center overflow-hidden border-4 border-amber-400 shadow-inner">
+                <div id="qrScannerReader" class="w-full h-full object-cover"></div>
+                <div id="scannerOverlay" class="absolute inset-0 border-4 border-dashed border-amber-300 m-6 rounded-xl pointer-events-none flex flex-col items-center justify-center">
+                    <div class="laser-line" id="laserLine" style="display: none;"></div>
+                    <span class="bg-amber-400 text-slate-950 font-black text-[10px] px-2 py-1 rounded shadow z-10">LÁSER ESCÁNER IA DE PRODUCTOS</span>
+                </div>
+                <div id="scannerPlaceholder" class="text-slate-300 text-xs font-bold p-4 text-center z-10">
+                    <span class="block text-3xl mb-2">🔍</span>
+                    <span>Presiona "Activar Cámara Escáner" para identificar productos por ID o Código en vivo</span>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="startCameraScanner()" class="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1.5">
+                    <span>📹</span> <span>Activar Cámara</span>
+                </button>
+                <button onclick="simulateAIScan()" class="w-1/2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1.5">
+                    <span>⚡</span> <span>Escaneo Rápido IA</span>
+                </button>
+            </div>
+
+            <div id="scannerResultContainer" class="hidden p-4 rounded-2xl text-left space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- MODALES DE GESTIÓN (PRODUCTOS, SUPERMERCADOS, CATEGORÍAS, USUARIOS) -->
     <div id="productModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <h3 id="prodModalTitle" class="text-xl font-black text-slate-800">Crear Producto</h3>
             <input type="hidden" id="modalProdId">
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre del Producto:</label>
-                <input type="text" id="modalProdName" placeholder="Ej: Kilo de Manzanas" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
+                <input type="text" id="modalProdName" placeholder="Ej: Leche Entera 1L" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
             </div>
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Categoría Objeto IA (Visión Computacional):</label>
-                <select id="modalProdAIClass" class="w-full px-3 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
-                    <option value="apple">🍎 Manzana / Fruta (apple)</option>
-                    <option value="banana">🍌 Plátano (banana)</option>
-                    <option value="bottle">🍾 Botella / Bebida / Leche (bottle)</option>
-                    <option value="cup">🥤 Vaso / Taza (cup)</option>
-                    <option value="bowl">🥣 Bowl / Cereal (bowl)</option>
-                    <option value="book">📚 Cuaderno / Caja (book)</option>
-                </select>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Código ID / Código de Barras:</label>
+                <input type="text" id="modalProdCode" placeholder="Ej: 780123456789 o PROD-01" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div>
@@ -248,11 +199,11 @@
             </div>
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Precio (CLP $):</label>
-                <input type="number" id="modalProdPrice" placeholder="1500" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
+                <input type="number" id="modalProdPrice" placeholder="2000" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
             </div>
-            <div class="flex items-center gap-2 pt-1">
-                <input type="checkbox" id="modalProdReplicateAll" class="w-4 h-4 text-indigo-600 rounded">
-                <label for="modalProdReplicateAll" class="text-xs font-bold text-slate-700">Disponible en TODOS los supermercados</label>
+            <div class="flex items-center gap-2 pt-2">
+                <input type="checkbox" id="modalProdReplicateAll" class="w-4 h-4 rounded text-indigo-600">
+                <label for="modalProdReplicateAll" class="text-xs font-bold text-slate-700 cursor-pointer">Replicar en TODOS los supermercados</label>
             </div>
             <div class="flex gap-2 pt-4">
                 <button onclick="closeProductModal()" class="w-1/3 bg-slate-200 text-slate-800 font-bold py-2.5 rounded-xl text-xs">Cancelar</button>
@@ -261,13 +212,12 @@
         </div>
     </div>
 
-    <!-- MODAL 7: CREAR / EDITAR TIENDAS -->
     <div id="supermarketModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <h3 class="text-xl font-black text-slate-800">Agregar Supermercado</h3>
+            <h3 class="text-xl font-black text-slate-800">Supermercado</h3>
             <input type="hidden" id="modalSupId">
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre de la Tienda:</label>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre de Tienda:</label>
                 <input type="text" id="modalSupName" placeholder="Ej: Supermercado Lider" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
             </div>
             <div class="flex gap-2 pt-4">
@@ -277,23 +227,30 @@
         </div>
     </div>
 
-    <!-- MODAL 8: CREAR CATEGORÍAS -->
     <div id="categoryModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <h3 class="text-xl font-black text-slate-800">Nueva Categoría</h3>
+            <h3 class="text-xl font-black text-slate-800">Nueva Categoría de Producto</h3>
+            <input type="hidden" id="modalCatId">
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre Categoría:</label>
-                <input type="text" id="modalCatName" placeholder="Ej: Congelados" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
+                <input type="text" id="modalCatName" placeholder="Ej: Congelados, Mascotas" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
             </div>
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Icono / Emoji:</label>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Ícono / Emoji Pictograma:</label>
                 <select id="modalCatIcon" class="w-full px-3 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
-                    <option value="🍎">🍎 Frutas</option>
                     <option value="🥛">🥛 Lácteos</option>
                     <option value="🍞">🍞 Panadería</option>
+                    <option value="🍎">🍎 Frutas y Verduras</option>
                     <option value="🌾">🌾 Abarrotes</option>
-                    <option value="🧼">🧼 Aseo</option>
+                    <option value="🧼">🧼 Aseo y Limpieza</option>
                     <option value="🧃">🧃 Bebidas</option>
+                    <option value="🥩">🥩 Carnes y Pesca</option>
+                    <option value="🧀">🧀 Quesos y Fiambrería</option>
+                    <option value="🍦">🍦 Congelados</option>
+                    <option value="🍪">🍪 Galletas y Dulces</option>
+                    <option value="🥫">🥫 Conservas</option>
+                    <option value="🐶">🐶 Mascotas</option>
+                    <option value="🏷️">🏷️ Otro / General</option>
                 </select>
             </div>
             <div class="flex gap-2 pt-4">
@@ -303,7 +260,6 @@
         </div>
     </div>
 
-    <!-- MODAL 9: CREAR / EDITAR USUARIOS Y ROL -->
     <div id="userModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <h3 id="userModalTitle" class="text-xl font-black text-slate-800">Gestión de Usuario</h3>
@@ -311,15 +267,15 @@
             <input type="hidden" id="modalUserRole">
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre Completo:</label>
-                <input type="text" id="modalName" placeholder="Nombre y Apellido" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
+                <input type="text" id="modalName" placeholder="Ej: Juan Pérez" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
             </div>
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">RUT (Será su Usuario y Clave Inicial):</label>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">RUT o Username:</label>
                 <input type="text" id="modalRut" placeholder="12345678-9" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
             </div>
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Correo Electrónico (Apoderado / Docente):</label>
-                <input type="email" id="modalEmail" placeholder="correo@ejemplo.cl" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Correo Electrónico:</label>
+                <input type="email" id="modalEmail" placeholder="correo@escuela.cl" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
             </div>
             <div class="flex gap-2 pt-4">
                 <button onclick="closeUserModal()" class="w-1/3 bg-slate-200 text-slate-800 font-bold py-2.5 rounded-xl text-xs">Cancelar</button>
@@ -328,6 +284,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=3000000"></script>
+    <script src="app.js?v=1000000"></script>
 </body>
 </html>
