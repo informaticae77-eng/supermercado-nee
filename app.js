@@ -55,22 +55,6 @@ const CLP_CURRENCY_ITEMS = [
     { id: 'c10',  value: 10,    type: 'coin', name: 'Moneda $10',     img: makeSvgDataUrl(SVG_C10_RAW) }
 ];
 
-const DEFAULT_SUPERMARKETS = [
-    { id: 'sup-lider', name: 'LIDER', icon: '🛒', photoUrl: '' },
-    { id: 'sup-jumbo', name: 'JUMBO', icon: '🐘', photoUrl: '' },
-    { id: 'sup-santa', name: 'SANTA ISABEL', icon: '🛍️', photoUrl: '' },
-    { id: 'sup-unimarc', name: 'UNIMARC', icon: '🍎', photoUrl: '' }
-];
-
-const DEFAULT_CATEGORIES = [
-    { id: 'cat-1', name: 'Lácteos', icon: '🥛' },
-    { id: 'cat-2', name: 'Panadería', icon: '🍞' },
-    { id: 'cat-3', name: 'Frutas y Verduras', icon: '🍎' },
-    { id: 'cat-4', name: 'Abarrotes', icon: '🌾' },
-    { id: 'cat-5', name: 'Aseo y Limpieza', icon: '🧼' },
-    { id: 'cat-6', name: 'Bebidas', icon: '🧃' }
-];
-
 const DEFAULT_SETTINGS = {
     schoolName: "Escuela Especial & Programa PIE",
     schoolSubHeader: "Unidad de Autonomía Funcional",
@@ -78,18 +62,8 @@ const DEFAULT_SETTINGS = {
     directorName: "Equipo PIE"
 };
 
-const DEFAULT_ADMIN = {
-    id: 'u-admin-default',
-    name: 'Sergio Pinto',
-    rut: '12345678-9',
-    username: '12345678-9',
-    pin: '1234',
-    role: 'admin',
-    email: 'admin@escuela.cl'
-};
-
 // ==========================================
-// ESTADO GLOBAL
+// ESTADO GLOBAL LIMPIO SIN FALLBACKS
 // ==========================================
 const APP_STATE = {
     currentUser: null,
@@ -100,9 +74,9 @@ const APP_STATE = {
     userPaidAmount: 0,
     userPaidItems: [],
     courses: [],
-    categories: [...DEFAULT_CATEGORIES],
-    users: [DEFAULT_ADMIN],
-    supermarkets: [...DEFAULT_SUPERMARKETS],
+    categories: [],
+    users: [],
+    supermarkets: [],
     products: [],
     evaluations: [],
     customCurrencies: {},
@@ -311,7 +285,7 @@ function goHome() {
 }
 
 // ==========================================
-// VISTA ESTUDIANTE Y SELECCIÓN CON VOZ
+// VISTA ESTUDIANTE Y GUIADO POR VOZ
 // ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
@@ -321,7 +295,12 @@ function renderHomeView(container) {
                 <p class="text-slate-600 font-medium">Elige un supermercado para comenzar o usa el escáner.</p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                ${(APP_STATE.supermarkets || []).map(sup => {
+                ${(APP_STATE.supermarkets || []).length === 0 ? `
+                    <div class="col-span-full text-center py-12 bg-white rounded-3xl border-4 border-slate-200 shadow-sm">
+                        <span class="text-5xl">🏪</span>
+                        <h3 class="text-lg font-black text-slate-700 mt-2">No hay supermercados disponibles.</h3>
+                    </div>
+                ` : (APP_STATE.supermarkets || []).map(sup => {
                     const supLogo = sup.photoUrl || sup.photo || sup.logoUrl || '';
                     const logoHtml = supLogo 
                         ? `<img src="${supLogo}" class="w-24 h-24 object-contain rounded-3xl p-1 bg-white border-2 border-slate-200 shadow-sm">`
@@ -338,7 +317,6 @@ function renderHomeView(container) {
     `;
 }
 
-// SELECCIONAR SUPERMERCADO CON GUIADO POR VOZ
 function selectSupermarket(id) {
     APP_STATE.selectedSupermarketId = String(id);
     APP_STATE.missionStartTime = Date.now();
@@ -346,7 +324,7 @@ function selectSupermarket(id) {
     const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(id));
     const supName = sup ? sup.name : 'Supermercado';
 
-    // Voz de bienvenida al ingresar a la tienda
+    // Guiado por voz
     speakText(`Entraste al supermercado ${supName}. ¡Buena suerte en tu compra!`);
 
     renderApp();
@@ -524,12 +502,7 @@ function promptAssignProductToBarcode(barcode) {
     const resContainer = document.getElementById('scannerResultContainer');
     if (!resContainer) return;
 
-    const availableProducts = (APP_STATE.products && APP_STATE.products.length > 0) ? APP_STATE.products : [
-        { id: 'p-jabon', name: 'Jabón Gel', price: 1500, category: 'Aseo y Limpieza' },
-        { id: 'p-manzana', name: 'Kilo de Manzanas', price: 1200, category: 'Frutas y Verduras' },
-        { id: 'p-leche', name: 'Leche Entera 1L', price: 1000, category: 'Lácteos' },
-        { id: 'p-pan', name: 'Pan de Molde', price: 2000, category: 'Panadería' }
-    ];
+    const availableProducts = (APP_STATE.products || []);
 
     resContainer.className = "p-4 bg-amber-50 border-4 border-amber-400 rounded-2xl text-left space-y-3";
     resContainer.innerHTML = `
@@ -538,7 +511,7 @@ function promptAssignProductToBarcode(barcode) {
         </div>
         <p class="text-xs font-extrabold text-slate-800">¿Qué producto es este envase? Toca para vincularlo:</p>
         <div class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-            ${availableProducts.map(p => `
+            ${availableProducts.length === 0 ? `<p class="col-span-full text-xs font-bold text-slate-500">No hay productos en el catálogo para vincular.</p>` : availableProducts.map(p => `
                 <button onclick="bindBarcodeToProduct('${barcode}', '${p.id}')" class="p-2.5 bg-white border-2 border-amber-300 hover:border-indigo-600 rounded-xl flex items-center justify-between text-left active:scale-95 shadow-sm">
                     <div>
                         <span class="font-black text-slate-800 text-xs block">${p.name}</span>
@@ -1079,19 +1052,21 @@ function sendReportByEmail() {
     }
 }
 
-// CATÁLOGO CON BOTÓN EDITAR Y ELIMINAR SUPERMERCADO
+// CATÁLOGO CON EDITAR Y ELIMINAR SUPERMERCADOS
 function renderTeacherCatalogTab() {
     return `
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="bg-white p-5 rounded-3xl border-4 border-emerald-300 shadow-md space-y-4">
                 <div class="flex justify-between items-center border-b pb-3">
                     <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
-                        <span>🏪</span> <span>Supermercados</span>
+                        <span>🏪</span> <span>Supermercados (${(APP_STATE.supermarkets || []).length})</span>
                     </h3>
                     <button onclick="openSupermarketModal()" class="bg-emerald-600 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Tienda</button>
                 </div>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
-                    ${(APP_STATE.supermarkets || []).map(s => {
+                    ${(APP_STATE.supermarkets || []).length === 0 ? `
+                        <p class="text-xs text-slate-400 italic py-4 text-center">No hay supermercados creados.</p>
+                    ` : (APP_STATE.supermarkets || []).map(s => {
                         const logo = s.photoUrl || s.photo || s.logoUrl || '';
                         const imgHtml = logo 
                             ? `<img src="${logo}" class="w-8 h-8 object-contain rounded-lg border bg-white p-0.5">`
@@ -1120,7 +1095,9 @@ function renderTeacherCatalogTab() {
                     <button onclick="openCategoryModal()" class="bg-indigo-600 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Categoría</button>
                 </div>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
-                    ${(APP_STATE.categories || []).map(c => `
+                    ${(APP_STATE.categories || []).length === 0 ? `
+                        <p class="text-xs text-slate-400 italic py-4 text-center">No hay categorías creadas.</p>
+                    ` : (APP_STATE.categories || []).map(c => `
                         <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
                             <span class="font-black text-slate-800">${c.icon || '🏷️'} ${c.name}</span>
                             <button onclick="deleteCategory('${c.id}')" class="text-rose-600 font-bold px-2 py-1 rounded-lg bg-rose-50 text-[10px]">✕</button>
@@ -1374,7 +1351,7 @@ function saveInstitutionalSettings() {
 }
 
 // ==========================================
-// GESTIÓN DE SUPERMERCADOS (CREAR, EDITAR Y ELIMINAR)
+// GESTIÓN DE SUPERMERCADOS (CREAR, EDITAR, ELIMINAR)
 // ==========================================
 function handleSupermarketLogoUpload(event) {
     const file = event.target.files[0];
@@ -1454,17 +1431,14 @@ function saveSupermarketFromModal() {
     });
 }
 
-// ELIMINAR SUPERMERCADO DESDE EL PANEL
 function deleteSupermarket(supId) {
     const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId));
     const name = sup ? sup.name : 'este supermercado';
 
     if (confirm(`¿Estás seguro de que deseas eliminar el supermercado "${name}"?`) && db) {
         db.collection('supermarkets').doc(supId).delete().then(() => {
-            alert(`✅ Supermercado "${name}" eliminado correctamente.`);
-        }).catch(err => {
-            alert("Error al eliminar: " + err.message);
-        });
+            alert(`✅ Supermercado "${name}" eliminado.`);
+        }).catch(err => alert("Error: " + err.message));
     }
 }
 
@@ -1474,7 +1448,7 @@ function deleteSupermarket(supId) {
 function updateCategoryDropdowns(selectedName = null) {
     const catSelect = document.getElementById('modalProdCategory');
     if (!catSelect) return;
-    const list = (APP_STATE.categories && APP_STATE.categories.length > 0) ? APP_STATE.categories : DEFAULT_CATEGORIES;
+    const list = APP_STATE.categories || [];
     catSelect.innerHTML = list.map(c => `<option value="${c.name}" ${selectedName === c.name ? 'selected' : ''}>${c.icon || '🏷️'} ${c.name}</option>`).join('');
 }
 
@@ -1651,7 +1625,7 @@ function deleteCourse(courseId) {
 }
 
 // ==========================================
-// ESCUCHADORES FIRESTORE TIEMPO REAL
+// ESCUCHADORES FIRESTORE SIN REGLAS DE RESPALDO
 // ==========================================
 function initFirebaseListeners() {
     try {
@@ -1682,18 +1656,14 @@ function initFirebaseListeners() {
         } catch(e) { renderApp(); }
     };
 
-    listenCol('users', data => {
-        APP_STATE.users = (data && data.length > 0) ? data : [DEFAULT_ADMIN];
-    });
-
+    // Lectura directa: lo que esté en Firebase es lo que se reflejará sin restaurar defaults.
+    listenCol('users', data => { APP_STATE.users = data || []; });
     listenCol('courses', data => { APP_STATE.courses = data || []; });
     listenCol('categories', data => {
-        APP_STATE.categories = (data && data.length > 0) ? data : [...DEFAULT_CATEGORIES];
+        APP_STATE.categories = data || [];
         updateCategoryDropdowns();
     });
-    listenCol('supermarkets', data => {
-        APP_STATE.supermarkets = (data && data.length > 0) ? data : [...DEFAULT_SUPERMARKETS];
-    });
+    listenCol('supermarkets', data => { APP_STATE.supermarkets = data || []; });
     listenCol('products', data => { APP_STATE.products = data || []; });
     listenCol('evaluations', data => { APP_STATE.evaluations = data || []; });
 
