@@ -27,6 +27,61 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
+// TEMÁTICAS ESTACIONALES Y CONFIGURACIÓN
+// ==========================================
+const SEASONAL_THEMES = {
+    standard: {
+        id: 'standard',
+        name: 'Estándar / Institucional 🏫',
+        bgColor: 'bg-slate-100',
+        bannerBg: 'bg-indigo-600',
+        bannerText: ' text-white ',
+        titleMsg: '¡Bienvenido a Comprar! 🛍️',
+        greetingMsg: 'Selecciona una tienda para comenzar tu misión.',
+        emoji: '🛍️'
+    },
+    navidad: {
+        id: 'navidad',
+        name: 'Especial Navidad 🎄✨',
+        bgColor: 'bg-red-50',
+        bannerBg: 'bg-gradient-to-r from-red-600 via-emerald-600 to-red-700',
+        bannerText: ' text-yellow-200 ',
+        titleMsg: '¡Especial de Navidad en la Escuela! 🎄🎁',
+        greetingMsg: '¡Encuentra los regalos y la cena navideña!',
+        emoji: '🎅'
+    },
+    verano: {
+        id: 'verano',
+        name: 'Modo Verano & Vacaciones ☀️🏖️',
+        bgColor: 'bg-amber-50',
+        bannerBg: 'bg-gradient-to-r from-amber-400 via-orange-500 to-sky-400',
+        bannerText: ' text-slate-900 ',
+        titleMsg: '¡Modo Verano Activo! ☀️🌊',
+        greetingMsg: '¡Prepara tu canasto con helados, frutas y bebidas!',
+        emoji: '🍦'
+    },
+    fiestas_patrias: {
+        id: 'fiestas_patrias',
+        name: 'Fiestas Patrias Chile 🇨🇱🎈',
+        bgColor: 'bg-blue-50',
+        bannerBg: 'bg-gradient-to-r from-blue-700 via-white to-red-600',
+        bannerText: ' text-slate-900 font-black ',
+        titleMsg: '¡Viva Chile! Fiestas Patrias 🇨🇱🎈',
+        greetingMsg: '¡A comprar las empanadas y la carne para el asado!',
+        emoji: '🥟'
+    }
+};
+
+const DEFAULT_SETTINGS = {
+    schoolName: "Escuela Especial & Programa PIE",
+    schoolSubHeader: "Unidad de Autonomía Funcional",
+    schoolLogo: "",
+    mascotUrl: "",
+    activeTheme: "standard",
+    directorName: "Equipo PIE"
+};
+
+// ==========================================
 // DATA URIS DE SVG DE BILLETES Y MONEDAS CHILENAS
 // ==========================================
 function makeSvgDataUrl(svgString) {
@@ -76,19 +131,13 @@ const PRESET_CATEGORIES = [
     { name: "Vestuario", icon: "👕" }
 ];
 
-const DEFAULT_SETTINGS = {
-    schoolName: "Escuela Especial & Programa PIE",
-    schoolSubHeader: "Unidad de Autonomía Funcional",
-    schoolLogo: "",
-    directorName: "Equipo PIE"
-};
-
 // ==========================================
-// ESTADO GLOBAL LIMPIO SIN FALLBACKS
+// ESTADO GLOBAL
 // ==========================================
 const APP_STATE = {
     currentUser: null,
     selectedSupermarketId: null,
+    selectedCategoryFilter: 'ALL',
     teacherActiveTab: 'home',
     teacherPreviewMode: false,
     basket: [],
@@ -141,7 +190,7 @@ function playChimeSound() {
     } catch(e) {}
 }
 
-function compressImageBase64(base64Data, maxWidth = 300, maxHeight = 300, quality = 0.75) {
+function compressImageBase64(base64Data, maxWidth = 350, maxHeight = 350, quality = 0.75) {
     return new Promise((resolve) => {
         if (!base64Data || !base64Data.startsWith('data:image')) return resolve(base64Data || '');
         const img = new Image();
@@ -302,34 +351,53 @@ function logout() {
 
 function goHome() {
     APP_STATE.selectedSupermarketId = null;
+    APP_STATE.selectedCategoryFilter = 'ALL';
     renderApp();
 }
 
 // ==========================================
-// VISTA ESTUDIANTE Y GUIADO POR VOZ
+// VISTA ESTUDIANTE (CON TEMÁTICA Y MASCOTA)
 // ==========================================
 function renderHomeView(container) {
+    const activeThemeKey = APP_STATE.settings.activeTheme || 'standard';
+    const theme = SEASONAL_THEMES[activeThemeKey] || SEASONAL_THEMES.standard;
+    const mascot = APP_STATE.settings.mascotUrl;
+
     container.innerHTML = `
         <div class="space-y-6">
-            <div class="text-center max-w-2xl mx-auto space-y-2">
-                <h2 class="text-2xl sm:text-3xl font-black text-slate-800">¡Bienvenido a Comprar! 🛍️</h2>
-                <p class="text-slate-600 font-medium">Elige un supermercado para comenzar o usa el escáner.</p>
+            <!-- Bóveda/Header Estacional -->
+            <div class="${theme.bannerBg} p-6 rounded-3xl shadow-xl flex justify-between items-center relative overflow-hidden border-4 border-white/30">
+                <div class="space-y-2 z-10">
+                    <h2 class="text-2xl sm:text-4xl font-black ${theme.bannerText}">${theme.titleMsg}</h2>
+                    <p class="text-sm font-bold text-white/90">${theme.greetingMsg}</p>
+                </div>
+                ${mascot ? `
+                    <div class="z-10 flex flex-col items-center bg-white/20 p-2 rounded-2xl backdrop-blur-sm border border-white/40">
+                        <img src="${mascot}" class="w-20 h-20 sm:w-28 sm:h-28 object-contain animate-bounce">
+                        <span class="text-[10px] font-black text-white uppercase bg-black/40 px-2 py-0.5 rounded-md mt-1">Mascota del Colegio</span>
+                    </div>
+                ` : `<div class="text-6xl sm:text-8xl z-10 opacity-90">${theme.emoji}</div>`}
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            <!-- Listado de Supermercados Orientado a Tablet -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 ${(APP_STATE.supermarkets || []).length === 0 ? `
                     <div class="col-span-full text-center py-12 bg-white rounded-3xl border-4 border-slate-200 shadow-sm">
-                        <span class="text-5xl">🏪</span>
-                        <h3 class="text-lg font-black text-slate-700 mt-2">No hay supermercados disponibles.</h3>
+                        <span class="text-6xl">🏪</span>
+                        <h3 class="text-xl font-black text-slate-700 mt-2">No hay supermercados disponibles.</h3>
                     </div>
                 ` : (APP_STATE.supermarkets || []).map(sup => {
                     const supLogo = sup.photoUrl || sup.photo || sup.logoUrl || '';
                     const logoHtml = supLogo 
-                        ? `<img src="${supLogo}" class="w-24 h-24 object-contain rounded-3xl p-1 bg-white border-2 border-slate-200 shadow-sm">`
-                        : `<div class="bg-amber-400 p-4 rounded-3xl text-5xl flex items-center justify-center w-24 h-24 shadow-sm">${sup.icon || '🛒'}</div>`;
+                        ? `<img src="${supLogo}" class="w-28 h-28 object-contain rounded-3xl p-2 bg-white border-4 border-slate-200 shadow-sm">`
+                        : `<div class="bg-amber-400 p-4 rounded-3xl text-6xl flex items-center justify-center w-28 h-28 shadow-sm">${sup.icon || '🛒'}</div>`;
                     return `
-                        <div onclick="selectSupermarket('${sup.id}')" class="bg-white rounded-3xl border-4 border-slate-300 p-6 shadow-lg hover:shadow-2xl cursor-pointer flex flex-col items-center text-center space-y-4 active:scale-95 transition-transform">
+                        <div onclick="selectSupermarket('${sup.id}')" class="bg-white rounded-3xl border-4 border-slate-300 p-6 shadow-xl hover:shadow-2xl cursor-pointer flex flex-col items-center text-center space-y-4 active:scale-95 transition-all hover:border-indigo-500">
                             ${logoHtml}
                             <h3 class="text-2xl font-black text-slate-800">${sup.name}</h3>
+                            <button class="w-full bg-indigo-600 text-white font-black py-3 rounded-2xl shadow-lg text-lg border-b-4 border-indigo-900 flex items-center justify-center gap-2">
+                                <span>🚀</span> <span>¡Entrar a Comprar!</span>
+                            </button>
                         </div>
                     `;
                 }).join('')}
@@ -340,13 +408,19 @@ function renderHomeView(container) {
 
 function selectSupermarket(id) {
     APP_STATE.selectedSupermarketId = String(id);
+    APP_STATE.selectedCategoryFilter = 'ALL';
     APP_STATE.missionStartTime = Date.now();
 
     const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(id));
     const supName = sup ? sup.name : 'Supermercado';
 
-    speakText(`Entraste al supermercado ${supName}. ¡Buena suerte en tu compra!`);
+    speakText(`Entraste a ${supName}. Selecciona una categoría o producto.`);
+    renderApp();
+}
 
+function setCategoryFilter(catName) {
+    APP_STATE.selectedCategoryFilter = catName;
+    playChimeSound();
     renderApp();
 }
 
@@ -359,6 +433,7 @@ function renderSupermarketView(container, supId) {
     const targetId = sup ? String(sup.id).toLowerCase() : String(supId).toLowerCase();
     const targetName = sup ? String(sup.name).toLowerCase() : String(supId).toLowerCase();
 
+    // Filtrar productos de la tienda actual
     let rawProducts = (APP_STATE.products || []).filter(p => {
         if (!p) return false;
         if (p.isAll === true || p.supermarketId === 'ALL' || p.supermarketName === 'TODOS') return true;
@@ -367,6 +442,7 @@ function renderSupermarketView(container, supId) {
         return (pSupId === targetId || pSupId === targetName || pSupName === targetId || pSupName === targetName);
     });
 
+    // Eliminar duplicados
     const uniqueProducts = [];
     const seen = new Set();
     rawProducts.forEach(p => {
@@ -377,40 +453,52 @@ function renderSupermarketView(container, supId) {
         }
     });
 
+    // Filtrar por categoría seleccionada
+    const currentFilter = APP_STATE.selectedCategoryFilter || 'ALL';
+    const filteredProducts = currentFilter === 'ALL' 
+        ? uniqueProducts 
+        : uniqueProducts.filter(p => (p.category || '').toLowerCase() === currentFilter.toLowerCase());
+
     const supLogo = sup ? (sup.photoUrl || sup.photo || sup.logoUrl || '') : '';
     const supIconHtml = supLogo 
-        ? `<img src="${supLogo}" class="w-12 h-12 object-contain rounded-2xl border border-slate-200 shadow-sm p-0.5 bg-white">`
-        : `<span class="text-3xl">${sup ? (sup.icon || '🏪') : '🏪'}</span>`;
+        ? `<img src="${supLogo}" class="w-14 h-14 object-contain rounded-2xl border-2 border-slate-200 shadow-sm p-1 bg-white">`
+        : `<span class="text-4xl">${sup ? (sup.icon || '🏪') : '🏪'}</span>`;
 
-    const productsHtml = uniqueProducts.length === 0 ? `
-        <div class="col-span-full text-center py-12 bg-white rounded-3xl border-4 border-slate-200 shadow-sm">
-            <span class="text-5xl">📦</span>
-            <h3 class="text-lg font-black text-slate-700 mt-2">No hay productos en esta tienda</h3>
+    // Obtener categorías presentes o de la lista general
+    const categoryList = [{ name: 'ALL', label: 'Todos los Productos', icon: '🛒' }];
+    PRESET_CATEGORIES.forEach(c => categoryList.push({ name: c.name, label: c.name, icon: c.icon }));
+
+    const mascot = APP_STATE.settings.mascotUrl;
+
+    const productsHtml = filteredProducts.length === 0 ? `
+        <div class="col-span-full text-center py-16 bg-white rounded-3xl border-4 border-slate-200 shadow-sm">
+            <span class="text-6xl">📦</span>
+            <h3 class="text-xl font-black text-slate-700 mt-2">No hay productos en esta categoría</h3>
+            <button onclick="setCategoryFilter('ALL')" class="mt-4 bg-indigo-600 text-white font-black px-6 py-3 rounded-2xl text-sm">Ver todos los productos</button>
         </div>
-    ` : uniqueProducts.map(prod => {
+    ` : filteredProducts.map(prod => {
         const prodImg = prod.photoUrl 
-            ? `<img src="${prod.photoUrl}" class="w-20 h-20 object-cover rounded-2xl border border-slate-200 shadow-sm">`
-            : `<span class="text-5xl">${prod.iconEmoji || '📦'}</span>`;
+            ? `<img src="${prod.photoUrl}" class="w-24 h-24 object-cover rounded-2xl border-2 border-slate-200 shadow-sm">`
+            : `<span class="text-6xl">${prod.iconEmoji || '📦'}</span>`;
             
         const pricePictograms = getPricePictogramsHtml(prod.price || 0);
 
         return `
-            <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow-md flex flex-col justify-between space-y-4">
+            <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow-lg flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
                 <div class="flex items-start space-x-4">
                     ${prodImg}
                     <div class="space-y-1 w-full">
                         <div class="flex justify-between items-start">
-                            <h3 class="text-xl font-black text-slate-800">${prod.name}</h3>
-                            <span class="bg-indigo-100 text-indigo-800 text-[10px] font-black px-2 py-0.5 rounded-md">ID: ${prod.code || prod.id}</span>
+                            <h3 class="text-xl font-black text-slate-800 leading-tight">${prod.name}</h3>
                         </div>
-                        <div class="text-2xl font-black text-emerald-700">$${(prod.price || 0).toLocaleString('es-CL')}</div>
+                        <div class="text-3xl font-black text-emerald-700">$${(prod.price || 0).toLocaleString('es-CL')}</div>
                         ${pricePictograms}
-                        <span class="inline-block bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold mt-1">${prod.category || 'General'}</span>
+                        <span class="inline-block bg-slate-100 text-slate-700 px-2.5 py-1 rounded-xl text-xs font-extrabold mt-1 border">${prod.category || 'General'}</span>
                     </div>
                 </div>
-                <div class="flex gap-2">
-                    <button onclick="speakText('${prod.name}, precio ${prod.price} pesos')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold p-3 rounded-xl shadow-sm text-lg">🔊</button>
-                    <button onclick="addToBasket('${prod.id}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl shadow border-b-4 border-emerald-900 active:scale-95 text-base">🛒 Añadir al Canasto</button>
+                <div class="flex gap-2 pt-2 border-t">
+                    <button onclick="speakText('${prod.name}, precio ${prod.price} pesos')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold p-3.5 rounded-2xl shadow-sm text-2xl active:scale-95">🔊</button>
+                    <button onclick="addToBasket('${prod.id}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl shadow border-b-4 border-emerald-900 active:scale-95 text-lg">🛒 Añadir al Canasto</button>
                 </div>
             </div>
         `;
@@ -418,16 +506,33 @@ function renderSupermarketView(container, supId) {
 
     container.innerHTML = `
         <div class="space-y-6">
-            <div class="flex items-center justify-between bg-white p-4 rounded-2xl border-2 border-slate-300 shadow-sm">
-                <button onclick="goHome()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-4 py-2 rounded-xl text-xs">← Volver a Tiendas</button>
+            <!-- Header Superior de la Tienda -->
+            <div class="flex items-center justify-between bg-white p-4 rounded-3xl border-4 border-slate-300 shadow-md">
+                <button onclick="goHome()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-black px-4 py-3 rounded-2xl text-xs sm:text-sm active:scale-95">← Volver a Tiendas</button>
                 <div class="flex items-center gap-3">
                     ${supIconHtml}
-                    <h2 class="text-2xl font-black text-slate-800">${sup ? sup.name : 'Supermercado'}</h2>
+                    <h2 class="text-2xl sm:text-3xl font-black text-slate-800">${sup ? sup.name : 'Supermercado'}</h2>
                 </div>
-                <button onclick="openScannerModal()" class="bg-amber-400 hover:bg-amber-500 font-black text-slate-900 px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 shadow">
-                    <span>📷 Escanear</span>
-                </button>
+                ${mascot ? `<img src="${mascot}" class="h-12 w-12 object-contain hidden sm:block">` : ''}
             </div>
+
+            <!-- BARRA DE CATEGORÍAS TÁCTIL (MODO TABLET) -->
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-600 uppercase tracking-wider block px-1">📁 Filtrar por Categoría (Toca para seleccionar):</label>
+                <div class="flex gap-2 overflow-x-auto pb-3 pt-1 scrollbar-thin">
+                    ${categoryList.map(c => {
+                        const active = (currentFilter.toLowerCase() === c.name.toLowerCase());
+                        return `
+                            <button onclick="setCategoryFilter('${c.name}')" class="flex-shrink-0 px-4 py-3 rounded-2xl font-black text-xs sm:text-sm transition-all shadow flex items-center gap-2 active:scale-95 ${active ? 'bg-indigo-600 text-white ring-4 ring-indigo-300 scale-105' : 'bg-white text-slate-800 border-2 border-slate-200 hover:bg-slate-100'}">
+                                <span class="text-lg">${c.icon}</span>
+                                <span>${c.label}</span>
+                            </button>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+
+            <!-- GRILLA DE PRODUCTOS -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 ${productsHtml}
             </div>
@@ -874,7 +979,7 @@ function renderTeacherDashboard(container) {
                         <span>🔑</span><span>4. Gestión Usuarios</span>
                     </button>
                     <button onclick="setTeacherTab('settings')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>⚙️</span><span>5. Plantilla & Logo</span>
+                        <span>⚙️</span><span>5. Plantilla & Temas</span>
                     </button>
                 </div>
             </div>
@@ -1073,7 +1178,7 @@ function sendReportByEmail() {
 }
 
 // ==========================================
-// CATÁLOGO CON EDITAR Y ELIMINAR SUPERMERCADOS Y PRODUCTOS
+// CATÁLOGO DOCENTE
 // ==========================================
 function renderTeacherCatalogTab() {
     return `
@@ -1148,14 +1253,21 @@ function renderTeacherCatalogTab() {
                             const supName = matchedSup ? matchedSup.name : (p.supermarketName || 'Supermercado');
                             supBadge = `<span class="inline-block bg-amber-100 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded-md my-0.5">🏪 Solo en: ${supName}</span>`;
                         }
+
+                        const photoThumb = p.photoUrl 
+                            ? `<img src="${p.photoUrl}" class="w-10 h-10 object-cover rounded-xl border border-slate-300">`
+                            : `<div class="w-10 h-10 bg-slate-200 rounded-xl flex items-center justify-center text-lg">📦</div>`;
+
                         return `
-                            <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
-                                <div>
-                                    <span class="font-black text-slate-800">${p.name}</span>
-                                    <span class="bg-indigo-100 text-indigo-900 text-[9px] font-black px-1.5 py-0.5 rounded ml-1">ID: ${p.code || p.id}</span>
-                                    <span class="text-emerald-700 font-black block">$${(p.price || 0).toLocaleString('es-CL')}</span>
-                                    <div>${supBadge}</div>
-                                    ${getPricePictogramsHtml(p.price || 0)}
+                            <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold gap-2">
+                                <div class="flex items-center gap-2">
+                                    ${photoThumb}
+                                    <div>
+                                        <span class="font-black text-slate-800 block">${p.name}</span>
+                                        <span class="bg-indigo-100 text-indigo-900 text-[9px] font-black px-1.5 py-0.5 rounded">ID: ${p.code || p.id}</span>
+                                        <span class="text-emerald-700 font-black inline-block ml-1">$${(p.price || 0).toLocaleString('es-CL')}</span>
+                                        <div>${supBadge}</div>
+                                    </div>
                                 </div>
                                 <div class="flex items-center gap-1">
                                     <button onclick="openProductModal('${p.id}')" class="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-xl text-[10px]">✏️ Editar</button>
@@ -1317,16 +1429,20 @@ function renderUserRoleList(role) {
     `).join('');
 }
 
+// ==========================================
+// PESTAÑA CONFIGURACIÓN: PLANTILLA, TEMAS Y MASCOTA
+// ==========================================
 function renderTeacherSettingsTab() {
     const st = APP_STATE.settings || DEFAULT_SETTINGS;
     return `
         <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow-md space-y-6 max-w-4xl mx-auto">
             <div class="border-b pb-3">
                 <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                    <span>⚙️</span> <span>Diseñador de Plantilla Institucional (PDF)</span>
+                    <span>⚙️</span> <span>Diseñador de Plantilla, Temáticas Estacionales y Mascota</span>
                 </h3>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Columna Izquierda: Datos Institucionales -->
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Nombre Colegio:</label>
@@ -1340,15 +1456,35 @@ function renderTeacherSettingsTab() {
                         <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Dirección / Firma:</label>
                         <input type="text" id="settingDirectorName" value="${st.directorName || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
                     </div>
-                </div>
-                <div class="space-y-4 flex flex-col justify-between">
                     <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Logo (Imagen):</label>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">🎨 Temática Estacional de la Tienda:</label>
+                        <select id="settingActiveTheme" class="w-full px-4 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-indigo-50 text-indigo-900">
+                            ${Object.keys(SEASONAL_THEMES).map(key => `
+                                <option value="${key}" ${st.activeTheme === key ? 'selected' : ''}>${SEASONAL_THEMES[key].name}</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Logos y Mascota -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Logo Institucional (PDF e Informe):</label>
                         <input type="file" accept="image/*" onchange="handleSchoolLogoUpload(event)" class="w-full text-xs font-bold text-slate-600 border border-slate-300 p-2 rounded-xl">
                         <input type="hidden" id="settingSchoolLogo" value="${st.schoolLogo || ''}">
                     </div>
-                    <button onclick="saveInstitutionalSettings()" class="w-full bg-emerald-600 text-white font-black py-3 rounded-xl text-xs uppercase shadow">
-                        💾 Guardar Plantilla
+
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">🐶 Mascota de la Escuela (Imagen flotante):</label>
+                        <input type="file" accept="image/*" onchange="handleSchoolMascotUpload(event)" class="w-full text-xs font-bold text-slate-600 border border-slate-300 p-2 rounded-xl">
+                        <input type="hidden" id="settingMascotUrl" value="${st.mascotUrl || ''}">
+                        <div id="settingMascotPreview" class="mt-2 h-20 w-20 border-2 rounded-2xl flex items-center justify-center p-1 bg-slate-50">
+                            ${st.mascotUrl ? `<img src="${st.mascotUrl}" class="h-full object-contain">` : `<span class="text-xs text-slate-400 font-bold">Sin mascota</span>`}
+                        </div>
+                    </div>
+
+                    <button onclick="saveInstitutionalSettings()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl text-xs uppercase shadow-lg border-b-4 border-emerald-900 active:scale-95">
+                        💾 Guardar Configuración
                     </button>
                 </div>
             </div>
@@ -1368,24 +1504,41 @@ function handleSchoolLogoUpload(event) {
     reader.readAsDataURL(file);
 }
 
+function handleSchoolMascotUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        compressImageBase64(e.target.result, 300, 300).then(compressed => {
+            document.getElementById('settingMascotUrl').value = compressed;
+            const preview = document.getElementById('settingMascotPreview');
+            if (preview) preview.innerHTML = `<img src="${compressed}" class="h-full object-contain">`;
+        });
+    };
+    reader.readAsDataURL(file);
+}
+
 function saveInstitutionalSettings() {
     const settingsData = {
         schoolName: document.getElementById('settingSchoolName').value.trim(),
         schoolSubHeader: document.getElementById('settingSubHeader').value.trim(),
         directorName: document.getElementById('settingDirectorName').value.trim(),
-        schoolLogo: document.getElementById('settingSchoolLogo').value
+        activeTheme: document.getElementById('settingActiveTheme').value,
+        schoolLogo: document.getElementById('settingSchoolLogo').value,
+        mascotUrl: document.getElementById('settingMascotUrl').value
     };
 
     if (db) {
         db.collection('settings').doc('institutional').set(settingsData, { merge: true }).then(() => {
-            APP_STATE.settings = settingsData;
-            alert("✅ Configuración guardada.");
+            APP_STATE.settings = { ...APP_STATE.settings, ...settingsData };
+            renderApp();
+            alert("✅ Configuración guardada correctamente.");
         });
     }
 }
 
 // ==========================================
-// GESTIÓN DE SUPERMERCADOS (CREAR, EDITAR, ELIMINAR)
+// GESTIÓN DE SUPERMERCADOS Y PRODUCTOS
 // ==========================================
 function handleSupermarketLogoUpload(event) {
     const file = event.target.files[0];
@@ -1476,14 +1629,27 @@ function deleteSupermarket(supId) {
     }
 }
 
-// ==========================================
-// MODALES Y OPERACIONES DE PRODUCTOS Y USUARIOS
-// ==========================================
+// MODAL DE PRODUCTO: SOPORTA CREAR, EDITAR E INCLUIR IMAGEN DEL PRODUCTO
 function updateCategoryDropdowns(selectedName = null) {
     const catSelect = document.getElementById('modalProdCategory');
     if (!catSelect) return;
     const list = APP_STATE.categories || [];
     catSelect.innerHTML = list.map(c => `<option value="${c.name}" ${selectedName === c.name ? 'selected' : ''}>${c.icon || '🏷️'} ${c.name}</option>`).join('');
+}
+
+function handleProductPhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        compressImageBase64(e.target.result, 350, 350).then(compressed => {
+            const photoInput = document.getElementById('modalProdPhoto');
+            if (photoInput) photoInput.value = compressed;
+            const preview = document.getElementById('modalProdPhotoPreview');
+            if (preview) preview.innerHTML = `<img src="${compressed}" class="h-full object-contain p-1">`;
+        });
+    };
+    reader.readAsDataURL(file);
 }
 
 function openProductModal(prodId = null) {
@@ -1496,6 +1662,8 @@ function openProductModal(prodId = null) {
     const codeInput = document.getElementById('modalProdCode');
     const priceInput = document.getElementById('modalProdPrice');
     const replicateInput = document.getElementById('modalProdReplicateAll');
+    const photoInput = document.getElementById('modalProdPhoto');
+    const previewEl = document.getElementById('modalProdPhotoPreview');
 
     if (prodId) {
         const p = (APP_STATE.products || []).find(x => String(x.id) === String(prodId));
@@ -1505,8 +1673,14 @@ function openProductModal(prodId = null) {
             if (nameInput) nameInput.value = p.name || '';
             if (codeInput) codeInput.value = p.code || p.id || '';
             if (priceInput) priceInput.value = p.price || 0;
+            if (photoInput) photoInput.value = p.photoUrl || '';
             if (replicateInput) replicateInput.checked = !!p.isAll;
             if (supSelect && p.supermarketId) supSelect.value = p.supermarketId;
+            if (previewEl) {
+                previewEl.innerHTML = p.photoUrl 
+                    ? `<img src="${p.photoUrl}" class="h-full object-contain p-1">`
+                    : `<span class="text-xs font-bold text-slate-400">Sin foto cargada</span>`;
+            }
             updateCategoryDropdowns(p.category);
         }
     } else {
@@ -1515,7 +1689,9 @@ function openProductModal(prodId = null) {
         if (nameInput) nameInput.value = '';
         if (codeInput) codeInput.value = '';
         if (priceInput) priceInput.value = '';
+        if (photoInput) photoInput.value = '';
         if (replicateInput) replicateInput.checked = false;
+        if (previewEl) previewEl.innerHTML = `<span class="text-xs font-bold text-slate-400">Sin foto cargada</span>`;
         updateCategoryDropdowns();
     }
 
@@ -1539,6 +1715,7 @@ function saveProductFromModal() {
     const category = categorySelect ? categorySelect.value : 'General';
     const price = parseInt(document.getElementById('modalProdPrice').value);
     const replicateAll = document.getElementById('modalProdReplicateAll')?.checked || false;
+    const photoUrl = document.getElementById('modalProdPhoto')?.value || '';
 
     if (!name || isNaN(price) || !db) return alert("Ingresa un nombre y precio válidos.");
 
@@ -1550,6 +1727,7 @@ function saveProductFromModal() {
         name: name,
         category: category,
         price: price,
+        photoUrl: photoUrl,
         isAll: replicateAll,
         supermarketId: replicateAll ? 'ALL' : supId,
         supermarketName: replicateAll ? 'TODOS' : ((APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId))?.name || 'Supermercado')
@@ -1683,7 +1861,7 @@ function deleteCourse(courseId) {
 }
 
 // ==========================================
-// ESCUCHADORES FIRESTORE SIN REGLAS DE RESPALDO
+// ESCUCHADORES FIRESTORE
 // ==========================================
 function initFirebaseListeners() {
     try {
