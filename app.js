@@ -27,7 +27,7 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
-// DATA URIS DE SVG INDESTRUCTIBLES
+// DATA URIS DE SVG DE BILLETES Y MONEDAS CHILENAS
 // ==========================================
 function makeSvgDataUrl(svgString) {
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
@@ -113,11 +113,15 @@ const APP_STATE = {
 };
 
 // ==========================================
-// DESGLOSE Y PICTOGRAMAS DE PRECIOS
+// CÁLCULO Y GENERACIÓN DE PICTOGRAMAS DE PRECIO
 // ==========================================
 function calculateCLPBreakdown(amount) {
-    let remaining = amount;
+    if (!amount || amount <= 0) return [];
+    
+    // Si el valor es muy pequeño (ej. $2 de prueba), usamos moneda de $10 o aproximado para no romper el desglose
+    let remaining = amount < 10 ? 10 : amount;
     const result = [];
+    
     CLP_CURRENCY_ITEMS.forEach(item => {
         const count = Math.floor(remaining / item.value);
         if (count > 0) {
@@ -128,18 +132,19 @@ function calculateCLPBreakdown(amount) {
     return result;
 }
 
-// Genera la vista visual de billetes/monedas para CUALQUIER precio
+// Genera el HTML de pictogramas con imágenes personalizadas o por defecto
 function getPricePictogramsHtml(amount) {
-    if (!amount || amount <= 0) return '';
+    if (amount === undefined || amount === null) return '';
     const breakdown = calculateCLPBreakdown(amount);
     if (breakdown.length === 0) return '';
     
     return `<div class="flex flex-wrap items-center gap-1.5 mt-1.5 font-bold">` +
         breakdown.map(b => {
+            // Usa la imagen cargada por el docente si existe, o el SVG por defecto
             const imgSrc = APP_STATE.customCurrencies[b.id] || b.img;
-            return `<div class="inline-flex items-center gap-1 bg-amber-50 border border-amber-300 rounded-lg px-2 py-1 shadow-sm" title="${b.name}">
-                <img src="${imgSrc}" class="h-7 object-contain">
-                <span class="text-[11px] font-black text-amber-950">${b.count > 1 ? b.count + 'x' : ''}</span>
+            return `<div class="inline-flex items-center gap-1 bg-amber-50 border-2 border-amber-300 rounded-xl px-2 py-1 shadow-sm" title="${b.name}">
+                <img src="${imgSrc}" class="h-8 object-contain">
+                <span class="text-xs font-black text-amber-950">${b.count > 1 ? b.count + 'x' : ''}</span>
             </div>`;
         }).join('') +
     `</div>`;
@@ -311,7 +316,7 @@ function goHome() {
 }
 
 // ==========================================
-// MÓDULO ALUMNO Y ESCÁNER CON CÁMARA
+// VISTA DEL ESTUDIANTE Y VISTA DE SUPERMERCADOS
 // ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
@@ -386,13 +391,14 @@ function renderSupermarketView(container, supId) {
             ? `<img src="${prod.photoUrl}" class="w-20 h-20 object-cover rounded-2xl border border-slate-200 shadow-sm">`
             : `<span class="text-5xl">${prod.iconEmoji || '📦'}</span>`;
             
+        // AQUÍ SE MUESTRA EL PRECIO NUMÉRICO Y LOS PICTOGRAMAS EN CADA PRODUCTO
         const pricePictograms = getPricePictogramsHtml(prod.price || 0);
 
         return `
             <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow-md flex flex-col justify-between space-y-4">
                 <div class="flex items-start space-x-4">
                     ${prodImg}
-                    <div class="space-y-1">
+                    <div class="space-y-1 w-full">
                         <h3 class="text-xl font-black text-slate-800">${prod.name}</h3>
                         <div class="text-2xl font-black text-emerald-700">$${(prod.price || 0).toLocaleString('es-CL')}</div>
                         ${pricePictograms}
@@ -427,7 +433,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// FUNCIONALIDAD ESCÁNER IA / CÁMARA
+// FUNCIONALIDAD ESCÁNER IA / JUEGO DE CÁMARA
 // ==========================================
 function openScannerModal() {
     const modal = document.getElementById('scannerModal');
@@ -451,12 +457,12 @@ function startCameraScanner() {
             video.srcObject = stream;
             video.classList.remove('hidden');
             if (placeholder) placeholder.classList.add('hidden');
-            speakText("Cámara lista. Apunta a un producto.");
+            speakText("Cámara activada. Apunta a un producto.");
         }).catch(err => {
-            alert("No se pudo acceder a la cámara. Usa el botón 'Escaneo Rápido IA'.");
+            alert("No se pudo acceder a la cámara. Usa el 'Escaneo Rápido IA'.");
         });
     } else {
-        alert("Tu navegador no soporta cámara en directo. Usa el 'Escaneo Rápido IA'.");
+        alert("Navegador no soporta vídeo directo. Usa 'Escaneo Rápido IA'.");
     }
 }
 
@@ -473,14 +479,14 @@ function stopCameraScanner() {
 
 function simulateAIScan() {
     const prods = (APP_STATE.products && APP_STATE.products.length > 0) ? APP_STATE.products : [
-        { id: 'p-demo-1', name: 'Leche Entera 1L', price: 1000, category: 'Lácteos' },
-        { id: 'p-demo-2', name: 'Pan de Molde', price: 2000, category: 'Panadería' }
+        { id: 'p-demo-1', name: 'Leche Entera 1L', price: 2000, category: 'Lácteos' },
+        { id: 'p-demo-2', name: 'Pan de Molde', price: 1000, category: 'Panadería' }
     ];
 
     const randomProd = prods[Math.floor(Math.random() * prods.length)];
     
     playChimeSound();
-    speakText(`Producto detectado: ${randomProd.name}, precio ${randomProd.price} pesos.`);
+    speakText(`Producto detectado: ${randomProd.name}, valor ${randomProd.price} pesos.`);
 
     const resContainer = document.getElementById('scannerResultContainer');
     const nameEl = document.getElementById('scannedProductName');
@@ -536,7 +542,7 @@ function toggleStudentPreview(status) {
 }
 
 // ==========================================
-// CANASTO DE COMPRAS Y PAGOS
+// CANASTO Y CAJA DE PAGO (PICTOGRAMAS Y PRECIO)
 // ==========================================
 function updateBasketBadge() {
     const badge = document.getElementById('basketBadge');
@@ -546,7 +552,7 @@ function updateBasketBadge() {
 function addToBasket(prodId) {
     let prod = (APP_STATE.products || []).find(p => String(p.id) === String(prodId));
     if (!prod) {
-        prod = { id: prodId, name: 'Producto Escaneado', price: 1000 };
+        prod = { id: prodId, name: 'Producto Escaneado', price: 2000 };
     }
     APP_STATE.basket.push({ productId: prod.id, quantity: 1 });
     playChimeSound();
@@ -591,13 +597,13 @@ function renderBasketModalContent() {
     listEl.innerHTML = (APP_STATE.basket || []).length === 0 
         ? `<p class="text-center text-slate-400 py-6 font-bold text-xs">Tu canasto está vacío.</p>`
         : APP_STATE.basket.map((item, idx) => {
-            const p = (APP_STATE.products || []).find(x => String(x.id) === String(item.productId)) || { name: 'Producto', price: 1000 };
+            const p = (APP_STATE.products || []).find(x => String(x.id) === String(item.productId)) || { name: 'Producto', price: 2000 };
             total += (p.price || 0);
             const imgHtml = p.photoUrl 
                 ? `<img src="${p.photoUrl}" class="w-10 h-10 object-cover rounded-xl border border-slate-200">`
                 : `<span class="text-2xl">${p.iconEmoji || '📦'}</span>`;
             return `
-                <div class="flex items-center justify-between p-2.5 bg-slate-50 border-2 border-slate-200 rounded-2xl text-xs font-bold">
+                <div class="flex items-center justify-between p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl text-xs font-bold">
                     <div class="flex items-center space-x-3">
                         ${imgHtml}
                         <div>
@@ -613,6 +619,7 @@ function renderBasketModalContent() {
             `;
         }).join('');
 
+    // TOTAL NUMÉRICO Y EN PICTOGRAMAS DENTRO DE LA CAJA
     if (totalEl) {
         totalEl.innerHTML = `
             <div>$${total.toLocaleString('es-CL')}</div>
@@ -621,13 +628,21 @@ function renderBasketModalContent() {
     }
     if (paidEl) paidEl.textContent = `$${(APP_STATE.userPaidAmount || 0).toLocaleString('es-CL')}`;
 
+    // DESGLOSE EN BILLETES Y MONEDAS SUGERIDOS EN CAJA
     if (breakdownEl) {
         const breakdown = calculateCLPBreakdown(total);
         breakdownEl.innerHTML = breakdown.length === 0 
-            ? `<span class="text-xs text-slate-400 font-bold">$0</span>`
-            : breakdown.map(b => `<span class="inline-block bg-amber-100 border border-amber-300 text-amber-900 px-2.5 py-1 rounded-xl text-xs font-black mr-1 mb-1">${b.count}x $${b.value.toLocaleString('es-CL')}</span>`).join('');
+            ? `<span class="text-xs text-slate-400 font-bold">$0 (Sin productos)</span>`
+            : breakdown.map(b => {
+                const imgSrc = APP_STATE.customCurrencies[b.id] || b.img;
+                return `<div class="inline-flex items-center gap-1 bg-white border border-amber-300 rounded-xl px-2 py-1 shadow-sm">
+                    <img src="${imgSrc}" class="h-8 object-contain">
+                    <span class="text-xs font-black text-amber-950">${b.count}x</span>
+                </div>`;
+            }).join('');
     }
 
+    // BANDEJA INTERACTIVA PARA PAGAR
     if (trayEl) {
         trayEl.innerHTML = CLP_CURRENCY_ITEMS.map(item => {
             const imgSrc = APP_STATE.customCurrencies[item.id] || item.img;
@@ -644,7 +659,7 @@ function renderBasketModalContent() {
 function addPaymentMoney(val) {
     APP_STATE.userPaidAmount += val;
     playChimeSound();
-    speakText(`Agregaste ${val} pesos`);
+    speakText(`Entregaste ${val} pesos`);
     renderBasketModalContent();
 }
 
@@ -657,7 +672,7 @@ function resetUserPayment() {
 function verifyAndCheckout() {
     let total = 0;
     (APP_STATE.basket || []).forEach(item => {
-        const p = (APP_STATE.products || []).find(x => String(x.id) === String(item.productId)) || { price: 1000 };
+        const p = (APP_STATE.products || []).find(x => String(x.id) === String(item.productId)) || { price: 2000 };
         total += (p.price || 0);
     });
 
@@ -699,12 +714,9 @@ function verifyAndCheckout() {
     document.getElementById('successModalPaid').textContent = `$${APP_STATE.userPaidAmount.toLocaleString('es-CL')}`;
     document.getElementById('successModalVueltoAmount').textContent = `$${vuelto.toLocaleString('es-CL')}`;
 
-    const vueltoBreakdown = calculateCLPBreakdown(vuelto);
     const vueltoContainer = document.getElementById('successModalVueltoBreakdown');
     if (vueltoContainer) {
-        vueltoContainer.innerHTML = vueltoBreakdown.length === 0
-            ? `<p class="text-xs font-bold text-slate-500">Monto exacto. No requiere vuelto.</p>`
-            : vueltoBreakdown.map(b => `<span class="inline-block bg-emerald-100 text-emerald-900 border border-emerald-300 px-3 py-1.5 rounded-xl text-xs font-black mr-1 mb-1">${b.count}x $${b.value.toLocaleString('es-CL')}</span>`).join('');
+        vueltoContainer.innerHTML = getPricePictogramsHtml(vuelto) || `<p class="text-xs font-bold text-slate-500">Monto exacto. No requiere vuelto.</p>`;
     }
 
     closeBasketModal();
