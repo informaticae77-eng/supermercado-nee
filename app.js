@@ -1134,10 +1134,7 @@ function renderTeacherCatalogTab() {
                     <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
                         <span>📦</span> <span>Productos (${(APP_STATE.products || []).length})</span>
                     </h3>
-                    <div class="flex gap-1">
-                        <button onclick="deleteAllProducts(event)" class="bg-rose-600 text-white font-black text-[10px] px-2 py-1 rounded-xl">🗑️ Todos</button>
-                        <button onclick="openProductModal()" class="bg-amber-500 text-white font-black text-xs px-2.5 py-1 rounded-xl shadow">+ Producto</button>
-                    </div>
+                    <button onclick="openProductModal()" class="bg-amber-500 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Producto</button>
                 </div>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
                     ${(APP_STATE.products || []).length === 0 ? `
@@ -1150,7 +1147,10 @@ function renderTeacherCatalogTab() {
                                 <span class="text-emerald-700 font-black block">$${(p.price || 0).toLocaleString('es-CL')}</span>
                                 ${getPricePictogramsHtml(p.price || 0)}
                             </div>
-                            <button onclick="deleteProduct('${p.id}')" class="bg-rose-100 text-rose-900 px-2 py-1 rounded-xl text-[10px]">✕</button>
+                            <div class="flex items-center gap-1">
+                                <button onclick="openProductModal('${p.id}')" class="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-xl text-[10px]">✏️ Editar</button>
+                                <button onclick="deleteProduct('${p.id}')" class="bg-rose-100 text-rose-900 px-2 py-1 rounded-xl text-[10px]">✕</button>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
@@ -1475,10 +1475,40 @@ function updateCategoryDropdowns(selectedName = null) {
     catSelect.innerHTML = list.map(c => `<option value="${c.name}" ${selectedName === c.name ? 'selected' : ''}>${c.icon || '🏷️'} ${c.name}</option>`).join('');
 }
 
+// MODAL DE PRODUCTO: SOPORTA CREAR Y EDITAR PRODUCTO EXISTENTE
 function openProductModal(prodId = null) {
     const supSelect = document.getElementById('modalProdSupermarket');
     if (supSelect) supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-    updateCategoryDropdowns();
+
+    const titleEl = document.getElementById('modalProdTitle');
+    const idInput = document.getElementById('modalProdId');
+    const nameInput = document.getElementById('modalProdName');
+    const codeInput = document.getElementById('modalProdCode');
+    const priceInput = document.getElementById('modalProdPrice');
+    const replicateInput = document.getElementById('modalProdReplicateAll');
+
+    if (prodId) {
+        const p = (APP_STATE.products || []).find(x => String(x.id) === String(prodId));
+        if (p) {
+            if (titleEl) titleEl.textContent = 'Editar Producto';
+            if (idInput) idInput.value = p.id;
+            if (nameInput) nameInput.value = p.name || '';
+            if (codeInput) codeInput.value = p.code || p.id || '';
+            if (priceInput) priceInput.value = p.price || 0;
+            if (replicateInput) replicateInput.checked = !!p.isAll;
+            if (supSelect && p.supermarketId) supSelect.value = p.supermarketId;
+            updateCategoryDropdowns(p.category);
+        }
+    } else {
+        if (titleEl) titleEl.textContent = 'Agregar Producto';
+        if (idInput) idInput.value = '';
+        if (nameInput) nameInput.value = '';
+        if (codeInput) codeInput.value = '';
+        if (priceInput) priceInput.value = '';
+        if (replicateInput) replicateInput.checked = false;
+        updateCategoryDropdowns();
+    }
+
     const el = document.getElementById('productModal');
     if (el) el.classList.remove('hidden');
 }
@@ -1517,36 +1547,6 @@ function saveProductFromModal() {
         closeProductModal();
         alert(`✅ Producto "${name}" guardado.`);
     });
-}
-
-// BORRADO MASIVO DIRECTO Y PARALELO DE PRODUCTOS
-async function deleteAllProducts(event) {
-    if (event && event.preventDefault) event.preventDefault();
-    if (!confirm("⚠️ ¿Deseas eliminar TODOS los productos del catálogo de Firebase?")) return;
-
-    if (!db) {
-        APP_STATE.products = [];
-        renderApp();
-        return;
-    }
-
-    try {
-        const snapshot = await db.collection('products').get();
-        if (snapshot.empty) {
-            APP_STATE.products = [];
-            renderApp();
-            return;
-        }
-
-        const deletePromises = snapshot.docs.map(doc => doc.ref.delete());
-        await Promise.all(deletePromises);
-
-        APP_STATE.products = [];
-        renderApp();
-        alert("🗑️ Catálogo vaciado correctamente.");
-    } catch (err) {
-        alert("Error al eliminar productos: " + err.message);
-    }
 }
 
 function deleteProduct(prodId) {
