@@ -27,13 +27,12 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
-// FUNCIÓN PARA GENERAR DATA URIS SEGURAS DE SVG
+// DATA URIS DE SVG INDESTRUCTIBLES
 // ==========================================
 function makeSvgDataUrl(svgString) {
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
 }
 
-// VECTORIALES SVG INDESTRUCTIBLES DE MONEDAS Y BILLETES CHILENOS
 const SVG_B20K_RAW = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#e67e22"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="#f39c12" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$20.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#fdebd0" text-anchor="middle">PESOS CHILENOS</text></svg>`;
 const SVG_B10K_RAW = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#2980b9"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="#5499c7" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$10.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#d4e6f1" text-anchor="middle">PESOS CHILENOS</text></svg>`;
 const SVG_B5K_RAW  = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#c0392b"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="#ec7063" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$5.000</text><text x="100" y="75" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#fadbd8" text-anchor="middle">PESOS CHILENOS</text></svg>`;
@@ -57,10 +56,10 @@ const CLP_CURRENCY_ITEMS = [
 ];
 
 const DEFAULT_SUPERMARKETS = [
-    { id: 'sup-lider', name: 'LIDER', icon: '🛒', description: 'Supermercado Lider - Variedad y Ofertas', photoUrl: '' },
-    { id: 'sup-jumbo', name: 'JUMBO', icon: '🐘', description: 'Supermercado Jumbo - Excelente Calidad', photoUrl: '' },
-    { id: 'sup-santa', name: 'SANTA ISABEL', icon: '🛍️', description: 'Santa Isabel - Tu Almacén Cercano', photoUrl: '' },
-    { id: 'sup-unimarc', name: 'UNIMARC', icon: '🍎', description: 'Unimarc - El Supermercado de Chile', photoUrl: '' }
+    { id: 'sup-lider', name: 'LIDER', icon: '🛒', description: 'Supermercado Lider', photoUrl: '' },
+    { id: 'sup-jumbo', name: 'JUMBO', icon: '🐘', description: 'Supermercado Jumbo', photoUrl: '' },
+    { id: 'sup-santa', name: 'SANTA ISABEL', icon: '🛍️', description: 'Santa Isabel', photoUrl: '' },
+    { id: 'sup-unimarc', name: 'UNIMARC', icon: '🍎', description: 'Unimarc', photoUrl: '' }
 ];
 
 const DEFAULT_CATEGORIES = [
@@ -73,11 +72,11 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const DEFAULT_SETTINGS = {
-    schoolName: "Escuela Especial & Programa de Integración Escolar PIE",
-    schoolSubHeader: "Unidad de Evaluación Psicopedagógica y Autonomía Funcional",
+    schoolName: "Escuela Especial & Programa PIE",
+    schoolSubHeader: "Unidad de Autonomía Funcional",
     schoolLogo: "",
-    footerText: "Documento oficial generado con soporte de Inteligencia Artificial pedagógica.",
-    directorName: "Dirección Académica / Equipo PIE"
+    footerText: "Informe generado con IA pedagógica.",
+    directorName: "Equipo PIE"
 };
 
 const DEFAULT_ADMIN = {
@@ -91,7 +90,7 @@ const DEFAULT_ADMIN = {
 };
 
 // ==========================================
-// ESTADO GLOBAL DE LA APLICACIÓN
+// ESTADO GLOBAL
 // ==========================================
 const APP_STATE = {
     currentUser: null,
@@ -109,12 +108,43 @@ const APP_STATE = {
     customCurrencies: {},
     settings: { ...DEFAULT_SETTINGS },
     telemetry: { voiceHelpCount: 0 },
-    missionStartTime: null
+    missionStartTime: null,
+    scannerStream: null
 };
 
 // ==========================================
-// FUNCIONES AUXILIARES: VOZ Y SONIDO
+// DESGLOSE Y PICTOGRAMAS DE PRECIOS
 // ==========================================
+function calculateCLPBreakdown(amount) {
+    let remaining = amount;
+    const result = [];
+    CLP_CURRENCY_ITEMS.forEach(item => {
+        const count = Math.floor(remaining / item.value);
+        if (count > 0) {
+            result.push({ ...item, count });
+            remaining %= item.value;
+        }
+    });
+    return result;
+}
+
+// Genera la vista visual de billetes/monedas para CUALQUIER precio
+function getPricePictogramsHtml(amount) {
+    if (!amount || amount <= 0) return '';
+    const breakdown = calculateCLPBreakdown(amount);
+    if (breakdown.length === 0) return '';
+    
+    return `<div class="flex flex-wrap items-center gap-1 mt-1 font-bold">` +
+        breakdown.map(b => {
+            const imgSrc = APP_STATE.customCurrencies[b.id] || b.img;
+            return `<div class="inline-flex items-center gap-1 bg-amber-50 border border-amber-300 rounded-lg px-1.5 py-0.5 shadow-sm" title="${b.name}">
+                <img src="${imgSrc}" class="h-6 object-contain">
+                <span class="text-[10px] font-black text-amber-950">${b.count > 1 ? b.count + 'x' : ''}</span>
+            </div>`;
+        }).join('') +
+    `</div>`;
+}
+
 function speakText(text) {
     if (APP_STATE.telemetry) APP_STATE.telemetry.voiceHelpCount++;
     if (!('speechSynthesis' in window)) return;
@@ -146,19 +176,6 @@ function playChimeSound() {
     } catch(e) {}
 }
 
-function calculateCLPBreakdown(amount) {
-    let remaining = amount;
-    const result = [];
-    CLP_CURRENCY_ITEMS.forEach(item => {
-        const count = Math.floor(remaining / item.value);
-        if (count > 0) {
-            result.push({ ...item, count });
-            remaining %= item.value;
-        }
-    });
-    return result;
-}
-
 function compressImageBase64(base64Data, maxWidth = 300, maxHeight = 300, quality = 0.75) {
     return new Promise((resolve) => {
         if (!base64Data || !base64Data.startsWith('data:image')) return resolve(base64Data || '');
@@ -187,6 +204,7 @@ function compressImageBase64(base64Data, maxWidth = 300, maxHeight = 300, qualit
 function renderApp() {
     const container = document.getElementById('appContainer');
     const headerBasketBtn = document.getElementById('headerBasketBtn');
+    const headerScannerBtn = document.getElementById('headerScannerBtn');
     const userInfoHeader = document.getElementById('userInfoHeader');
     if (!container) return;
 
@@ -194,14 +212,9 @@ function renderApp() {
         const roleTag = APP_STATE.currentUser.role === 'admin' ? '🔑 Admin General' :
                        (APP_STATE.currentUser.role === 'teacher' ? '👨‍🏫 Educador PIE' : '🎒 Alumno');
         
-        const avatarHtml = APP_STATE.currentUser.photoUrl 
-            ? `<img src="${APP_STATE.currentUser.photoUrl}" class="w-7 h-7 rounded-full object-cover border border-indigo-400">`
-            : '';
-
         if (userInfoHeader) {
             userInfoHeader.innerHTML = `
                 <div class="bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-xl text-xs flex items-center gap-2 shadow-sm">
-                    ${avatarHtml}
                     <span class="font-bold text-indigo-900">${APP_STATE.currentUser.name}</span>
                     <span class="bg-indigo-600 text-white font-black px-2 py-0.5 rounded-md text-[10px]">${roleTag}</span>
                 </div>
@@ -211,12 +224,14 @@ function renderApp() {
     } else {
         if (userInfoHeader) userInfoHeader.innerHTML = '';
         if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
+        if (headerScannerBtn) headerScannerBtn.classList.add('hidden');
         renderLoginView(container);
         return;
     }
 
     if (APP_STATE.teacherPreviewMode) {
         if (headerBasketBtn) headerBasketBtn.classList.remove('hidden');
+        if (headerScannerBtn) headerScannerBtn.classList.remove('hidden');
         renderStudentPreviewWrapper(container);
         updateBasketBadge();
         return;
@@ -224,9 +239,11 @@ function renderApp() {
 
     if (APP_STATE.currentUser.role === 'admin' || APP_STATE.currentUser.role === 'teacher') {
         if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
+        if (headerScannerBtn) headerScannerBtn.classList.add('hidden');
         renderTeacherDashboard(container);
     } else {
         if (headerBasketBtn) headerBasketBtn.classList.remove('hidden');
+        if (headerScannerBtn) headerScannerBtn.classList.remove('hidden');
         if (APP_STATE.selectedSupermarketId) {
             renderSupermarketView(container, APP_STATE.selectedSupermarketId);
         } else {
@@ -242,19 +259,19 @@ function renderLoginView(container) {
             <div class="text-center space-y-2">
                 <div class="text-5xl">🔐</div>
                 <h2 class="text-2xl font-black text-slate-800">Acceso Institucional</h2>
-                <p class="text-xs font-semibold text-slate-500">Ingresa tu RUT (o Usuario) y tu PIN</p>
+                <p class="text-xs font-semibold text-slate-500">Ingresa tu RUT y PIN</p>
             </div>
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">RUT o Usuario:</label>
-                    <input type="text" id="loginUser" value="12345678-9" placeholder="Ej: 12345678-9" class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 focus:border-indigo-500 font-bold">
+                    <input type="text" id="loginUser" value="12345678-9" class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 font-bold">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Clave / PIN:</label>
-                    <input type="password" id="loginPin" value="1234" placeholder="••••" class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 text-center text-xl tracking-widest font-black">
+                    <input type="password" id="loginPin" value="1234" class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 text-center text-xl tracking-widest font-black">
                 </div>
                 <p id="loginError" class="text-xs font-bold text-rose-600 hidden text-center">RUT o clave incorrecta.</p>
-                <button onclick="handleLogin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl border-b-4 border-indigo-900 shadow active:scale-95 text-lg">Ingresar</button>
+                <button onclick="handleLogin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl border-b-4 border-indigo-900 shadow text-lg">Ingresar</button>
             </div>
         </div>
     `;
@@ -294,14 +311,14 @@ function goHome() {
 }
 
 // ==========================================
-// MÓDULO ALUMNO: TIENDAS Y COMPRAS
+// MÓDULO ALUMNO Y ESCÁNER CON CÁMARA
 // ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
         <div class="space-y-6">
             <div class="text-center max-w-2xl mx-auto space-y-2">
                 <h2 class="text-2xl sm:text-3xl font-black text-slate-800">¡Bienvenido a Comprar! 🛍️</h2>
-                <p class="text-slate-600 font-medium">Elige un supermercado para comenzar tu compra.</p>
+                <p class="text-slate-600 font-medium">Elige un supermercado para comenzar o usa el escáner.</p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 ${(APP_STATE.supermarkets || []).map(sup => {
@@ -363,19 +380,23 @@ function renderSupermarketView(container, supId) {
         <div class="col-span-full text-center py-12 bg-white rounded-3xl border-4 border-slate-200 shadow-sm">
             <span class="text-5xl">📦</span>
             <h3 class="text-lg font-black text-slate-700 mt-2">No hay productos en esta tienda</h3>
-            <p class="text-xs font-bold text-slate-400">Pídele a tu profesor que agregue productos en el catálogo.</p>
         </div>
     ` : uniqueProducts.map(prod => {
         const prodImg = prod.photoUrl 
             ? `<img src="${prod.photoUrl}" class="w-20 h-20 object-cover rounded-2xl border border-slate-200 shadow-sm">`
             : `<span class="text-5xl">${prod.iconEmoji || '📦'}</span>`;
+            
+        // PICTOGRAMAS DEL PRECIO EN BILLETES Y MONEDAS
+        const pricePictograms = getPricePictogramsHtml(prod.price || 0);
+
         return `
             <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow-md flex flex-col justify-between space-y-4">
-                <div class="flex items-center space-x-4">
+                <div class="flex items-start space-x-4">
                     ${prodImg}
-                    <div>
+                    <div class="space-y-1">
                         <h3 class="text-xl font-black text-slate-800">${prod.name}</h3>
                         <div class="text-2xl font-black text-emerald-700">$${(prod.price || 0).toLocaleString('es-CL')}</div>
+                        ${pricePictograms}
                         <span class="inline-block bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold mt-1">${prod.category || 'General'}</span>
                     </div>
                 </div>
@@ -395,13 +416,91 @@ function renderSupermarketView(container, supId) {
                     ${supIconHtml}
                     <h2 class="text-2xl font-black text-slate-800">${sup ? sup.name : 'Supermercado'}</h2>
                 </div>
-                <div></div>
+                <button onclick="openScannerModal()" class="bg-amber-400 hover:bg-amber-500 font-black text-slate-900 px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 shadow">
+                    <span>📷 Escanear</span>
+                </button>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 ${productsHtml}
             </div>
         </div>
     `;
+}
+
+// ==========================================
+// FUNCIONALIDAD ESCÁNER IA / CÁMARA
+// ==========================================
+function openScannerModal() {
+    const modal = document.getElementById('scannerModal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeScannerModal() {
+    const modal = document.getElementById('scannerModal');
+    if (modal) modal.classList.add('hidden');
+    stopCameraScanner();
+}
+
+function startCameraScanner() {
+    const video = document.getElementById('scannerVideo');
+    const placeholder = document.getElementById('scannerPlaceholder');
+    if (!video) return;
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(stream => {
+            APP_STATE.scannerStream = stream;
+            video.srcObject = stream;
+            video.classList.remove('hidden');
+            if (placeholder) placeholder.classList.add('hidden');
+            speakText("Cámara lista. Apunta a un producto.");
+        }).catch(err => {
+            alert("No se pudo acceder a la cámara. Usa el botón 'Escaneo Rápido IA'.");
+        });
+    } else {
+        alert("Tu navegador no soporta cámara en directo. Usa el 'Escaneo Rápido IA'.");
+    }
+}
+
+function stopCameraScanner() {
+    if (APP_STATE.scannerStream) {
+        APP_STATE.scannerStream.getTracks().forEach(track => track.stop());
+        APP_STATE.scannerStream = null;
+    }
+    const video = document.getElementById('scannerVideo');
+    const placeholder = document.getElementById('scannerPlaceholder');
+    if (video) video.classList.add('hidden');
+    if (placeholder) placeholder.classList.remove('hidden');
+}
+
+function simulateAIScan() {
+    const prods = (APP_STATE.products && APP_STATE.products.length > 0) ? APP_STATE.products : [
+        { id: 'p-demo-1', name: 'Leche Entera 1L', price: 1000, category: 'Lácteos' },
+        { id: 'p-demo-2', name: 'Pan de Molde', price: 2000, category: 'Panadería' }
+    ];
+
+    const randomProd = prods[Math.floor(Math.random() * prods.length)];
+    
+    playChimeSound();
+    speakText(`Producto detectado: ${randomProd.name}, precio ${randomProd.price} pesos.`);
+
+    const resContainer = document.getElementById('scannerResultContainer');
+    const nameEl = document.getElementById('scannedProductName');
+    const priceEl = document.getElementById('scannedProductPrice');
+    const pictosEl = document.getElementById('scannedPricePictograms');
+    const addBtn = document.getElementById('scannedAddBtn');
+
+    if (nameEl) nameEl.textContent = randomProd.name;
+    if (priceEl) priceEl.textContent = `$${randomProd.price.toLocaleString('es-CL')}`;
+    if (pictosEl) pictosEl.innerHTML = getPricePictogramsHtml(randomProd.price);
+
+    if (addBtn) {
+        addBtn.onclick = function() {
+            addToBasket(randomProd.id);
+            closeScannerModal();
+        };
+    }
+
+    if (resContainer) resContainer.classList.remove('hidden');
 }
 
 function renderStudentPreviewWrapper(container) {
@@ -446,8 +545,10 @@ function updateBasketBadge() {
 }
 
 function addToBasket(prodId) {
-    const prod = (APP_STATE.products || []).find(p => String(p.id) === String(prodId));
-    if (!prod) return;
+    let prod = (APP_STATE.products || []).find(p => String(p.id) === String(prodId));
+    if (!prod) {
+        prod = { id: prodId, name: 'Producto Escaneado', price: 1000 };
+    }
     APP_STATE.basket.push({ productId: prod.id, quantity: 1 });
     playChimeSound();
     updateBasketBadge();
@@ -491,8 +592,7 @@ function renderBasketModalContent() {
     listEl.innerHTML = (APP_STATE.basket || []).length === 0 
         ? `<p class="text-center text-slate-400 py-6 font-bold text-xs">Tu canasto está vacío.</p>`
         : APP_STATE.basket.map((item, idx) => {
-            const p = (APP_STATE.products || []).find(x => String(x.id) === String(item.productId));
-            if (!p) return '';
+            const p = (APP_STATE.products || []).find(x => String(x.id) === String(item.productId)) || { name: 'Producto', price: 1000 };
             total += (p.price || 0);
             const imgHtml = p.photoUrl 
                 ? `<img src="${p.photoUrl}" class="w-10 h-10 object-cover rounded-xl border border-slate-200">`
@@ -501,7 +601,10 @@ function renderBasketModalContent() {
                 <div class="flex items-center justify-between p-2.5 bg-slate-50 border-2 border-slate-200 rounded-2xl text-xs font-bold">
                     <div class="flex items-center space-x-3">
                         ${imgHtml}
-                        <span class="text-slate-800 font-black text-sm">${p.name}</span>
+                        <div>
+                            <span class="text-slate-800 font-black text-sm block">${p.name}</span>
+                            ${getPricePictogramsHtml(p.price || 0)}
+                        </div>
                     </div>
                     <div class="flex items-center gap-3">
                         <span class="font-black text-emerald-700 text-base">$${(p.price || 0).toLocaleString('es-CL')}</span>
@@ -511,7 +614,12 @@ function renderBasketModalContent() {
             `;
         }).join('');
 
-    if (totalEl) totalEl.textContent = `$${total.toLocaleString('es-CL')}`;
+    if (totalEl) {
+        totalEl.innerHTML = `
+            <div>$${total.toLocaleString('es-CL')}</div>
+            ${getPricePictogramsHtml(total)}
+        `;
+    }
     if (paidEl) paidEl.textContent = `$${(APP_STATE.userPaidAmount || 0).toLocaleString('es-CL')}`;
 
     if (breakdownEl) {
@@ -550,8 +658,8 @@ function resetUserPayment() {
 function verifyAndCheckout() {
     let total = 0;
     (APP_STATE.basket || []).forEach(item => {
-        const p = (APP_STATE.products || []).find(x => String(x.id) === String(item.productId));
-        if (p) total += (p.price || 0);
+        const p = (APP_STATE.products || []).find(x => String(x.id) === String(item.productId)) || { price: 1000 };
+        total += (p.price || 0);
     });
 
     if (total === 0) return alert("Tu canasto está vacío.");
@@ -612,7 +720,7 @@ function closeSuccessModalAndFinish() {
 }
 
 // ==========================================
-// PANEL DOCENTE Y ADMINISTRACIÓN GENERAL
+// PANEL DOCENTE
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -671,9 +779,6 @@ function renderTeacherDashboard(container) {
     `;
 }
 
-// ------------------------------------------
-// PESTAÑA 1: EVALUACIONES E INFORMES CON IA
-// ------------------------------------------
 function renderTeacherHomeTab() {
     const totalEvals = (APP_STATE.evaluations || []).length;
     const avgTime = totalEvals > 0 ? Math.round(APP_STATE.evaluations.reduce((a, e) => a + (e.timeSeconds || 0), 0) / totalEvals) : 0;
@@ -856,19 +961,15 @@ function sendReportByEmail() {
     }
 }
 
-// ------------------------------------------
-// PESTAÑA 2: CATÁLOGO, TIENDAS Y CATEGORÍAS
-// ------------------------------------------
 function renderTeacherCatalogTab() {
     return `
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- COLUMNA 1: SUPERMERCADOS -->
             <div class="bg-white p-5 rounded-3xl border-4 border-emerald-300 shadow-md space-y-4">
                 <div class="flex justify-between items-center border-b pb-3">
                     <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
                         <span>🏪</span> <span>Supermercados</span>
                     </h3>
-                    <button onclick="openSupermarketModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Tienda</button>
+                    <button onclick="openSupermarketModal()" class="bg-emerald-600 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Tienda</button>
                 </div>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
                     ${(APP_STATE.supermarkets || []).map(s => `
@@ -880,13 +981,12 @@ function renderTeacherCatalogTab() {
                 </div>
             </div>
 
-            <!-- COLUMNA 2: CATEGORÍAS CON ÍCONOS -->
             <div class="bg-white p-5 rounded-3xl border-4 border-indigo-300 shadow-md space-y-4">
                 <div class="flex justify-between items-center border-b pb-3">
                     <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
                         <span>🏷️</span> <span>Categorías (${(APP_STATE.categories || []).length})</span>
                     </h3>
-                    <button onclick="openCategoryModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Categoría</button>
+                    <button onclick="openCategoryModal()" class="bg-indigo-600 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Categoría</button>
                 </div>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
                     ${(APP_STATE.categories || []).map(c => `
@@ -898,15 +998,14 @@ function renderTeacherCatalogTab() {
                 </div>
             </div>
 
-            <!-- COLUMNA 3: CATÁLOGO DE PRODUCTOS -->
             <div class="bg-white p-5 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
                 <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
                     <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
                         <span>📦</span> <span>Productos (${(APP_STATE.products || []).length})</span>
                     </h3>
                     <div class="flex gap-1">
-                        <button onclick="deleteAllProducts()" class="bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] px-2 py-1 rounded-xl">🗑️ Todos</button>
-                        <button onclick="openProductModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-xs px-2.5 py-1 rounded-xl shadow">+ Producto</button>
+                        <button onclick="deleteAllProducts()" class="bg-rose-600 text-white font-black text-[10px] px-2 py-1 rounded-xl">🗑️ Todos</button>
+                        <button onclick="openProductModal()" class="bg-amber-500 text-white font-black text-xs px-2.5 py-1 rounded-xl shadow">+ Producto</button>
                     </div>
                 </div>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
@@ -917,7 +1016,7 @@ function renderTeacherCatalogTab() {
                             <div>
                                 <span class="font-black text-slate-800">${p.name}</span>
                                 <span class="text-emerald-700 font-black"> $${(p.price || 0).toLocaleString('es-CL')}</span>
-                                <span class="text-slate-400 text-[10px]"> (${p.category || 'General'})</span>
+                                ${getPricePictogramsHtml(p.price || 0)}
                             </div>
                             <button onclick="deleteProduct('${p.id}')" class="bg-rose-100 text-rose-900 px-2 py-1 rounded-xl text-[10px]">✕</button>
                         </div>
@@ -928,9 +1027,6 @@ function renderTeacherCatalogTab() {
     `;
 }
 
-// ------------------------------------------
-// PESTAÑA 3: MONEDAS Y FOTOS CON CARGA PERSONALIZADA Y SVGS ENCODED
-// ------------------------------------------
 function renderTeacherCurrencyTab() {
     return `
         <div class="bg-white p-6 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
@@ -938,7 +1034,6 @@ function renderTeacherCurrencyTab() {
                 <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
                     <span>💵</span> <span>Billetes y Monedas Chilenas (CLP)</span>
                 </h3>
-                <p class="text-xs text-slate-500 font-bold">Haz clic en '📁 Cambiar Imagen' en cualquier billete o moneda para subir tu propia fotografía o diseño visual.</p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 ${CLP_CURRENCY_ITEMS.map(item => {
@@ -951,13 +1046,13 @@ function renderTeacherCurrencyTab() {
                                 <img src="${currentImg}" class="max-h-full max-w-full object-contain">
                             </div>
                             <div class="w-full space-y-1">
-                                <label class="block bg-indigo-600 hover:bg-indigo-700 text-white font-black py-1.5 rounded-xl text-[10px] cursor-pointer shadow text-center">
+                                <label class="block bg-indigo-600 text-white font-black py-1.5 rounded-xl text-[10px] cursor-pointer shadow text-center">
                                     📁 Cambiar Imagen
                                     <input type="file" accept="image/*" class="hidden" onchange="uploadCustomCurrencyImage(event, '${item.id}')">
                                 </label>
                                 ${isCustom ? `
-                                    <button onclick="resetCustomCurrencyImage('${item.id}')" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-1 rounded-xl text-[9px]">
-                                        🔄 Restablecer Vector
+                                    <button onclick="resetCustomCurrencyImage('${item.id}')" class="w-full bg-slate-200 text-slate-700 font-bold py-1 rounded-xl text-[9px]">
+                                        🔄 Restablecer
                                     </button>
                                 ` : ''}
                             </div>
@@ -981,7 +1076,7 @@ function uploadCustomCurrencyImage(event, itemId) {
             }
             try { localStorage.setItem('nee_custom_currencies', JSON.stringify(APP_STATE.customCurrencies)); } catch(err) {}
             renderApp();
-            alert("✅ Imagen de moneda/billete cargada exitosamente.");
+            alert("✅ Imagen cargada exitosamente.");
         });
     };
     reader.readAsDataURL(file);
@@ -998,78 +1093,57 @@ function resetCustomCurrencyImage(itemId) {
     renderApp();
 }
 
-// ------------------------------------------
-// PESTAÑA 4: GESTIÓN DE USUARIOS Y CURSOS
-// ------------------------------------------
 function renderTeacherUsersTab() {
     const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
 
     return `
         <div class="space-y-6">
-            <!-- SECCIÓN CURSOS -->
             <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-sm space-y-4">
                 <div class="flex justify-between items-center border-b pb-3">
                     <div>
                         <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
                             <span>🏫</span> <span>Cursos Registrados</span>
                         </h3>
-                        <p class="text-xs text-slate-500 font-bold">Niveles educativos configurados en la escuela.</p>
                     </div>
-                    <button onclick="addNewCoursePrompt()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow active:scale-95">
+                    <button onclick="addNewCoursePrompt()" class="bg-emerald-600 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow">
                         + Crear Curso
                     </button>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                     ${(APP_STATE.courses || []).length === 0 ? `
-                        <p class="col-span-full text-xs text-slate-400 italic text-center py-2">No hay cursos creados. Haz clic en '+ Crear Curso'.</p>
+                        <p class="col-span-full text-xs text-slate-400 italic text-center py-2">No hay cursos creados.</p>
                     ` : (APP_STATE.courses || []).map(c => `
                         <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl flex justify-between items-center font-bold text-xs">
                             <span class="text-slate-800 font-black">${c.name}</span>
-                            <button onclick="deleteCourse('${c.id}')" class="text-rose-600 hover:text-rose-800 font-black px-2 py-1 rounded-lg bg-rose-50">✕</button>
+                            <button onclick="deleteCourse('${c.id}')" class="text-rose-600 font-black px-2 py-1 rounded-lg bg-rose-50">✕</button>
                         </div>
                     `).join('')}
                 </div>
             </div>
 
-            <!-- SECCIÓN DE USUARIOS: ADMIN, EDUCADOR Y ESTUDIANTE -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- COLUMNA 1: ADMIN GENERAL -->
                 <div class="bg-white p-5 rounded-3xl border-4 border-purple-200 shadow space-y-4">
                     <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
-                            <span>🔑</span> Admin General
-                        </h3>
-                        ${isAdmin ? `<button onclick="openCreateUserModal('admin')" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Admin</button>` : `<span class="text-[10px] font-black text-slate-400">Protegido</span>`}
+                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">🔑 Admin General</h3>
+                        ${isAdmin ? `<button onclick="openCreateUserModal('admin')" class="bg-purple-600 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Admin</button>` : ''}
                     </div>
-                    <div class="space-y-2 max-h-96 overflow-y-auto">
-                        ${renderUserRoleList('admin')}
-                    </div>
+                    <div class="space-y-2 max-h-96 overflow-y-auto">${renderUserRoleList('admin')}</div>
                 </div>
 
-                <!-- COLUMNA 2: EDUCADORES PIE -->
                 <div class="bg-white p-5 rounded-3xl border-4 border-indigo-200 shadow space-y-4">
                     <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
-                            <span>👨‍🏫</span> Educadores PIE
-                        </h3>
-                        ${isAdmin ? `<button onclick="openCreateUserModal('teacher')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Educador</button>` : `<span class="text-[10px] font-black text-slate-400">Protegido</span>`}
+                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">👨‍🏫 Educadores PIE</h3>
+                        ${isAdmin ? `<button onclick="openCreateUserModal('teacher')" class="bg-indigo-600 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Educador</button>` : ''}
                     </div>
-                    <div class="space-y-2 max-h-96 overflow-y-auto">
-                        ${renderUserRoleList('teacher')}
-                    </div>
+                    <div class="space-y-2 max-h-96 overflow-y-auto">${renderUserRoleList('teacher')}</div>
                 </div>
 
-                <!-- COLUMNA 3: ESTUDIANTES -->
                 <div class="bg-white p-5 rounded-3xl border-4 border-emerald-200 shadow space-y-4">
                     <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
-                            <span>🎒</span> Estudiantes
-                        </h3>
-                        <button onclick="openCreateUserModal('student')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Alumno</button>
+                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">🎒 Estudiantes</h3>
+                        <button onclick="openCreateUserModal('student')" class="bg-emerald-600 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Alumno</button>
                     </div>
-                    <div class="space-y-2 max-h-96 overflow-y-auto">
-                        ${renderUserRoleList('student')}
-                    </div>
+                    <div class="space-y-2 max-h-96 overflow-y-auto">${renderUserRoleList('student')}</div>
                 </div>
             </div>
         </div>
@@ -1087,8 +1161,8 @@ function renderUserRoleList(role) {
                 <span class="text-indigo-950 font-black">${u.name}</span>
                 <div class="space-x-1">
                     ${(isAdmin || role === 'student') ? `
-                        <button onclick="openEditUserModal('${u.id}')" class="text-amber-600 hover:text-amber-800 font-extrabold">✏️</button>
-                        <button onclick="deleteUser('${u.id}')" class="text-rose-600 hover:text-rose-800 font-extrabold">✕</button>
+                        <button onclick="openEditUserModal('${u.id}')" class="text-amber-600 font-extrabold">✏️</button>
+                        <button onclick="deleteUser('${u.id}')" class="text-rose-600 font-extrabold">✕</button>
                     ` : ''}
                 </div>
             </div>
@@ -1096,62 +1170,42 @@ function renderUserRoleList(role) {
                 <div>RUT: <b>${u.rut || 'N/A'}</b> | Clave: <code class="bg-slate-200 px-1 py-0.5 rounded text-indigo-900 font-black">${u.pin}</code></div>
                 <div>📧 ${u.email || 'Sin correo'}</div>
             </div>
-            ${(isAdmin || role === 'student') ? `
-                <div class="flex gap-1 pt-1">
-                    <button onclick="resetUserPassword('${u.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-black px-2 py-1 rounded-xl text-[10px] w-full">🔄 Reset Clave</button>
-                    <button onclick="sendAutomaticCredentialsEmail(APP_STATE.users.find(x=>x.id==='${u.id}'))" class="bg-sky-100 hover:bg-sky-200 text-sky-900 font-black px-2 py-1 rounded-xl text-[10px] w-full">✉️ Correo</button>
-                </div>
-            ` : ''}
         </div>
     `).join('');
 }
 
-// ------------------------------------------
-// PESTAÑA 5: PLANTILLA Y LOGO
-// ------------------------------------------
 function renderTeacherSettingsTab() {
     const st = APP_STATE.settings || DEFAULT_SETTINGS;
     return `
         <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow-md space-y-6 max-w-4xl mx-auto">
             <div class="border-b pb-3">
                 <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                    <span>⚙️</span> <span>Diseñador de Plantilla Institucional de Informes (PDF)</span>
+                    <span>⚙️</span> <span>Diseñador de Plantilla Institucional (PDF)</span>
                 </h3>
-                <p class="text-xs text-slate-500 font-bold mt-1">Configura el membrete, logo e insignia de la escuela para los informes en PDF emitidos con IA.</p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Nombre de la Escuela / Colegio:</label>
-                        <input type="text" id="settingSchoolName" value="${st.schoolName || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs focus:border-indigo-500">
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Nombre Colegio:</label>
+                        <input type="text" id="settingSchoolName" value="${st.schoolName || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
                     </div>
                     <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Subtítulo / Unidad PIE:</label>
-                        <input type="text" id="settingSubHeader" value="${st.schoolSubHeader || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs focus:border-indigo-500">
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Unidad PIE:</label>
+                        <input type="text" id="settingSubHeader" value="${st.schoolSubHeader || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
                     </div>
                     <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Dirección Académica / Firma:</label>
-                        <input type="text" id="settingDirectorName" value="${st.directorName || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Pie de Página Oficial PDF:</label>
-                        <textarea id="settingFooterText" rows="2" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs focus:border-indigo-500">${st.footerText || ''}</textarea>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Dirección / Firma:</label>
+                        <input type="text" id="settingDirectorName" value="${st.directorName || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
                     </div>
                 </div>
                 <div class="space-y-4 flex flex-col justify-between">
                     <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Logo Institucional (Cargar Imagen):</label>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Logo (Imagen):</label>
                         <input type="file" accept="image/*" onchange="handleSchoolLogoUpload(event)" class="w-full text-xs font-bold text-slate-600 border border-slate-300 p-2 rounded-xl">
                         <input type="hidden" id="settingSchoolLogo" value="${st.schoolLogo || ''}">
                     </div>
-                    <div class="border-2 border-dashed border-indigo-200 p-4 rounded-2xl flex flex-col items-center justify-center text-center space-y-2 bg-indigo-50/50">
-                        <span class="text-xs font-black text-indigo-900">Vista Previa del Logo</span>
-                        <div id="schoolLogoPreviewContainer" class="w-full h-28 flex items-center justify-center">
-                            ${st.schoolLogo ? `<img src="${st.schoolLogo}" class="h-full object-contain">` : `<span class="text-xs text-slate-400 font-bold">Sin logo seleccionado</span>`}
-                        </div>
-                    </div>
-                    <button onclick="saveInstitutionalSettings()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl text-xs uppercase shadow border-b-4 border-emerald-900 active:scale-95">
-                        💾 Guardar Plantilla Institucional PDF
+                    <button onclick="saveInstitutionalSettings()" class="w-full bg-emerald-600 text-white font-black py-3 rounded-xl text-xs uppercase shadow">
+                        💾 Guardar Plantilla
                     </button>
                 </div>
             </div>
@@ -1166,8 +1220,6 @@ function handleSchoolLogoUpload(event) {
     reader.onload = function(e) {
         compressImageBase64(e.target.result, 300, 300).then(compressed => {
             document.getElementById('settingSchoolLogo').value = compressed;
-            const container = document.getElementById('schoolLogoPreviewContainer');
-            if (container) container.innerHTML = `<img src="${compressed}" class="h-full object-contain">`;
         });
     };
     reader.readAsDataURL(file);
@@ -1178,20 +1230,19 @@ function saveInstitutionalSettings() {
         schoolName: document.getElementById('settingSchoolName').value.trim(),
         schoolSubHeader: document.getElementById('settingSubHeader').value.trim(),
         directorName: document.getElementById('settingDirectorName').value.trim(),
-        footerText: document.getElementById('settingFooterText').value.trim(),
         schoolLogo: document.getElementById('settingSchoolLogo').value
     };
 
     if (db) {
         db.collection('settings').doc('institutional').set(settingsData, { merge: true }).then(() => {
             APP_STATE.settings = settingsData;
-            alert("✅ Configuración de plantilla guardada exitosamente.");
+            alert("✅ Configuración guardada.");
         });
     }
 }
 
 // ==========================================
-// CONTROLADORES DE MODALES Y OPERACIONES
+// MODALES Y OPERACIONES
 // ==========================================
 function updateCategoryDropdowns(selectedName = null) {
     const catSelect = document.getElementById('modalProdCategory');
@@ -1309,7 +1360,7 @@ function saveCategoryFromModal() {
     db.collection('categories').doc(id).set({ id, name, icon: icon || '🏷️' }).then(() => {
         closeCategoryModal();
         updateCategoryDropdowns(name);
-        alert(`✅ Categoría "${icon} ${name}" creada exitosamente.`);
+        alert(`✅ Categoría "${icon} ${name}" creada.`);
     });
 }
 
@@ -1366,7 +1417,7 @@ function saveUserFromModal() {
 
     db.collection('users').doc(id).set({ id, role, name, rut, username: rut, email, pin }, { merge: true }).then(() => {
         closeUserModal();
-        alert("✅ Usuario guardado exitosamente.");
+        alert("✅ Usuario guardado.");
     });
 }
 
@@ -1376,30 +1427,8 @@ function deleteUser(id) {
     }
 }
 
-function resetUserPassword(userId) {
-    const user = (APP_STATE.users || []).find(u => String(u.id) === String(userId));
-    if (!user || !db) return;
-    const initialPin = user.rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
-    db.collection('users').doc(userId).update({ pin: initialPin }).then(() => {
-        alert(`🔒 Clave de ${user.name} reiniciada a: ${initialPin}`);
-    });
-}
-
-function sendAutomaticCredentialsEmail(user) {
-    if (!user || !user.email) return alert("El usuario no tiene un correo registrado.");
-    if (typeof emailjs !== 'undefined') {
-        emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
-            to_email: user.email,
-            to_name: user.name,
-            user_rut: user.rut,
-            user_pin: user.pin,
-            app_url: window.location.href
-        }, EMAILJS_CONFIG.publicKey).then(() => alert("✉️ Credenciales enviadas por correo a: " + user.email));
-    }
-}
-
 function addNewCoursePrompt() {
-    const courseName = prompt("Nombre del nuevo curso (Ej: 1° Básico A, Taller Laboral 2):");
+    const courseName = prompt("Nombre del nuevo curso:");
     if (!courseName || !courseName.trim() || !db) return;
     const id = 'course-' + Date.now();
     db.collection('courses').doc(id).set({ id, name: courseName.trim() });
@@ -1477,7 +1506,6 @@ function initFirebaseListeners() {
     } catch(e) { renderApp(); }
 }
 
-// INICIALIZACIÓN PROTEGIDA
 function mainInit() {
     initFirebaseListeners();
     renderApp();
