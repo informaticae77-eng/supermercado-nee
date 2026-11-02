@@ -134,12 +134,12 @@ function getPricePictogramsHtml(amount) {
     const breakdown = calculateCLPBreakdown(amount);
     if (breakdown.length === 0) return '';
     
-    return `<div class="flex flex-wrap items-center gap-1 mt-1 font-bold">` +
+    return `<div class="flex flex-wrap items-center gap-1.5 mt-1.5 font-bold">` +
         breakdown.map(b => {
             const imgSrc = APP_STATE.customCurrencies[b.id] || b.img;
-            return `<div class="inline-flex items-center gap-1 bg-amber-50 border border-amber-300 rounded-lg px-1.5 py-0.5 shadow-sm" title="${b.name}">
-                <img src="${imgSrc}" class="h-6 object-contain">
-                <span class="text-[10px] font-black text-amber-950">${b.count > 1 ? b.count + 'x' : ''}</span>
+            return `<div class="inline-flex items-center gap-1 bg-amber-50 border border-amber-300 rounded-lg px-2 py-1 shadow-sm" title="${b.name}">
+                <img src="${imgSrc}" class="h-7 object-contain">
+                <span class="text-[11px] font-black text-amber-950">${b.count > 1 ? b.count + 'x' : ''}</span>
             </div>`;
         }).join('') +
     `</div>`;
@@ -386,7 +386,6 @@ function renderSupermarketView(container, supId) {
             ? `<img src="${prod.photoUrl}" class="w-20 h-20 object-cover rounded-2xl border border-slate-200 shadow-sm">`
             : `<span class="text-5xl">${prod.iconEmoji || '📦'}</span>`;
             
-        // PICTOGRAMAS DEL PRECIO EN BILLETES Y MONEDAS
         const pricePictograms = getPricePictogramsHtml(prod.price || 0);
 
         return `
