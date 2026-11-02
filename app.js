@@ -311,7 +311,7 @@ function goHome() {
 }
 
 // ==========================================
-// VISTA ESTUDIANTE Y SUPERMERCADO
+// VISTA ESTUDIANTE Y SELECCIÓN CON VOZ
 // ==========================================
 function renderHomeView(container) {
     container.innerHTML = `
@@ -338,9 +338,17 @@ function renderHomeView(container) {
     `;
 }
 
+// SELECCIONAR SUPERMERCADO CON GUIADO POR VOZ
 function selectSupermarket(id) {
     APP_STATE.selectedSupermarketId = String(id);
     APP_STATE.missionStartTime = Date.now();
+
+    const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(id));
+    const supName = sup ? sup.name : 'Supermercado';
+
+    // Voz de bienvenida al ingresar a la tienda
+    speakText(`Entraste al supermercado ${supName}. ¡Buena suerte en tu compra!`);
+
     renderApp();
 }
 
@@ -830,7 +838,7 @@ function closeSuccessModalAndFinish() {
 }
 
 // ==========================================
-// PANEL DOCENTE Y LAS 5 PESTAÑAS
+// PANEL DOCENTE Y PESTAÑAS
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -1071,6 +1079,7 @@ function sendReportByEmail() {
     }
 }
 
+// CATÁLOGO CON BOTÓN EDITAR Y ELIMINAR SUPERMERCADO
 function renderTeacherCatalogTab() {
     return `
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1093,7 +1102,10 @@ function renderTeacherCatalogTab() {
                                     ${imgHtml}
                                     <span class="font-black text-slate-800">${s.name}</span>
                                 </div>
-                                <button onclick="openSupermarketModal('${s.id}')" class="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-xl text-[10px]">✏️ Editar</button>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="openSupermarketModal('${s.id}')" class="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-xl text-[10px]">✏️ Editar</button>
+                                    <button onclick="deleteSupermarket('${s.id}')" class="bg-rose-100 text-rose-900 px-2 py-1 rounded-xl text-[10px]">✕</button>
+                                </div>
                             </div>
                         `;
                     }).join('')}
@@ -1362,7 +1374,7 @@ function saveInstitutionalSettings() {
 }
 
 // ==========================================
-// GESTIÓN DE SUPERMERCADOS (NOMBRE Y LOGO)
+// GESTIÓN DE SUPERMERCADOS (CREAR, EDITAR Y ELIMINAR)
 // ==========================================
 function handleSupermarketLogoUpload(event) {
     const file = event.target.files[0];
@@ -1440,6 +1452,20 @@ function saveSupermarketFromModal() {
         closeSupermarketModal();
         alert(`✅ Supermercado "${name}" guardado con éxito.`);
     });
+}
+
+// ELIMINAR SUPERMERCADO DESDE EL PANEL
+function deleteSupermarket(supId) {
+    const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId));
+    const name = sup ? sup.name : 'este supermercado';
+
+    if (confirm(`¿Estás seguro de que deseas eliminar el supermercado "${name}"?`) && db) {
+        db.collection('supermarkets').doc(supId).delete().then(() => {
+            alert(`✅ Supermercado "${name}" eliminado correctamente.`);
+        }).catch(err => {
+            alert("Error al eliminar: " + err.message);
+        });
+    }
 }
 
 // ==========================================
