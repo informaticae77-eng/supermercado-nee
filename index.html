@@ -15,6 +15,25 @@
     <!-- Firebase SDK (v8) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- Librería para Escáner de Cámara y Código de Barras / QR / ID -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        @keyframes laserMove {
+            0% { top: 10%; }
+            50% { top: 85%; }
+            100% { top: 10%; }
+        }
+        .laser-line {
+            position: absolute;
+            left: 5%;
+            right: 5%;
+            height: 3px;
+            background-color: #ef4444;
+            box-shadow: 0 0 12px #ef4444, 0 0 4px #f87171;
+            animation: laserMove 2s infinite ease-in-out;
+            z-index: 20;
+        }
+    </style>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800 font-sans antialiased p-3 sm:p-6">
 
@@ -43,7 +62,7 @@
     <!-- CONTENEDOR PRINCIPAL -->
     <main id="appContainer" class="max-w-7xl mx-auto"></main>
 
-    <!-- MODAL 1: CANASTO DE COMPRAS Y BANDEJA DE DINERO (CAJA/PAGO) -->
+    <!-- MODAL 1: CAJA REGISTRADORA Y BILLETERA DEL ESTUDIANTE -->
     <div id="basketModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden overflow-y-auto">
         <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6 shadow-2xl">
             <div class="flex justify-between items-center border-b pb-3">
@@ -66,7 +85,6 @@
                 </div>
             </div>
 
-            <!-- SECCIÓN CON BILLETERA / DINERO SELECCIONADO POR EL ALUMNO -->
             <div>
                 <label class="block text-xs font-black text-slate-700 uppercase mb-2">BILLETES Y MONEDAS SELECCIONADOS POR EL ESTUDIANTE:</label>
                 <div id="basketCurrencyBreakdown" class="flex flex-wrap gap-2 p-3 bg-amber-50/50 border-2 border-amber-300 rounded-2xl min-h-[60px] items-center"></div>
@@ -119,37 +137,46 @@
         </div>
     </div>
 
-    <!-- MODAL 4: JUEGO ESCÁNER IA DE PRODUCTOS CON CÁMARA -->
+    <!-- MODAL 4: JUEGO / ACTIVIDAD ESCÁNER IA DE PRODUCTOS CON CÁMARA E IDENTIFICACIÓN -->
     <div id="scannerModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl text-center relative">
             <div class="flex justify-between items-center border-b pb-3">
                 <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                    <span>📷</span> <span>Escáner IA de Productos</span>
+                    <span>📷</span> <span>Juego del Escáner de Productos</span>
                 </h3>
                 <button onclick="closeScannerModal()" class="text-rose-600 font-bold bg-rose-50 px-3 py-1 rounded-xl">✕ Cerrar</button>
             </div>
             
-            <p class="text-xs text-slate-600 font-bold">Apunta la cámara al producto o pulsa Escaneo Rápido para escuchar su nombre y ver sus billetes/monedas.</p>
-            
-            <div class="relative bg-slate-900 rounded-2xl h-56 flex items-center justify-center overflow-hidden border-4 border-amber-400">
-                <video id="scannerVideo" autoplay playsinline class="w-full h-full object-cover hidden"></video>
-                <div id="scannerOverlay" class="absolute inset-0 border-4 border-dashed border-amber-300 m-8 rounded-xl pointer-events-none animate-pulse flex items-center justify-center">
-                    <span class="bg-amber-400 text-slate-900 font-black text-[10px] px-2 py-1 rounded shadow">ÁREA DE ESCÁNER IA</span>
+            <p class="text-xs text-slate-600 font-bold">Apunta la cámara al producto para identificar su ID/Código o realiza un escaneo rápido.</p>
+
+            <div class="relative bg-slate-950 rounded-2xl h-64 flex items-center justify-center overflow-hidden border-4 border-amber-400 shadow-inner">
+                <div id="qrScannerReader" class="w-full h-full object-cover"></div>
+                <div id="scannerOverlay" class="absolute inset-0 border-4 border-dashed border-amber-300 m-6 rounded-xl pointer-events-none flex flex-col items-center justify-center">
+                    <div class="laser-line" id="laserLine" style="display: none;"></div>
+                    <span class="bg-amber-400 text-slate-950 font-black text-[10px] px-2 py-1 rounded shadow z-10">LÁSER ESCÁNER IA DE PRODUCTOS</span>
                 </div>
-                <div id="scannerPlaceholder" class="text-slate-400 text-xs font-bold p-4">
-                    <span>📷 Haz clic en "Activar Cámara" o "Escaneo Rápido IA"</span>
+                <div id="scannerPlaceholder" class="text-slate-300 text-xs font-bold p-4 text-center z-10">
+                    <span class="block text-3xl mb-2">🔍</span>
+                    <span>Presiona "Activar Cámara Escáner" para identificar productos por ID o Código de Barras en vivo</span>
                 </div>
             </div>
 
             <div class="flex gap-2">
-                <button onclick="startCameraScanner()" class="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2.5 rounded-xl text-xs shadow">📹 Activar Cámara</button>
-                <button onclick="simulateAIScan()" class="w-1/2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-2.5 rounded-xl text-xs shadow">⚡ Escaneo Rápido IA</button>
+                <button onclick="startCameraScanner()" class="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1.5">
+                    <span>📹</span> <span>Activar Cámara</span>
+                </button>
+                <button onclick="simulateAIScan()" class="w-1/2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1.5">
+                    <span>⚡</span> <span>Escaneo Rápido IA</span>
+                </button>
             </div>
 
             <div id="scannerResultContainer" class="hidden p-4 bg-emerald-50 border-2 border-emerald-300 rounded-2xl text-left space-y-2">
                 <div class="flex items-center justify-between">
-                    <span id="scannedProductName" class="font-black text-slate-800 text-base"></span>
-                    <span id="scannedProductPrice" class="font-black text-emerald-700 text-lg"></span>
+                    <div>
+                        <span id="scannedProductName" class="font-black text-slate-800 text-base block"></span>
+                        <span id="scannedProductID" class="text-[10px] font-bold text-slate-500 uppercase"></span>
+                    </div>
+                    <span id="scannedProductPrice" class="font-black text-emerald-700 text-xl"></span>
                 </div>
                 <div id="scannedPricePictograms"></div>
                 <button id="scannedAddBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 rounded-xl text-xs shadow mt-2">🛒 Añadir al Canasto</button>
@@ -165,6 +192,10 @@
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre del Producto:</label>
                 <input type="text" id="modalProdName" placeholder="Ej: Leche Entera 1L" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Código ID / Código de Barras:</label>
+                <input type="text" id="modalProdCode" placeholder="Ej: 780123456789 o PROD-01" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div>
@@ -263,6 +294,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=800000"></script>
+    <script src="app.js?v=900000"></script>
 </body>
 </html>
