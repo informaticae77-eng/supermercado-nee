@@ -345,7 +345,6 @@ function selectSupermarket(id) {
     const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(id));
     const supName = sup ? sup.name : 'Supermercado';
 
-    // Guiado por voz
     speakText(`Entraste al supermercado ${supName}. ¡Buena suerte en tu compra!`);
 
     renderApp();
@@ -1139,20 +1138,32 @@ function renderTeacherCatalogTab() {
                 <div class="space-y-2 max-h-96 overflow-y-auto">
                     ${(APP_STATE.products || []).length === 0 ? `
                         <p class="text-xs text-slate-400 italic py-4 text-center">No hay productos en el catálogo.</p>
-                    ` : (APP_STATE.products || []).map(p => `
-                        <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
-                            <div>
-                                <span class="font-black text-slate-800">${p.name}</span>
-                                <span class="bg-indigo-100 text-indigo-900 text-[9px] font-black px-1.5 py-0.5 rounded ml-1">ID: ${p.code || p.id}</span>
-                                <span class="text-emerald-700 font-black block">$${(p.price || 0).toLocaleString('es-CL')}</span>
-                                ${getPricePictogramsHtml(p.price || 0)}
+                    ` : (APP_STATE.products || []).map(p => {
+                        const isAll = p.isAll === true || p.supermarketId === 'ALL' || p.supermarketName === 'TODOS';
+                        let supBadge = '';
+                        if (isAll) {
+                            supBadge = `<span class="inline-block bg-sky-100 text-sky-900 text-[10px] font-black px-2 py-0.5 rounded-md my-0.5">🌐 Disponible en: Todos los supermercados</span>`;
+                        } else {
+                            const matchedSup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(p.supermarketId));
+                            const supName = matchedSup ? matchedSup.name : (p.supermarketName || 'Supermercado');
+                            supBadge = `<span class="inline-block bg-amber-100 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded-md my-0.5">🏪 Solo en: ${supName}</span>`;
+                        }
+                        return `
+                            <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
+                                <div>
+                                    <span class="font-black text-slate-800">${p.name}</span>
+                                    <span class="bg-indigo-100 text-indigo-900 text-[9px] font-black px-1.5 py-0.5 rounded ml-1">ID: ${p.code || p.id}</span>
+                                    <span class="text-emerald-700 font-black block">$${(p.price || 0).toLocaleString('es-CL')}</span>
+                                    <div>${supBadge}</div>
+                                    ${getPricePictogramsHtml(p.price || 0)}
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="openProductModal('${p.id}')" class="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-xl text-[10px]">✏️ Editar</button>
+                                    <button onclick="deleteProduct('${p.id}')" class="bg-rose-100 text-rose-900 px-2 py-1 rounded-xl text-[10px]">✕</button>
+                                </div>
                             </div>
-                            <div class="flex items-center gap-1">
-                                <button onclick="openProductModal('${p.id}')" class="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-xl text-[10px]">✏️ Editar</button>
-                                <button onclick="deleteProduct('${p.id}')" class="bg-rose-100 text-rose-900 px-2 py-1 rounded-xl text-[10px]">✕</button>
-                            </div>
-                        </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
             </div>
         </div>
@@ -1475,7 +1486,6 @@ function updateCategoryDropdowns(selectedName = null) {
     catSelect.innerHTML = list.map(c => `<option value="${c.name}" ${selectedName === c.name ? 'selected' : ''}>${c.icon || '🏷️'} ${c.name}</option>`).join('');
 }
 
-// MODAL DE PRODUCTO: SOPORTA CREAR Y EDITAR PRODUCTO EXISTENTE
 function openProductModal(prodId = null) {
     const supSelect = document.getElementById('modalProdSupermarket');
     if (supSelect) supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
@@ -1555,7 +1565,6 @@ function deleteProduct(prodId) {
     }
 }
 
-// CONFIGURACIÓN DE MODAL CON LAS 17 CATEGORÍAS PREDEFINIDAS
 function openCategoryModal() {
     const el = document.getElementById('categoryModal');
     const iconSelect = document.getElementById('modalCatIcon');
@@ -1705,7 +1714,6 @@ function initFirebaseListeners() {
         } catch(e) { renderApp(); }
     };
 
-    // Lectura directa: lo que esté en Firebase es lo que se reflejará sin restaurar defaults.
     listenCol('users', data => { APP_STATE.users = data || []; });
     listenCol('courses', data => { APP_STATE.courses = data || []; });
     listenCol('categories', data => {
