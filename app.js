@@ -1618,7 +1618,24 @@ function deleteSupermarket(supId) {
     }
 }
 
-// FUNCIONES DEL PRODUCTO CON SUBIDA Y COMPRESIÓN DE FOTO REAL
+// CALCULA EL SIGUIENTE CÓDIGO CORRELATIVO AUTOMÁTICO (Ej: 1001, 1002, 1003)
+function getNextProductCode() {
+    const products = APP_STATE.products || [];
+    if (products.length === 0) return '1001';
+
+    let maxCode = 1000;
+    products.forEach(p => {
+        if (p.code) {
+            const num = parseInt(String(p.code).replace(/\D/g, ''), 10);
+            if (!isNaN(num) && num >= maxCode && num < 999999) {
+                maxCode = num;
+            }
+        }
+    });
+
+    return String(maxCode + 1);
+}
+
 function updateCategoryDropdowns(selectedName = null) {
     const catSelect = document.getElementById('modalProdCategory');
     if (!catSelect) return;
@@ -1694,7 +1711,7 @@ function openProductModal(prodId = null) {
         if (titleEl) titleEl.textContent = 'Agregar Producto';
         if (idInput) idInput.value = '';
         if (nameInput) nameInput.value = '';
-        if (codeInput) codeInput.value = '';
+        if (codeInput) codeInput.value = getNextProductCode();
         if (priceInput) priceInput.value = '';
         if (photoInput) photoInput.value = '';
         if (replicateInput) replicateInput.checked = false;
@@ -1731,7 +1748,7 @@ function saveProductFromModal() {
 
     db.collection('products').doc(id).set({
         id: id,
-        code: code || ('COD-' + Math.floor(Math.random() * 8999 + 1000)),
+        code: code || getNextProductCode(),
         name: name,
         category: category,
         price: price,
