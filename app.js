@@ -92,10 +92,9 @@ const DEFAULT_SETTINGS = {
 };
 
 const DEFAULT_AI_CONFIG = {
-    mode: 'hybrid',           // 'hybrid' (IA + Respaldo), 'strict' (Solo IA), 'permissive' (Muy tolerante)
-    sensitivity: 'medium',    // 'low', 'medium', 'high'
-    allowManualFallback: true, // Mostrar botón de pase asistido
-    cameraFacing: 'environment' // 'environment' (trasera), 'user' (frontal)
+    mode: 'strict',            // 'strict' (Exige coincidencia real), 'permissive' (Prueba asistida)
+    sensitivity: 'medium',     // 'low', 'medium', 'high'
+    cameraFacing: 'environment'// 'environment' (trasera), 'user' (frontal)
 };
 
 // ==========================================
@@ -141,6 +140,27 @@ const PRESET_CATEGORIES = [
     { name: "Limpieza del Hogar", icon: "🧼" },
     { name: "Mascotas", icon: "🐶" }
 ];
+
+// DICCIONARIO AMPLIO PARA CLASIFICACIÓN DE OBJETOS EN TIENDAS CHILENAS
+const AI_PRODUCT_DICTIONARY = {
+    'harina': ['flour', 'packet', 'bag', 'carton', 'powder', 'dough', 'groceries', 'envelope', 'sachet', 'box'],
+    'leche': ['milk', 'carton', 'bottle', 'jug', 'beverage', 'pitcher', 'container', 'box'],
+    'pan': ['bread', 'bun', 'loaf', 'bakery', 'bagel', 'pretzel', 'doughnut', 'roll'],
+    'aceite': ['bottle', 'oil', 'lotion', 'fluid', 'olive', 'canola', 'container'],
+    'arroz': ['rice', 'grain', 'bag', 'packet', 'groceries', 'sack'],
+    'fideos': ['pasta', 'spaghetti', 'noodle', 'macaroni', 'vermicelli', 'packet', 'box'],
+    'manzana': ['apple', 'pomegranate', 'fruit', 'granny smith'],
+    'plátano': ['banana', 'plantain', 'fruit'],
+    'platano': ['banana', 'plantain', 'fruit'],
+    'yogurt': ['yogurt', 'cup', 'trifle', 'container', 'dairy', 'tub'],
+    'jugo': ['juice', 'beverage', 'bottle', 'can', 'carton'],
+    'bebida': ['soda', 'pop', 'cola', 'beverage', 'can', 'bottle'],
+    'galletas': ['cookie', 'biscuit', 'cracker', 'snack', 'wafer', 'pack'],
+    'detergente': ['detergent', 'soap', 'cleaner', 'bottle', 'jug', 'spray'],
+    'queso': ['cheese', 'dairy', 'slice', 'brick'],
+    'mantequilla': ['butter', 'margarine', 'tub', 'pack'],
+    'huevos': ['egg', 'carton', 'crate', 'nest']
+};
 
 // ==========================================
 // ESTADO GLOBAL DE LA APLICACIÓN
@@ -626,7 +646,7 @@ function renderSupermarketView(container, supId) {
                 <div class="bg-emerald-600 text-white p-4 rounded-3xl shadow-md border-4 border-emerald-800 flex justify-between items-center text-xs font-bold">
                     <div class="flex items-center gap-2">
                         <span class="text-2xl">🤖📷</span>
-                        <span>MODO VISIÓN IA: Apunta la cámara directamente al producto en la góndola. La IA reconocerá su imagen automáticamente.</span>
+                        <span>MODO VISIÓN IA: Apunta la cámara directamente al producto en la góndola y toma la foto para evaluar.</span>
                     </div>
                     <span class="bg-amber-400 text-slate-900 font-black px-3 py-1 rounded-xl text-xs">⭐ ${currentScore}% Logro</span>
                 </div>
@@ -772,40 +792,25 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// RECONOCIMIENTO DE IMAGEN CON CÁMARA E IA (ULTRA COMPATIBLE MÓVIL)
+// RECONOCIMIENTO Y EVALUACIÓN ESTRICTA DE IA
 // ==========================================
 function startAiVisualRecognition(productId) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
     if (!prod) return;
 
     APP_STATE.currentTargetScanProduct = prod.id;
-    speakText(`Apunta la cámara al envase de ${prod.name} para reconocer su imagen.`);
+    speakText(`Apunta la cámara al envase de ${prod.name} y toma la foto.`);
 
     const modal = document.getElementById('scannerModal');
     const targetLabel = document.getElementById('aiScannerTargetTitle');
     if (targetLabel) targetLabel.textContent = prod.name;
-    
-    // Configurar visibilidad del botón de pase asistido según panel docente
-    const fallbackBtn = document.getElementById('aiFallbackManualBtn');
-    if (fallbackBtn) {
-        if (APP_STATE.aiConfig && APP_STATE.aiConfig.allowManualFallback) {
-            fallbackBtn.classList.remove('hidden');
-        } else {
-            fallbackBtn.classList.add('hidden');
-        }
-    }
-
     if (modal) modal.classList.remove('hidden');
+
     initAiCameraStream();
 }
 
 async function initAiCameraStream() {
     stopAiCameraStream();
-
-    const isSecureContext = window.isSecureContext || 
-                            window.location.protocol === 'https:' || 
-                            window.location.hostname === 'localhost' || 
-                            window.location.hostname === '127.0.0.1';
 
     const videoEl = document.getElementById('aiCameraVideo');
     if (!videoEl) return;
@@ -815,24 +820,11 @@ async function initAiCameraStream() {
     videoEl.setAttribute('autoplay', 'true');
     videoEl.muted = true;
 
-    if (!isSecureContext) {
-        const msgBox = document.getElementById('aiScanStatusBox');
-        if (msgBox) {
-            msgBox.innerHTML = `
-                <div class="p-2 bg-rose-100 border border-rose-300 rounded-xl text-rose-800 font-bold text-xs text-center">
-                    🔴 CÁMARA BLOQUEADA POR HTTP: Abre esta web con HTTPS:// en tu celular para activar la cámara o usa el botón amarillo inferior.
-                </div>
-            `;
-        }
-        return;
-    }
-
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         alert("⚠️ Tu navegador móvil no admite cámara directa.");
         return;
     }
 
-    // Estrategia secuencial de fallback de cámaras para Android e iOS
     const facingChoice = (APP_STATE.aiConfig && APP_STATE.aiConfig.cameraFacing) || 'environment';
     const constraintsList = [
         { video: { facingMode: { ideal: facingChoice } }, audio: false },
@@ -842,27 +834,15 @@ async function initAiCameraStream() {
     ];
 
     let stream = null;
-    let lastError = null;
-
     for (const constraints of constraintsList) {
         try {
             stream = await navigator.mediaDevices.getUserMedia(constraints);
             if (stream) break;
-        } catch (e) {
-            lastError = e;
-        }
+        } catch (e) {}
     }
 
     if (!stream) {
-        console.warn("Sensor de cámara no disponible:", lastError);
-        const msgBox = document.getElementById('aiScanStatusBox');
-        if (msgBox) {
-            msgBox.innerHTML = `
-                <div class="p-2 bg-amber-100 border border-amber-300 rounded-xl text-amber-900 font-bold text-xs text-center">
-                    ⚠️ Cámara no detectada o permisos denegados. Usa el botón "Validar sin cámara" para continuar la clase.
-                </div>
-            `;
-        }
+        alert("⚠️ No se pudo acceder a la cámara. Revisa los permisos en tu navegador.");
         return;
     }
 
@@ -896,20 +876,7 @@ async function loadAiVisionModel() {
     return mobilenetModel;
 }
 
-const AI_PRODUCT_DICTIONARY = {
-    'harina': ['flour', 'packet', 'bag', 'carton', 'powder', 'groceries', 'box', 'dough', 'envelope'],
-    'leche': ['milk', 'carton', 'bottle', 'jug', 'beverage', 'container', 'can'],
-    'pan': ['bread', 'bun', 'loaf', 'bakery'],
-    'aceite': ['bottle', 'oil', 'container', 'liquid'],
-    'arroz': ['rice', 'bag', 'packet', 'grain'],
-    'fideos': ['pasta', 'spaghetti', 'noodle', 'packet', 'box'],
-    'manzana': ['apple', 'fruit'],
-    'plátano': ['banana', 'fruit'],
-    'platano': ['banana', 'fruit'],
-    'yogurt': ['yogurt', 'cup', 'container'],
-    'jugo': ['juice', 'bottle', 'carton', 'can']
-};
-
+// CAPTURA DE FOTO Y EVALUACIÓN REAL DE IA (CON FALLO SI APUNTA A CUALQUIER COSA)
 async function captureAndAnalyzeImageWithAI() {
     if (APP_STATE.isAiAnalyzing) return;
     APP_STATE.isAiAnalyzing = true;
@@ -922,122 +889,119 @@ async function captureAndAnalyzeImageWithAI() {
     const targetProduct = (APP_STATE.products || []).find(p => String(p.id) === String(targetId));
 
     if (!targetProduct) {
-        alert("No se ha seleccionado ningún producto.");
-        APP_STATE.isAiAnalyzing = false;
-        return;
-    }
-
-    // Si el modo configurado es Permisivo, aprueba de inmediato
-    if (APP_STATE.aiConfig && APP_STATE.aiConfig.mode === 'permissive') {
-        forceManualProductVerification();
-        APP_STATE.isAiAnalyzing = false;
-        return;
-    }
-
-    if (!videoEl || videoEl.readyState < 2) {
-        if (APP_STATE.aiConfig && APP_STATE.aiConfig.allowManualFallback) {
-            forceManualProductVerification();
-        } else {
-            alert("La cámara no ha enviado la imagen. Presiona 'Validar sin cámara'.");
-        }
+        alert("No hay un producto seleccionado.");
         APP_STATE.isAiAnalyzing = false;
         return;
     }
 
     if (statusBox) {
         statusBox.innerHTML = `
-            <div class="flex items-center justify-center gap-2 text-indigo-700 font-black animate-pulse py-2">
+            <div class="flex items-center justify-center gap-2 text-indigo-700 font-black animate-pulse py-1">
                 <span class="text-2xl animate-spin">🤖</span>
-                <span>Analizando fotograma con Red Neuronal IA...</span>
+                <span>Analizando la foto con Inteligencia Artificial...</span>
             </div>
         `;
     }
 
-    if (canvasEl) {
+    // Congelar y capturar la foto tomada desde la cámara en el Canvas
+    let photoDataUrl = '';
+    if (canvasEl && videoEl && videoEl.readyState >= 2) {
         const ctx = canvasEl.getContext('2d');
         canvasEl.width = videoEl.videoWidth || 640;
         canvasEl.height = videoEl.videoHeight || 480;
         ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+        photoDataUrl = canvasEl.toDataURL('image/jpeg', 0.8);
+    } else {
+        alert("La cámara aún no carga el marco. Espera un segundo e intenta de nuevo.");
+        APP_STATE.isAiAnalyzing = false;
+        return;
     }
 
     try {
         const model = await loadAiVisionModel();
-        let isMatched = false;
-
-        const sensitivityThreshold = (APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'high') ? 0.45 :
-                                     ((APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'low') ? 0.15 : 0.25);
-
-        if (model) {
-            const predictions = await model.classify(videoEl);
-            const prodName = targetProduct.name.toLowerCase();
-            let expectedKeywords = [];
-
-            Object.keys(AI_PRODUCT_DICTIONARY).forEach(key => {
-                if (prodName.includes(key)) expectedKeywords.push(...AI_PRODUCT_DICTIONARY[key]);
-            });
-
-            if (expectedKeywords.length === 0) {
-                expectedKeywords = prodName.split(' ').filter(w => w.length > 3);
-            }
-
-            isMatched = predictions.some(pred => {
-                const labelLower = pred.className.toLowerCase();
-                return expectedKeywords.some(kw => labelLower.includes(kw)) || pred.probability > sensitivityThreshold;
-            });
-        } else {
-            isMatched = true; 
+        if (!model) {
+            alert("⚠️ El modelo de IA se está cargando. Intenta de nuevo.");
+            APP_STATE.isAiAnalyzing = false;
+            return;
         }
 
-        if (isMatched) {
+        // Clasificación del marco con MobileNet (Top 5 probabilidades)
+        const predictions = await model.classify(canvasEl, 5);
+        console.log("Predicciones de IA:", predictions);
+
+        const prodName = targetProduct.name.toLowerCase();
+        let expectedKeywords = [];
+
+        Object.keys(AI_PRODUCT_DICTIONARY).forEach(key => {
+            if (prodName.includes(key)) expectedKeywords.push(...AI_PRODUCT_DICTIONARY[key]);
+        });
+
+        if (expectedKeywords.length === 0) {
+            expectedKeywords = prodName.split(' ').filter(w => w.length > 3);
+        }
+
+        // Sensibilidad estricta: requiere probabilidad mínima según configuración
+        const minConfidence = (APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'high') ? 0.25 :
+                              ((APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'low') ? 0.08 : 0.15);
+
+        let matchFound = null;
+        let bestProbability = 0;
+
+        predictions.forEach(pred => {
+            const labelLower = pred.className.toLowerCase();
+            const matchesKw = expectedKeywords.some(kw => labelLower.includes(kw));
+            if (matchesKw && pred.probability >= minConfidence) {
+                if (pred.probability > bestProbability) {
+                    bestProbability = pred.probability;
+                    matchFound = pred;
+                }
+            }
+        });
+
+        // Si el profesor activó explícitamente Modo Permisivo
+        if (APP_STATE.aiConfig && APP_STATE.aiConfig.mode === 'permissive') {
+            matchFound = predictions[0] || { className: 'Producto simulado', probability: 0.9 };
+        }
+
+        if (matchFound) {
             playChimeSound(false);
             closeScannerModal();
-            speakText(`¡Bien, encontraste el producto ${targetProduct.name}! Verifica el precio en la repisa.`);
+            speakText(`¡Excelente! Reconociste el producto ${targetProduct.name}. Revisa su precio en la góndola.`);
             APP_STATE.scannedItemsInStore[targetProduct.id] = true;
-            openShelfPriceConfirmation(targetProduct.id);
+            openShelfPriceConfirmation(targetProduct.id, photoDataUrl);
         } else {
-            simulateWrongProductAiScan();
+            // SI APUNTA A CUALQUIER COSA: FALLA Y REGISTRA ERROR EN LA EVALUACIÓN
+            APP_STATE.classroomErrorsCount++;
+            playChimeSound(true);
+            
+            const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
+            const topLabel = predictions[0] ? `${predictions[0].className} (${Math.round(predictions[0].probability * 100)}%)` : 'objeto desconocido';
+
+            speakText(`Esa foto no corresponde a ${targetProduct.name}. Inténtalo nuevamente.`);
+            
+            if (statusBox) {
+                statusBox.innerHTML = `
+                    <div class="p-3 bg-rose-100 border border-rose-300 rounded-2xl text-rose-900 font-bold text-xs space-y-1 text-center">
+                        <div class="font-black">❌ La IA vio: "${topLabel}"</div>
+                        <div>Se buscaba: <b>${targetProduct.name}</b>. Enfoca el producto correcto y toma la foto.</div>
+                    </div>
+                `;
+            }
+
+            alert(`❌ ¡PRODUCTO NO RECONOCIDO!\n\nLa foto contiene: "${topLabel}".\nNo coincide con "${targetProduct.name}".\n\nPuntuación actual: ${currentScore}%`);
         }
     } catch (err) {
-        forceManualProductVerification();
+        console.error("Error analizando imagen:", err);
+        alert("Ocurrió un error al analizar la imagen. Intenta enfocar el producto nuevamente.");
     }
 
     APP_STATE.isAiAnalyzing = false;
-    if (statusBox) {
-        statusBox.innerHTML = `<p class="text-xs font-bold text-slate-600 text-center">Centra el producto en la pantalla y presiona el botón inferior para analizar con la IA.</p>`;
-    }
-}
-
-function forceManualProductVerification() {
-    const targetId = APP_STATE.currentTargetScanProduct;
-    const targetProduct = (APP_STATE.products || []).find(p => String(p.id) === String(targetId));
-    if (!targetProduct) return;
-
-    playChimeSound(false);
-    closeScannerModal();
-    speakText(`¡Producto ${targetProduct.name} verificado! Revisa su precio en la góndola.`);
-    APP_STATE.scannedItemsInStore[targetProduct.id] = true;
-    openShelfPriceConfirmation(targetProduct.id);
-}
-
-function simulateWrongProductAiScan() {
-    APP_STATE.classroomErrorsCount++;
-    playChimeSound(true);
-    
-    const targetId = APP_STATE.currentTargetScanProduct;
-    const targetProduct = (APP_STATE.products || []).find(p => String(p.id) === String(targetId));
-    const targetName = targetProduct ? targetProduct.name : 'el producto indicado';
-    
-    const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
-    speakText(`Este no es el producto que estamos buscando. Te equivocaste, inténtalo nuevamente.`);
-    
-    alert(`⚠️ ¡PRODUCTO EQUIVOCADO!\n\nLa IA detectó un producto distinto al que estabas buscando.\nBuscabas: "${targetName}".\n\nPuntuación actual: ${currentScore}%`);
-    renderApp();
 }
 
 // ==========================================
-// CONFIRMACIÓN DE PRECIO EN REPISA
+// CONFIRMACIÓN Y EDICIÓN INTERACTIVA DE PRECIOS
 // ==========================================
-function openShelfPriceConfirmation(productId) {
+function openShelfPriceConfirmation(productId, photoDataUrl = null) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
     if (!prod) return;
 
@@ -1045,14 +1009,22 @@ function openShelfPriceConfirmation(productId) {
     document.getElementById('shelfPriceProdName').textContent = prod.name;
     document.getElementById('shelfPriceOriginalLabel').textContent = `$${(prod.price || 0).toLocaleString('es-CL')}`;
 
+    // Mostrar foto capturada por la cámara
+    const previewImg = document.getElementById('shelfCapturedPhotoPreview');
+    if (previewImg && photoDataUrl) {
+        previewImg.src = photoDataUrl;
+        previewImg.classList.remove('hidden');
+    }
+
     const basePrice = prod.price || 800;
+    // Opciones predefinidas + opción de precio con descuento/cambio
     const suggestedPrices = [basePrice, 1500, basePrice + 300, Math.max(500, basePrice - 200)];
 
     const btnContainer = document.getElementById('shelfPriceButtonsContainer');
     if (btnContainer) {
         btnContainer.innerHTML = suggestedPrices.map(p => `
-            <button onclick="applyShelfPriceChoice(${p})" class="p-3 bg-amber-50 border-2 border-amber-300 hover:bg-amber-500 hover:text-slate-900 rounded-2xl font-black text-sm active:scale-95 shadow">
-                $${p.toLocaleString('es-CL')} ${p !== basePrice ? '⚠️ (Cambió)' : '✓ (Igual)'}
+            <button onclick="applyShelfPriceChoice(${p})" class="p-3 bg-amber-50 border-2 border-amber-300 hover:bg-amber-500 hover:text-slate-900 rounded-2xl font-black text-xs active:scale-95 shadow">
+                $${p.toLocaleString('es-CL')} ${p !== basePrice ? '⚠️ (Nuevo Precio)' : '✓ (Igual)'}
             </button>
         `).join('');
     }
@@ -1069,12 +1041,14 @@ function applyShelfPriceChoice(newPrice) {
 
     if (newPrice !== oldPrice) {
         APP_STATE.priceAdjustmentsCount++;
+        
+        // Actualiza el precio del producto en el catálogo local y en el canasto del estudiante
+        prod.price = newPrice;
         const bItem = APP_STATE.basket.find(b => String(b.productId) === String(prod.id));
         if (bItem) bItem.actualPrice = newPrice;
-        prod.price = newPrice;
 
-        speakText(`El valor de ${prod.name} cambió en la góndola a ${newPrice} pesos.`);
-        alert(`🔔 ¡CAMBIO DE PRECIO EN GÓNDOLA!\n\nEl precio de "${prod.name}" se actualizó a $${newPrice.toLocaleString('es-CL')}.`);
+        speakText(`Actualizaste el valor de ${prod.name} en la góndola a ${newPrice} pesos.`);
+        alert(`🔔 ¡PRECIO ACTUALIZADO!\n\nEl precio de "${prod.name}" cambió a $${newPrice.toLocaleString('es-CL')}.`);
     } else {
         speakText(`¡Excelente! El precio de ${prod.name} coincide a ${newPrice} pesos.`);
     }
@@ -1086,7 +1060,12 @@ function applyShelfPriceChoice(newPrice) {
 
 function applyCustomShelfPrice() {
     const val = parseInt(document.getElementById('shelfPriceCustomInput').value);
-    if (!isNaN(val) && val > 0) applyShelfPriceChoice(val);
+    if (!isNaN(val) && val > 0) {
+        applyShelfPriceChoice(val);
+        document.getElementById('shelfPriceCustomInput').value = '';
+    } else {
+        alert("Ingresa un número de precio válido.");
+    }
 }
 
 function renderStudentPreviewWrapper(container) {
@@ -1643,9 +1622,6 @@ function renderTeacherDashboard(container) {
     `;
 }
 
-// ==========================================
-// NUEVO MÓDULO ADMINISTRADOR: CONFIGURACIÓN IA Y CÁMARA
-// ==========================================
 function renderTeacherAiConfigTab() {
     const cfg = APP_STATE.aiConfig || DEFAULT_AI_CONFIG;
     const isSecure = window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -1665,7 +1641,7 @@ function renderTeacherAiConfigTab() {
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- COLUMNA 1: DIAGNÓSTICO DE CÁMARA EN VIVO -->
+                <!-- DIAGNÓSTICO DE CÁMARA EN VIVO -->
                 <div class="bg-slate-50 p-5 rounded-3xl border-2 border-slate-200 space-y-4">
                     <h4 class="font-black text-slate-800 text-sm flex items-center gap-2">
                         <span>📷</span> <span>Probador de Cámara en Vivo</span>
@@ -1690,23 +1666,22 @@ function renderTeacherAiConfigTab() {
                     </div>
                 </div>
 
-                <!-- COLUMNA 2: REGLAS Y TOLERANCIA PEDAGÓGICA -->
+                <!-- CONFIGURACIÓN DE REGLAS DE IA -->
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Modo de Operación de la IA:</label>
                         <select id="aiSettingMode" class="w-full px-4 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-indigo-50 text-indigo-900">
-                            <option value="hybrid" ${cfg.mode === 'hybrid' ? 'selected' : ''}>Híbrido (IA + Botón de Pase Asistido)</option>
-                            <option value="strict" ${cfg.mode === 'strict' ? 'selected' : ''}>Estricto (Solo Visión IA)</option>
-                            <option value="permissive" ${cfg.mode === 'permissive' ? 'selected' : ''}>Permisivo / Simulado (Pase Automático para Aulas Complejas)</option>
+                            <option value="strict" ${cfg.mode === 'strict' ? 'selected' : ''}>Estricto (Exige coincidencia real con la foto del producto)</option>
+                            <option value="permissive" ${cfg.mode === 'permissive' ? 'selected' : ''}>Permisivo / Asistido (Aprobación fácil para alumnos iniciales)</option>
                         </select>
                     </div>
 
                     <div>
                         <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Sensibilidad del Modelo Neural:</label>
                         <select id="aiSettingSensitivity" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs bg-white">
-                            <option value="high" ${cfg.sensitivity === 'high' ? 'selected' : ''}>Alta (Exige alta coincidencia con la repisa)</option>
-                            <option value="medium" ${cfg.sensitivity === 'medium' ? 'selected' : ''}>Media (Balance Estándar Recomendado)</option>
-                            <option value="low" ${cfg.sensitivity === 'low' ? 'selected' : ''}>Baja (Muy Permisivo / Acepta cualquier forma o caja)</option>
+                            <option value="high" ${cfg.sensitivity === 'high' ? 'selected' : ''}>Alta (Exige 25% min de probabilidad)</option>
+                            <option value="medium" ${cfg.sensitivity === 'medium' ? 'selected' : ''}>Media (15% min de probabilidad - Recomendado)</option>
+                            <option value="low" ${cfg.sensitivity === 'low' ? 'selected' : ''}>Baja (8% min de probabilidad - Muy flexible)</option>
                         </select>
                     </div>
 
@@ -1717,11 +1692,6 @@ function renderTeacherAiConfigTab() {
                             <option value="user" ${cfg.cameraFacing === 'user' ? 'selected' : ''}>Cámara Frontal (Selfie)</option>
                         </select>
                     </div>
-
-                    <label class="flex items-center gap-2 p-3 bg-amber-50 border-2 border-amber-300 rounded-2xl cursor-pointer">
-                        <input type="checkbox" id="aiSettingManualFallback" ${cfg.allowManualFallback ? 'checked' : ''} class="w-4 h-4 text-amber-600 rounded">
-                        <span class="text-xs font-black text-amber-950">Mostrar siempre el botón amarillo "Validar sin cámara" para evitar que los alumnos queden bloqueados.</span>
-                    </label>
 
                     <button onclick="saveAiGameConfiguration()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-2xl text-xs uppercase shadow-lg border-b-4 border-emerald-950 active:scale-95">
                         💾 Guardar Configuración de IA
@@ -1780,15 +1750,14 @@ function saveAiGameConfiguration() {
     const newCfg = {
         mode: document.getElementById('aiSettingMode').value,
         sensitivity: document.getElementById('aiSettingSensitivity').value,
-        cameraFacing: document.getElementById('aiSettingFacing').value,
-        allowManualFallback: document.getElementById('aiSettingManualFallback').checked
+        cameraFacing: document.getElementById('aiSettingFacing').value
     };
 
     APP_STATE.aiConfig = newCfg;
 
     if (db) {
         db.collection('settings').doc('ai_config').set(newCfg, { merge: true }).then(() => {
-            alert("✅ Configuración de IA y Cámara guardada correctamente.");
+            alert("✅ Configuración de IA guardada correctamente.");
             renderApp();
         });
     } else {
