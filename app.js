@@ -141,7 +141,6 @@ const PRESET_CATEGORIES = [
     { name: "Mascotas", icon: "🐶" }
 ];
 
-// DICCIONARIO AMPLIO PARA CLASIFICACIÓN DE OBJETOS EN TIENDAS CHILENAS
 const AI_PRODUCT_DICTIONARY = {
     'harina': ['flour', 'packet', 'bag', 'carton', 'powder', 'dough', 'groceries', 'envelope', 'sachet', 'box'],
     'leche': ['milk', 'carton', 'bottle', 'jug', 'beverage', 'pitcher', 'container', 'box'],
@@ -186,13 +185,11 @@ const APP_STATE = {
     telemetry: { voiceHelpCount: 0 },
     missionStartTime: null,
     
-    // RECONOCIMIENTO VISUAL CON CÁMARA E IA
     cameraStream: null,
     adminTestStream: null,
     isAiAnalyzing: false,
     currentTargetScanProduct: null,
     
-    // ESTADO DE MISIÓN Y EVALUACIÓN
     activeMission: null,          
     classroomMode: 'PREP',        
     listValidated: false,         
@@ -792,7 +789,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// RECONOCIMIENTO Y EVALUACIÓN ESTRICTA DE IA
+// RECONOCIMIENTO Y EVALUACIÓN DE IA
 // ==========================================
 function startAiVisualRecognition(productId) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
@@ -876,7 +873,7 @@ async function loadAiVisionModel() {
     return mobilenetModel;
 }
 
-// CAPTURA DE FOTO Y EVALUACIÓN REAL DE IA (CON FALLO SI APUNTA A CUALQUIER COSA)
+// CAPTURA DE FOTO Y EVALUACIÓN REAL DE IA (MODO JUEGO ALUMNO)
 async function captureAndAnalyzeImageWithAI() {
     if (APP_STATE.isAiAnalyzing) return;
     APP_STATE.isAiAnalyzing = true;
@@ -903,7 +900,6 @@ async function captureAndAnalyzeImageWithAI() {
         `;
     }
 
-    // Congelar y capturar la foto tomada desde la cámara en el Canvas
     let photoDataUrl = '';
     if (canvasEl && videoEl && videoEl.readyState >= 2) {
         const ctx = canvasEl.getContext('2d');
@@ -925,10 +921,7 @@ async function captureAndAnalyzeImageWithAI() {
             return;
         }
 
-        // Clasificación del marco con MobileNet (Top 5 probabilidades)
         const predictions = await model.classify(canvasEl, 5);
-        console.log("Predicciones de IA:", predictions);
-
         const prodName = targetProduct.name.toLowerCase();
         let expectedKeywords = [];
 
@@ -940,7 +933,6 @@ async function captureAndAnalyzeImageWithAI() {
             expectedKeywords = prodName.split(' ').filter(w => w.length > 3);
         }
 
-        // Sensibilidad estricta: requiere probabilidad mínima según configuración
         const minConfidence = (APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'high') ? 0.25 :
                               ((APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'low') ? 0.08 : 0.15);
 
@@ -958,7 +950,6 @@ async function captureAndAnalyzeImageWithAI() {
             }
         });
 
-        // Si el profesor activó explícitamente Modo Permisivo
         if (APP_STATE.aiConfig && APP_STATE.aiConfig.mode === 'permissive') {
             matchFound = predictions[0] || { className: 'Producto simulado', probability: 0.9 };
         }
@@ -970,7 +961,6 @@ async function captureAndAnalyzeImageWithAI() {
             APP_STATE.scannedItemsInStore[targetProduct.id] = true;
             openShelfPriceConfirmation(targetProduct.id, photoDataUrl);
         } else {
-            // SI APUNTA A CUALQUIER COSA: FALLA Y REGISTRA ERROR EN LA EVALUACIÓN
             APP_STATE.classroomErrorsCount++;
             playChimeSound(true);
             
@@ -1009,7 +999,6 @@ function openShelfPriceConfirmation(productId, photoDataUrl = null) {
     document.getElementById('shelfPriceProdName').textContent = prod.name;
     document.getElementById('shelfPriceOriginalLabel').textContent = `$${(prod.price || 0).toLocaleString('es-CL')}`;
 
-    // Mostrar foto capturada por la cámara
     const previewImg = document.getElementById('shelfCapturedPhotoPreview');
     if (previewImg && photoDataUrl) {
         previewImg.src = photoDataUrl;
@@ -1017,7 +1006,6 @@ function openShelfPriceConfirmation(productId, photoDataUrl = null) {
     }
 
     const basePrice = prod.price || 800;
-    // Opciones predefinidas + opción de precio con descuento/cambio
     const suggestedPrices = [basePrice, 1500, basePrice + 300, Math.max(500, basePrice - 200)];
 
     const btnContainer = document.getElementById('shelfPriceButtonsContainer');
@@ -1042,7 +1030,6 @@ function applyShelfPriceChoice(newPrice) {
     if (newPrice !== oldPrice) {
         APP_STATE.priceAdjustmentsCount++;
         
-        // Actualiza el precio del producto en el catálogo local y en el canasto del estudiante
         prod.price = newPrice;
         const bItem = APP_STATE.basket.find(b => String(b.productId) === String(prod.id));
         if (bItem) bItem.actualPrice = newPrice;
@@ -1622,18 +1609,22 @@ function renderTeacherDashboard(container) {
     `;
 }
 
+// ==========================================
+// MÓDULO ADMINISTRADOR CON PROBADOR EN VIVO DE IA Y PRECIO DE GÓNDOLA
+// ==========================================
 function renderTeacherAiConfigTab() {
     const cfg = APP_STATE.aiConfig || DEFAULT_AI_CONFIG;
     const isSecure = window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const prods = APP_STATE.products || [];
 
     return `
         <div class="bg-white p-6 rounded-3xl border-4 border-indigo-300 shadow-md space-y-6 max-w-4xl mx-auto">
             <div class="border-b pb-3 flex justify-between items-center flex-wrap gap-2">
                 <div>
                     <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                        <span>🤖</span> <span>Módulo de Configuración de Juego con Visión e IA</span>
+                        <span>🤖</span> <span>Módulo de Configuración y Probador de Escáner e IA de Góndola</span>
                     </h3>
-                    <p class="text-xs font-bold text-slate-500">Ajusta la sensibilidad de la cámara y diagnostica el sensor del dispositivo en vivo.</p>
+                    <p class="text-xs font-bold text-slate-500">Prueba en vivo si la cámara reconoce el producto e interactúa con el cambio de precio pegado en repisa.</p>
                 </div>
                 <div class="px-3 py-1.5 rounded-xl border-2 text-xs font-black ${isSecure ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-rose-50 border-rose-300 text-rose-800'}">
                     ${isSecure ? '🔒 Servidor Seguro (HTTPS Activo)' : '🔴 Servidor HTTP (Requiere HTTPS para Cámara en Celulares)'}
@@ -1641,33 +1632,53 @@ function renderTeacherAiConfigTab() {
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- DIAGNÓSTICO DE CÁMARA EN VIVO -->
+                <!-- PROBADOR EN VIVO DE ESCÁNER Y PRECIO DE GÓNDOLA -->
                 <div class="bg-slate-50 p-5 rounded-3xl border-2 border-slate-200 space-y-4">
-                    <h4 class="font-black text-slate-800 text-sm flex items-center gap-2">
-                        <span>📷</span> <span>Probador de Cámara en Vivo</span>
+                    <h4 class="font-black text-indigo-950 text-sm flex items-center gap-2">
+                        <span>🔍🧪</span> <span>Probador de Reconocimiento y Precio en Góndola</span>
                     </h4>
+
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">1. Selecciona el Producto a Probar:</label>
+                        <select id="adminTestProductSelect" class="w-full px-3 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-white text-indigo-950">
+                            ${prods.length === 0 ? `<option value="">No hay productos registrados</option>` : prods.map(p => `
+                                <option value="${p.id}">${p.name} ($${(p.price || 0).toLocaleString('es-CL')})</option>
+                            `).join('')}
+                        </select>
+                    </div>
                     
-                    <div class="relative bg-black rounded-2xl h-48 overflow-hidden border-2 border-slate-700 flex items-center justify-center">
+                    <div class="relative bg-black rounded-2xl h-48 overflow-hidden border-2 border-slate-700 flex items-center justify-center shadow-inner">
                         <video id="adminTestVideo" playsinline webkit-playsinline muted autoplay class="w-full h-full object-cover"></video>
-                        <span id="adminTestCameraPlaceholder" class="text-xs text-slate-400 font-bold px-4 text-center">Toca "Iniciar Prueba" para encender el sensor de la cámara en este equipo.</span>
+                        <canvas id="adminTestCanvas" class="hidden"></canvas>
+                        <span id="adminTestCameraPlaceholder" class="text-xs text-slate-400 font-bold px-4 text-center">Toca "Encender Cámara" para iniciar la simulación.</span>
                     </div>
 
                     <div id="adminTestCameraStatus" class="p-2.5 bg-white border rounded-xl text-xs font-bold text-slate-600 text-center">
                         Sensor inactivo.
                     </div>
 
-                    <div class="flex gap-2">
-                        <button onclick="startAdminCameraTest()" class="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2.5 rounded-xl text-xs shadow active:scale-95">
-                            ▶️ Iniciar Prueba
-                        </button>
-                        <button onclick="stopAdminTestCameraStream()" class="w-1/2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-black py-2.5 rounded-xl text-xs active:scale-95">
-                            ⏹️ Apagar
+                    <div class="space-y-2">
+                        <div class="flex gap-2">
+                            <button onclick="startAdminCameraTest()" class="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2.5 rounded-xl text-xs shadow active:scale-95">
+                                ▶️ Encender Cámara
+                            </button>
+                            <button onclick="stopAdminTestCameraStream()" class="w-1/2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-black py-2.5 rounded-xl text-xs active:scale-95">
+                                ⏹️ Apagar
+                            </button>
+                        </div>
+
+                        <button onclick="testAdminAiRecognition()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black py-3 rounded-xl text-xs shadow-md active:scale-95 border-b-2 border-emerald-950 flex items-center justify-center gap-2">
+                            <span>📸</span> <span>PROBAR ESCÁNER E IA AHORA</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- CONFIGURACIÓN DE REGLAS DE IA -->
                 <div class="space-y-4">
+                    <h4 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                        <span>⚙️</span> <span>Parámetros del Sensor e IA</span>
+                    </h4>
+
                     <div>
                         <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Modo de Operación de la IA:</label>
                         <select id="aiSettingMode" class="w-full px-4 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-indigo-50 text-indigo-900">
@@ -1723,7 +1734,7 @@ async function startAdminCameraTest() {
         await videoEl.play();
 
         if (placeholder) placeholder.classList.add('hidden');
-        statusBox.textContent = "✅ Cámara conectada y transmitiendo en vivo correctamente.";
+        statusBox.textContent = "✅ Cámara encendida correctamente.";
         statusBox.className = "p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-xs font-black text-emerald-800 text-center";
     } catch (err) {
         console.error("Error en prueba de cámara:", err);
@@ -1743,6 +1754,105 @@ function stopAdminTestCameraStream() {
     if (statusBox) {
         statusBox.textContent = "Sensor inactivo.";
         statusBox.className = "p-2.5 bg-white border rounded-xl text-xs font-bold text-slate-600 text-center";
+    }
+}
+
+// PRUEBA DIRECTA DE ESCÁNER E IA DESDE LA CONFIGURACIÓN DOCENTE
+async function testAdminAiRecognition() {
+    const statusBox = document.getElementById('adminTestCameraStatus');
+    const videoEl = document.getElementById('adminTestVideo');
+    const canvasEl = document.getElementById('adminTestCanvas');
+    const prodId = document.getElementById('adminTestProductSelect')?.value;
+
+    const prod = (APP_STATE.products || []).find(p => String(p.id) === String(prodId));
+    if (!prod) return alert("Selecciona un producto para la prueba.");
+
+    if (!videoEl || videoEl.readyState < 2) {
+        return alert("Primero enciende la cámara presionando '▶️ Encender Cámara'.");
+    }
+
+    if (statusBox) {
+        statusBox.innerHTML = `
+            <div class="flex items-center justify-center gap-2 text-indigo-700 font-black animate-pulse">
+                <span class="text-xl animate-spin">🤖</span>
+                <span>Evaluando fotograma en vivo...</span>
+            </div>
+        `;
+    }
+
+    let photoDataUrl = '';
+    if (canvasEl && videoEl) {
+        const ctx = canvasEl.getContext('2d');
+        canvasEl.width = videoEl.videoWidth || 640;
+        canvasEl.height = videoEl.videoHeight || 480;
+        ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+        photoDataUrl = canvasEl.toDataURL('image/jpeg', 0.8);
+    }
+
+    try {
+        const model = await loadAiVisionModel();
+        if (!model) return alert("El modelo de IA no ha terminado de cargar.");
+
+        const predictions = await model.classify(canvasEl, 5);
+        const prodName = prod.name.toLowerCase();
+        let expectedKeywords = [];
+
+        Object.keys(AI_PRODUCT_DICTIONARY).forEach(key => {
+            if (prodName.includes(key)) expectedKeywords.push(...AI_PRODUCT_DICTIONARY[key]);
+        });
+
+        if (expectedKeywords.length === 0) {
+            expectedKeywords = prodName.split(' ').filter(w => w.length > 3);
+        }
+
+        const minConfidence = (APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'high') ? 0.25 :
+                              ((APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'low') ? 0.08 : 0.15);
+
+        let matchFound = null;
+        let bestProbability = 0;
+
+        predictions.forEach(pred => {
+            const labelLower = pred.className.toLowerCase();
+            const matchesKw = expectedKeywords.some(kw => labelLower.includes(kw));
+            if (matchesKw && pred.probability >= minConfidence) {
+                if (pred.probability > bestProbability) {
+                    bestProbability = pred.probability;
+                    matchFound = pred;
+                }
+            }
+        });
+
+        if (APP_STATE.aiConfig && APP_STATE.aiConfig.mode === 'permissive') {
+            matchFound = predictions[0] || { className: 'Simulado', probability: 0.9 };
+        }
+
+        if (matchFound) {
+            playChimeSound(false);
+            if (statusBox) {
+                statusBox.innerHTML = `
+                    <div class="space-y-2">
+                        <div class="p-2 bg-emerald-100 border border-emerald-300 rounded-xl text-emerald-900 font-black text-xs text-center">
+                            ✅ ¡CORRECTO! IA detectó "${matchFound.className}" (${Math.round(matchFound.probability * 100)}%).
+                        </div>
+                        <button onclick="openShelfPriceConfirmation('${prod.id}', '${photoDataUrl}')" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-900 font-black py-2 rounded-xl text-xs shadow border-b-2 border-amber-600">
+                            🏷️ Probar Cambio de Precio en Góndola
+                        </button>
+                    </div>
+                `;
+            }
+        } else {
+            playChimeSound(true);
+            const topLabel = predictions[0] ? `${predictions[0].className} (${Math.round(predictions[0].probability * 100)}%)` : 'desconocido';
+            if (statusBox) {
+                statusBox.innerHTML = `
+                    <div class="p-2 bg-rose-100 border border-rose-300 rounded-xl text-rose-900 font-bold text-xs text-center">
+                        ❌ RECHAZADO: La IA vio "${topLabel}". No coincide con "${prod.name}".
+                    </div>
+                `;
+            }
+        }
+    } catch (err) {
+        console.error("Error en test de IA:", err);
     }
 }
 
