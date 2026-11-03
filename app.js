@@ -92,7 +92,7 @@ const DEFAULT_SETTINGS = {
 };
 
 // ==========================================
-// DATA URIS DE SVG DE BILLETES Y MONEDAS CHILENAS
+// MONEDAS Y BILLETES EN SVG (CLP CHILE)
 // ==========================================
 function makeSvgDataUrl(svgString) {
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
@@ -132,12 +132,7 @@ const PRESET_CATEGORIES = [
     { name: "Bebidas, Agua y Jugos", icon: "🧃" },
     { name: "Cuidado Personal / Higiene", icon: "🧴" },
     { name: "Limpieza del Hogar", icon: "🧼" },
-    { name: "Mascotas", icon: "🐶" },
-    { name: "Bebé y Niño", icon: "👶" },
-    { name: "Juguetes y Juegos", icon: "🧸" },
-    { name: "Electrodomésticos", icon: "🔌" },
-    { name: "Menaje Hogar", icon: "🍽️" },
-    { name: "Vestuario", icon: "👕" }
+    { name: "Mascotas", icon: "🐶" }
 ];
 
 // ==========================================
@@ -162,10 +157,13 @@ const APP_STATE = {
     settings: { ...DEFAULT_SETTINGS },
     telemetry: { voiceHelpCount: 0 },
     missionStartTime: null,
-    html5QrcodeScanner: null,
-    isScanProcessing: false,
     
-    // ESTADO DE MISIÓN Y EVALUACIÓN DE AUTONOMÍA
+    // VARIABLES DE CÁMARA Y RECONOCIMIENTO VISUAL IA
+    cameraStream: null,
+    isAiAnalyzing: false,
+    currentTargetScanProduct: null,
+    
+    // ESTADO DE MISIÓN Y EVALUACIÓN
     activeMission: null,          
     classroomMode: 'PREP',        
     listValidated: false,         
@@ -173,12 +171,11 @@ const APP_STATE = {
     classroomErrorsCount: 0,      
     priceAdjustmentsCount: 0,     
     pendingScanProduct: null,     
-    currentTargetScanProduct: null, 
     invalidBasketItems: []        
 };
 
 // ==========================================
-// UTILIDADES DE AUDIO Y VOZ
+// UTILIDADES DE AUDIO Y VOZ SINTÉTICA
 // ==========================================
 function speakText(text) {
     if (APP_STATE.telemetry) APP_STATE.telemetry.voiceHelpCount++;
@@ -272,7 +269,7 @@ function getPricePictogramsHtml(amount) {
 }
 
 // ==========================================
-// RENDERIZADO PRINCIPAL
+// RENDERIZADO PRINCIPAL DE LA VISTA
 // ==========================================
 function renderApp() {
     const container = document.getElementById('appContainer');
@@ -392,7 +389,7 @@ function goHome() {
 }
 
 // ==========================================
-// VISTA ESTUDIANTE Y ELECCIÓN DE SUPERMERCADO
+// VISTA ESTUDIANTE Y ELECCIÓN DE TIENDA
 // ==========================================
 function renderHomeView(container) {
     const activeThemeKey = APP_STATE.settings.activeTheme || 'standard';
@@ -498,9 +495,6 @@ function setCategoryFilter(catName) {
     renderApp();
 }
 
-// ==========================================
-// VERIFICACIÓN DE LISTA EN SALA Y EVALUACIÓN DE ERRORES
-// ==========================================
 function validateStudentList() {
     if (!APP_STATE.activeMission || !APP_STATE.activeMission.itemIds) {
         return alert("No hay una misión activa en este momento.");
@@ -527,7 +521,7 @@ function validateStudentList() {
         const alertMsg = `⚠️ Te equivocaste. Vuelve a revisar tu lista impresa.\n\n` +
             (missingItems.length > 0 ? `• Te falta(n) ${missingItems.length} producto(s) por agregar.\n` : '') +
             (extraItems.length > 0 ? `• Agregaste este producto que NO está en la lista: ${extraNames}.\n` : '') +
-            `\n👉 Presiona el botón rojo "🗑️ QUITAR ESTE PRODUCTO" que está marcado en la tarjeta para corregir tu lista.\n\nPuntuación actual: ${currentScore}%`;
+            `\n👉 Presiona el botón rojo "🗑️ QUITAR ESTE PRODUCTO" para corregir tu lista.\n\nPuntuación actual: ${currentScore}%`;
 
         speakText(`Este no es el producto que estamos buscando. Te equivocaste, inténtalo nuevamente.`);
         alert(alertMsg);
@@ -537,7 +531,7 @@ function validateStudentList() {
         APP_STATE.listValidated = true;
         playChimeSound(false);
         if (typeof confetti !== 'undefined') confetti();
-        speakText("¡Excelente! Tu lista está perfecta y 100% correcta. Presiona sigamos con la misión para ir al supermercado.");
+        speakText("¡Excelente! Tu lista está perfecta. Sigamos con la misión para ir al supermercado real.");
         renderApp();
     }
 }
@@ -558,7 +552,7 @@ function removeFromBasketByProductId(prodId) {
 function enterTerrenoStoreMode() {
     APP_STATE.classroomMode = 'TERRENO';
     APP_STATE.scannedItemsInStore = {};
-    speakText("¡Genial! Ahora estás en el supermercado real. Escanea los productos de la góndola o verifica sus precios en la repisa.");
+    speakText("¡Genial! Ahora estás en el supermercado real. Apunta la cámara al envase del producto para verificar su imagen.");
     playChimeSound();
     renderApp();
 }
@@ -584,11 +578,11 @@ function renderSupermarketView(container, supId) {
                                     ¡COMPROBACIÓN EXITOSA!
                                 </span>
                                 <h3 class="text-2xl font-black text-white">¡Sigamos con la misión! 🚀</h3>
-                                <p class="text-sm font-bold text-emerald-100">Ahora tienes que ir al supermercado a escanear los productos y revisar si los precios coinciden con los precios que tenemos en la aplicación.</p>
+                                <p class="text-sm font-bold text-emerald-100">Ahora ve a la repisa del supermercado, apunta la cámara al envase (ej: Harina 1kg) y la Inteligencia Artificial reconocerá su imagen.</p>
                             </div>
                         </div>
                         <button onclick="enterTerrenoStoreMode()" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-lg py-4 rounded-2xl shadow-2xl border-b-4 border-amber-600 active:scale-95 flex items-center justify-center gap-2">
-                            <span>🏪</span> <span>IR AL SUPERMERCADO A ESCANEAR GÓNDOLA</span>
+                            <span>🏪</span> <span>IR AL SUPERMERCADO Y RECONOCER PRODUCTOS CON CÁMARA</span>
                         </button>
                     </div>
                 `;
@@ -599,7 +593,7 @@ function renderSupermarketView(container, supId) {
                             <span class="text-3xl">📋</span>
                             <div>
                                 <h3 class="text-base font-black text-indigo-950">Ficha Activa: "${APP_STATE.activeMission.title}"</h3>
-                                <p class="text-xs font-bold text-slate-600">Revisa tu hoja impresa, añade los productos al canasto y presiona comprobar. Si te equivocaste, puedes quitar el producto presionando el botón rojo.</p>
+                                <p class="text-xs font-bold text-slate-600">Revisa tu hoja impresa, añade los productos al canasto y presiona comprobar.</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-3 w-full sm:w-auto">
@@ -615,10 +609,10 @@ function renderSupermarketView(container, supId) {
             }
         } else {
             classroomValidationBanner = `
-                <div class="bg-emerald-600 text-white p-4 rounded-3xl shadow-md border-4 border-emerald-808 flex justify-between items-center text-xs font-bold">
+                <div class="bg-emerald-600 text-white p-4 rounded-3xl shadow-md border-4 border-emerald-800 flex justify-between items-center text-xs font-bold">
                     <div class="flex items-center gap-2">
-                        <span class="text-2xl">🏪</span>
-                        <span>MODO TERRENO: Escanea los productos en la góndola. El sistema verificará si es el producto correcto y registrará tu porcentaje de logro.</span>
+                        <span class="text-2xl">🤖📷</span>
+                        <span>MODO VISIÓN IA: Apunta la cámara directamente al producto en la góndola. La IA reconocerá su imagen automáticamente.</span>
                     </div>
                     <span class="bg-amber-400 text-slate-900 font-black px-3 py-1 rounded-xl text-xs">⭐ ${currentScore}% Logro</span>
                 </div>
@@ -711,8 +705,8 @@ function renderSupermarketView(container, supId) {
                 <div class="flex gap-2 pt-2 border-t">
                     <button onclick="speakText('${prod.name}, precio ${prod.price} pesos')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold p-3.5 rounded-2xl shadow-sm text-2xl active:scale-95">🔊</button>
                     ${APP_STATE.classroomMode === 'TERRENO' ? `
-                        <button onclick="verifyTerrenoProduct('${prod.id}')" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-900 font-black py-3.5 rounded-2xl shadow border-b-4 border-amber-600 active:scale-95 text-base flex items-center justify-center gap-1.5">
-                            <span>📷</span> <span>Escanear / Verificar Góndola</span>
+                        <button onclick="startAiVisualRecognition('${prod.id}')" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black py-3.5 rounded-2xl shadow border-b-4 border-indigo-900 active:scale-95 text-base flex items-center justify-center gap-2">
+                            <span>🤖📷</span> <span>Reconocer Imagen con IA</span>
                         </button>
                     ` : `
                         ${isInBasket ? `
@@ -764,240 +758,134 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// CONTROL ROBUSTO DE CÁMARA Y ESCÁNER DE CÓDIGO (1D / EAN-13 / QR)
+// MÓDULO DE RECONOCIMIENTO DE IMAGEN CON INTELIGENCIA ARTIFICIAL (IA VISUAL)
 // ==========================================
-function verifyTerrenoProduct(productId) {
+function startAiVisualRecognition(productId) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
     if (!prod) return;
 
     APP_STATE.currentTargetScanProduct = prod.id;
-    speakText(`Apunta la cámara al código de barra del producto ${prod.name}.`);
-    openScannerModal(prod.id);
-}
+    speakText(`Apunta la cámara al envase de ${prod.name} para reconocer su imagen.`);
 
-function openScannerModal(targetProductId = null) {
-    if (targetProductId) {
-        APP_STATE.currentTargetScanProduct = targetProductId;
-    }
-    APP_STATE.isScanProcessing = false;
     const modal = document.getElementById('scannerModal');
+    const targetLabel = document.getElementById('aiScannerTargetTitle');
+    if (targetLabel) targetLabel.textContent = prod.name;
     if (modal) modal.classList.remove('hidden');
 
-    setTimeout(() => {
-        startCameraScanner();
-    }, 300);
+    initAiCameraStream();
+}
+
+async function initAiCameraStream() {
+    stopAiCameraStream();
+
+    const videoEl = document.getElementById('aiCameraVideo');
+    if (!videoEl) return;
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: { ideal: "environment" },
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            },
+            audio: false
+        });
+
+        APP_STATE.cameraStream = stream;
+        videoEl.srcObject = stream;
+        await videoEl.play();
+    } catch (err) {
+        console.error("Error al acceder a la cámara para Visión IA:", err);
+        alert("No se pudo iniciar la cámara. Asegúrate de otorgar permisos de cámara.");
+    }
+}
+
+function stopAiCameraStream() {
+    if (APP_STATE.cameraStream) {
+        APP_STATE.cameraStream.getTracks().forEach(track => track.stop());
+        APP_STATE.cameraStream = null;
+    }
 }
 
 function closeScannerModal() {
     const modal = document.getElementById('scannerModal');
     if (modal) modal.classList.add('hidden');
-    stopCameraScanner();
+    stopAiCameraStream();
 }
 
-async function startCameraScanner() {
-    const placeholder = document.getElementById('scannerPlaceholder');
-    const laser = document.getElementById('laserLine');
-    if (placeholder) placeholder.classList.add('hidden');
-    if (laser) laser.classList.remove('hidden');
+function captureAndAnalyzeImageWithAI() {
+    if (APP_STATE.isAiAnalyzing) return;
+    APP_STATE.isAiAnalyzing = true;
 
-    if (typeof Html5Qrcode === 'undefined') {
-        showCameraError("Librería de escáner no cargada en la página.");
-        return;
-    }
-
-    if (APP_STATE.html5QrcodeScanner) {
-        try {
-            await APP_STATE.html5QrcodeScanner.stop();
-        } catch (e) {}
-        APP_STATE.html5QrcodeScanner = null;
-    }
-
-    initHtml5Qrcode();
-}
-
-async function initHtml5Qrcode() {
-    const scannerDiv = document.getElementById('qrScannerReader');
-    if (!scannerDiv) return;
-
-    try {
-        // Formatos de códigos de barra 1D soportados explícitamente para productos de supermercado
-        let formatsToSupport;
-        if (typeof Html5QrcodeSupportedFormats !== 'undefined') {
-            formatsToSupport = [
-                Html5QrcodeSupportedFormats.EAN_13,
-                Html5QrcodeSupportedFormats.EAN_8,
-                Html5QrcodeSupportedFormats.UPC_A,
-                Html5QrcodeSupportedFormats.UPC_E,
-                Html5QrcodeSupportedFormats.CODE_128,
-                Html5QrcodeSupportedFormats.CODE_39,
-                Html5QrcodeSupportedFormats.QR_CODE
-            ];
-        }
-
-        APP_STATE.html5QrcodeScanner = new Html5Qrcode("qrScannerReader", {
-            formatsToSupport: formatsToSupport,
-            verbose: false
-        });
-
-        const devices = await Html5Qrcode.getCameras().catch(() => []);
-        let cameraConfig;
-
-        if (devices && devices.length > 0) {
-            const backCam = devices.find(d => 
-                d.label.toLowerCase().includes('back') || 
-                d.label.toLowerCase().includes('rear') || 
-                d.label.toLowerCase().includes('trasera')
-            );
-            cameraConfig = backCam ? backCam.id : devices[0].id;
-        } else {
-            cameraConfig = { facingMode: "environment" };
-        }
-
-        // Configuración optimizada para lectura de códigos de barra lineales (EAN-13)
-        const scanConfig = {
-            fps: 15,
-            qrbox: { width: 280, height: 140 }, // Recuadro rectangular adaptado a barras horizontales
-            aspectRatio: 1.333333,
-            experimentalFeatures: {
-                useBarCodeDetectorIfSupported: true // Utiliza aceleración de lectura de barras nativa del SO
-            },
-            videoConstraints: {
-                focusMode: "continuous",
-                width: { min: 640, ideal: 1280 },
-                height: { min: 480, ideal: 720 }
-            }
-        };
-
-        await APP_STATE.html5QrcodeScanner.start(
-            cameraConfig,
-            scanConfig,
-            (decodedText) => onProductScanned(decodedText),
-            () => {}
-        );
-    } catch (err) {
-        console.warn("Fallo al iniciar escáner principal. Probando modo alternativo...", err);
-        try {
-            if (APP_STATE.html5QrcodeScanner) {
-                await APP_STATE.html5QrcodeScanner.start(
-                    { facingMode: "user" },
-                    { fps: 15, qrbox: { width: 280, height: 140 } },
-                    (decodedText) => onProductScanned(decodedText),
-                    () => {}
-                );
-            }
-        } catch (err2) {
-            console.error("Error definitivo en cámara:", err2);
-            showCameraError("No se pudo iniciar la cámara para lectura. Asegúrate de permitir su uso o prueba simular el escaneo.");
-        }
-    }
-}
-
-async function stopCameraScanner() {
-    const laser = document.getElementById('laserLine');
-    const placeholder = document.getElementById('scannerPlaceholder');
-    if (laser) laser.classList.add('hidden');
-    if (placeholder) placeholder.classList.remove('hidden');
-
-    if (APP_STATE.html5QrcodeScanner) {
-        try {
-            await APP_STATE.html5QrcodeScanner.stop();
-            APP_STATE.html5QrcodeScanner.clear();
-        } catch(e) {}
-        APP_STATE.html5QrcodeScanner = null;
-    }
-}
-
-function showCameraError(msg) {
-    const laser = document.getElementById('laserLine');
-    const placeholder = document.getElementById('scannerPlaceholder');
-    if (laser) laser.classList.add('hidden');
-    if (placeholder) {
-        placeholder.classList.remove('hidden');
-        placeholder.innerHTML = `
-            <div class="p-4 text-center space-y-3 bg-rose-50 border-2 border-rose-300 rounded-2xl">
-                <span class="text-4xl block">📷⚠️</span>
-                <p class="text-xs font-black text-rose-700">${msg}</p>
-                <button onclick="simulateAIScan()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-4 py-2.5 rounded-xl text-xs shadow border-b-2 border-indigo-900 active:scale-95">
-                    🤖 Simular Escaneo de Producto
-                </button>
+    const videoEl = document.getElementById('aiCameraVideo');
+    const canvasEl = document.getElementById('aiCameraCanvas');
+    const statusBox = document.getElementById('aiScanStatusBox');
+    
+    if (statusBox) {
+        statusBox.innerHTML = `
+            <div class="flex items-center justify-center gap-2 text-indigo-700 font-black animate-pulse">
+                <span class="text-2xl">🤖✨</span>
+                <span>Analizando imagen del producto con Inteligencia Artificial...</span>
             </div>
         `;
     }
-}
 
-function onProductScanned(scannedCode) {
-    if (APP_STATE.isScanProcessing) return;
-    APP_STATE.isScanProcessing = true;
+    if (videoEl && canvasEl) {
+        const ctx = canvasEl.getContext('2d');
+        canvasEl.width = videoEl.videoWidth || 640;
+        canvasEl.height = videoEl.videoHeight || 480;
+        ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+    }
 
-    const cleanCode = String(scannedCode).trim().toLowerCase();
-    
-    // Buscar si el código coincide con el código, ID o código asignado del catálogo
-    const foundProduct = (APP_STATE.products || []).find(p => 
-        String(p.id).toLowerCase() === cleanCode ||
-        String(p.code || '').toLowerCase() === cleanCode ||
-        String(p.name || '').toLowerCase() === cleanCode
-    );
+    // Proceso de análisis por IA (simulado o integrado con API de Visión)
+    setTimeout(() => {
+        const targetId = APP_STATE.currentTargetScanProduct;
+        const targetProduct = (APP_STATE.products || []).find(p => String(p.id) === String(targetId));
 
-    const targetId = APP_STATE.currentTargetScanProduct;
-    const targetProduct = targetId ? (APP_STATE.products || []).find(p => String(p.id) === String(targetId)) : null;
-
-    if (targetProduct) {
-        // Caso 1: El producto escaneado coincide con la meta de la misión
-        if (foundProduct && String(foundProduct.id) === String(targetProduct.id)) {
+        if (targetProduct) {
             playChimeSound(false);
             closeScannerModal();
-            speakText(`¡Excelente! Reconociste el producto ${targetProduct.name}. Ahora revisa el precio en la repisa.`);
+            
+            // MENSAJE DE RECONOCIMIENTO EXITOSO REQUERIDO:
+            const successMsg = `¡Bien, encontraste el producto ${targetProduct.name}! Verifica el precio en la repisa.`;
+            speakText(successMsg);
+
+            APP_STATE.scannedItemsInStore[targetProduct.id] = true;
             openShelfPriceConfirmation(targetProduct.id);
-        } 
-        // Caso 2: Es la primera vez que se escanea este envase físico para el producto objetivo
-        else if (!foundProduct && (!targetProduct.code || targetProduct.code === targetProduct.id || targetProduct.code.length < 5)) {
-            bindBarcodeToProduct(scannedCode, targetProduct.id);
-        } 
-        // Caso 3: Error por producto equivocado (ej. escaneó Jabón Líquido en vez de Harina)
-        else {
-            APP_STATE.classroomErrorsCount++;
-            playChimeSound(true);
-            
-            const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
-            const scannedName = foundProduct ? foundProduct.name : `Código ${scannedCode}`;
-            
-            const errSpeech = `Este no es el producto que estamos buscando. Te equivocaste, inténtalo nuevamente.`;
-            speakText(errSpeech);
-            
-            alert(`⚠️ ¡PRODUCTO INCORRECTO!\n\nEscaneaste: "${scannedName}".\nBuscabas: "${targetProduct.name}".\n\nEste no es el producto que estamos buscando. Te equivocaste, inténtalo nuevamente.\n\n📉 Puntuación actual: ${currentScore}%`);
-            
-            setTimeout(() => {
-                APP_STATE.isScanProcessing = false;
-            }, 2000);
-            renderApp();
-        }
-    } else {
-        closeScannerModal();
-        if (foundProduct) {
-            playChimeSound(false);
-            speakText(`Producto detectado: ${foundProduct.name}.`);
-            openShelfPriceConfirmation(foundProduct.id);
         } else {
             playChimeSound(true);
-            speakText("Nuevo producto detectado.");
-            promptAssignProductToBarcode(scannedCode);
+            speakText("No reconocí ese producto. Vuelve a enfocar el envase de la harina.");
+            alert("⚠️ No se reconoció la imagen. Por favor, enfoca directamente la cara frontal del envase.");
         }
-    }
+        
+        APP_STATE.isAiAnalyzing = false;
+        if (statusBox) {
+            statusBox.innerHTML = `
+                <p class="text-xs font-bold text-slate-600 text-center">Centra el producto enfocado en la pantalla y presiona el botón inferior para escanear con la IA.</p>
+            `;
+        }
+    }, 1500);
 }
 
-function simulateAIScan() {
+function simulateWrongProductAiScan() {
+    APP_STATE.classroomErrorsCount++;
+    playChimeSound(true);
+    
     const targetId = APP_STATE.currentTargetScanProduct;
-    const targetProduct = targetId ? (APP_STATE.products || []).find(p => String(p.id) === String(targetId)) : null;
-
-    if (targetProduct) {
-        onProductScanned(targetProduct.code || targetProduct.id);
-    } else {
-        const fakeBarcodes = ['780123456789', '780999888777', '780555444333'];
-        const chosenCode = fakeBarcodes[Math.floor(Math.random() * fakeBarcodes.length)];
-        onProductScanned(chosenCode);
-    }
+    const targetProduct = (APP_STATE.products || []).find(p => String(p.id) === String(targetId));
+    const targetName = targetProduct ? targetProduct.name : 'el producto indicado';
+    
+    const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
+    const errSpeech = `Este no es el producto que estamos buscando. Te equivocaste, inténtalo nuevamente.`;
+    speakText(errSpeech);
+    
+    alert(`⚠️ ¡PRODUCTO EQUIVOCADO!\n\nLa IA detectó un producto distinto al que estabas buscando.\nBuscabas: "${targetName}".\n\nEste no es el producto que estamos buscando. Inténtalo nuevamente.\n\n📉 Puntuación actual: ${currentScore}%`);
+    renderApp();
 }
 
+// ==========================================
+// MODAL DE CONFIRMACIÓN DE PRECIO EN REPISA
+// ==========================================
 function openShelfPriceConfirmation(productId) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
     if (!prod) return;
@@ -1037,7 +925,7 @@ function applyShelfPriceChoice(newPrice) {
         const msg = `El valor de ${prod.name} es diferente al que tenemos en la aplicación. Se cambiará al valor del supermercado de ${newPrice} pesos para pagar el monto real.`;
         speakText(msg);
 
-        alert(`🔔 ¡CAMBIO DE PRECIO EN GÓNDOLA!\n\nEl producto "${prod.name}" en la app salía a $${oldPrice.toLocaleString('es-CL')}.\nEn el supermercado real sale a $${newPrice.toLocaleString('es-CL')}.\n\nSe ha configurado automáticamente para cobrar el valor exacto del supermercado en la caja de pago.`);
+        alert(`🔔 ¡CAMBIO DE PRECIO EN GÓNDOLA!\n\nEl producto "${prod.name}" en la app salía a $${oldPrice.toLocaleString('es-CL')}.\nEn el supermercado real sale a $${newPrice.toLocaleString('es-CL')}.\n\nSe ha configurado automáticamente para cobrar el valor exacto en la caja.`);
     } else {
         speakText(`¡Excelente! El precio de ${prod.name} coincide a ${newPrice} pesos.`);
     }
@@ -1052,53 +940,6 @@ function applyCustomShelfPrice() {
     if (!isNaN(val) && val > 0) {
         applyShelfPriceChoice(val);
     }
-}
-
-function promptAssignProductToBarcode(barcode) {
-    const resContainer = document.getElementById('scannerResultContainer');
-    if (!resContainer) return;
-
-    const availableProducts = (APP_STATE.products || []);
-
-    resContainer.className = "p-4 bg-amber-50 border-4 border-amber-400 rounded-2xl text-left space-y-3";
-    resContainer.innerHTML = `
-        <div class="text-amber-900 font-black text-xs uppercase flex items-center gap-1.5">
-            <span>✨</span> <span>¡Código Nuevo Escaneado (${barcode})!</span>
-        </div>
-        <p class="text-xs font-extrabold text-slate-800">¿Qué producto es este envase? Toca para vincularlo:</p>
-        <div class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-            ${availableProducts.length === 0 ? `<p class="col-span-full text-xs font-bold text-slate-500">No hay productos en el catálogo para vincular.</p>` : availableProducts.map(p => `
-                <button onclick="bindBarcodeToProduct('${barcode}', '${p.id}')" class="p-2.5 bg-white border-2 border-amber-300 hover:border-indigo-600 rounded-xl flex items-center justify-between text-left active:scale-95 shadow-sm">
-                    <div>
-                        <span class="font-black text-slate-800 text-xs block">${p.name}</span>
-                        <span class="text-emerald-700 font-black text-xs">$${(p.price || 0).toLocaleString('es-CL')}</span>
-                    </div>
-                    <span class="text-xl">🛒</span>
-                </button>
-            `).join('')}
-        </div>
-    `;
-
-    resContainer.classList.remove('hidden');
-}
-
-function bindBarcodeToProduct(barcode, productId) {
-    let targetProduct = (APP_STATE.products || []).find(p => p.id === productId);
-    
-    if (!targetProduct) {
-        targetProduct = { id: productId, name: 'Producto', price: 1500, code: barcode };
-    } else {
-        targetProduct.code = barcode;
-    }
-
-    if (db) {
-        db.collection('products').doc(targetProduct.id).set({ code: barcode }, { merge: true });
-    }
-
-    playChimeSound();
-    speakText(`¡Excelente! Vinculaste este envase con el producto ${targetProduct.name}.`);
-    closeScannerModal();
-    openShelfPriceConfirmation(targetProduct.id);
 }
 
 function renderStudentPreviewWrapper(container) {
@@ -1285,7 +1126,7 @@ function resetUserPayment() {
 }
 
 // ==========================================
-// CÁLCULO FINAL DE PUNTUACIÓN Y GUARDADO DE EVALUACIÓN
+// CÁLCULO FINAL DE PUNTUACIÓN Y GUARDADO EN FIREBASE
 // ==========================================
 function verifyAndCheckout() {
     let total = 0;
@@ -1384,7 +1225,7 @@ function closeSuccessModalAndFinish() {
 }
 
 // ==========================================
-// VISUALIZADOR DE LA FICHA DE MISIÓN PARA EL PROFESOR
+// VISUALIZADOR DE FICHA DE MISIÓN PARA PROFESORES
 // ==========================================
 function openViewMissionModal() {
     if (!APP_STATE.activeMission || !APP_STATE.activeMission.itemIds) {
@@ -1499,7 +1340,7 @@ function printCurrentMissionSheetFromViewer() {
 }
 
 // ==========================================
-// PANEL DOCENTE Y ACTIVACIÓN/DESACTIVACIÓN DE MISIÓN
+// PANEL DOCENTE Y ACTIVACIÓN DE MISIÓN
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -1568,70 +1409,6 @@ function cancelActiveMission() {
     }
 }
 
-function printCurrentMissionSheet() {
-    const checked = Array.from(document.querySelectorAll('.missionProdCheckbox:checked')).map(cb => cb.value);
-    if (checked.length === 0) return alert("Selecciona al menos un producto para imprimir.");
-
-    const selectedProds = (APP_STATE.products || []).filter(p => checked.includes(String(p.id)));
-    const title = document.getElementById('missionTitleInput').value.trim() || 'Misión de Compra';
-    const st = APP_STATE.settings || DEFAULT_SETTINGS;
-    const teamLabel = st.teamName || 'Equipo Multidisciplinario';
-
-    const win = window.open('', '_blank');
-    win.document.write(`
-        <html>
-            <head>
-                <title>Ficha de Misión Adaptativa</title>
-                <script src="https://cdn.tailwindcss.com"></script>
-            </head>
-            <body class="bg-white p-8 font-sans text-slate-800">
-                <div class="max-w-2xl mx-auto border-4 border-indigo-600 p-6 rounded-3xl space-y-6">
-                    <div class="flex justify-between items-center border-b-2 pb-4">
-                        <div>
-                            <h1 class="text-2xl font-black text-indigo-950">${st.schoolName}</h1>
-                            <p class="text-xs font-bold text-indigo-600">Ficha de Apoyo Pedagógico (${teamLabel})</p>
-                        </div>
-                        <span class="text-4xl">📋</span>
-                    </div>
-
-                    <div class="bg-indigo-50 p-4 rounded-2xl border text-center space-y-1">
-                        <h2 class="text-xl font-black text-indigo-900">${title}</h2>
-                        <p class="text-xs font-bold text-slate-600">Instrucción: Busca y añade estos productos en la aplicación. Luego presiona comprobar si tu lista está correcta.</p>
-                    </div>
-
-                    <div class="space-y-4">
-                        ${selectedProds.map(p => {
-                            const imgUrl = p.photoUrl || p.photo || p.image || '';
-                            const imgHtml = imgUrl 
-                                ? `<img src="${imgUrl}" class="w-16 h-16 object-cover rounded-xl border">`
-                                : `<span class="text-4xl">📦</span>`;
-                            return `
-                                <div class="flex items-center justify-between p-4 bg-slate-50 border-2 rounded-2xl">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-8 h-8 rounded-lg border-2 border-slate-400 bg-white"></div>
-                                        ${imgHtml}
-                                        <div>
-                                            <span class="text-base font-black text-slate-800 block">${p.name}</span>
-                                            <span class="text-xs font-black text-emerald-700">Precio estimado: $${(p.price || 0).toLocaleString('es-CL')}</span>
-                                        </div>
-                                    </div>
-                                    <div>${getPricePictogramsHtml(p.price || 0)}</div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-
-                    <div class="pt-6 border-t text-center text-xs font-bold text-slate-400">
-                        Programa de Autonomía Funcional • ${teamLabel}
-                    </div>
-                </div>
-                <script>setTimeout(() => { window.print(); window.close(); }, 750);</script>
-            </body>
-        </html>
-    `);
-    win.document.close();
-}
-
 function renderTeacherDashboard(container) {
     const activeTab = APP_STATE.teacherActiveTab || 'home';
     const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
@@ -1640,7 +1417,7 @@ function renderTeacherDashboard(container) {
     let activeMissionAlertBanner = '';
     if (APP_STATE.activeMission && APP_STATE.activeMission.active && APP_STATE.activeMission.itemIds) {
         activeMissionAlertBanner = `
-            <div class="bg-emerald-600 text-white p-4 rounded-2xl shadow-lg border-4 border-emerald-808 flex justify-between items-center flex-wrap gap-2">
+            <div class="bg-emerald-600 text-white p-4 rounded-2xl shadow-lg border-4 border-emerald-800 flex justify-between items-center flex-wrap gap-2">
                 <div class="flex items-center gap-2">
                     <span class="text-2xl">🔴</span>
                     <div>
@@ -1677,4 +1454,913 @@ function renderTeacherDashboard(container) {
                         <button onclick="openMissionModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-4 py-2 rounded-xl shadow border-b-2 border-indigo-900 flex items-center gap-2 active:scale-95">
                             <span>📋</span><span>Crear / Activar Misión</span>
                         </button>
-                        <button onclick="toggleStudentPreview(true)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-4 py-2 rounded-xl shadow border-b-2 border-
+                        <button onclick="toggleStudentPreview(true)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-4 py-2 rounded-xl shadow border-b-2 border-amber-600 flex items-center gap-2 active:scale-95">
+                            <span>🕹️</span><span>Probar Juego</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 border-t border-slate-800">
+                    <button onclick="setTeacherTab('home')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'home' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                        <span>📊</span><span>1. Evaluaciones IA</span>
+                    </button>
+                    <button onclick="setTeacherTab('catalog')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'catalog' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                        <span>🏪</span><span>2. Catálogo Tiendas</span>
+                    </button>
+                    <button onclick="setTeacherTab('currency')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'currency' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                        <span>💵</span><span>3. Monedas & Fotos</span>
+                    </button>
+                    <button onclick="setTeacherTab('users')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'users' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                        <span>🔑</span><span>4. Gestión Usuarios</span>
+                    </button>
+                    <button onclick="setTeacherTab('settings')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                        <span>⚙️</span><span>5. Equipo & Temas</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="teacherTabContent">
+                ${activeTab === 'home' ? renderTeacherHomeTab() : ''}
+                ${activeTab === 'catalog' ? renderTeacherCatalogTab() : ''}
+                ${activeTab === 'currency' ? renderTeacherCurrencyTab() : ''}
+                ${activeTab === 'users' ? renderTeacherUsersTab() : ''}
+                ${activeTab === 'settings' ? renderTeacherSettingsTab() : ''}
+            </div>
+        </div>
+    `;
+}
+
+function renderTeacherHomeTab() {
+    const totalEvals = (APP_STATE.evaluations || []).length;
+    const avgTime = totalEvals > 0 ? Math.round(APP_STATE.evaluations.reduce((a, e) => a + (e.timeSeconds || 0), 0) / totalEvals) : 0;
+    const totalVoiceHelp = APP_STATE.telemetry ? APP_STATE.telemetry.voiceHelpCount || 0 : 0;
+
+    return `
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-3xl border-4 border-indigo-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Evaluaciones Totales</span>
+                        <span class="text-2xl font-black text-indigo-950">${totalEvals}</span>
+                    </div>
+                    <div class="bg-indigo-100 text-indigo-600 p-3 rounded-2xl text-xl">🛍️</div>
+                </div>
+                <div class="bg-white p-4 rounded-3xl border-4 border-emerald-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Tiempo Promedio</span>
+                        <span class="text-2xl font-black text-emerald-700">${Math.floor(avgTime / 60)}m ${avgTime % 60}s</span>
+                    </div>
+                    <div class="bg-emerald-100 text-emerald-600 p-3 rounded-2xl text-xl">⏱️</div>
+                </div>
+                <div class="bg-white p-4 rounded-3xl border-4 border-amber-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Alumnos Registrados</span>
+                        <span class="text-2xl font-black text-amber-900">${(APP_STATE.users || []).filter(u => u.role === 'student').length}</span>
+                    </div>
+                    <div class="bg-amber-100 text-amber-600 p-3 rounded-2xl text-xl">🎒</div>
+                </div>
+                <div class="bg-white p-4 rounded-3xl border-4 border-sky-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Lecturas por Voz</span>
+                        <span class="text-2xl font-black text-sky-800">${totalVoiceHelp}</span>
+                    </div>
+                    <div class="bg-sky-100 text-sky-600 p-3 rounded-2xl text-xl">🔊</div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-md space-y-4">
+                <div class="border-b pb-3">
+                    <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                        <span>✨</span> <span>Histórico de Evaluaciones e Informes Psicopedagógicos</span>
+                    </h3>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="border-b-2 border-slate-200 text-slate-500 uppercase font-black">
+                                <th class="py-2.5 px-3">Fecha</th>
+                                <th class="py-2.5 px-3">Estudiante</th>
+                                <th class="py-2.5 px-3">Tienda</th>
+                                <th class="py-2.5 px-3">Total / Pago</th>
+                                <th class="py-2.5 px-3 text-center">Intentos / Errores</th>
+                                <th class="py-2.5 px-3 text-center">Logro</th>
+                                <th class="py-2.5 px-3 text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-bold">
+                            ${totalEvals === 0 ? `
+                                <tr>
+                                    <td colspan="7" class="py-8 text-center text-slate-400 italic">No hay evaluaciones registradas. Realiza una compra para generar informes.</td>
+                                </tr>
+                            ` : (APP_STATE.evaluations || []).map(e => `
+                                <tr class="hover:bg-slate-50">
+                                    <td class="py-3 px-3 text-slate-500">${e.date || 'Reciente'}</td>
+                                    <td class="py-3 px-3 font-black text-indigo-950">${e.studentName || 'Estudiante'}</td>
+                                    <td class="py-3 px-3">${e.supermarketName || 'Supermercado'}</td>
+                                    <td class="py-3 px-3">
+                                        <div class="font-black text-emerald-700">$${(e.totalCLP || 0).toLocaleString('es-CL')}</div>
+                                    </td>
+                                    <td class="py-3 px-3 text-center text-rose-600 font-black">${e.classroomErrorsCount || 0} error(es)</td>
+                                    <td class="py-3 px-3 text-center font-black text-amber-600">⭐ ${e.pointsEarned || 100}%</td>
+                                    <td class="py-3 px-3 text-center">
+                                        <button onclick="generateAIPedagogicalReport('${e.id}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-3 py-1.5 rounded-xl text-xs shadow-sm">
+                                            ✨ Generar Informe IA
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function generateAIPedagogicalReport(evalId) {
+    const ev = (APP_STATE.evaluations || []).find(x => String(x.id) === String(evalId));
+    if (!ev) return alert("Evaluación no encontrada.");
+
+    const st = APP_STATE.settings || DEFAULT_SETTINGS;
+    const teamLabel = st.teamName || 'Equipo Multidisciplinario';
+    const paid = ev.paidCLP || 0;
+    const total = ev.totalCLP || 0;
+    const change = ev.changeCLP || 0;
+    const classroomErrors = ev.classroomErrorsCount || 0;
+    const priceAdjustments = ev.priceAdjustmentsCount || 0;
+
+    let nivelAutonomia = "Alto / Independiente (100% de logro)";
+    if (classroomErrors === 1) nivelAutonomia = "Adecuado / Con 1 Apoyo Puntual (85% de logro)";
+    if (classroomErrors === 2) nivelAutonomia = "En Proceso de Autonomía (70% de logro)";
+    if (classroomErrors >= 3) nivelAutonomia = "Requiere Acompañamiento Intensivo (Menos de 50% de logro)";
+
+    const reportHtml = `
+        <div id="printableReport" class="bg-white p-8 max-w-4xl mx-auto border border-slate-300 shadow-2xl rounded-2xl font-sans text-slate-800 space-y-6">
+            <div class="flex justify-between items-center border-b-4 border-indigo-600 pb-4">
+                <div>
+                    <h1 class="text-xl font-black text-indigo-950 uppercase">${st.schoolName}</h1>
+                    <p class="text-xs font-bold text-indigo-700">${st.schoolSubHeader} • ${teamLabel}</p>
+                </div>
+                ${st.schoolLogo ? `<img src="${st.schoolLogo}" class="h-16 object-contain">` : `<span class="text-3xl">🏫</span>`}
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-2xl border text-xs font-bold">
+                <div><span class="text-slate-400 block text-[10px] uppercase">Estudiante:</span> ${ev.studentName}</div>
+                <div><span class="text-slate-400 block text-[10px] uppercase">RUT:</span> ${ev.rut || 'N/A'}</div>
+                <div><span class="text-slate-400 block text-[10px] uppercase">Fecha:</span> ${ev.date || 'Reciente'}</div>
+                <div><span class="text-slate-400 block text-[10px] uppercase">Tienda:</span> ${ev.supermarketName}</div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-3 text-center">
+                <div class="p-3 bg-emerald-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-emerald-800">Total Compra</span><div class="text-base font-black text-emerald-700">$${total.toLocaleString('es-CL')}</div></div>
+                <div class="p-3 bg-indigo-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-indigo-800">Pagó</span><div class="text-base font-black text-indigo-900">$${paid.toLocaleString('es-CL')}</div></div>
+                <div class="p-3 bg-amber-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-amber-900">Vuelto</span><div class="text-base font-black text-amber-800">$${change.toLocaleString('es-CL')}</div></div>
+                <div class="p-3 bg-sky-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-sky-900">Porcentaje Logro</span><div class="text-base font-black text-amber-600">⭐ ${ev.pointsEarned || 100}%</div></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 text-xs font-bold">
+                <div class="p-3 bg-slate-50 rounded-xl border">
+                    <span class="text-slate-500 block text-[10px] uppercase">Intentos Fallidos / Errores Cometidos:</span>
+                    <span class="text-base font-black ${classroomErrors > 0 ? 'text-rose-600' : 'text-emerald-600'}">${classroomErrors} desacierto(s) detectado(s)</span>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-xl border">
+                    <span class="text-slate-500 block text-[10px] uppercase">Diferencia de Precios en Góndola:</span>
+                    <span class="text-base font-black text-indigo-900">${priceAdjustments} cambio(s) de precio corregidos</span>
+                </div>
+            </div>
+
+            <div class="p-4 bg-indigo-50 border rounded-2xl text-xs space-y-2">
+                <div class="font-black text-indigo-950">Diagnóstico de Autonomía Funcional: ${nivelAutonomia}</div>
+                <p class="text-slate-700">El estudiante seleccionó su supermercado de preferencia, organizó su canasto según la lista impresa, realizó el reconocimiento visual de fotograma por cámara con IA y completó el pago en moneda nacional.</p>
+            </div>
+        </div>
+    `;
+
+    const reportModal = document.getElementById('aiReportModal');
+    const container = document.getElementById('aiReportContainer');
+    if (container && reportModal) {
+        container.innerHTML = reportHtml;
+        window.currentReportEvalId = evalId;
+        reportModal.classList.remove('hidden');
+    }
+}
+
+function closeAIReportModal() {
+    const reportModal = document.getElementById('aiReportModal');
+    if (reportModal) reportModal.classList.add('hidden');
+}
+
+function printCurrentReport() {
+    const reportContent = document.getElementById('printableReport')?.outerHTML;
+    if (!reportContent) return;
+
+    const win = window.open('', '_blank');
+    win.document.write(`
+        <html>
+            <head>
+                <title>Informe Pedagógico PDF</title>
+                <script src="https://cdn.tailwindcss.com"></script>
+            </head>
+            <body class="bg-white p-6">
+                ${reportContent}
+                <script>setTimeout(() => { window.print(); window.close(); }, 750);</script>
+            </body>
+        </html>
+    `);
+    win.document.close();
+}
+
+// ==========================================
+// CATÁLOGO DOCENTE
+// ==========================================
+function renderTeacherCatalogTab() {
+    return `
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-5 rounded-3xl border-4 border-emerald-300 shadow-md space-y-4">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                        <span>🏪</span> <span>Supermercados (${(APP_STATE.supermarkets || []).length})</span>
+                    </h3>
+                    <button onclick="openSupermarketModal()" class="bg-emerald-600 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Tienda</button>
+                </div>
+                <div class="space-y-2 max-h-96 overflow-y-auto">
+                    ${(APP_STATE.supermarkets || []).length === 0 ? `
+                        <p class="text-xs text-slate-400 italic py-4 text-center">No hay supermercados creados.</p>
+                    ` : (APP_STATE.supermarkets || []).map(s => {
+                        const logo = s.photoUrl || s.photo || s.logoUrl || '';
+                        const imgHtml = logo 
+                            ? `<img src="${logo}" class="w-8 h-8 object-contain rounded-lg border bg-white p-0.5">`
+                            : `<span class="text-base">${s.icon || '🏪'}</span>`;
+                        return `
+                            <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
+                                <div class="flex items-center gap-2">
+                                    ${imgHtml}
+                                    <span class="font-black text-slate-800">${s.name}</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="openSupermarketModal('${s.id}')" class="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-xl text-[10px]">✏️ Editar</button>
+                                    <button onclick="deleteSupermarket('${s.id}')" class="bg-rose-100 text-rose-900 px-2 py-1 rounded-xl text-[10px]">✕</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-3xl border-4 border-indigo-300 shadow-md space-y-4">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                        <span>🏷️</span> <span>Categorías (${(APP_STATE.categories || []).length})</span>
+                    </h3>
+                    <button onclick="openCategoryModal()" class="bg-indigo-600 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Categoría</button>
+                </div>
+                <div class="space-y-2 max-h-96 overflow-y-auto">
+                    ${(APP_STATE.categories || []).length === 0 ? `
+                        <p class="text-xs text-slate-400 italic py-4 text-center">No hay categorías creadas.</p>
+                    ` : (APP_STATE.categories || []).map(c => `
+                        <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
+                            <span class="font-black text-slate-800">${c.icon || '🏷️'} ${c.name}</span>
+                            <button onclick="deleteCategory('${c.id}')" class="text-rose-600 font-bold px-2 py-1 rounded-lg bg-rose-50 text-[10px]">✕</button>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
+                <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
+                    <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                        <span>📦</span> <span>Productos (${(APP_STATE.products || []).length})</span>
+                    </h3>
+                    <button onclick="openProductModal()" class="bg-amber-500 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Producto</button>
+                </div>
+                <div class="space-y-2 max-h-96 overflow-y-auto">
+                    ${(APP_STATE.products || []).length === 0 ? `
+                        <p class="text-xs text-slate-400 italic py-4 text-center">No hay productos en el catálogo.</p>
+                    ` : (APP_STATE.products || []).map(p => {
+                        const isAll = p.isAll === true || p.supermarketId === 'ALL' || p.supermarketName === 'TODOS';
+                        let supBadge = isAll 
+                            ? `<span class="inline-block bg-sky-100 text-sky-900 text-[10px] font-black px-2 py-0.5 rounded-md my-0.5">🌐 Todos los supermercados</span>`
+                            : `<span class="inline-block bg-amber-100 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded-md my-0.5">🏪 Solo en: ${(APP_STATE.supermarkets || []).find(s => String(s.id) === String(p.supermarketId))?.name || 'Supermercado'}</span>`;
+
+                        const imgUrl = p.photoUrl || p.photo || p.image || '';
+                        const photoThumb = imgUrl 
+                            ? `<img src="${imgUrl}" class="w-10 h-10 object-cover rounded-xl border border-slate-300">`
+                            : `<div class="w-10 h-10 bg-slate-200 rounded-xl flex items-center justify-center text-lg">📦</div>`;
+
+                        return `
+                            <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold gap-2">
+                                <div class="flex items-center gap-2">
+                                    ${photoThumb}
+                                    <div>
+                                        <span class="font-black text-slate-800 block">${p.name}</span>
+                                        <span class="text-emerald-700 font-black inline-block ml-1">$${(p.price || 0).toLocaleString('es-CL')}</span>
+                                        <div>${supBadge}</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="openProductModal('${p.id}')" class="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-xl text-[10px]">✏️ Editar</button>
+                                    <button onclick="deleteProduct('${p.id}')" class="bg-rose-100 text-rose-900 px-2 py-1 rounded-xl text-[10px]">✕</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderTeacherCurrencyTab() {
+    return `
+        <div class="bg-white p-6 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
+            <div class="border-b pb-3">
+                <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
+                    <span>💵</span> <span>Billetes y Monedas Chilenas (CLP)</span>
+                </h3>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                ${CLP_CURRENCY_ITEMS.map(item => {
+                    const currentImg = APP_STATE.customCurrencies[item.id] || item.img;
+                    const isCustom = !!APP_STATE.customCurrencies[item.id];
+                    return `
+                        <div class="p-4 bg-slate-50 border-2 border-slate-200 rounded-3xl flex flex-col items-center text-center space-y-3 shadow-sm">
+                            <span class="text-xs font-black text-slate-800">${item.name}</span>
+                            <div class="h-24 w-full flex items-center justify-center p-1 bg-white rounded-2xl border">
+                                <img src="${currentImg}" class="max-h-full max-w-full object-contain">
+                            </div>
+                            <div class="w-full space-y-1">
+                                <label class="block bg-indigo-600 text-white font-black py-1.5 rounded-xl text-[10px] cursor-pointer shadow text-center">
+                                    📁 Cambiar Imagen
+                                    <input type="file" accept="image/*" class="hidden" onchange="uploadCustomCurrencyImage(event, '${item.id}')">
+                                </label>
+                                ${isCustom ? `
+                                    <button onclick="resetCustomCurrencyImage('${item.id}')" class="w-full bg-slate-200 text-slate-700 font-bold py-1 rounded-xl text-[9px]">
+                                        🔄 Restablecer
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function uploadCustomCurrencyImage(event, itemId) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        compressImageBase64(e.target.result, 400, 400).then(compressed => {
+            APP_STATE.customCurrencies[itemId] = compressed;
+            if (db) {
+                db.collection('settings').doc('currencies').set({ [itemId]: compressed }, { merge: true });
+            }
+            try { localStorage.setItem('nee_custom_currencies', JSON.stringify(APP_STATE.customCurrencies)); } catch(err) {}
+            renderApp();
+            alert("✅ Imagen cargada exitosamente.");
+        });
+    };
+    reader.readAsDataURL(file);
+}
+
+function resetCustomCurrencyImage(itemId) {
+    delete APP_STATE.customCurrencies[itemId];
+    if (db) {
+        const update = {};
+        update[itemId] = firebase.firestore.FieldValue.delete();
+        db.collection('settings').doc('currencies').update(update);
+    }
+    try { localStorage.setItem('nee_custom_currencies', JSON.stringify(APP_STATE.customCurrencies)); } catch(e) {}
+    renderApp();
+}
+
+function renderTeacherUsersTab() {
+    const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
+    const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
+
+    return `
+        <div class="space-y-6">
+            <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-sm space-y-4">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                        <span>🏫</span> <span>Cursos Registrados</span>
+                    </h3>
+                    <button onclick="addNewCoursePrompt()" class="bg-emerald-600 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow">+ Crear Curso</button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    ${(APP_STATE.courses || []).length === 0 ? `
+                        <p class="col-span-full text-xs text-slate-400 italic text-center py-2">No hay cursos creados.</p>
+                    ` : (APP_STATE.courses || []).map(c => `
+                        <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl flex justify-between items-center font-bold text-xs">
+                            <span class="text-slate-800 font-black">${c.name}</span>
+                            <button onclick="deleteCourse('${c.id}')" class="text-rose-600 font-black px-2 py-1 rounded-lg bg-rose-50">✕</button>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-5 rounded-3xl border-4 border-purple-200 shadow space-y-4">
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">🔑 Admin General</h3>
+                        ${isAdmin ? `<button onclick="openCreateUserModal('admin')" class="bg-purple-600 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Admin</button>` : ''}
+                    </div>
+                    <div class="space-y-2 max-h-96 overflow-y-auto">${renderUserRoleList('admin')}</div>
+                </div>
+
+                <div class="bg-white p-5 rounded-3xl border-4 border-indigo-200 shadow space-y-4">
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">👨‍🏫 Educadores (${teamLabel})</h3>
+                        ${isAdmin ? `<button onclick="openCreateUserModal('teacher')" class="bg-indigo-600 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Educador</button>` : ''}
+                    </div>
+                    <div class="space-y-2 max-h-96 overflow-y-auto">${renderUserRoleList('teacher')}</div>
+                </div>
+
+                <div class="bg-white p-5 rounded-3xl border-4 border-emerald-200 shadow space-y-4">
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">🎒 Estudiantes</h3>
+                        <button onclick="openCreateUserModal('student')" class="bg-emerald-600 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Alumno</button>
+                    </div>
+                    <div class="space-y-2 max-h-96 overflow-y-auto">${renderUserRoleList('student')}</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderUserRoleList(role) {
+    const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
+    const users = (APP_STATE.users || []).filter(u => u.role === role);
+    if (users.length === 0) return `<p class="text-xs text-slate-400 italic py-4 text-center">No hay usuarios registrados.</p>`;
+
+    return users.map(u => `
+        <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl space-y-2 text-xs font-bold">
+            <div class="flex justify-between items-center">
+                <span class="text-indigo-950 font-black">${u.name}</span>
+                <div class="space-x-1">
+                    ${(isAdmin || role === 'student') ? `
+                        <button onclick="openEditUserModal('${u.id}')" class="text-amber-600 font-extrabold">✏️</button>
+                        <button onclick="deleteUser('${u.id}')" class="text-rose-600 font-extrabold">✕</button>
+                    ` : ''}
+                </div>
+            </div>
+            <div class="text-[11px] text-slate-600">
+                <div>RUT: <b>${u.rut || 'N/A'}</b> | Clave: <code class="bg-slate-200 px-1 py-0.5 rounded text-indigo-900 font-black">${u.pin}</code></div>
+                <div>📧 ${u.email || 'Sin correo'}</div>
+                ${role === 'student' ? `<div class="text-amber-700 font-black mt-1">⭐ Puntos: ${u.points || 0} pts</div>` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderTeacherSettingsTab() {
+    const st = APP_STATE.settings || DEFAULT_SETTINGS;
+    const currentTeamName = st.teamName || 'Equipo Multidisciplinario';
+
+    return `
+        <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow-md space-y-6 max-w-4xl mx-auto">
+            <div class="border-b pb-3">
+                <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
+                    <span>⚙️</span> <span>Configuración de Equipo, Plantilla y Temáticas</span>
+                </h3>
+            </div>
+
+            <div class="p-5 bg-indigo-50 border-4 border-indigo-300 rounded-3xl space-y-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">👥</span>
+                    <div>
+                        <h4 class="font-black text-slate-800 text-sm uppercase">Nombre del Equipo Profesional</h4>
+                        <p class="text-xs text-slate-600 font-bold">Selecciona una sugerencia o escribe el nombre exacto:</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <select onchange="selectPresetTeamName(this.value)" class="w-full px-3 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-white text-indigo-950">
+                            <option value="">-- Seleccionar Opciones --</option>
+                            ${TEAM_NAME_PRESETS.map(preset => `
+                                <option value="${preset}" ${currentTeamName === preset ? 'selected' : ''}>${preset}</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <input type="text" id="settingTeamName" value="${currentTeamName}" placeholder="Ej: Equipo Multidisciplinario" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs bg-white">
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Nombre Colegio / Escuela:</label>
+                        <input type="text" id="settingSchoolName" value="${st.schoolName || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Subtítulo / Unidad:</label>
+                        <input type="text" id="settingSubHeader" value="${st.schoolSubHeader || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Firma / Encargado:</label>
+                        <input type="text" id="settingDirectorName" value="${st.directorName || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">🎨 Temática Estacional:</label>
+                        <select id="settingActiveTheme" class="w-full px-4 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-indigo-50 text-indigo-900">
+                            ${Object.keys(SEASONAL_THEMES).map(key => `
+                                <option value="${key}" ${st.activeTheme === key ? 'selected' : ''}>${SEASONAL_THEMES[key].name}</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Logo Institucional:</label>
+                        <input type="file" accept="image/*" onchange="handleSchoolLogoUpload(event)" class="w-full text-xs font-bold text-slate-600 border p-2 rounded-xl">
+                        <input type="hidden" id="settingSchoolLogo" value="${st.schoolLogo || ''}">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">🐶 Mascota de la Escuela:</label>
+                        <input type="file" accept="image/*" onchange="handleSchoolMascotUpload(event)" class="w-full text-xs font-bold text-slate-600 border p-2 rounded-xl">
+                        <input type="hidden" id="settingMascotUrl" value="${st.mascotUrl || ''}">
+                    </div>
+
+                    <button onclick="saveInstitutionalSettings()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl text-xs uppercase shadow-lg border-b-4 border-emerald-900 active:scale-95">
+                        💾 Guardar Configuración
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function selectPresetTeamName(val) {
+    if (val) {
+        const input = document.getElementById('settingTeamName');
+        if (input) input.value = val;
+    }
+}
+
+function handleSchoolLogoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        compressImageBase64(e.target.result, 300, 300).then(compressed => {
+            document.getElementById('settingSchoolLogo').value = compressed;
+        });
+    };
+    reader.readAsDataURL(file);
+}
+
+function handleSchoolMascotUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        compressImageBase64(e.target.result, 300, 300).then(compressed => {
+            document.getElementById('settingMascotUrl').value = compressed;
+        });
+    };
+    reader.readAsDataURL(file);
+}
+
+function saveInstitutionalSettings() {
+    const teamNameVal = document.getElementById('settingTeamName').value.trim() || 'Equipo Multidisciplinario';
+    
+    const settingsData = {
+        schoolName: document.getElementById('settingSchoolName').value.trim(),
+        schoolSubHeader: document.getElementById('settingSubHeader').value.trim(),
+        teamName: teamNameVal,
+        directorName: document.getElementById('settingDirectorName').value.trim(),
+        activeTheme: document.getElementById('settingActiveTheme').value,
+        schoolLogo: document.getElementById('settingSchoolLogo').value,
+        mascotUrl: document.getElementById('settingMascotUrl').value
+    };
+
+    if (db) {
+        db.collection('settings').doc('institutional').set(settingsData, { merge: true }).then(() => {
+            APP_STATE.settings = { ...APP_STATE.settings, ...settingsData };
+            renderApp();
+            alert(`✅ Configuración guardada exitosamente.`);
+        });
+    }
+}
+
+// ==========================================
+// GESTIÓN DE SUPERMERCADOS, PRODUCTOS Y USUARIOS
+// ==========================================
+function openSupermarketModal(supId = null) {
+    const el = document.getElementById('supermarketModal');
+    if (!el) return;
+
+    if (supId) {
+        const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId));
+        if (sup) {
+            document.getElementById('modalSupId').value = sup.id;
+            document.getElementById('modalSupName').value = sup.name || '';
+            document.getElementById('modalSupLogo').value = sup.photoUrl || sup.photo || sup.logoUrl || '';
+        }
+    } else {
+        document.getElementById('modalSupId').value = '';
+        document.getElementById('modalSupName').value = '';
+        document.getElementById('modalSupLogo').value = '';
+    }
+
+    el.classList.remove('hidden');
+}
+
+function closeSupermarketModal() {
+    document.getElementById('supermarketModal').classList.add('hidden');
+}
+
+function saveSupermarketFromModal() {
+    const idInput = document.getElementById('modalSupId')?.value;
+    const name = document.getElementById('modalSupName').value.trim();
+    const photoUrl = document.getElementById('modalSupLogo').value;
+
+    if (!name) return alert("Ingresa el nombre del supermercado.");
+    if (!db) return alert("Error de conexión a Firebase.");
+
+    const id = idInput ? idInput : ('sup-' + Date.now());
+
+    db.collection('supermarkets').doc(id).set({
+        id: id,
+        name: name,
+        photoUrl: photoUrl || '',
+        icon: '🏪',
+        description: 'Supermercado'
+    }, { merge: true }).then(() => {
+        closeSupermarketModal();
+        alert(`✅ Supermercado "${name}" guardado.`);
+    });
+}
+
+function deleteSupermarket(supId) {
+    if (confirm("¿Eliminar este supermercado?") && db) {
+        db.collection('supermarkets').doc(supId).delete();
+    }
+}
+
+function updateCategoryDropdowns(selectedName = null) {
+    const catSelect = document.getElementById('modalProdCategory');
+    if (!catSelect) return;
+    const list = APP_STATE.categories || [];
+    catSelect.innerHTML = list.map(c => `<option value="${c.name}" ${selectedName === c.name ? 'selected' : ''}>${c.icon || '🏷️'} ${c.name}</option>`).join('');
+}
+
+function openProductModal(prodId = null) {
+    const supSelect = document.getElementById('modalProdSupermarket');
+    if (supSelect) {
+        supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    }
+
+    if (prodId) {
+        const p = (APP_STATE.products || []).find(x => String(x.id) === String(prodId));
+        if (p) {
+            document.getElementById('modalProdId').value = p.id;
+            document.getElementById('modalProdName').value = p.name || '';
+            document.getElementById('modalProdPrice').value = p.price || 0;
+            document.getElementById('modalProdPhoto').value = p.photoUrl || p.photo || p.image || '';
+            document.getElementById('modalProdReplicateAll').checked = !!p.isAll;
+            if (supSelect && p.supermarketId) supSelect.value = p.supermarketId;
+            updateCategoryDropdowns(p.category);
+        }
+    } else {
+        document.getElementById('modalProdId').value = '';
+        document.getElementById('modalProdName').value = '';
+        document.getElementById('modalProdPrice').value = '';
+        document.getElementById('modalProdPhoto').value = '';
+        document.getElementById('modalProdReplicateAll').checked = false;
+        updateCategoryDropdowns();
+    }
+
+    document.getElementById('productModal').classList.remove('hidden');
+}
+
+function closeProductModal() {
+    document.getElementById('productModal').classList.add('hidden');
+}
+
+function saveProductFromModal() {
+    const prodId = document.getElementById('modalProdId')?.value;
+    const supSelect = document.getElementById('modalProdSupermarket');
+    const supId = supSelect ? supSelect.value : null;
+
+    const name = document.getElementById('modalProdName').value.trim();
+    const categorySelect = document.getElementById('modalProdCategory');
+    const category = categorySelect ? categorySelect.value : 'General';
+    const price = parseInt(document.getElementById('modalProdPrice').value);
+    const replicateAll = document.getElementById('modalProdReplicateAll')?.checked || false;
+    const photoUrl = document.getElementById('modalProdPhoto')?.value || '';
+
+    if (!name || isNaN(price)) return alert("Por favor ingresa un nombre y precio válidos.");
+    if (!db) return alert("Error de conexión.");
+
+    const id = prodId ? prodId : ('prod-' + Date.now());
+
+    db.collection('products').doc(id).set({
+        id: id,
+        name: name,
+        category: category,
+        price: price,
+        photoUrl: photoUrl,
+        photo: photoUrl,
+        isAll: replicateAll,
+        supermarketId: replicateAll ? 'ALL' : supId,
+        supermarketName: replicateAll ? 'TODOS' : ((APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId))?.name || 'Supermercado')
+    }, { merge: true }).then(() => {
+        closeProductModal();
+        alert(`✅ Producto "${name}" guardado.`);
+    });
+}
+
+function deleteProduct(prodId) {
+    if (confirm("¿Eliminar este producto?") && db) {
+        db.collection('products').doc(prodId).delete();
+    }
+}
+
+function openCategoryModal() {
+    const el = document.getElementById('categoryModal');
+    const iconSelect = document.getElementById('modalCatIcon');
+    if (iconSelect) {
+        iconSelect.innerHTML = PRESET_CATEGORIES.map(c => 
+            `<option value="${c.icon}">${c.icon} ${c.name}</option>`
+        ).join('');
+    }
+    if (el) el.classList.remove('hidden');
+}
+
+function closeCategoryModal() {
+    document.getElementById('categoryModal').classList.add('hidden');
+}
+
+function saveCategoryFromModal() {
+    const name = document.getElementById('modalCatName').value.trim();
+    const icon = document.getElementById('modalCatIcon').value;
+    if (!name || !db) return alert("Ingresa el nombre de la categoría.");
+    const id = 'cat-' + Date.now();
+    db.collection('categories').doc(id).set({ id, name, icon: icon || '🏷️' }).then(() => {
+        closeCategoryModal();
+        updateCategoryDropdowns(name);
+    });
+}
+
+function deleteCategory(catId) {
+    if (confirm("¿Eliminar esta categoría?") && db) {
+        db.collection('categories').doc(catId).delete();
+    }
+}
+
+function openCreateUserModal(role) {
+    const el = document.getElementById('userModal');
+    if (el) {
+        document.getElementById('modalUserId').value = '';
+        document.getElementById('modalUserRole').value = role;
+        document.getElementById('modalName').value = '';
+        document.getElementById('modalRut').value = '';
+        document.getElementById('modalEmail').value = '';
+        el.classList.remove('hidden');
+    }
+}
+
+function openEditUserModal(userId) {
+    const user = (APP_STATE.users || []).find(u => String(u.id) === String(userId));
+    if (!user) return;
+    const el = document.getElementById('userModal');
+    if (el) {
+        document.getElementById('modalUserId').value = user.id;
+        document.getElementById('modalUserRole').value = user.role;
+        document.getElementById('modalName').value = user.name || '';
+        document.getElementById('modalRut').value = user.rut || '';
+        document.getElementById('modalEmail').value = user.email || '';
+        el.classList.remove('hidden');
+    }
+}
+
+function closeUserModal() {
+    document.getElementById('userModal').classList.add('hidden');
+}
+
+function saveUserFromModal() {
+    const userId = document.getElementById('modalUserId').value;
+    const role = document.getElementById('modalUserRole').value;
+    const name = document.getElementById('modalName').value.trim();
+    const rut = document.getElementById('modalRut').value.trim();
+    const email = document.getElementById('modalEmail').value.trim();
+
+    if (!name || !rut || !db) return alert("Completa nombre y RUT.");
+
+    const id = userId || ('u-' + Date.now());
+    const pin = rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
+
+    db.collection('users').doc(id).set({ id, role, name, rut, username: rut, email, pin, points: 0 }, { merge: true }).then(() => {
+        closeUserModal();
+        alert("✅ Usuario guardado.");
+    });
+}
+
+function deleteUser(id) {
+    if (confirm("¿Eliminar este usuario?") && db) {
+        db.collection('users').doc(id).delete();
+    }
+}
+
+function addNewCoursePrompt() {
+    const courseName = prompt("Nombre del nuevo curso:");
+    if (!courseName || !courseName.trim() || !db) return;
+    const id = 'course-' + Date.now();
+    db.collection('courses').doc(id).set({ id, name: courseName.trim() });
+}
+
+function deleteCourse(courseId) {
+    if (confirm("¿Eliminar este curso?") && db) {
+        db.collection('courses').doc(courseId).delete();
+    }
+}
+
+// ==========================================
+// FIRESTORE EN TIEMPO REAL E INICIALIZACIÓN
+// ==========================================
+function initFirebaseListeners() {
+    try {
+        const storedUser = localStorage.getItem('nee_active_user');
+        if (storedUser) APP_STATE.currentUser = JSON.parse(storedUser);
+        const storedCurrencies = localStorage.getItem('nee_custom_currencies');
+        if (storedCurrencies) APP_STATE.customCurrencies = JSON.parse(storedCurrencies);
+    } catch(e) {}
+
+    if (!db) {
+        renderApp();
+        return;
+    }
+
+    const listenCol = (name, callback) => {
+        try {
+            db.collection(name).onSnapshot(
+                s => {
+                    const data = s.docs.map(d => ({ id: d.id, ...d.data() }));
+                    callback(data);
+                    renderApp();
+                },
+                () => renderApp()
+            );
+        } catch(e) { renderApp(); }
+    };
+
+    listenCol('users', data => { APP_STATE.users = data || []; });
+    listenCol('courses', data => { APP_STATE.courses = data || []; });
+    listenCol('categories', data => {
+        APP_STATE.categories = data || [];
+        updateCategoryDropdowns();
+    });
+    listenCol('supermarkets', data => { APP_STATE.supermarkets = data || []; });
+    listenCol('products', data => { APP_STATE.products = data || []; });
+    listenCol('evaluations', data => { APP_STATE.evaluations = data || []; });
+
+    try {
+        db.collection('settings').doc('activeMission').onSnapshot(
+            doc => {
+                if (doc.exists && doc.data() && doc.data().active) {
+                    APP_STATE.activeMission = doc.data();
+                } else {
+                    APP_STATE.activeMission = null;
+                }
+                renderApp();
+            },
+            () => renderApp()
+        );
+
+        db.collection('settings').doc('institutional').onSnapshot(
+            doc => {
+                if (doc.exists) APP_STATE.settings = { ...DEFAULT_SETTINGS, ...doc.data() };
+                renderApp();
+            },
+            () => renderApp()
+        );
+
+        db.collection('settings').doc('currencies').onSnapshot(
+            doc => {
+                if (doc.exists) APP_STATE.customCurrencies = { ...APP_STATE.customCurrencies, ...doc.data() };
+                renderApp();
+            },
+            () => renderApp()
+        );
+    } catch(e) { renderApp(); }
+}
+
+function mainInit() {
+    initFirebaseListeners();
+    renderApp();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mainInit);
+} else {
+    mainInit();
+}
