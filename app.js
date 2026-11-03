@@ -110,7 +110,6 @@ const CLP_CURRENCY_ITEMS = [
     { id: 'c10',  value: 10,    type: 'coin', name: 'Moneda $10',     img: makeSvgDataUrl(SVG_C10_RAW) }
 ];
 
-// 17 CATEGORÍAS PREDEFINIDAS
 const PRESET_CATEGORIES = [
     { name: "Frutas y Verduras", icon: "🍎" },
     { name: "Carnes, Pescados y Mariscos", icon: "🥩" },
@@ -132,7 +131,7 @@ const PRESET_CATEGORIES = [
 ];
 
 // ==========================================
-// ESTADO GLOBAL
+// ESTADO GLOBAL CON MÁQUINA DE ESTADO DE MISIÓN
 // ==========================================
 const APP_STATE = {
     currentUser: null,
@@ -153,11 +152,19 @@ const APP_STATE = {
     settings: { ...DEFAULT_SETTINGS },
     telemetry: { voiceHelpCount: 0 },
     missionStartTime: null,
-    html5QrcodeScanner: null
+    html5QrcodeScanner: null,
+    
+    // VARIABLES PARA FLUJO PEDAGÓGICO DE 4 ETAPAS
+    activeMission: null,          // Objeto misión docente
+    classroomMode: 'PREP',        // 'PREP' (Sala) | 'TERRENO' (Supermercado)
+    scannedItemsInStore: {},      // Registro de escaneo en góndola
+    classroomErrorsCount: 0,      // Errores de armar lista en sala
+    priceAdjustmentsCount: 0,     // Veces que cambió el precio en góndola
+    pendingScanProduct: null      // Producto en proceso de confirmación de precio
 };
 
 // ==========================================
-// UTILIDADES DE AUDIO, VOZ E IMAGEN
+// UTILIDADES DE AUDIO Y VOZ
 // ==========================================
 function speakText(text) {
     if (APP_STATE.telemetry) APP_STATE.telemetry.voiceHelpCount++;
@@ -345,6 +352,7 @@ function logout() {
     APP_STATE.currentUser = null;
     APP_STATE.selectedSupermarketId = null;
     APP_STATE.teacherPreviewMode = false;
+    APP_STATE.classroomMode = 'PREP';
     localStorage.removeItem('nee_active_user');
     renderApp();
 }
@@ -356,7 +364,7 @@ function goHome() {
 }
 
 // ==========================================
-// VISTA ESTUDIANTE
+// VISTA ESTUDIANTE Y MISIÓN EN SALA
 // ==========================================
 function renderHomeView(container) {
     const activeThemeKey = APP_STATE.settings.activeTheme || 'standard';
@@ -416,14 +424,32 @@ function selectSupermarket(id) {
     renderApp();
 }
 
-// CAMBIO CON LECTURA DE VOZ PARA AYUDA AUDITIVA DE CATEGORÍAS
 function setCategoryFilter(catName) {
     APP_STATE.selectedCategoryFilter = catName;
     playChimeSound();
-
     const labelToSpeak = (catName === 'ALL') ? 'Todos los productos' : catName;
     speakText(`Categoría ${labelToSpeak}`);
+    renderApp();
+}
 
+function checkClassroomListMatch() {
+    if (!APP_STATE.activeMission || !APP_STATE.activeMission.itemIds) return false;
+    const missionItems = APP_STATE.activeMission.itemIds;
+    const currentBasketItems = (APP_STATE.basket || []).map(b => String(b.productId));
+    
+    if (missionItems.length !== currentBasketItems.length) return false;
+    
+    const sortedMission = [...missionItems].sort();
+    const sortedBasket = [...currentBasketItems].sort();
+    
+    return sortedMission.every((val, index) => val === sortedBasket[index]);
+}
+
+function enterTerrenoStoreMode() {
+    APP_STATE.classroomMode = 'TERRENO';
+    APP_STATE.scannedItemsInStore = {};
+    speakText("¡Genial! Ahora estás en el supermercado. Escanea los productos de tu lista.");
+    playChimeSound();
     renderApp();
 }
 
@@ -432,6 +458,43 @@ function renderSupermarketView(container, supId) {
         String(s.id).toLowerCase() === String(supId).toLowerCase() ||
         String(s.name).toLowerCase() === String(supId).toLowerCase()
     );
+
+    const isMissionMatched = checkClassroomListMatch();
+
+    // BANNER DE EVALUACIÓN EN SALA (FASE 2)
+    let classroomValidationBanner = '';
+    if (APP_STATE.activeMission && APP_STATE.classroomMode === 'PREP') {
+        if (isMissionMatched) {
+            speakText("¡Tu lista está perfecta! Es hora de ir al supermercado");
+            classroomValidationBanner = `
+                <div class="bg-emerald-500 text-white p-5 rounded-3xl shadow-xl border-4 border-emerald-700 flex flex-col sm:flex-row justify-between items-center gap-4 animate-pulse">
+                    <div class="flex items-center gap-3">
+                        <span class="text-4xl">🎉</span>
+                        <div>
+                            <h3 class="text-xl font-black">¡Tu lista está perfecta como te la mandó tu profesor!</h3>
+                            <p class="text-xs font-bold text-emerald-100">Ahora continúa tu misión presionando el botón.</p>
+                        </div>
+                    </div>
+                    <button onclick="enterTerrenoStoreMode()" class="w-full sm:w-auto bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-lg px-6 py-4 rounded-2xl shadow-2xl border-b-4 border-amber-600 active:scale-95 flex items-center justify-center gap-2">
+                        <span>🚀</span> <span>IR AL SUPERMERCADO</span>
+                    </button>
+                </div>
+            `;
+        } else {
+            classroomValidationBanner = `
+                <div class="bg-indigo-50 border-4 border-indigo-300 p-4 rounded-3xl flex justify-between items-center text-xs font-extrabold text-indigo-950">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">📋</span>
+                        <div>
+                            <span>Ficha de Misión Activa: "${APP_STATE.activeMission.title}"</span>
+                            <p class="text-[10px] text-slate-600">Revisa tu hoja impresa y añade exactamente esos productos.</p>
+                        </div>
+                    </div>
+                    <span class="bg-indigo-600 text-white px-3 py-1 rounded-xl text-[10px] font-black">${APP_STATE.basket.length} / ${APP_STATE.activeMission.itemIds.length} Productos</span>
+                </div>
+            `;
+        }
+    }
 
     const targetId = sup ? String(sup.id).toLowerCase() : String(supId).toLowerCase();
     const targetName = sup ? String(sup.name).toLowerCase() : String(supId).toLowerCase();
@@ -482,14 +545,16 @@ function renderSupermarketView(container, supId) {
             : `<span class="text-6xl">${prod.iconEmoji || '📦'}</span>`;
             
         const pricePictograms = getPricePictogramsHtml(prod.price || 0);
+        const isScannedInTerreno = APP_STATE.scannedItemsInStore[prod.id];
 
         return `
-            <div class="bg-white p-5 rounded-3xl border-4 border-slate-200 shadow-lg flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
+            <div class="bg-white p-5 rounded-3xl border-4 ${isScannedInTerreno ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
                 <div class="flex items-start space-x-4">
                     ${prodImg}
                     <div class="space-y-1 w-full">
                         <div class="flex justify-between items-start">
                             <h3 class="text-xl font-black text-slate-800 leading-tight">${prod.name}</h3>
+                            ${isScannedInTerreno ? `<span class="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">✓ En Góndola</span>` : ''}
                         </div>
                         <div class="text-3xl font-black text-emerald-700">$${(prod.price || 0).toLocaleString('es-CL')}</div>
                         ${pricePictograms}
@@ -498,7 +563,13 @@ function renderSupermarketView(container, supId) {
                 </div>
                 <div class="flex gap-2 pt-2 border-t">
                     <button onclick="speakText('${prod.name}, precio ${prod.price} pesos')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold p-3.5 rounded-2xl shadow-sm text-2xl active:scale-95">🔊</button>
-                    <button onclick="addToBasket('${prod.id}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl shadow border-b-4 border-emerald-900 active:scale-95 text-lg">🛒 Añadir al Canasto</button>
+                    ${APP_STATE.classroomMode === 'TERRENO' ? `
+                        <button onclick="openShelfPriceConfirmation('${prod.id}')" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-900 font-black py-3.5 rounded-2xl shadow border-b-4 border-amber-600 active:scale-95 text-base flex items-center justify-center gap-1.5">
+                            <span>📷</span> <span>Escanear en Repisa</span>
+                        </button>
+                    ` : `
+                        <button onclick="addToBasket('${prod.id}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl shadow border-b-4 border-emerald-900 active:scale-95 text-lg">🛒 Añadir al Canasto</button>
+                    `}
                 </div>
             </div>
         `;
@@ -506,6 +577,8 @@ function renderSupermarketView(container, supId) {
 
     container.innerHTML = `
         <div class="space-y-6">
+            ${classroomValidationBanner}
+
             <div class="flex items-center justify-between bg-white p-4 rounded-3xl border-4 border-slate-300 shadow-md">
                 <button onclick="goHome()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-black px-4 py-3 rounded-2xl text-xs sm:text-sm active:scale-95">← Volver a Tiendas</button>
                 <div class="flex items-center gap-3">
@@ -538,7 +611,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// ESCÁNER Y CÓDIGOS DE BARRA
+// ESCÁNER Y CONFIRMACIÓN DE PRECIO EN GÓNDOLA
 // ==========================================
 function openScannerModal() {
     const modal = document.getElementById('scannerModal');
@@ -601,9 +674,62 @@ function stopCameraScanner() {
     }
 }
 
+function openShelfPriceConfirmation(productId) {
+    const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
+    if (!prod) return;
+
+    APP_STATE.pendingScanProduct = prod;
+    document.getElementById('shelfPriceProdName').textContent = prod.name;
+
+    const basePrice = prod.price || 1000;
+    const suggestedPrices = [basePrice, basePrice + 200, basePrice + 500, Math.max(500, basePrice - 200)];
+
+    const btnContainer = document.getElementById('shelfPriceButtonsContainer');
+    if (btnContainer) {
+        btnContainer.innerHTML = suggestedPrices.map(p => `
+            <button onclick="applyShelfPriceChoice(${p})" class="p-3 bg-indigo-50 border-2 border-indigo-300 hover:bg-indigo-600 hover:text-white rounded-2xl font-black text-sm active:scale-95 shadow">
+                $${p.toLocaleString('es-CL')}
+            </button>
+        `).join('');
+    }
+
+    speakText(`Encontraste ${prod.name}. Mira el letrero de la repisa, ¿cuál es su precio hoy?`);
+    document.getElementById('shelfPriceModal').classList.remove('hidden');
+}
+
+function applyShelfPriceChoice(newPrice) {
+    const prod = APP_STATE.pendingScanProduct;
+    if (!prod) return;
+
+    const oldPrice = prod.price || 0;
+    APP_STATE.scannedItemsInStore[prod.id] = true;
+
+    if (newPrice !== oldPrice) {
+        APP_STATE.priceAdjustmentsCount++;
+        // Recalcular precio en canasto
+        const bItem = APP_STATE.basket.find(b => String(b.productId) === String(prod.id));
+        if (bItem) bItem.actualPrice = newPrice;
+        prod.price = newPrice;
+
+        speakText(`¡Atención! El precio de ${prod.name} cambió. En tu lista salía a ${oldPrice} pesos, pero ahora en la góndola cuesta ${newPrice} pesos. Se ha actualizado en tu canasto.`);
+    } else {
+        speakText(`¡Excelente! El precio de ${prod.name} se mantiene a ${newPrice} pesos.`);
+    }
+
+    document.getElementById('shelfPriceModal').classList.add('hidden');
+    playChimeSound();
+    renderApp();
+}
+
+function applyCustomShelfPrice() {
+    const val = parseInt(document.getElementById('shelfPriceCustomInput').value);
+    if (!isNaN(val) && val > 0) {
+        applyShelfPriceChoice(val);
+    }
+}
+
 function onProductScanned(scannedCode) {
     const cleanCode = String(scannedCode).trim().toLowerCase();
-
     const foundProduct = (APP_STATE.products || []).find(p => 
         String(p.id).toLowerCase() === cleanCode ||
         String(p.code || '').toLowerCase() === cleanCode ||
@@ -611,11 +737,11 @@ function onProductScanned(scannedCode) {
     );
 
     if (foundProduct) {
-        playChimeSound();
-        displayScannedProductResult(foundProduct);
+        closeScannerModal();
+        openShelfPriceConfirmation(foundProduct.id);
     } else {
         playChimeSound();
-        speakText("¡Nuevo producto detectado! Elige su pictograma.");
+        speakText("Nuevo producto detectado. Elige su pictograma.");
         promptAssignProductToBarcode(scannedCode);
     }
 }
@@ -658,42 +784,19 @@ function bindBarcodeToProduct(barcode, productId) {
     }
 
     if (db) {
-        db.collection('products').doc(targetProduct.id).set({
-            code: barcode
-        }, { merge: true });
+        db.collection('products').doc(targetProduct.id).set({ code: barcode }, { merge: true });
     }
 
     playChimeSound();
     speakText(`¡Excelente! Ahora este código es ${targetProduct.name}.`);
-    displayScannedProductResult(targetProduct);
+    closeScannerModal();
+    openShelfPriceConfirmation(targetProduct.id);
 }
 
 function simulateAIScan() {
     const fakeBarcodes = ['780123456789', '780999888777', '780555444333'];
     const chosenCode = fakeBarcodes[Math.floor(Math.random() * fakeBarcodes.length)];
     onProductScanned(chosenCode);
-}
-
-function displayScannedProductResult(product) {
-    speakText(`¡Producto identificado! ${product.name}, precio ${product.price} pesos.`);
-
-    const resContainer = document.getElementById('scannerResultContainer');
-    if (!resContainer) return;
-
-    resContainer.className = "p-4 bg-emerald-50 border-2 border-emerald-300 rounded-2xl text-left space-y-2";
-    resContainer.innerHTML = `
-        <div class="flex items-center justify-between">
-            <div>
-                <span class="font-black text-slate-800 text-base block">${product.name}</span>
-                <span class="text-[10px] font-bold text-slate-500 uppercase">Código Vinculado: ${product.code || product.id}</span>
-            </div>
-            <span class="font-black text-emerald-700 text-xl">$${(product.price || 0).toLocaleString('es-CL')}</span>
-        </div>
-        <div>${getPricePictogramsHtml(product.price || 0)}</div>
-        <button onclick="addToBasket('${product.id}'); closeScannerModal();" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 rounded-xl text-xs shadow mt-2">🛒 Añadir al Canasto</button>
-    `;
-
-    resContainer.classList.remove('hidden');
 }
 
 function renderStudentPreviewWrapper(container) {
@@ -730,7 +833,7 @@ function toggleStudentPreview(status) {
 }
 
 // ==========================================
-// CANASTO Y CAJA DE PAGO
+// CANASTO Y CAJA DE PAGO ADAPTATIVA
 // ==========================================
 function updateBasketBadge() {
     const badge = document.getElementById('basketBadge');
@@ -742,16 +845,26 @@ function addToBasket(prodId) {
     if (!prod) {
         prod = { id: prodId, name: 'Producto Escaneado', price: 2000 };
     }
-    APP_STATE.basket.push({ productId: prod.id, quantity: 1 });
+    
+    // Si hay una misión activa y el alumno agrega un producto no incluido, registramos el error silenciosamente
+    if (APP_STATE.activeMission && APP_STATE.activeMission.itemIds) {
+        if (!APP_STATE.activeMission.itemIds.includes(String(prod.id))) {
+            APP_STATE.classroomErrorsCount++;
+        }
+    }
+
+    APP_STATE.basket.push({ productId: prod.id, quantity: 1, actualPrice: prod.price });
     playChimeSound();
     updateBasketBadge();
     speakText(`Añadido ${prod.name}`);
+    renderApp();
 }
 
 function removeFromBasket(index) {
     APP_STATE.basket.splice(index, 1);
     updateBasketBadge();
     renderBasketModalContent();
+    renderApp();
 }
 
 function clearBasket() {
@@ -760,6 +873,7 @@ function clearBasket() {
     APP_STATE.userPaidItems = [];
     updateBasketBadge();
     renderBasketModalContent();
+    renderApp();
 }
 
 function openBasketModal() {
@@ -787,7 +901,8 @@ function renderBasketModalContent() {
         ? `<p class="text-center text-slate-400 py-6 font-bold text-xs">Tu canasto está vacío.</p>`
         : APP_STATE.basket.map((item, idx) => {
             const p = (APP_STATE.products || []).find(x => String(x.id) === String(item.productId)) || { name: 'Producto', price: 2000 };
-            total += (p.price || 0);
+            const itemPrice = item.actualPrice || p.price || 0;
+            total += itemPrice;
             const imgUrl = p.photoUrl || p.photo || p.image || '';
             const imgHtml = imgUrl 
                 ? `<img src="${imgUrl}" class="w-10 h-10 object-cover rounded-xl border border-slate-200">`
@@ -798,11 +913,11 @@ function renderBasketModalContent() {
                         ${imgHtml}
                         <div>
                             <span class="text-slate-800 font-black text-sm block">${p.name}</span>
-                            ${getPricePictogramsHtml(p.price || 0)}
+                            ${getPricePictogramsHtml(itemPrice)}
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
-                        <span class="font-black text-emerald-700 text-base">$${(p.price || 0).toLocaleString('es-CL')}</span>
+                        <span class="font-black text-emerald-700 text-base">$${itemPrice.toLocaleString('es-CL')}</span>
                         <button onclick="removeFromBasket(${idx})" class="text-rose-600 font-black px-2.5 py-1 rounded-xl bg-rose-100 hover:bg-rose-200 text-xs">✕</button>
                     </div>
                 </div>
@@ -876,7 +991,7 @@ function verifyAndCheckout() {
     let total = 0;
     (APP_STATE.basket || []).forEach(item => {
         const p = (APP_STATE.products || []).find(x => String(x.id) === String(item.productId)) || { price: 2000 };
-        total += (p.price || 0);
+        total += (item.actualPrice || p.price || 0);
     });
 
     if (total === 0) return alert("Tu canasto está vacío.");
@@ -902,6 +1017,8 @@ function verifyAndCheckout() {
         changeCLP: vuelto,
         itemCount: APP_STATE.basket.length,
         timeSeconds: elapsedSeconds,
+        classroomErrorsCount: APP_STATE.classroomErrorsCount,
+        priceAdjustmentsCount: APP_STATE.priceAdjustmentsCount,
         voiceHelpCount: APP_STATE.telemetry.voiceHelpCount,
         date: new Date().toLocaleString('es-CL'),
         timestamp: firebase.firestore ? firebase.firestore.FieldValue.serverTimestamp() : null
@@ -930,15 +1047,116 @@ function verifyAndCheckout() {
 function closeSuccessModalAndFinish() {
     document.getElementById('checkoutSuccessModal').classList.add('hidden');
     clearBasket();
+    APP_STATE.classroomMode = 'PREP';
     goHome();
 }
 
 // ==========================================
-// PANEL DOCENTE
+// PANEL DOCENTE Y CREACIÓN DE MISIÓN
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
     renderTeacherDashboard(document.getElementById('appContainer'));
+}
+
+function openMissionModal() {
+    const listEl = document.getElementById('missionProductsSelectList');
+    if (!listEl) return;
+
+    listEl.innerHTML = (APP_STATE.products || []).map(p => `
+        <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-indigo-50">
+            <input type="checkbox" value="${p.id}" class="missionProdCheckbox w-4 h-4 text-indigo-600 rounded">
+            <div>
+                <span class="font-black text-slate-800 block text-xs">${p.name}</span>
+                <span class="text-emerald-700 font-bold text-[11px]">$${(p.price || 0).toLocaleString('es-CL')}</span>
+            </div>
+        </label>
+    `).join('');
+
+    document.getElementById('missionModal').classList.remove('hidden');
+}
+
+function closeMissionModal() {
+    document.getElementById('missionModal').classList.add('hidden');
+}
+
+function activateMissionForStudents() {
+    const checked = Array.from(document.querySelectorAll('.missionProdCheckbox:checked')).map(cb => cb.value);
+    if (checked.length === 0) return alert("Selecciona al menos un producto para la misión.");
+
+    const title = document.getElementById('missionTitleInput').value.trim() || 'Misión PIE';
+    APP_STATE.activeMission = {
+        id: 'mission-' + Date.now(),
+        title: title,
+        itemIds: checked
+    };
+
+    closeMissionModal();
+    alert(`✅ Misión "${title}" activada para los estudiantes.`);
+    renderApp();
+}
+
+function printCurrentMissionSheet() {
+    const checked = Array.from(document.querySelectorAll('.missionProdCheckbox:checked')).map(cb => cb.value);
+    if (checked.length === 0) return alert("Selecciona al menos un producto para imprimir.");
+
+    const selectedProds = (APP_STATE.products || []).filter(p => checked.includes(String(p.id)));
+    const title = document.getElementById('missionTitleInput').value.trim() || 'Misión PIE';
+    const st = APP_STATE.settings || DEFAULT_SETTINGS;
+
+    const win = window.open('', '_blank');
+    win.document.write(`
+        <html>
+            <head>
+                <title>Ficha de Misión PIE</title>
+                <script src="https://cdn.tailwindcss.com"></script>
+            </head>
+            <body class="bg-white p-8 font-sans text-slate-800">
+                <div class="max-w-2xl mx-auto border-4 border-indigo-600 p-6 rounded-3xl space-y-6">
+                    <div class="flex justify-between items-center border-b-2 pb-4">
+                        <div>
+                            <h1 class="text-2xl font-black text-indigo-950">${st.schoolName}</h1>
+                            <p class="text-xs font-bold text-indigo-600">Ficha de Apoyo Pedagógico PIE / NEE</p>
+                        </div>
+                        <span class="text-4xl">📋</span>
+                    </div>
+
+                    <div class="bg-indigo-50 p-4 rounded-2xl border text-center space-y-1">
+                        <h2 class="text-xl font-black text-indigo-900">${title}</h2>
+                        <p class="text-xs font-bold text-slate-600">Instrucción: Busca y marca estos productos en tu aplicación y en el supermercado real.</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        ${selectedProds.map(p => {
+                            const imgUrl = p.photoUrl || p.photo || p.image || '';
+                            const imgHtml = imgUrl 
+                                ? `<img src="${imgUrl}" class="w-16 h-16 object-cover rounded-xl border">`
+                                : `<span class="text-4xl">📦</span>`;
+                            return `
+                                <div class="flex items-center justify-between p-4 bg-slate-50 border-2 rounded-2xl">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-8 h-8 rounded-lg border-2 border-slate-400 bg-white"></div>
+                                        ${imgHtml}
+                                        <div>
+                                            <span class="text-base font-black text-slate-800 block">${p.name}</span>
+                                            <span class="text-xs font-black text-emerald-700">Precio estimado: $${(p.price || 0).toLocaleString('es-CL')}</span>
+                                        </div>
+                                    </div>
+                                    <div>${getPricePictogramsHtml(p.price || 0)}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <div class="pt-6 border-t text-center text-xs font-bold text-slate-400">
+                        Programa de Integración Escolar • Unidad de Autonomía Funcional
+                    </div>
+                </div>
+                <script>setTimeout(() => { window.print(); window.close(); }, 750);</script>
+            </body>
+        </html>
+    `);
+    win.document.close();
 }
 
 function renderTeacherDashboard(container) {
@@ -957,6 +1175,9 @@ function renderTeacherDashboard(container) {
                         <p class="text-xs text-indigo-300 font-bold mt-0.5">Gestión pedagógica, catálogo, usuarios e informes con IA.</p>
                     </div>
                     <div class="flex gap-2">
+                        <button onclick="openMissionModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-4 py-2 rounded-xl shadow border-b-2 border-indigo-900 flex items-center gap-2 active:scale-95">
+                            <span>📋</span><span>Crear Misión PIE</span>
+                        </button>
                         <button onclick="toggleStudentPreview(true)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-4 py-2 rounded-xl shadow border-b-2 border-amber-600 flex items-center gap-2 active:scale-95">
                             <span>🕹️</span><span>Probar Juego</span>
                         </button>
@@ -1088,9 +1309,11 @@ function generateAIPedagogicalReport(evalId) {
     const paid = ev.paidCLP || 0;
     const total = ev.totalCLP || 0;
     const change = ev.changeCLP || 0;
+    const classroomErrors = ev.classroomErrorsCount || 0;
+    const priceAdjustments = ev.priceAdjustmentsCount || 0;
 
     let nivelAutonomia = "Alto / Independiente";
-    if (timeSec > 90) nivelAutonomia = "Requiere Apoyos Puntuales";
+    if (timeSec > 90 || classroomErrors > 2) nivelAutonomia = "Requiere Apoyos Puntuales";
     if (paid < total) nivelAutonomia = "Etapa de Consolidación";
 
     const reportHtml = `
@@ -1111,15 +1334,26 @@ function generateAIPedagogicalReport(evalId) {
             </div>
 
             <div class="grid grid-cols-4 gap-3 text-center">
-                <div class="p-3 bg-emerald-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-emerald-800">Total</span><div class="text-base font-black text-emerald-700">$${total.toLocaleString('es-CL')}</div></div>
+                <div class="p-3 bg-emerald-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-emerald-800">Total Recalculado</span><div class="text-base font-black text-emerald-700">$${total.toLocaleString('es-CL')}</div></div>
                 <div class="p-3 bg-indigo-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-indigo-800">Pagó</span><div class="text-base font-black text-indigo-900">$${paid.toLocaleString('es-CL')}</div></div>
                 <div class="p-3 bg-amber-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-amber-900">Vuelto</span><div class="text-base font-black text-amber-800">$${change.toLocaleString('es-CL')}</div></div>
-                <div class="p-3 bg-sky-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-sky-900">Tiempo</span><div class="text-base font-black text-sky-800">${timeSec}s</div></div>
+                <div class="p-3 bg-sky-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-sky-900">Tiempo Misión</span><div class="text-base font-black text-sky-800">${timeSec}s</div></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 text-xs font-bold">
+                <div class="p-3 bg-slate-50 rounded-xl border">
+                    <span class="text-slate-500 block text-[10px] uppercase">Errores de Discriminación en Sala:</span>
+                    <span class="text-base font-black ${classroomErrors > 0 ? 'text-amber-600' : 'text-emerald-600'}">${classroomErrors} error(es)</span>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-xl border">
+                    <span class="text-slate-500 block text-[10px] uppercase">Flexibilidad Cognitiva (Alzas en Góndola):</span>
+                    <span class="text-base font-black text-indigo-900">${priceAdjustments} precio(s) ajustado(s)</span>
+                </div>
             </div>
 
             <div class="p-4 bg-indigo-50 border rounded-2xl text-xs space-y-2">
                 <div class="font-black text-indigo-950">Nivel de Autonomía Funcional: ${nivelAutonomia}</div>
-                <p class="text-slate-700">El alumno seleccionó pictogramas y billetes de forma efectiva en la tienda ${ev.supermarketName}.</p>
+                <p class="text-slate-700">El alumno completó las 4 etapas del flujo pedagógico: Armó la lista según la ficha de sala, escaneó productos en la góndola, aceptó los recálculos de precios y seleccionó billetes de forma efectiva.</p>
             </div>
         </div>
     `;
@@ -1623,7 +1857,6 @@ function deleteSupermarket(supId) {
     }
 }
 
-// CALCULA EL SIGUIENTE CÓDIGO CORRELATIVO AUTOMÁTICO (Ej: 1001, 1002, 1003)
 function getNextProductCode() {
     const products = APP_STATE.products || [];
     if (products.length === 0) return '1001';
