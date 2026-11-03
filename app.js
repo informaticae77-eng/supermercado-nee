@@ -164,13 +164,13 @@ const APP_STATE = {
     missionStartTime: null,
     html5QrcodeScanner: null,
     
-    // ESTADO DE MISIÓN PEDAGÓGICA Y GAMIFICACIÓN
+    // ESTADO DE MISIÓN Y GAMIFICACIÓN
     activeMission: null,          // Objeto misión docente
     classroomMode: 'PREP',        // 'PREP' (Armar Lista) | 'TERRENO' (Góndola/Supermercado)
-    listValidated: false,         // Si el estudiante ya comprobó su lista con éxito
+    listValidated: false,         // Si la lista ya fue comprobada con éxito
     scannedItemsInStore: {},      // Registro de escaneo/verificación en góndola
-    classroomErrorsCount: 0,      // Cantidad de errores cometidos al comprobar lista
-    priceAdjustmentsCount: 0,     // Veces que cambió el precio en repisa vs app
+    classroomErrorsCount: 0,      // Intentos fallidos al comprobar lista
+    priceAdjustmentsCount: 0,     // Veces que cambió el precio de góndola vs app
     pendingScanProduct: null      // Producto en proceso de confirmación de precio
 };
 
@@ -274,7 +274,6 @@ function getPricePictogramsHtml(amount) {
 function renderApp() {
     const container = document.getElementById('appContainer');
     const headerBasketBtn = document.getElementById('headerBasketBtn');
-    const headerScannerBtn = document.getElementById('headerScannerBtn');
     const userInfoHeader = document.getElementById('userInfoHeader');
     const headerSubTitle = document.getElementById('headerSubTitle');
     if (!container) return;
@@ -302,14 +301,12 @@ function renderApp() {
     } else {
         if (userInfoHeader) userInfoHeader.innerHTML = '';
         if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
-        if (headerScannerBtn) headerScannerBtn.classList.add('hidden');
         renderLoginView(container);
         return;
     }
 
     if (APP_STATE.teacherPreviewMode) {
         if (headerBasketBtn) headerBasketBtn.classList.remove('hidden');
-        if (headerScannerBtn) headerScannerBtn.classList.remove('hidden');
         renderStudentPreviewWrapper(container);
         updateBasketBadge();
         return;
@@ -317,11 +314,9 @@ function renderApp() {
 
     if (APP_STATE.currentUser.role === 'admin' || APP_STATE.currentUser.role === 'teacher') {
         if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
-        if (headerScannerBtn) headerScannerBtn.classList.add('hidden');
         renderTeacherDashboard(container);
     } else {
         if (headerBasketBtn) headerBasketBtn.classList.remove('hidden');
-        if (headerScannerBtn) headerScannerBtn.classList.remove('hidden');
         if (APP_STATE.selectedSupermarketId) {
             renderSupermarketView(container, APP_STATE.selectedSupermarketId);
         } else {
@@ -426,7 +421,7 @@ function renderHomeView(container) {
                     </div>
                 </div>
                 <div class="p-3 bg-white/90 rounded-2xl border border-amber-600 text-slate-900 text-xs font-black flex items-center gap-2">
-                    <span>👇</span> <span><b>Elige a continuación en cuál supermercado deseas entrar para realizar tu lista:</b></span>
+                    <span>👇</span> <span><b>Elige a continuación el supermercado en el que deseas entrar para realizar tu lista:</b></span>
                 </div>
             </div>
         `;
@@ -511,7 +506,6 @@ function validateStudentList() {
     const targetMissionIds = APP_STATE.activeMission.itemIds.map(id => String(id));
     const basketProductIds = (APP_STATE.basket || []).map(b => String(b.productId));
 
-    // Verificar si faltan productos o hay productos equivocados
     const missingItems = targetMissionIds.filter(id => !basketProductIds.includes(id));
     const extraItems = basketProductIds.filter(id => !targetMissionIds.includes(id));
 
@@ -599,7 +593,7 @@ function renderSupermarketView(container, supId) {
                 <div class="bg-emerald-600 text-white p-4 rounded-3xl shadow-md border-4 border-emerald-800 flex justify-between items-center text-xs font-bold">
                     <div class="flex items-center gap-2">
                         <span class="text-2xl">🏪</span>
-                        <span>MODO TERRENO: Escanea los productos en las repisas y verifica si su precio cambió.</span>
+                        <span>MODO TERRENO: Escanea o verifica el precio en góndola. Si cambió, se actualizará automáticamente.</span>
                     </div>
                     <span class="bg-amber-400 text-slate-900 font-black px-3 py-1 rounded-xl text-xs">⭐ ${currentScore}% Logro</span>
                 </div>
@@ -677,7 +671,7 @@ function renderSupermarketView(container, supId) {
                     <button onclick="speakText('${prod.name}, precio ${prod.price} pesos')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold p-3.5 rounded-2xl shadow-sm text-2xl active:scale-95">🔊</button>
                     ${APP_STATE.classroomMode === 'TERRENO' ? `
                         <button onclick="openShelfPriceConfirmation('${prod.id}')" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-900 font-black py-3.5 rounded-2xl shadow border-b-4 border-amber-600 active:scale-95 text-base flex items-center justify-center gap-1.5">
-                            <span>📷</span> <span>Verificar en Repisa</span>
+                            <span>📷</span> <span>Verificar Precio en Góndola</span>
                         </button>
                     ` : `
                         <button onclick="addToBasket('${prod.id}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl shadow border-b-4 border-emerald-900 active:scale-95 text-lg">🛒 Añadir al Canasto</button>
@@ -723,7 +717,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// ESCÁNER CÁMARA Y RECONOCIMIENTO DE PRECIO EN REPISA
+// CAMBIO AUTOMÁTICO DE PRECIOS EN GÓNDOLA (HARINA EJEMPLO $800 -> $1500)
 // ==========================================
 function openScannerModal() {
     const modal = document.getElementById('scannerModal');
@@ -793,19 +787,20 @@ function openShelfPriceConfirmation(productId) {
     document.getElementById('shelfPriceProdName').textContent = prod.name;
     document.getElementById('shelfPriceOriginalLabel').textContent = `$${(prod.price || 0).toLocaleString('es-CL')}`;
 
-    const basePrice = prod.price || 1000;
-    const suggestedPrices = [basePrice, basePrice + 200, basePrice + 500, Math.max(500, basePrice - 300)];
+    const basePrice = prod.price || 800;
+    // Opciones rápidas de prueba incluyendo diferencias (Ej: $800 vs $1.500)
+    const suggestedPrices = [basePrice, 1500, basePrice + 300, Math.max(500, basePrice - 200)];
 
     const btnContainer = document.getElementById('shelfPriceButtonsContainer');
     if (btnContainer) {
         btnContainer.innerHTML = suggestedPrices.map(p => `
             <button onclick="applyShelfPriceChoice(${p})" class="p-3 bg-amber-50 border-2 border-amber-300 hover:bg-amber-500 hover:text-slate-900 rounded-2xl font-black text-sm active:scale-95 shadow">
-                $${p.toLocaleString('es-CL')} ${p !== basePrice ? '⚠️ (Cambió)' : '✓ (Igual)'}
+                $${p.toLocaleString('es-CL')} ${p !== basePrice ? '⚠️ (Cambió en Góndola)' : '✓ (Igual)'}
             </button>
         `).join('');
     }
 
-    speakText(`Encontraste ${prod.name}. Mira el letrero de la repisa, ¿cuál es su precio hoy?`);
+    speakText(`Encontraste ${prod.name}. Revisa el letrero de la góndola, ¿cuál es su precio hoy?`);
     document.getElementById('shelfPriceModal').classList.remove('hidden');
 }
 
@@ -816,21 +811,23 @@ function applyShelfPriceChoice(newPrice) {
     const oldPrice = prod.price || 0;
     APP_STATE.scannedItemsInStore[prod.id] = true;
 
-    // DETECCIÓN DE PRECIO DIFERENTE Y ACTUALIZACIÓN AUTOMÁTICA
+    // DETECCIÓN Y CONFIGURACIÓN AUTOMÁTICA DE PRECIO DIFERENTE EN EL SUPERMERCADO
     if (newPrice !== oldPrice) {
         APP_STATE.priceAdjustmentsCount++;
         
-        // Actualizar precio en canasto
+        // 1. Actualizar el precio real en el canasto del estudiante
         const bItem = APP_STATE.basket.find(b => String(b.productId) === String(prod.id));
         if (bItem) bItem.actualPrice = newPrice;
         
-        // Actualizar precio en catálogo
+        // 2. Actualizar el valor en el catálogo activo
         prod.price = newPrice;
 
-        speakText(`¡Atención! El precio de ${prod.name} en la góndola es de ${newPrice} pesos. Era de ${oldPrice} pesos. Se ha actualizado automáticamente en tu canasto.`);
-        alert(`🔔 ¡CAMBIO DE PRECIO EN REPISA!\n\nEl producto "${prod.name}" cuesta hoy $${newPrice.toLocaleString('es-CL')} (en la app salía a $${oldPrice.toLocaleString('es-CL')}).\nSe ha actualizado el total en tu canasto automáticamente.`);
+        const msg = `El valor de ${prod.name} es diferente al que tenemos en la aplicación. Cambiará al valor del supermercado de $${newPrice.toLocaleString('es-CL')} pesos para calcular el pago exacto.`;
+        speakText(msg);
+
+        alert(`🔔 ¡CAMBIO DE PRECIO EN GÓNDOLA DETECTADO!\n\nEl precio de "${prod.name}" en la aplicación era de $${oldPrice.toLocaleString('es-CL')}.\nEn el supermercado sale $${newPrice.toLocaleString('es-CL')}.\n\nSe ha realizado la configuración automática para que al pagar en la aplicación cobre el valor exacto del supermercado.`);
     } else {
-        speakText(`¡Excelente! El precio de ${prod.name} se mantiene a ${newPrice} pesos.`);
+        speakText(`¡Excelente! El precio de ${prod.name} coincide a ${newPrice} pesos.`);
     }
 
     document.getElementById('shelfPriceModal').classList.add('hidden');
@@ -962,7 +959,6 @@ function addToBasket(prodId) {
     let prod = (APP_STATE.products || []).find(p => String(p.id) === String(prodId));
     if (!prod) prod = { id: prodId, name: 'Producto Escaneado', price: 2000 };
     
-    // Verificar si el producto ya está en el canasto
     const existing = APP_STATE.basket.find(b => String(b.productId) === String(prod.id));
     if (!existing) {
         APP_STATE.basket.push({ productId: prod.id, quantity: 1, actualPrice: prod.price });
@@ -1197,7 +1193,122 @@ function closeSuccessModalAndFinish() {
 }
 
 // ==========================================
-// PANEL DOCENTE Y CONTROL DE MISIÓN (ACTIVAR Y DESACTIVAR)
+// VISUALIZADOR DE LA FICHA DE MISIÓN PARA EL PROFESOR
+// ==========================================
+function openViewMissionModal() {
+    if (!APP_STATE.activeMission || !APP_STATE.activeMission.itemIds) {
+        return alert("No hay una misión activa creada.");
+    }
+
+    const container = document.getElementById('viewMissionContent');
+    const modal = document.getElementById('viewMissionModal');
+    if (!container || !modal) return;
+
+    const selectedProds = (APP_STATE.products || []).filter(p => APP_STATE.activeMission.itemIds.includes(String(p.id)));
+    const st = APP_STATE.settings || DEFAULT_SETTINGS;
+    const teamLabel = st.teamName || 'Equipo Multidisciplinario';
+
+    container.innerHTML = `
+        <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-200 space-y-1">
+            <h4 class="text-lg font-black text-indigo-950">${APP_STATE.activeMission.title}</h4>
+            <p class="text-xs font-bold text-slate-600">Ficha creada por el ${teamLabel} (${selectedProds.length} productos asignados)</p>
+        </div>
+
+        <div class="space-y-3">
+            <h5 class="text-xs font-black text-slate-500 uppercase">Productos incluidos en la lista impresa:</h5>
+            ${selectedProds.map(p => {
+                const imgUrl = p.photoUrl || p.photo || p.image || '';
+                const imgHtml = imgUrl 
+                    ? `<img src="${imgUrl}" class="w-14 h-14 object-cover rounded-xl border">`
+                    : `<span class="text-3xl">📦</span>`;
+                return `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 border-2 rounded-2xl">
+                        <div class="flex items-center gap-3">
+                            ${imgHtml}
+                            <div>
+                                <span class="text-sm font-black text-slate-800 block">${p.name}</span>
+                                <span class="text-xs font-black text-emerald-700">Precio Ref: $${(p.price || 0).toLocaleString('es-CL')}</span>
+                            </div>
+                        </div>
+                        <div>${getPricePictogramsHtml(p.price || 0)}</div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+
+    modal.classList.remove('hidden');
+}
+
+function closeViewMissionModal() {
+    const modal = document.getElementById('viewMissionModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function printCurrentMissionSheetFromViewer() {
+    if (!APP_STATE.activeMission || !APP_STATE.activeMission.itemIds) return;
+    const selectedProds = (APP_STATE.products || []).filter(p => APP_STATE.activeMission.itemIds.includes(String(p.id)));
+    const title = APP_STATE.activeMission.title || 'Misión de Compra';
+    const st = APP_STATE.settings || DEFAULT_SETTINGS;
+    const teamLabel = st.teamName || 'Equipo Multidisciplinario';
+
+    const win = window.open('', '_blank');
+    win.document.write(`
+        <html>
+            <head>
+                <title>Ficha de Misión Adaptativa</title>
+                <script src="https://cdn.tailwindcss.com"></script>
+            </head>
+            <body class="bg-white p-8 font-sans text-slate-800">
+                <div class="max-w-2xl mx-auto border-4 border-indigo-600 p-6 rounded-3xl space-y-6">
+                    <div class="flex justify-between items-center border-b-2 pb-4">
+                        <div>
+                            <h1 class="text-2xl font-black text-indigo-950">${st.schoolName}</h1>
+                            <p class="text-xs font-bold text-indigo-600">Ficha de Apoyo Pedagógico (${teamLabel})</p>
+                        </div>
+                        <span class="text-4xl">📋</span>
+                    </div>
+
+                    <div class="bg-indigo-50 p-4 rounded-2xl border text-center space-y-1">
+                        <h2 class="text-xl font-black text-indigo-900">${title}</h2>
+                        <p class="text-xs font-bold text-slate-600">Instrucción: Busca y añade estos productos en la aplicación. Luego comprueba si tu lista está correcta.</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        ${selectedProds.map(p => {
+                            const imgUrl = p.photoUrl || p.photo || p.image || '';
+                            const imgHtml = imgUrl 
+                                ? `<img src="${imgUrl}" class="w-16 h-16 object-cover rounded-xl border">`
+                                : `<span class="text-4xl">📦</span>`;
+                            return `
+                                <div class="flex items-center justify-between p-4 bg-slate-50 border-2 rounded-2xl">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-8 h-8 rounded-lg border-2 border-slate-400 bg-white"></div>
+                                        ${imgHtml}
+                                        <div>
+                                            <span class="text-base font-black text-slate-800 block">${p.name}</span>
+                                            <span class="text-xs font-black text-emerald-700">Precio estimado: $${(p.price || 0).toLocaleString('es-CL')}</span>
+                                        </div>
+                                    </div>
+                                    <div>${getPricePictogramsHtml(p.price || 0)}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <div class="pt-6 border-t text-center text-xs font-bold text-slate-400">
+                        Programa de Autonomía Funcional • ${teamLabel}
+                    </div>
+                </div>
+                <script>setTimeout(() => { window.print(); window.close(); }, 750);</script>
+            </body>
+        </html>
+    `);
+    win.document.close();
+}
+
+// ==========================================
+// PANEL DOCENTE Y ACTIVACIÓN/DESACTIVACIÓN DE MISIÓN
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -1225,7 +1336,6 @@ function closeMissionModal() {
     document.getElementById('missionModal').classList.add('hidden');
 }
 
-// CONTROL MANUAL DEL EDUCADOR: ACTIVAR MISIÓN
 function activateMissionForStudents() {
     const checked = Array.from(document.querySelectorAll('.missionProdCheckbox:checked')).map(cb => cb.value);
     if (checked.length === 0) return alert("Selecciona al menos un producto para la misión.");
@@ -1247,11 +1357,10 @@ function activateMissionForStudents() {
     }
 
     closeMissionModal();
-    alert(`✅ Misión "${title}" ACTIVADA por el docente. Ahora los estudiantes verán la actividad en su panel.`);
+    alert(`✅ Misión "${title}" ACTIVADA por el docente.`);
     renderApp();
 }
 
-// CONTROL MANUAL DEL EDUCADOR: DESACTIVAR MISIÓN
 function cancelActiveMission() {
     if (confirm("¿Deseas DESACTIVAR la misión activa en sala para todos los alumnos?")) {
         APP_STATE.activeMission = null;
@@ -1294,7 +1403,7 @@ function printCurrentMissionSheet() {
 
                     <div class="bg-indigo-50 p-4 rounded-2xl border text-center space-y-1">
                         <h2 class="text-xl font-black text-indigo-900">${title}</h2>
-                        <p class="text-xs font-bold text-slate-600">Instrucción: Busca y agrega estos productos en la aplicación. Luego presiona el botón para comprobar si tu lista está correcta.</p>
+                        <p class="text-xs font-bold text-slate-600">Instrucción: Busca y añade estos productos en la aplicación. Luego presiona comprobar si tu lista está correcta.</p>
                     </div>
 
                     <div class="space-y-4">
@@ -1310,7 +1419,7 @@ function printCurrentMissionSheet() {
                                         ${imgHtml}
                                         <div>
                                             <span class="text-base font-black text-slate-800 block">${p.name}</span>
-                                            <span class="text-xs font-black text-emerald-700">Precio de referencia: $${(p.price || 0).toLocaleString('es-CL')}</span>
+                                            <span class="text-xs font-black text-emerald-700">Precio estimado: $${(p.price || 0).toLocaleString('es-CL')}</span>
                                         </div>
                                     </div>
                                     <div>${getPricePictogramsHtml(p.price || 0)}</div>
@@ -1346,9 +1455,14 @@ function renderTeacherDashboard(container) {
                         <p class="text-[11px] font-bold text-emerald-100">${APP_STATE.activeMission.itemIds.length} productos asignados a las tablets de los alumnos.</p>
                     </div>
                 </div>
-                <button onclick="cancelActiveMission()" class="bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow border border-rose-300 active:scale-95 flex items-center gap-1.5">
-                    <span>⏹️</span> <span>Finalizar / Desactivar Misión</span>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button onclick="openViewMissionModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-3.5 py-2.5 rounded-xl shadow border border-indigo-300 active:scale-95 flex items-center gap-1.5">
+                        <span>👁️</span> <span>Ver Lista de Misión</span>
+                    </button>
+                    <button onclick="cancelActiveMission()" class="bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-3.5 py-2.5 rounded-xl shadow border border-rose-300 active:scale-95 flex items-center gap-1.5">
+                        <span>⏹️</span> <span>Desactivar Misión</span>
+                    </button>
+                </div>
             </div>
         `;
     }
@@ -1549,7 +1663,7 @@ function generateAIPedagogicalReport(evalId) {
 
             <div class="p-4 bg-indigo-50 border rounded-2xl text-xs space-y-2">
                 <div class="font-black text-indigo-950">Diagnóstico de Autonomía Funcional: ${nivelAutonomia}</div>
-                <p class="text-slate-700">El estudiante seleccionó su supermercado de preferencia, organizó su canasto según la lista impresas, realizó la comprobación interactiva de la lista y reconoció el pago con moneda nacional.</p>
+                <p class="text-slate-700">El estudiante seleccionó su supermercado de preferencia, organizó su canasto según la lista impresa, realizó la comprobación interactiva de la lista y reconoció el pago con moneda nacional.</p>
             </div>
         </div>
     `;
