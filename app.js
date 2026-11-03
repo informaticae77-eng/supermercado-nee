@@ -92,7 +92,7 @@ const DEFAULT_SETTINGS = {
 };
 
 const DEFAULT_AI_CONFIG = {
-    mode: 'strict',            // 'strict' (Exige coincidencia real), 'permissive' (Prueba asistida)
+    mode: 'strict',            // 'strict' (Exige coincidencia real semántica), 'permissive' (Prueba asistida)
     sensitivity: 'medium',     // 'low', 'medium', 'high'
     cameraFacing: 'environment'// 'environment' (trasera), 'user' (frontal)
 };
@@ -141,24 +141,27 @@ const PRESET_CATEGORIES = [
     { name: "Mascotas", icon: "🐶" }
 ];
 
+// DICCIONARIO DE IA ESTRICTO (Sin términos de empaque genéricos como box, carton, container)
 const AI_PRODUCT_DICTIONARY = {
-    'harina': ['flour', 'packet', 'bag', 'carton', 'powder', 'dough', 'groceries', 'envelope', 'sachet', 'box'],
-    'leche': ['milk', 'carton', 'bottle', 'jug', 'beverage', 'pitcher', 'container', 'box'],
-    'pan': ['bread', 'bun', 'loaf', 'bakery', 'bagel', 'pretzel', 'doughnut', 'roll'],
-    'aceite': ['bottle', 'oil', 'lotion', 'fluid', 'olive', 'canola', 'container'],
-    'arroz': ['rice', 'grain', 'bag', 'packet', 'groceries', 'sack'],
-    'fideos': ['pasta', 'spaghetti', 'noodle', 'macaroni', 'vermicelli', 'packet', 'box'],
-    'manzana': ['apple', 'pomegranate', 'fruit', 'granny smith'],
-    'plátano': ['banana', 'plantain', 'fruit'],
-    'platano': ['banana', 'plantain', 'fruit'],
-    'yogurt': ['yogurt', 'cup', 'trifle', 'container', 'dairy', 'tub'],
-    'jugo': ['juice', 'beverage', 'bottle', 'can', 'carton'],
-    'bebida': ['soda', 'pop', 'cola', 'beverage', 'can', 'bottle'],
-    'galletas': ['cookie', 'biscuit', 'cracker', 'snack', 'wafer', 'pack'],
-    'detergente': ['detergent', 'soap', 'cleaner', 'bottle', 'jug', 'spray'],
-    'queso': ['cheese', 'dairy', 'slice', 'brick'],
-    'mantequilla': ['butter', 'margarine', 'tub', 'pack'],
-    'huevos': ['egg', 'carton', 'crate', 'nest']
+    'harina': ['flour', 'powder', 'dough'],
+    'leche': ['milk', 'eggnog'],
+    'pan': ['bread', 'bun', 'loaf', 'bakery', 'bagel', 'pretzel', 'doughnut'],
+    'aceite': ['oil', 'olive oil'],
+    'arroz': ['rice'],
+    'fideos': ['pasta', 'spaghetti', 'noodle', 'macaroni', 'vermicelli'],
+    'manzana': ['apple', 'pomegranate', 'granny smith'],
+    'plátano': ['banana', 'plantain'],
+    'platano': ['banana', 'plantain'],
+    'yogurt': ['yogurt', 'trifle'],
+    'jugo': ['juice'],
+    'bebida': ['soda', 'pop', 'cola'],
+    'galletas': ['cookie', 'biscuit', 'cracker', 'wafer'],
+    'detergente': ['detergent', 'cleaner', 'washing powder'],
+    'jabón': ['soap', 'lotion', 'soap dispenser', 'barber'],
+    'jabon': ['soap', 'lotion', 'soap dispenser', 'barber'],
+    'queso': ['cheese'],
+    'mantequilla': ['butter', 'margarine'],
+    'huevos': ['egg', 'nest']
 };
 
 // ==========================================
@@ -609,7 +612,7 @@ function renderSupermarketView(container, supId) {
                                     ¡COMPROBACIÓN EXITOSA!
                                 </span>
                                 <h3 class="text-2xl font-black text-white">¡Sigamos con la misión! 🚀</h3>
-                                <p class="text-sm font-bold text-emerald-100">Ahora ve a la repisa del supermercado, apunta la cámara al envase (ej: Harina 1kg) y la Inteligencia Artificial reconocerá su imagen.</p>
+                                <p class="text-sm font-bold text-emerald-100">Ahora ve a la repisa del supermercado, apunta la cámara al producto y la Inteligencia Artificial reconocerá su imagen.</p>
                             </div>
                         </div>
                         <button onclick="enterTerrenoStoreMode()" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-lg py-4 rounded-2xl shadow-2xl border-b-4 border-amber-600 active:scale-95 flex items-center justify-center gap-2">
@@ -789,7 +792,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// RECONOCIMIENTO Y EVALUACIÓN DE IA
+// RECONOCIMIENTO Y EVALUACIÓN ESTRICTA DE IA
 // ==========================================
 function startAiVisualRecognition(productId) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
@@ -873,7 +876,7 @@ async function loadAiVisionModel() {
     return mobilenetModel;
 }
 
-// CAPTURA DE FOTO Y EVALUACIÓN REAL DE IA (MODO JUEGO ALUMNO)
+// CAPTURA Y EVALUACIÓN REAL DE IA (ESTRICTO - ALUMNO)
 async function captureAndAnalyzeImageWithAI() {
     if (APP_STATE.isAiAnalyzing) return;
     APP_STATE.isAiAnalyzing = true;
@@ -900,18 +903,17 @@ async function captureAndAnalyzeImageWithAI() {
         `;
     }
 
-    let photoDataUrl = '';
-    if (canvasEl && videoEl && videoEl.readyState >= 2) {
-        const ctx = canvasEl.getContext('2d');
-        canvasEl.width = videoEl.videoWidth || 640;
-        canvasEl.height = videoEl.videoHeight || 480;
-        ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-        photoDataUrl = canvasEl.toDataURL('image/jpeg', 0.8);
-    } else {
+    if (!canvasEl || !videoEl || videoEl.readyState < 2) {
         alert("La cámara aún no carga el marco. Espera un segundo e intenta de nuevo.");
         APP_STATE.isAiAnalyzing = false;
         return;
     }
+
+    const ctx = canvasEl.getContext('2d');
+    canvasEl.width = videoEl.videoWidth || 640;
+    canvasEl.height = videoEl.videoHeight || 480;
+    ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+    const photoDataUrl = canvasEl.toDataURL('image/jpeg', 0.8);
 
     try {
         const model = await loadAiVisionModel();
@@ -925,6 +927,7 @@ async function captureAndAnalyzeImageWithAI() {
         const prodName = targetProduct.name.toLowerCase();
         let expectedKeywords = [];
 
+        // Buscar palabras clave de significado exacto en el diccionario
         Object.keys(AI_PRODUCT_DICTIONARY).forEach(key => {
             if (prodName.includes(key)) expectedKeywords.push(...AI_PRODUCT_DICTIONARY[key]);
         });
@@ -934,7 +937,7 @@ async function captureAndAnalyzeImageWithAI() {
         }
 
         const minConfidence = (APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'high') ? 0.25 :
-                              ((APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'low') ? 0.08 : 0.15);
+                              ((APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'low') ? 0.08 : 0.12);
 
         let matchFound = null;
         let bestProbability = 0;
@@ -972,13 +975,13 @@ async function captureAndAnalyzeImageWithAI() {
             if (statusBox) {
                 statusBox.innerHTML = `
                     <div class="p-3 bg-rose-100 border border-rose-300 rounded-2xl text-rose-900 font-bold text-xs space-y-1 text-center">
-                        <div class="font-black">❌ La IA vio: "${topLabel}"</div>
+                        <div class="font-black">❌ La IA detectó: "${topLabel}"</div>
                         <div>Se buscaba: <b>${targetProduct.name}</b>. Enfoca el producto correcto y toma la foto.</div>
                     </div>
                 `;
             }
 
-            alert(`❌ ¡PRODUCTO NO RECONOCIDO!\n\nLa foto contiene: "${topLabel}".\nNo coincide con "${targetProduct.name}".\n\nPuntuación actual: ${currentScore}%`);
+            alert(`❌ ¡PRODUCTO NO RECONOCIDO!\n\nLa IA detectó: "${topLabel}".\nNo coincide con "${targetProduct.name}".\n\nPuntuación actual: ${currentScore}%`);
         }
     } catch (err) {
         console.error("Error analizando imagen:", err);
@@ -1632,7 +1635,7 @@ function renderTeacherAiConfigTab() {
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- PROBADOR EN VIVO DE ESCÁNER Y PRECIO DE GÓNDOLA -->
+                <!-- PROBADOR EN VIVO DE ESCÁNER E IA -->
                 <div class="bg-slate-50 p-5 rounded-3xl border-2 border-slate-200 space-y-4">
                     <h4 class="font-black text-indigo-950 text-sm flex items-center gap-2">
                         <span>🔍🧪</span> <span>Probador de Reconocimiento y Precio en Góndola</span>
@@ -1691,7 +1694,7 @@ function renderTeacherAiConfigTab() {
                         <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Sensibilidad del Modelo Neural:</label>
                         <select id="aiSettingSensitivity" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs bg-white">
                             <option value="high" ${cfg.sensitivity === 'high' ? 'selected' : ''}>Alta (Exige 25% min de probabilidad)</option>
-                            <option value="medium" ${cfg.sensitivity === 'medium' ? 'selected' : ''}>Media (15% min de probabilidad - Recomendado)</option>
+                            <option value="medium" ${cfg.sensitivity === 'medium' ? 'selected' : ''}>Media (12% min de probabilidad - Recomendado)</option>
                             <option value="low" ${cfg.sensitivity === 'low' ? 'selected' : ''}>Baja (8% min de probabilidad - Muy flexible)</option>
                         </select>
                     </div>
@@ -1780,14 +1783,11 @@ async function testAdminAiRecognition() {
         `;
     }
 
-    let photoDataUrl = '';
-    if (canvasEl && videoEl) {
-        const ctx = canvasEl.getContext('2d');
-        canvasEl.width = videoEl.videoWidth || 640;
-        canvasEl.height = videoEl.videoHeight || 480;
-        ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-        photoDataUrl = canvasEl.toDataURL('image/jpeg', 0.8);
-    }
+    const ctx = canvasEl.getContext('2d');
+    canvasEl.width = videoEl.videoWidth || 640;
+    canvasEl.height = videoEl.videoHeight || 480;
+    ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+    const photoDataUrl = canvasEl.toDataURL('image/jpeg', 0.8);
 
     try {
         const model = await loadAiVisionModel();
@@ -1806,7 +1806,7 @@ async function testAdminAiRecognition() {
         }
 
         const minConfidence = (APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'high') ? 0.25 :
-                              ((APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'low') ? 0.08 : 0.15);
+                              ((APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'low') ? 0.08 : 0.12);
 
         let matchFound = null;
         let bestProbability = 0;
@@ -1832,7 +1832,7 @@ async function testAdminAiRecognition() {
                 statusBox.innerHTML = `
                     <div class="space-y-2">
                         <div class="p-2 bg-emerald-100 border border-emerald-300 rounded-xl text-emerald-900 font-black text-xs text-center">
-                            ✅ ¡CORRECTO! IA detectó "${matchFound.className}" (${Math.round(matchFound.probability * 100)}%).
+                            ✅ ¡CORRECTO! La IA detectó "${matchFound.className}" (${Math.round(matchFound.probability * 100)}%).
                         </div>
                         <button onclick="openShelfPriceConfirmation('${prod.id}', '${photoDataUrl}')" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-900 font-black py-2 rounded-xl text-xs shadow border-b-2 border-amber-600">
                             🏷️ Probar Cambio de Precio en Góndola
@@ -1842,7 +1842,7 @@ async function testAdminAiRecognition() {
             }
         } else {
             playChimeSound(true);
-            const topLabel = predictions[0] ? `${predictions[0].className} (${Math.round(predictions[0].probability * 100)}%)` : 'desconocido';
+            const topLabel = predictions[0] ? `${predictions[0].className} (${Math.round(predictions[0].probability * 100)}%)` : 'objeto desconocido';
             if (statusBox) {
                 statusBox.innerHTML = `
                     <div class="p-2 bg-rose-100 border border-rose-300 rounded-xl text-rose-900 font-bold text-xs text-center">
