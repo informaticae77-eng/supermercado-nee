@@ -171,7 +171,8 @@ const APP_STATE = {
     scannedItemsInStore: {},      // Registro de escaneo/verificación en góndola
     classroomErrorsCount: 0,      // Intentos fallidos al comprobar lista
     priceAdjustmentsCount: 0,     // Veces que cambió el precio de góndola vs app
-    pendingScanProduct: null      // Producto en proceso de confirmación de precio
+    pendingScanProduct: null,     // Producto en proceso de confirmación de precio
+    invalidBasketItems: []        // Lista de IDs de productos erróneos para destacar en rojo
 };
 
 // ==========================================
@@ -377,6 +378,7 @@ function logout() {
     APP_STATE.classroomMode = 'PREP';
     APP_STATE.listValidated = false;
     APP_STATE.classroomErrorsCount = 0;
+    APP_STATE.invalidBasketItems = [];
     localStorage.removeItem('nee_active_user');
     renderApp();
 }
@@ -514,19 +516,44 @@ function validateStudentList() {
         
         const currentScore = Math.max(20, 100 - (APP_STATE.classroomErrorsCount * 20));
         
-        const alertMsg = `⚠️ Te equivocaste. Vuelve a revisar tu lista impresa y ajusta los productos.\n\n` +
-            (missingItems.length > 0 ? `• Faltan ${missingItems.length} producto(s) por agregar.\n` : '') +
-            (extraItems.length > 0 ? `• Agregaste ${extraItems.length} producto(s) que NO corresponden. Puedes presionarle "Quitar" en la tarjeta del producto.\n` : '') +
-            `\nPuntuación actual: ${currentScore}%`;
+        // Guardamos los items erróneos para destacarlos en rojo parpadeante
+        APP_STATE.invalidBasketItems = extraItems;
 
-        speakText("Te equivocaste, vuelve a revisar tu lista impresa. Si agregaste un producto que no es, puedes quitarlo en su tarjeta.");
+        let extraNames = extraItems.map(id => {
+            const p = (APP_STATE.products || []).find(x => String(x.id) === String(id));
+            return p ? p.name : 'Producto';
+        }).join(', ');
+
+        const alertMsg = `⚠️ Te equivocaste. Vuelve a revisar tu lista impresa.\n\n` +
+            (missingItems.length > 0 ? `• Te falta(n) ${missingItems.length} producto(s) por agregar.\n` : '') +
+            (extraItems.length > 0 ? `• Agregaste este producto que NO está en la lista: ${extraNames}.\n` : '') +
+            `\n👉 Presiona el botón rojo "🗑️ QUITAR ESTE PRODUCTO" que está marcado en la tarjeta para corregir tu lista.\n\nPuntuación actual: ${currentScore}%`;
+
+        speakText(`Te equivocaste. Agregaste ${extraNames || 'un producto'} que no corresponde. Toca el botón rojo quitar en su tarjeta para eliminarlo.`);
         alert(alertMsg);
         renderApp();
     } else {
+        APP_STATE.invalidBasketItems = [];
         APP_STATE.listValidated = true;
         playChimeSound(false);
         if (typeof confetti !== 'undefined') confetti();
         speakText("¡Excelente! Tu lista está perfecta y 100% correcta. Presiona sigamos con la misión para ir al supermercado.");
+        renderApp();
+    }
+}
+
+function removeFromBasketByProductId(prodId) {
+    const index = (APP_STATE.basket || []).findIndex(b => String(b.productId) === String(prodId));
+    if (index !== -1) {
+        const prod = (APP_STATE.products || []).find(p => String(p.id) === String(prodId));
+        APP_STATE.basket.splice(index, 1);
+        
+        // Si eliminó el producto inválido, lo quitamos de la lista de destaque
+        APP_STATE.invalidBasketItems = (APP_STATE.invalidBasketItems || []).filter(id => String(id) !== String(prodId));
+        
+        updateBasketBadge();
+        playChimeSound();
+        if (prod) speakText(`Quitaste ${prod.name} de tu lista`);
         renderApp();
     }
 }
@@ -575,7 +602,7 @@ function renderSupermarketView(container, supId) {
                             <span class="text-3xl">📋</span>
                             <div>
                                 <h3 class="text-base font-black text-indigo-950">Ficha Activa: "${APP_STATE.activeMission.title}"</h3>
-                                <p class="text-xs font-bold text-slate-600">Revisa tu hoja impresa, añade los productos al canasto y presiona comprobar. Si te equivocas, puedes quitar el producto.</p>
+                                <p class="text-xs font-bold text-slate-600">Revisa tu hoja impresa, añade los productos al canasto y presiona comprobar. Si te equivocas, puedes quitar el producto presionando el botón rojo.</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-3 w-full sm:w-auto">
@@ -591,7 +618,7 @@ function renderSupermarketView(container, supId) {
             }
         } else {
             classroomValidationBanner = `
-                <div class="bg-emerald-600 text-white p-4 rounded-3xl shadow-md border-4 border-emerald-800 flex justify-between items-center text-xs font-bold">
+                <div class="bg-emerald-600 text-white p-4 rounded-3xl shadow-md border-4 border-emerald-808 flex justify-between items-center text-xs font-bold">
                     <div class="flex items-center gap-2">
                         <span class="text-2xl">🏪</span>
                         <span>MODO TERRENO: Escanea los productos. El sistema reconocerá si es el producto correcto y ajustará el precio.</span>
@@ -655,15 +682,29 @@ function renderSupermarketView(container, supId) {
         
         const basketIndex = (APP_STATE.basket || []).findIndex(b => String(b.productId) === String(prod.id));
         const isInBasket = basketIndex !== -1;
+        const isExtraItem = (APP_STATE.invalidBasketItems || []).includes(String(prod.id));
+
+        let cardStyle = 'border-slate-200 bg-white';
+        if (isExtraItem) {
+            cardStyle = 'border-4 border-rose-500 bg-rose-50 shadow-2xl animate-pulse ring-4 ring-rose-300';
+        } else if (isInBasket) {
+            cardStyle = 'border-4 border-indigo-500 bg-indigo-50/30';
+        } else if (isScannedInTerreno) {
+            cardStyle = 'border-4 border-emerald-500 bg-emerald-50/20';
+        }
 
         return `
-            <div class="bg-white p-5 rounded-3xl border-4 ${isInBasket ? 'border-indigo-500 bg-indigo-50/30' : (isScannedInTerreno ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-200')} shadow-lg flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
+            <div class="p-5 rounded-3xl border-4 ${cardStyle} shadow-lg flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
                 <div class="flex items-start space-x-4">
                     ${prodImg}
                     <div class="space-y-1 w-full">
                         <div class="flex justify-between items-start">
                             <h3 class="text-xl font-black text-slate-800 leading-tight">${prod.name}</h3>
-                            ${isInBasket ? `<span class="bg-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">✓ En Lista</span>` : ''}
+                            ${isInBasket ? `
+                                <button onclick="removeFromBasketByProductId('${prod.id}')" class="bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-black px-2.5 py-1 rounded-full shadow border border-rose-800 flex items-center gap-1 active:scale-95">
+                                    <span>🗑️</span> <span>Quitar</span>
+                                </button>
+                            ` : ''}
                         </div>
                         <div class="text-3xl font-black text-emerald-700">$${(prod.price || 0).toLocaleString('es-CL')}</div>
                         ${pricePictograms}
@@ -678,14 +719,9 @@ function renderSupermarketView(container, supId) {
                         </button>
                     ` : `
                         ${isInBasket ? `
-                            <div class="flex gap-2 w-full">
-                                <button onclick="speakText('${prod.name} ya está en tu canasto')" class="w-2/3 bg-indigo-100 text-indigo-900 font-black py-3 rounded-2xl border-2 border-indigo-300 text-xs flex items-center justify-center gap-1">
-                                    <span>✓</span> <span>En Canasto</span>
-                                </button>
-                                <button onclick="removeFromBasket(${basketIndex})" class="w-1/3 bg-rose-500 hover:bg-rose-600 text-white font-black py-3 rounded-2xl shadow border-b-4 border-rose-800 text-xs active:scale-95 flex items-center justify-center gap-1">
-                                    <span>🗑️</span> <span>Quitar</span>
-                                </button>
-                            </div>
+                            <button onclick="removeFromBasketByProductId('${prod.id}')" class="w-full ${isExtraItem ? 'bg-rose-600 hover:bg-rose-700 animate-bounce' : 'bg-rose-500 hover:bg-rose-600'} text-white font-black py-3.5 rounded-2xl shadow-lg border-b-4 border-rose-900 active:scale-95 text-sm flex items-center justify-center gap-2">
+                                <span>🗑️</span> <span>QUITAR ESTE PRODUCTO</span>
+                            </button>
                         ` : `
                             <button onclick="addToBasket('${prod.id}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl shadow border-b-4 border-emerald-900 active:scale-95 text-lg">🛒 Añadir al Canasto</button>
                         `}
@@ -737,7 +773,6 @@ function verifyTerrenoProduct(productId) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
     if (!prod) return;
 
-    // VALIDACIÓN DE PRODUCTO PERTENECIENTE A LA MISIÓN
     if (APP_STATE.activeMission && APP_STATE.activeMission.itemIds) {
         const targetIds = APP_STATE.activeMission.itemIds.map(id => String(id));
         if (!targetIds.includes(String(prod.id))) {
@@ -844,15 +879,10 @@ function applyShelfPriceChoice(newPrice) {
     const oldPrice = prod.price || 0;
     APP_STATE.scannedItemsInStore[prod.id] = true;
 
-    // DETECCIÓN Y CONFIGURACIÓN AUTOMÁTICA DE PRECIO DIFERENTE
     if (newPrice !== oldPrice) {
         APP_STATE.priceAdjustmentsCount++;
-        
-        // 1. Actualizar el precio real en el canasto
         const bItem = APP_STATE.basket.find(b => String(b.productId) === String(prod.id));
         if (bItem) bItem.actualPrice = newPrice;
-        
-        // 2. Actualizar precio en el catálogo
         prod.price = newPrice;
 
         const msg = `El valor de ${prod.name} es diferente al que tenemos en la aplicación. Se cambiará al valor del supermercado de ${newPrice} pesos para pagar el monto real.`;
@@ -1015,6 +1045,7 @@ function clearBasket() {
     APP_STATE.basket = [];
     APP_STATE.userPaidAmount = 0;
     APP_STATE.userPaidItems = [];
+    APP_STATE.invalidBasketItems = [];
     updateBasketBadge();
     renderBasketModalContent();
     renderApp();
@@ -1384,6 +1415,7 @@ function activateMissionForStudents() {
     APP_STATE.activeMission = missionObj;
     APP_STATE.classroomErrorsCount = 0;
     APP_STATE.listValidated = false;
+    APP_STATE.invalidBasketItems = [];
 
     if (db) {
         db.collection('settings').doc('activeMission').set(missionObj);
@@ -1400,6 +1432,7 @@ function cancelActiveMission() {
         APP_STATE.classroomMode = 'PREP';
         APP_STATE.listValidated = false;
         APP_STATE.classroomErrorsCount = 0;
+        APP_STATE.invalidBasketItems = [];
         if (db) {
             db.collection('settings').doc('activeMission').delete();
         }
@@ -1647,7 +1680,6 @@ function generateAIPedagogicalReport(evalId) {
 
     const st = APP_STATE.settings || DEFAULT_SETTINGS;
     const teamLabel = st.teamName || 'Equipo Multidisciplinario';
-    const timeSec = ev.timeSeconds || 30;
     const paid = ev.paidCLP || 0;
     const total = ev.totalCLP || 0;
     const change = ev.changeCLP || 0;
@@ -2446,7 +2478,6 @@ function initFirebaseListeners() {
     listenCol('products', data => { APP_STATE.products = data || []; });
     listenCol('evaluations', data => { APP_STATE.evaluations = data || []; });
 
-    // ESCUCHADOR DE MISIÓN ACTIVA FIRESTORE
     try {
         db.collection('settings').doc('activeMission').onSnapshot(
             doc => {
