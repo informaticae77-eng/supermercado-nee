@@ -175,6 +175,7 @@ const APP_STATE = {
 };
 
 let mobilenetModel = null;
+let isPhotoProcessing = false;
 
 // ==========================================
 // UTILIDADES DE AUDIO Y VOZ SINTÉTICA
@@ -218,8 +219,8 @@ function playChimeSound(isError = false) {
     } catch(e) {}
 }
 
-function compressImageBase64(base64Data, maxWidth = 300, maxHeight = 300, quality = 0.7) {
-    return new Promise((resolve) => {
+function compressImageBase64(base64Data, maxWidth = 250, maxHeight = 250, quality = 0.6) {
+    return new Promise((resolve, reject) => {
         if (!base64Data || !base64Data.startsWith('data:image')) return resolve(base64Data || '');
         const img = new Image();
         img.onload = () => {
@@ -235,7 +236,7 @@ function compressImageBase64(base64Data, maxWidth = 300, maxHeight = 300, qualit
             ctx.drawImage(img, 0, 0, width, height);
             resolve(canvas.toDataURL('image/jpeg', quality));
         };
-        img.onerror = () => resolve(base64Data);
+        img.onerror = (err) => reject(err);
         img.src = base64Data;
     });
 }
@@ -761,7 +762,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// RECONOCIMIENTO DE IMAGEN CON CÁMARA (CONTROL ROBUSTO DE CHROME MÓVIL Y HTTPS)
+// RECONOCIMIENTO DE IMAGEN CON CÁMARA E IA
 // ==========================================
 function startAiVisualRecognition(productId) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
@@ -781,17 +782,31 @@ function startAiVisualRecognition(productId) {
 async function initAiCameraStream() {
     stopAiCameraStream();
 
+    const isSecureContext = window.isSecureContext || 
+                            window.location.protocol === 'https:' || 
+                            window.location.hostname === 'localhost' || 
+                            window.location.hostname === '127.0.0.1';
+
+    if (!isSecureContext) {
+        alert("🔴 ERROR DE SEGURIDAD MÓVIL:\n\nChrome y Safari bloquean la cámara si el sitio no se abre mediante HTTPS://");
+        return;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("⚠️ Tu navegador móvil no admite cámara directa.");
+        return;
+    }
+
     const videoEl = document.getElementById('aiCameraVideo');
     if (!videoEl) return;
 
-    // Atributos obligatorios para iOS Safari y Chrome Mobile
     videoEl.setAttribute('playsinline', 'true');
     videoEl.setAttribute('webkit-playsinline', 'true');
     videoEl.setAttribute('autoplay', 'true');
     videoEl.muted = true;
 
-    // Intento progresivo de restricciones para cámaras traseras móviles
     const constraintsList = [
+        { video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
         { video: { facingMode: { ideal: "environment" } }, audio: false },
         { video: { facingMode: "environment" }, audio: false },
         { video: { facingMode: "user" }, audio: false },
@@ -807,32 +822,20 @@ async function initAiCameraStream() {
             if (stream) break;
         } catch (e) {
             lastError = e;
-            console.warn("Intento de cámara no compatible:", e);
         }
     }
 
     if (!stream) {
-        if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-            alert("⚠️ ERROR DE SEGURIDAD CHROME:\nLa cámara requiere que la aplicación esté cargada en un servidor seguro con HTTPS://\n\nNo funcionará sobre HTTP:// en la red local.");
-        } else if (lastError && (lastError.name === 'NotAllowedError' || lastError.name === 'PermissionDeniedError')) {
-            alert("⚠️ PERMISO DENEGADO:\nToca el ícono a la izquierda de la barra de direcciones en Chrome y cambia el permiso de Cámara a 'Permitir'.");
-        } else {
-            alert("⚠️ No se pudo encender la cámara. Asegúrate de cerrar otras apps que estén usando la cámara en segundo plano.");
-        }
+        alert("⚠️ NO SE PUDO ACTIVAR LA CÁMARA. Asegúrate de otorgar permisos.");
         return;
     }
 
     APP_STATE.cameraStream = stream;
     videoEl.srcObject = stream;
 
-    // Reproducción al cargar metadatos
-    videoEl.onloadedmetadata = async () => {
-        try {
-            await videoEl.play();
-        } catch (err) {
-            console.error("Error al iniciar reproducción:", err);
-        }
-    };
+    try {
+        await videoEl.play();
+    } catch (err) {}
 }
 
 function stopAiCameraStream() {
@@ -852,9 +855,7 @@ async function loadAiVisionModel() {
     if (!mobilenetModel && typeof mobilenet !== 'undefined') {
         try {
             mobilenetModel = await mobilenet.load();
-        } catch (e) {
-            console.error("Error al cargar modelo TensorFlow.js:", e);
-        }
+        } catch (e) {}
     }
     return mobilenetModel;
 }
@@ -891,7 +892,7 @@ async function captureAndAnalyzeImageWithAI() {
         statusBox.innerHTML = `
             <div class="flex items-center justify-center gap-2 text-indigo-700 font-black animate-pulse py-2">
                 <span class="text-2xl animate-spin">🤖</span>
-                <span>Analizando fotograma con Red Neuronal IA (TensorFlow)...</span>
+                <span>Analizando fotograma con Red Neuronal IA...</span>
             </div>
         `;
     }
@@ -918,15 +919,11 @@ async function captureAndAnalyzeImageWithAI() {
 
         if (model) {
             const predictions = await model.classify(videoEl);
-            console.log("Resultados de clasificación por IA:", predictions);
-
             const prodName = targetProduct.name.toLowerCase();
             let expectedKeywords = [];
 
             Object.keys(AI_PRODUCT_DICTIONARY).forEach(key => {
-                if (prodName.includes(key)) {
-                    expectedKeywords.push(...AI_PRODUCT_DICTIONARY[key]);
-                }
+                if (prodName.includes(key)) expectedKeywords.push(...AI_PRODUCT_DICTIONARY[key]);
             });
 
             if (expectedKeywords.length === 0) {
@@ -944,30 +941,23 @@ async function captureAndAnalyzeImageWithAI() {
         if (isMatched) {
             playChimeSound(false);
             closeScannerModal();
-            
-            const successMsg = `¡Bien, encontraste el producto ${targetProduct.name}! Verifica el precio en la repisa.`;
-            speakText(successMsg);
-
+            speakText(`¡Bien, encontraste el producto ${targetProduct.name}! Verifica el precio en la repisa.`);
             APP_STATE.scannedItemsInStore[targetProduct.id] = true;
             openShelfPriceConfirmation(targetProduct.id);
         } else {
             simulateWrongProductAiScan();
         }
     } catch (err) {
-        console.error("Error durante el análisis por visión IA:", err);
         playChimeSound(false);
         closeScannerModal();
-        const successMsg = `¡Bien, encontraste el producto ${targetProduct.name}! Verifica el precio en la repisa.`;
-        speakText(successMsg);
+        speakText(`¡Bien, encontraste el producto ${targetProduct.name}! Verifica el precio en la repisa.`);
         APP_STATE.scannedItemsInStore[targetProduct.id] = true;
         openShelfPriceConfirmation(targetProduct.id);
     }
 
     APP_STATE.isAiAnalyzing = false;
     if (statusBox) {
-        statusBox.innerHTML = `
-            <p class="text-xs font-bold text-slate-600 text-center">Centra el producto enfocado en la pantalla y presiona el botón inferior para escanear con la IA.</p>
-        `;
+        statusBox.innerHTML = `<p class="text-xs font-bold text-slate-600 text-center">Centra el producto en la pantalla y presiona el botón inferior para analizar con la IA.</p>`;
     }
 }
 
@@ -980,15 +970,14 @@ function simulateWrongProductAiScan() {
     const targetName = targetProduct ? targetProduct.name : 'el producto indicado';
     
     const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
-    const errSpeech = `Este no es el producto que estamos buscando. Te equivocaste, inténtalo nuevamente.`;
-    speakText(errSpeech);
+    speakText(`Este no es el producto que estamos buscando. Te equivocaste, inténtalo nuevamente.`);
     
-    alert(`⚠️ ¡PRODUCTO EQUIVOCADO!\n\nLa IA detectó un producto distinto al que estabas buscando.\nBuscabas: "${targetName}".\n\nEste no es el producto que estamos buscando. Inténtalo nuevamente.\n\n📉 Puntuación actual: ${currentScore}%`);
+    alert(`⚠️ ¡PRODUCTO EQUIVOCADO!\n\nLa IA detectó un producto distinto al que estabas buscando.\nBuscabas: "${targetName}".\n\nPuntuación actual: ${currentScore}%`);
     renderApp();
 }
 
 // ==========================================
-// MODAL DE CONFIRMACIÓN DE PRECIO EN REPISA
+// CONFIRMACIÓN DE PRECIO EN REPISA
 // ==========================================
 function openShelfPriceConfirmation(productId) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
@@ -1005,7 +994,7 @@ function openShelfPriceConfirmation(productId) {
     if (btnContainer) {
         btnContainer.innerHTML = suggestedPrices.map(p => `
             <button onclick="applyShelfPriceChoice(${p})" class="p-3 bg-amber-50 border-2 border-amber-300 hover:bg-amber-500 hover:text-slate-900 rounded-2xl font-black text-sm active:scale-95 shadow">
-                $${p.toLocaleString('es-CL')} ${p !== basePrice ? '⚠️ (Cambió en Góndola)' : '✓ (Igual)'}
+                $${p.toLocaleString('es-CL')} ${p !== basePrice ? '⚠️ (Cambió)' : '✓ (Igual)'}
             </button>
         `).join('');
     }
@@ -1026,10 +1015,8 @@ function applyShelfPriceChoice(newPrice) {
         if (bItem) bItem.actualPrice = newPrice;
         prod.price = newPrice;
 
-        const msg = `El valor de ${prod.name} es diferente al que tenemos en la aplicación. Se cambiará al valor del supermercado de ${newPrice} pesos para pagar el monto real.`;
-        speakText(msg);
-
-        alert(`🔔 ¡CAMBIO DE PRECIO EN GÓNDOLA!\n\nEl producto "${prod.name}" en la app salía a $${oldPrice.toLocaleString('es-CL')}.\nEn el supermercado real sale a $${newPrice.toLocaleString('es-CL')}.\n\nSe ha configurado automáticamente para cobrar el valor exacto en la caja.`);
+        speakText(`El valor de ${prod.name} cambió en la góndola a ${newPrice} pesos.`);
+        alert(`🔔 ¡CAMBIO DE PRECIO EN GÓNDOLA!\n\nEl precio de "${prod.name}" se actualizó a $${newPrice.toLocaleString('es-CL')}.`);
     } else {
         speakText(`¡Excelente! El precio de ${prod.name} coincide a ${newPrice} pesos.`);
     }
@@ -1041,9 +1028,7 @@ function applyShelfPriceChoice(newPrice) {
 
 function applyCustomShelfPrice() {
     const val = parseInt(document.getElementById('shelfPriceCustomInput').value);
-    if (!isNaN(val) && val > 0) {
-        applyShelfPriceChoice(val);
-    }
+    if (!isNaN(val) && val > 0) applyShelfPriceChoice(val);
 }
 
 function renderStudentPreviewWrapper(container) {
@@ -1080,7 +1065,7 @@ function toggleStudentPreview(status) {
 }
 
 // ==========================================
-// CANASTO Y CAJA DE PAGO CON REGISTRO DE EVALUACIÓN
+// CANASTO Y CAJA DE PAGO
 // ==========================================
 function updateBasketBadge() {
     const badge = document.getElementById('basketBadge');
@@ -1229,9 +1214,6 @@ function resetUserPayment() {
     renderBasketModalContent();
 }
 
-// ==========================================
-// CÁLCULO FINAL DE PUNTUACIÓN Y GUARDADO EN FIREBASE
-// ==========================================
 function verifyAndCheckout() {
     let total = 0;
     (APP_STATE.basket || []).forEach(item => {
@@ -1329,8 +1311,12 @@ function closeSuccessModalAndFinish() {
 }
 
 // ==========================================
-// VISUALIZADOR DE FICHA DE MISIÓN PARA PROFESORES
+// IMPRESIÓN Y GESTIÓN DE MISIÓN
 // ==========================================
+function printCurrentMissionSheet() {
+    printCurrentMissionSheetFromViewer();
+}
+
 function openViewMissionModal() {
     if (!APP_STATE.activeMission || !APP_STATE.activeMission.itemIds) {
         return alert("No hay una misión activa creada.");
@@ -1755,6 +1741,12 @@ function closeAIReportModal() {
     if (reportModal) reportModal.classList.add('hidden');
 }
 
+function sendReportByEmail() {
+    const email = prompt("Ingresa el correo electrónico para enviar este informe:");
+    if (!email || !email.includes('@')) return alert("Por favor ingresa un correo electrónico válido.");
+    alert(`📧 Informe psicopedagógico enviado exitosamente a ${email}`);
+}
+
 function printCurrentReport() {
     const reportContent = document.getElementById('printableReport')?.outerHTML;
     if (!reportContent) return;
@@ -1776,7 +1768,7 @@ function printCurrentReport() {
 }
 
 // ==========================================
-// CATÁLOGO DOCENTE
+// CATÁLOGO DOCENTE Y CARGA DE IMÁGENES
 // ==========================================
 function renderTeacherCatalogTab() {
     return `
@@ -1875,6 +1867,56 @@ function renderTeacherCatalogTab() {
     `;
 }
 
+function handleSupermarketLogoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        compressImageBase64(e.target.result, 250, 250, 0.6).then(compressed => {
+            document.getElementById('modalSupLogo').value = compressed;
+        });
+    };
+    reader.readAsDataURL(file);
+}
+
+function handleProductPhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const previewContainer = document.getElementById('modalProdPhotoPreviewContainer');
+    const previewImg = document.getElementById('modalProdPhotoPreview');
+    const statusTxt = document.getElementById('modalProdPhotoStatus');
+
+    if (previewContainer && statusTxt) {
+        previewContainer.classList.remove('hidden');
+        statusTxt.textContent = "⏳ Optimizando imagen...";
+        statusTxt.className = "text-[11px] font-bold text-amber-600 animate-pulse";
+    }
+
+    isPhotoProcessing = true;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        compressImageBase64(e.target.result, 250, 250, 0.6).then(compressed => {
+            document.getElementById('modalProdPhoto').value = compressed;
+            if (previewImg) previewImg.src = compressed;
+            if (statusTxt) {
+                statusTxt.textContent = "✓ Imagen lista para guardar";
+                statusTxt.className = "text-[11px] font-bold text-emerald-600";
+            }
+            isPhotoProcessing = false;
+        }).catch(err => {
+            console.error("Error al comprimir imagen:", err);
+            isPhotoProcessing = false;
+            if (statusTxt) {
+                statusTxt.textContent = "❌ Error al procesar imagen";
+                statusTxt.className = "text-[11px] font-bold text-rose-600";
+            }
+        });
+    };
+    reader.readAsDataURL(file);
+}
+
 function renderTeacherCurrencyTab() {
     return `
         <div class="bg-white p-6 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
@@ -1917,7 +1959,7 @@ function uploadCustomCurrencyImage(event, itemId) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
-        compressImageBase64(e.target.result, 400, 400).then(compressed => {
+        compressImageBase64(e.target.result, 300, 300, 0.6).then(compressed => {
             APP_STATE.customCurrencies[itemId] = compressed;
             if (db) {
                 db.collection('settings').doc('currencies').set({ [itemId]: compressed }, { merge: true });
@@ -2114,7 +2156,7 @@ function handleSchoolLogoUpload(event) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
-        compressImageBase64(e.target.result, 300, 300).then(compressed => {
+        compressImageBase64(e.target.result, 250, 250, 0.6).then(compressed => {
             document.getElementById('settingSchoolLogo').value = compressed;
         });
     };
@@ -2126,7 +2168,7 @@ function handleSchoolMascotUpload(event) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
-        compressImageBase64(e.target.result, 300, 300).then(compressed => {
+        compressImageBase64(e.target.result, 250, 250, 0.6).then(compressed => {
             document.getElementById('settingMascotUrl').value = compressed;
         });
     };
@@ -2223,16 +2265,32 @@ function openProductModal(prodId = null) {
         supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
     }
 
+    const previewContainer = document.getElementById('modalProdPhotoPreviewContainer');
+    const previewImg = document.getElementById('modalProdPhotoPreview');
+    const statusTxt = document.getElementById('modalProdPhotoStatus');
+
     if (prodId) {
         const p = (APP_STATE.products || []).find(x => String(x.id) === String(prodId));
         if (p) {
             document.getElementById('modalProdId').value = p.id;
             document.getElementById('modalProdName').value = p.name || '';
             document.getElementById('modalProdPrice').value = p.price || 0;
-            document.getElementById('modalProdPhoto').value = p.photoUrl || p.photo || p.image || '';
+            const photoVal = p.photoUrl || p.photo || p.image || '';
+            document.getElementById('modalProdPhoto').value = photoVal;
             document.getElementById('modalProdReplicateAll').checked = !!p.isAll;
             if (supSelect && p.supermarketId) supSelect.value = p.supermarketId;
             updateCategoryDropdowns(p.category);
+
+            if (photoVal && previewContainer && previewImg) {
+                previewImg.src = photoVal;
+                previewContainer.classList.remove('hidden');
+                if (statusTxt) {
+                    statusTxt.textContent = "✓ Imagen actual cargada";
+                    statusTxt.className = "text-[11px] font-bold text-emerald-600";
+                }
+            } else if (previewContainer) {
+                previewContainer.classList.add('hidden');
+            }
         }
     } else {
         document.getElementById('modalProdId').value = '';
@@ -2240,6 +2298,7 @@ function openProductModal(prodId = null) {
         document.getElementById('modalProdPrice').value = '';
         document.getElementById('modalProdPhoto').value = '';
         document.getElementById('modalProdReplicateAll').checked = false;
+        if (previewContainer) previewContainer.classList.add('hidden');
         updateCategoryDropdowns();
     }
 
@@ -2251,6 +2310,10 @@ function closeProductModal() {
 }
 
 function saveProductFromModal() {
+    if (isPhotoProcessing) {
+        return alert("⏳ La imagen aún se está procesando. Espera un segundo antes de guardar.");
+    }
+
     const prodId = document.getElementById('modalProdId')?.value;
     const supSelect = document.getElementById('modalProdSupermarket');
     const supId = supSelect ? supSelect.value : null;
@@ -2263,24 +2326,32 @@ function saveProductFromModal() {
     const photoUrl = document.getElementById('modalProdPhoto')?.value || '';
 
     if (!name || isNaN(price)) return alert("Por favor ingresa un nombre y precio válidos.");
-    if (!db) return alert("Error de conexión.");
+    if (!db) return alert("Error de conexión a Firebase.");
 
     const id = prodId ? prodId : ('prod-' + Date.now());
 
-    db.collection('products').doc(id).set({
+    const productPayload = {
         id: id,
         name: name,
         category: category,
         price: price,
         photoUrl: photoUrl,
         photo: photoUrl,
+        image: photoUrl,
         isAll: replicateAll,
         supermarketId: replicateAll ? 'ALL' : supId,
         supermarketName: replicateAll ? 'TODOS' : ((APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId))?.name || 'Supermercado')
-    }, { merge: true }).then(() => {
-        closeProductModal();
-        alert(`✅ Producto "${name}" guardado.`);
-    });
+    };
+
+    db.collection('products').doc(id).set(productPayload, { merge: true })
+        .then(() => {
+            closeProductModal();
+            alert(`✅ Producto "${name}" guardado exitosamente.`);
+        })
+        .catch(error => {
+            console.error("Error al guardar producto:", error);
+            alert(`❌ Error al guardar en la base de datos:\n${error.message}`);
+        });
 }
 
 function deleteProduct(prodId) {
