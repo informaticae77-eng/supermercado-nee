@@ -169,7 +169,7 @@ const APP_STATE = {
     classroomMode: 'PREP',        
     listValidated: false,         
     scannedItemsInStore: {},      
-    classroomErrorsCount: 0,      // Errores cometidos (descuentan porcentaje)
+    classroomErrorsCount: 0,      
     priceAdjustmentsCount: 0,     
     pendingScanProduct: null,     
     currentTargetScanProduct: null, 
@@ -763,7 +763,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// VERIFICACIÓN CON CÁMARA Y DESCUENTO DE PUNTOS POR DESACIERTO
+// CONTROL ROBUSTO DE CÁMARA Y ESCÁNER DE CÓDIGO
 // ==========================================
 function verifyTerrenoProduct(productId) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
@@ -781,9 +781,10 @@ function openScannerModal(targetProductId = null) {
     const modal = document.getElementById('scannerModal');
     if (modal) modal.classList.remove('hidden');
 
+    // Esperar a que el modal se renderice en el DOM antes de encender la cámara
     setTimeout(() => {
         startCameraScanner();
-    }, 250);
+    }, 300);
 }
 
 function closeScannerModal() {
@@ -792,47 +793,79 @@ function closeScannerModal() {
     stopCameraScanner();
 }
 
-function startCameraScanner() {
+async function startCameraScanner() {
     const placeholder = document.getElementById('scannerPlaceholder');
     const laser = document.getElementById('laserLine');
     if (placeholder) placeholder.classList.add('hidden');
     if (laser) laser.classList.remove('hidden');
 
-    if (typeof Html5Qrcode !== 'undefined') {
-        if (APP_STATE.html5QrcodeScanner) {
-            APP_STATE.html5QrcodeScanner.stop().catch(() => {}).then(() => initHtml5Qrcode());
-        } else {
-            initHtml5Qrcode();
-        }
-    } else {
-        simulateAIScan();
+    if (typeof Html5Qrcode === 'undefined') {
+        showCameraError("Librería de cámara no cargada en la página.");
+        return;
     }
+
+    // Si ya existe una instancia corriendo, la detenemos antes de reactivar
+    if (APP_STATE.html5QrcodeScanner) {
+        try {
+            await APP_STATE.html5QrcodeScanner.stop();
+        } catch (e) {}
+        APP_STATE.html5QrcodeScanner = null;
+    }
+
+    initHtml5Qrcode();
 }
 
-function initHtml5Qrcode() {
+async function initHtml5Qrcode() {
+    const scannerDiv = document.getElementById('qrScannerReader');
+    if (!scannerDiv) return;
+
     try {
         APP_STATE.html5QrcodeScanner = new Html5Qrcode("qrScannerReader");
-        APP_STATE.html5QrcodeScanner.start(
-            { facingMode: "environment" },
+
+        // 1. Intentar detectar dispositivos / cámaras conectadas
+        const devices = await Html5Qrcode.getCameras().catch(() => []);
+        let cameraConfig;
+
+        if (devices && devices.length > 0) {
+            // Buscar cámara trasera por nombre o usar la primera que responda
+            const backCam = devices.find(d => 
+                d.label.toLowerCase().includes('back') || 
+                d.label.toLowerCase().includes('rear') || 
+                d.label.toLowerCase().includes('trasera')
+            );
+            cameraConfig = backCam ? backCam.id : devices[0].id;
+        } else {
+            // Regla por defecto si no se enumeran los nombres
+            cameraConfig = { facingMode: "environment" };
+        }
+
+        // 2. Iniciar escaneo con configuración flexible
+        await APP_STATE.html5QrcodeScanner.start(
+            cameraConfig,
             { fps: 10, qrbox: { width: 220, height: 220 } },
-            (decodedText) => {
-                onProductScanned(decodedText);
-            },
+            (decodedText) => onProductScanned(decodedText),
             () => {}
-        ).catch(err => {
-            console.warn("Cámara no iniciada:", err);
-            const placeholder = document.getElementById('scannerPlaceholder');
-            if (placeholder) {
-                placeholder.classList.remove('hidden');
-                placeholder.innerHTML = `<p class="text-amber-600 font-bold text-xs p-2">Si la cámara no enciende por permisos, presiona "Simular Escaneo" para probar.</p>`;
+        );
+    } catch (err) {
+        console.warn("No se pudo iniciar con cámara principal. Probando modo alternativo:", err);
+        // Fallback a cámara frontal/webcam si la trasera falla o es bloqueada
+        try {
+            if (APP_STATE.html5QrcodeScanner) {
+                await APP_STATE.html5QrcodeScanner.start(
+                    { facingMode: "user" },
+                    { fps: 10, qrbox: { width: 220, height: 220 } },
+                    (decodedText) => onProductScanned(decodedText),
+                    () => {}
+                );
             }
-        });
-    } catch(e) {
-        simulateAIScan();
+        } catch (err2) {
+            console.error("Error definitivo al encender cámara:", err2);
+            showCameraError("No se pudo abrir la cámara. Asegúrate de otorgar permisos o usar HTTPS.");
+        }
     }
 }
 
-function stopCameraScanner() {
+async function stopCameraScanner() {
     const laser = document.getElementById('laserLine');
     const placeholder = document.getElementById('scannerPlaceholder');
     if (laser) laser.classList.add('hidden');
@@ -840,15 +873,34 @@ function stopCameraScanner() {
 
     if (APP_STATE.html5QrcodeScanner) {
         try {
-            APP_STATE.html5QrcodeScanner.stop().catch(() => {});
+            await APP_STATE.html5QrcodeScanner.stop();
+            APP_STATE.html5QrcodeScanner.clear();
         } catch(e) {}
+        APP_STATE.html5QrcodeScanner = null;
+    }
+}
+
+function showCameraError(msg) {
+    const laser = document.getElementById('laserLine');
+    const placeholder = document.getElementById('scannerPlaceholder');
+    if (laser) laser.classList.add('hidden');
+    if (placeholder) {
+        placeholder.classList.remove('hidden');
+        placeholder.innerHTML = `
+            <div class="p-4 text-center space-y-3 bg-rose-50 border-2 border-rose-300 rounded-2xl">
+                <span class="text-4xl block">📷⚠️</span>
+                <p class="text-xs font-black text-rose-700">${msg}</p>
+                <button onclick="simulateAIScan()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-4 py-2.5 rounded-xl text-xs shadow border-b-2 border-indigo-900 active:scale-95">
+                    🤖 Simular Escaneo de Producto
+                </button>
+            </div>
+        `;
     }
 }
 
 function onProductScanned(scannedCode) {
     const cleanCode = String(scannedCode).trim().toLowerCase();
     
-    // Producto escaneado por el niño
     const foundProduct = (APP_STATE.products || []).find(p => 
         String(p.id).toLowerCase() === cleanCode ||
         String(p.code || '').toLowerCase() === cleanCode ||
@@ -859,15 +911,13 @@ function onProductScanned(scannedCode) {
     const targetProduct = targetId ? (APP_STATE.products || []).find(p => String(p.id) === String(targetId)) : null;
 
     if (targetProduct) {
-        // EVALUACIÓN DE AUTONOMÍA: PRODUCTO CORRECTO VS ERRORES
         if (foundProduct && String(foundProduct.id) === String(targetProduct.id)) {
             playChimeSound(false);
             closeScannerModal();
             speakText(`¡Excelente! Reconociste el producto ${targetProduct.name}. Ahora revisa el precio en la repisa.`);
             openShelfPriceConfirmation(targetProduct.id);
         } else {
-            // ERROR AL ESCANEAR EL PRODUCTO EQUIVOCADO (EJ: JABÓN LÍQUIDO EN LUGAR DE HARINA)
-            APP_STATE.classroomErrorsCount++; // Aumenta contador de errores y quita % de puntos
+            APP_STATE.classroomErrorsCount++;
             playChimeSound(true);
             
             const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
@@ -1214,7 +1264,6 @@ function verifyAndCheckout() {
     const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(APP_STATE.selectedSupermarketId));
     const elapsedSeconds = APP_STATE.missionStartTime ? Math.round((Date.now() - APP_STATE.missionStartTime) / 1000) : 25;
 
-    // Puntuación acumulada considerando desaciertos de escaneo y lista
     const totalErrors = APP_STATE.classroomErrorsCount || 0;
     const pointsEarned = Math.max(10, 100 - (totalErrors * 15));
     
@@ -1240,7 +1289,6 @@ function verifyAndCheckout() {
         }
     }
 
-    // REGISTRO DE LA EVALUACIÓN COMPLETA EN FIREBASE
     const evalData = {
         id: 'eval-' + Date.now(),
         studentId: APP_STATE.currentUser ? APP_STATE.currentUser.id : 'anonimo',
