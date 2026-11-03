@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supermercado Adaptativo PIE / NEE</title>
+    <title>Supermercado Adaptativo / Autonomía Funcional</title>
     
     <!-- TAILWIND CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -31,8 +31,8 @@
             <button onclick="goHome()" class="flex items-center gap-2 text-left active:scale-95 transition-all">
                 <span class="text-3xl sm:text-4xl">🛒</span>
                 <div>
-                    <h1 class="text-base sm:text-xl font-black text-slate-800 leading-tight">Supermercado PIE</h1>
-                    <p class="text-[10px] sm:text-xs font-bold text-slate-500">Programa Integración Escolar</p>
+                    <h1 id="headerMainTitle" class="text-base sm:text-xl font-black text-slate-800 leading-tight">Supermercado Adaptativo</h1>
+                    <p id="headerSubTitle" class="text-[10px] sm:text-xs font-bold text-slate-500">Equipo Multidisciplinario</p>
                 </div>
             </button>
 
@@ -237,11 +237,11 @@
         </div>
     </div>
 
-    <!-- MODAL 6: ESCÁNER DE CÓDIGO DE BARRAS -->
+    <!-- MODAL 6: ESCÁNER DE CÓDIGO DE BARRAS INTELIGENTE -->
     <div id="scannerModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 border-4 border-amber-400 shadow-2xl text-center">
             <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="text-lg font-black text-slate-800">Escanear Código de Producto</h3>
+                <h3 class="text-lg font-black text-slate-800">Escanear Producto en Góndola</h3>
                 <button onclick="closeScannerModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-black">✕</button>
             </div>
 
@@ -249,7 +249,7 @@
                 <div id="laserLine" class="hidden absolute w-full h-1 bg-rose-500 animate-pulse shadow-lg z-10"></div>
                 <div id="scannerPlaceholder" class="text-white text-xs font-bold space-y-2 p-4">
                     <span class="text-4xl block">📷</span>
-                    <p>Toca el botón inferior para activar la cámara o simular escaneo</p>
+                    <p>Apunta la cámara al código del envase en la repisa</p>
                 </div>
             </div>
 
@@ -262,11 +262,19 @@
         </div>
     </div>
 
-    <!-- MODAL 7: ÉXITO EN LA COMPRA / VUELTO -->
+    <!-- MODAL 7: ÉXITO EN LA COMPRA / VUELTO Y PUNTOS GAMIFICACIÓN -->
     <div id="checkoutSuccessModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 border-4 border-emerald-400 shadow-2xl text-center">
             <div class="text-6xl animate-bounce">🎉</div>
             <h3 class="text-2xl font-black text-slate-800">¡Compra Realizada con Éxito!</h3>
+
+            <!-- GAMIFICACIÓN: RECOMPENSA DE PUNTOS -->
+            <div id="gamificationRewardsContainer" class="bg-amber-50 border-4 border-amber-300 p-4 rounded-2xl space-y-2 text-center">
+                <span class="text-xs font-black uppercase text-amber-900 tracking-wider block">🏆 Recompensa Obtenida:</span>
+                <div id="gamificationPointsBadge" class="text-3xl font-black text-amber-600"></div>
+                <div id="gamificationMedalIcon" class="text-4xl">⭐</div>
+                <p id="gamificationFeedbackText" class="text-xs font-bold text-slate-700"></p>
+            </div>
 
             <div class="bg-emerald-50 p-4 rounded-2xl border-2 border-emerald-200 space-y-2 text-left">
                 <div class="flex justify-between text-xs font-bold text-slate-700">
@@ -312,7 +320,7 @@
         <div class="bg-white rounded-3xl p-6 max-w-2xl w-full space-y-4 border-4 border-indigo-400 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center border-b pb-2">
                 <h3 class="text-xl font-black text-slate-800 flex items-center gap-2">
-                    <span>📋</span> <span>Crear Ficha de Misión de Compra PIE</span>
+                    <span>📋</span> <span>Crear Ficha de Misión de Compra</span>
                 </h3>
                 <button onclick="closeMissionModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-black">✕</button>
             </div>
@@ -320,7 +328,7 @@
             <div class="space-y-3 text-xs font-bold">
                 <div>
                     <label class="block mb-1 text-slate-700 uppercase">Título de la Misión:</label>
-                    <input type="text" id="missionTitleInput" value="Misión de Compra PIE" class="w-full px-3 py-2 border-2 rounded-xl text-sm font-bold">
+                    <input type="text" id="missionTitleInput" value="Misión de Compra Adaptativa" class="w-full px-3 py-2 border-2 rounded-xl text-sm font-bold">
                 </div>
                 <div>
                     <label class="block mb-1 text-slate-700 uppercase">Selecciona los productos para la Ficha:</label>
