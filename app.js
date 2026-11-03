@@ -158,7 +158,7 @@ const APP_STATE = {
     telemetry: { voiceHelpCount: 0 },
     missionStartTime: null,
     
-    // VARIABLES DE CÁMARA Y RECONOCIMIENTO VISUAL IA
+    // RECONOCIMIENTO VISUAL CON CÁMARA E IA
     cameraStream: null,
     isAiAnalyzing: false,
     currentTargetScanProduct: null,
@@ -269,7 +269,7 @@ function getPricePictogramsHtml(amount) {
 }
 
 // ==========================================
-// RENDERIZADO PRINCIPAL DE LA VISTA
+// RENDERIZADO PRINCIPAL
 // ==========================================
 function renderApp() {
     const container = document.getElementById('appContainer');
@@ -378,6 +378,7 @@ function logout() {
     APP_STATE.listValidated = false;
     APP_STATE.classroomErrorsCount = 0;
     APP_STATE.invalidBasketItems = [];
+    stopAiCameraStream();
     localStorage.removeItem('nee_active_user');
     renderApp();
 }
@@ -758,7 +759,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// MÓDULO DE RECONOCIMIENTO DE IMAGEN CON INTELIGENCIA ARTIFICIAL (IA VISUAL)
+// RECONOCIMIENTO DE IMAGEN CON CÁMARA (CONTROL ROBUSTO DE PANTALLA NEGRA)
 // ==========================================
 function startAiVisualRecognition(productId) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
@@ -781,23 +782,44 @@ async function initAiCameraStream() {
     const videoEl = document.getElementById('aiCameraVideo');
     if (!videoEl) return;
 
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: { ideal: "environment" },
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            },
-            audio: false
-        });
+    // Atributos requeridos por navegadores móviles para transmisión directa
+    videoEl.setAttribute('playsinline', 'true');
+    videoEl.setAttribute('webkit-playsinline', 'true');
+    videoEl.setAttribute('autoplay', 'true');
+    videoEl.muted = true;
 
-        APP_STATE.cameraStream = stream;
-        videoEl.srcObject = stream;
-        await videoEl.play();
-    } catch (err) {
-        console.error("Error al acceder a la cámara para Visión IA:", err);
-        alert("No se pudo iniciar la cámara. Asegúrate de otorgar permisos de cámara.");
+    const constraintsList = [
+        { video: { facingMode: { ideal: "environment" } }, audio: false },
+        { video: { facingMode: "environment" }, audio: false },
+        { video: true, audio: false }
+    ];
+
+    let stream = null;
+    for (const constraints of constraintsList) {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            if (stream) break;
+        } catch (e) {
+            console.warn("Intento de cámara no compatible:", e);
+        }
     }
+
+    if (!stream) {
+        alert("No se pudo acceder a la cámara. Verifica que diste permisos de cámara en el navegador o que utilizas protocolo HTTPS.");
+        return;
+    }
+
+    APP_STATE.cameraStream = stream;
+    videoEl.srcObject = stream;
+
+    // Ejecutar reproducción apenas se hayan cargado los metadatos del video
+    videoEl.onloadedmetadata = async () => {
+        try {
+            await videoEl.play();
+        } catch (err) {
+            console.error("Error al iniciar reproducción de video:", err);
+        }
+    };
 }
 
 function stopAiCameraStream() {
@@ -837,7 +859,6 @@ function captureAndAnalyzeImageWithAI() {
         ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
     }
 
-    // Proceso de análisis por IA (simulado o integrado con API de Visión)
     setTimeout(() => {
         const targetId = APP_STATE.currentTargetScanProduct;
         const targetProduct = (APP_STATE.products || []).find(p => String(p.id) === String(targetId));
@@ -846,7 +867,6 @@ function captureAndAnalyzeImageWithAI() {
             playChimeSound(false);
             closeScannerModal();
             
-            // MENSAJE DE RECONOCIMIENTO EXITOSO REQUERIDO:
             const successMsg = `¡Bien, encontraste el producto ${targetProduct.name}! Verifica el precio en la repisa.`;
             speakText(successMsg);
 
@@ -854,14 +874,14 @@ function captureAndAnalyzeImageWithAI() {
             openShelfPriceConfirmation(targetProduct.id);
         } else {
             playChimeSound(true);
-            speakText("No reconocí ese producto. Vuelve a enfocar el envase de la harina.");
-            alert("⚠️ No se reconoció la imagen. Por favor, enfoca directamente la cara frontal del envase.");
+            speakText("No reconocí ese producto. Vuelve a enfocar el envase del producto.");
+            alert("⚠️ No se reconoció la imagen. Por favor, enfoca directamente el envase.");
         }
         
         APP_STATE.isAiAnalyzing = false;
         if (statusBox) {
             statusBox.innerHTML = `
-                <p class="text-xs font-bold text-slate-600 text-center">Centra el producto enfocado en la pantalla y presiona el botón inferior para escanear con la IA.</p>
+                <p class="text-xs font-bold text-slate-600 text-center">Centra el producto en la pantalla y presiona el botón inferior para escanear con IA.</p>
             `;
         }
     }, 1500);
@@ -1632,7 +1652,7 @@ function generateAIPedagogicalReport(evalId) {
 
             <div class="p-4 bg-indigo-50 border rounded-2xl text-xs space-y-2">
                 <div class="font-black text-indigo-950">Diagnóstico de Autonomía Funcional: ${nivelAutonomia}</div>
-                <p class="text-slate-700">El estudiante seleccionó su supermercado de preferencia, organizó su canasto según la lista impresa, realizó el reconocimiento visual de fotograma por cámara con IA y completó el pago en moneda nacional.</p>
+                <p class="text-slate-700">El estudiante seleccionó su supermercado de preferencia, organizó su canasto según la lista impresa, realizó el reconocimiento visual por cámara con IA y completó el pago en moneda nacional.</p>
             </div>
         </div>
     `;
