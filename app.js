@@ -92,7 +92,7 @@ const DEFAULT_SETTINGS = {
 };
 
 const DEFAULT_AI_CONFIG = {
-    mode: 'strict',            // 'strict' (Exige coincidencia real semántica), 'permissive' (Prueba asistida)
+    mode: 'strict',            // 'strict' (Exige discriminación semántica estricta)
     sensitivity: 'medium',     // 'low', 'medium', 'high'
     cameraFacing: 'environment'// 'environment' (trasera), 'user' (frontal)
 };
@@ -141,10 +141,10 @@ const PRESET_CATEGORIES = [
     { name: "Mascotas", icon: "🐶" }
 ];
 
-// DICCIONARIO DE IA ESTRICTO (Sin términos de empaque genéricos como box, carton, container)
+// DICCIONARIO DE IA AMPLIADO Y ESTRICTO (Mapeo Semántico)
 const AI_PRODUCT_DICTIONARY = {
     'harina': ['flour', 'powder', 'dough'],
-    'leche': ['milk', 'eggnog'],
+    'leche': ['milk', 'eggnog', 'cream'],
     'pan': ['bread', 'bun', 'loaf', 'bakery', 'bagel', 'pretzel', 'doughnut'],
     'aceite': ['oil', 'olive oil'],
     'arroz': ['rice'],
@@ -161,7 +161,16 @@ const AI_PRODUCT_DICTIONARY = {
     'jabon': ['soap', 'lotion', 'soap dispenser', 'barber'],
     'queso': ['cheese'],
     'mantequilla': ['butter', 'margarine'],
-    'huevos': ['egg', 'nest']
+    'huevos': ['egg', 'nest'],
+    'café': ['coffee', 'espresso', 'cup'],
+    'cafe': ['coffee', 'espresso', 'cup'],
+    'té': ['tea', 'teapot'],
+    'te': ['tea', 'teapot'],
+    'atún': ['tuna', 'fish', 'tin'],
+    'atun': ['tuna', 'fish', 'tin'],
+    'shampoo': ['shampoo', 'hair spray', 'lotion'],
+    'champú': ['shampoo', 'hair spray', 'lotion'],
+    'champu': ['shampoo', 'hair spray', 'lotion']
 };
 
 // ==========================================
@@ -792,7 +801,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// RECONOCIMIENTO Y EVALUACIÓN ESTRICTA DE IA
+// RECONOCIMIENTO Y DISCRIMINACIÓN ESTRICTA DE IA
 // ==========================================
 function startAiVisualRecognition(productId) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
@@ -876,7 +885,7 @@ async function loadAiVisionModel() {
     return mobilenetModel;
 }
 
-// CAPTURA Y EVALUACIÓN REAL DE IA (ESTRICTO - ALUMNO)
+// EVALUACIÓN DE DISCRIMINACIÓN (MODO ALUMNO)
 async function captureAndAnalyzeImageWithAI() {
     if (APP_STATE.isAiAnalyzing) return;
     APP_STATE.isAiAnalyzing = true;
@@ -898,7 +907,7 @@ async function captureAndAnalyzeImageWithAI() {
         statusBox.innerHTML = `
             <div class="flex items-center justify-center gap-2 text-indigo-700 font-black animate-pulse py-1">
                 <span class="text-2xl animate-spin">🤖</span>
-                <span>Analizando la foto con Inteligencia Artificial...</span>
+                <span>Analizando la foto y discriminando el producto...</span>
             </div>
         `;
     }
@@ -925,42 +934,68 @@ async function captureAndAnalyzeImageWithAI() {
 
         const predictions = await model.classify(canvasEl, 5);
         const prodName = targetProduct.name.toLowerCase();
-        let expectedKeywords = [];
+        
+        let targetKeywords = [];
+        let targetCategories = [];
 
-        // Buscar palabras clave de significado exacto en el diccionario
+        // 1. Identificar categorías esperadas para el producto objetivo
         Object.keys(AI_PRODUCT_DICTIONARY).forEach(key => {
-            if (prodName.includes(key)) expectedKeywords.push(...AI_PRODUCT_DICTIONARY[key]);
+            if (prodName.includes(key)) {
+                targetKeywords.push(...AI_PRODUCT_DICTIONARY[key]);
+                targetCategories.push(key);
+            }
         });
 
-        if (expectedKeywords.length === 0) {
-            expectedKeywords = prodName.split(' ').filter(w => w.length > 3);
+        if (targetKeywords.length === 0) {
+            targetKeywords = prodName.split(' ').filter(w => w.length > 3);
         }
 
         const minConfidence = (APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'high') ? 0.25 :
                               ((APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'low') ? 0.08 : 0.12);
 
-        let matchFound = null;
-        let bestProbability = 0;
+        let targetMatch = null;
+        let conflictingDetectedObj = null;
 
+        // 2. Procesar predicciones de la cámara
         predictions.forEach(pred => {
             const labelLower = pred.className.toLowerCase();
-            const matchesKw = expectedKeywords.some(kw => labelLower.includes(kw));
-            if (matchesKw && pred.probability >= minConfidence) {
-                if (pred.probability > bestProbability) {
-                    bestProbability = pred.probability;
-                    matchFound = pred;
+            
+            // ¿Coincide con las palabras clave del producto que se busca?
+            const matchesTarget = targetKeywords.some(kw => labelLower.includes(kw));
+            if (matchesTarget && pred.probability >= minConfidence) {
+                if (!targetMatch || pred.probability > targetMatch.probability) {
+                    targetMatch = pred;
                 }
             }
+
+            // ¿Detectó un objeto perteneciente a OTRA categoría conocida en el diccionario?
+            Object.keys(AI_PRODUCT_DICTIONARY).forEach(otherKey => {
+                if (!targetCategories.includes(otherKey)) {
+                    const otherKws = AI_PRODUCT_DICTIONARY[otherKey];
+                    const matchesOther = otherKws.some(kw => labelLower.includes(kw));
+                    if (matchesOther && pred.probability >= 0.12) {
+                        conflictingDetectedObj = { category: otherKey, pred: pred };
+                    }
+                }
+            });
         });
 
-        if (APP_STATE.aiConfig && APP_STATE.aiConfig.mode === 'permissive') {
-            matchFound = predictions[0] || { className: 'Producto simulado', probability: 0.9 };
+        // 3. Lógica de Discriminación Estricta
+        let isValidMatch = false;
+
+        if (targetMatch && !conflictingDetectedObj) {
+            isValidMatch = true;
+        } else if (targetMatch && conflictingDetectedObj) {
+            // Si hay coincidencia de objetivo y también conflicto, evaluar cuál tiene mayor certeza
+            if (targetMatch.probability >= conflictingDetectedObj.pred.probability) {
+                isValidMatch = true;
+            }
         }
 
-        if (matchFound) {
+        if (isValidMatch) {
             playChimeSound(false);
             closeScannerModal();
-            speakText(`¡Excelente! Reconociste el producto ${targetProduct.name}. Revisa su precio en la góndola.`);
+            speakText(`¡Excelente! Reconociste correctamente ${targetProduct.name}. Revisa su precio en la góndola.`);
             APP_STATE.scannedItemsInStore[targetProduct.id] = true;
             openShelfPriceConfirmation(targetProduct.id, photoDataUrl);
         } else {
@@ -968,20 +1003,25 @@ async function captureAndAnalyzeImageWithAI() {
             playChimeSound(true);
             
             const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
-            const topLabel = predictions[0] ? `${predictions[0].className} (${Math.round(predictions[0].probability * 100)}%)` : 'objeto desconocido';
+            const topPrediction = predictions[0] ? `${predictions[0].className} (${Math.round(predictions[0].probability * 100)}%)` : 'objeto no identificado';
+            
+            const detectedConflictLabel = conflictingDetectedObj 
+                ? `Detectado: "${conflictingDetectedObj.category.toUpperCase()}" (${conflictingDetectedObj.pred.className})` 
+                : `Detectado: "${topPrediction}"`;
 
-            speakText(`Esa foto no corresponde a ${targetProduct.name}. Inténtalo nuevamente.`);
+            speakText(`Eso no es ${targetProduct.name}. Corresponde a ${conflictingDetectedObj ? conflictingDetectedObj.category : 'otro objeto'}. Inténtalo nuevamente.`);
             
             if (statusBox) {
                 statusBox.innerHTML = `
-                    <div class="p-3 bg-rose-100 border border-rose-300 rounded-2xl text-rose-900 font-bold text-xs space-y-1 text-center">
-                        <div class="font-black">❌ La IA detectó: "${topLabel}"</div>
-                        <div>Se buscaba: <b>${targetProduct.name}</b>. Enfoca el producto correcto y toma la foto.</div>
+                    <div class="p-3 bg-rose-100 border-2 border-rose-400 rounded-2xl text-rose-950 font-bold text-xs space-y-1 text-center">
+                        <div class="font-black text-rose-700 text-sm">❌ ¡PRODUCTO INCORRECTO!</div>
+                        <div>La IA vio: <b>${detectedConflictLabel}</b>.</div>
+                        <div class="text-indigo-900">Se buscaba: <b>${targetProduct.name}</b>. Enfoca el producto correcto.</div>
                     </div>
                 `;
             }
 
-            alert(`❌ ¡PRODUCTO NO RECONOCIDO!\n\nLa IA detectó: "${topLabel}".\nNo coincide con "${targetProduct.name}".\n\nPuntuación actual: ${currentScore}%`);
+            alert(`❌ ¡ERROR DE DISCRIMINACIÓN!\n\n${detectedConflictLabel}.\nNo coincide con "${targetProduct.name}".\n\nPuntuación actual: ${currentScore}%`);
         }
     } catch (err) {
         console.error("Error analizando imagen:", err);
@@ -1613,7 +1653,7 @@ function renderTeacherDashboard(container) {
 }
 
 // ==========================================
-// MÓDULO ADMINISTRADOR CON PROBADOR EN VIVO DE IA Y PRECIO DE GÓNDOLA
+// MÓDULO ADMINISTRADOR CON PROBADOR Y DISCRIMINACIÓN DE IA
 // ==========================================
 function renderTeacherAiConfigTab() {
     const cfg = APP_STATE.aiConfig || DEFAULT_AI_CONFIG;
@@ -1625,12 +1665,12 @@ function renderTeacherAiConfigTab() {
             <div class="border-b pb-3 flex justify-between items-center flex-wrap gap-2">
                 <div>
                     <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                        <span>🤖</span> <span>Módulo de Configuración y Probador de Escáner e IA de Góndola</span>
+                        <span>🤖</span> <span>Módulo de Configuración y Probador de Escáner e IA</span>
                     </h3>
-                    <p class="text-xs font-bold text-slate-500">Prueba en vivo si la cámara reconoce el producto e interactúa con el cambio de precio pegado en repisa.</p>
+                    <p class="text-xs font-bold text-slate-500">Prueba en vivo si la IA discrimina correctamente entre productos diferentes.</p>
                 </div>
                 <div class="px-3 py-1.5 rounded-xl border-2 text-xs font-black ${isSecure ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-rose-50 border-rose-300 text-rose-800'}">
-                    ${isSecure ? '🔒 Servidor Seguro (HTTPS Activo)' : '🔴 Servidor HTTP (Requiere HTTPS para Cámara en Celulares)'}
+                    ${isSecure ? '🔒 Servidor Seguro (HTTPS Activo)' : '🔴 Servidor HTTP (Requiere HTTPS para Cámara)'}
                 </div>
             </div>
 
@@ -1638,11 +1678,11 @@ function renderTeacherAiConfigTab() {
                 <!-- PROBADOR EN VIVO DE ESCÁNER E IA -->
                 <div class="bg-slate-50 p-5 rounded-3xl border-2 border-slate-200 space-y-4">
                     <h4 class="font-black text-indigo-950 text-sm flex items-center gap-2">
-                        <span>🔍🧪</span> <span>Probador de Reconocimiento y Precio en Góndola</span>
+                        <span>🔍🧪</span> <span>Probador de Discriminación en Vivo</span>
                     </h4>
 
                     <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">1. Selecciona el Producto a Probar:</label>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">1. Selecciona el Producto Objetivo a Buscar:</label>
                         <select id="adminTestProductSelect" class="w-full px-3 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-white text-indigo-950">
                             ${prods.length === 0 ? `<option value="">No hay productos registrados</option>` : prods.map(p => `
                                 <option value="${p.id}">${p.name} ($${(p.price || 0).toLocaleString('es-CL')})</option>
@@ -1671,7 +1711,7 @@ function renderTeacherAiConfigTab() {
                         </div>
 
                         <button onclick="testAdminAiRecognition()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black py-3 rounded-xl text-xs shadow-md active:scale-95 border-b-2 border-emerald-950 flex items-center justify-center gap-2">
-                            <span>📸</span> <span>PROBAR ESCÁNER E IA AHORA</span>
+                            <span>📸</span> <span>EVALUAR Y DISCRIMINAR FOTO</span>
                         </button>
                     </div>
                 </div>
@@ -1685,8 +1725,7 @@ function renderTeacherAiConfigTab() {
                     <div>
                         <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Modo de Operación de la IA:</label>
                         <select id="aiSettingMode" class="w-full px-4 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-indigo-50 text-indigo-900">
-                            <option value="strict" ${cfg.mode === 'strict' ? 'selected' : ''}>Estricto (Exige coincidencia real con la foto del producto)</option>
-                            <option value="permissive" ${cfg.mode === 'permissive' ? 'selected' : ''}>Permisivo / Asistido (Aprobación fácil para alumnos iniciales)</option>
+                            <option value="strict" ${cfg.mode === 'strict' ? 'selected' : ''}>Estricto (Exige discriminación semántica estricta)</option>
                         </select>
                     </div>
 
@@ -1695,7 +1734,7 @@ function renderTeacherAiConfigTab() {
                         <select id="aiSettingSensitivity" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs bg-white">
                             <option value="high" ${cfg.sensitivity === 'high' ? 'selected' : ''}>Alta (Exige 25% min de probabilidad)</option>
                             <option value="medium" ${cfg.sensitivity === 'medium' ? 'selected' : ''}>Media (12% min de probabilidad - Recomendado)</option>
-                            <option value="low" ${cfg.sensitivity === 'low' ? 'selected' : ''}>Baja (8% min de probabilidad - Muy flexible)</option>
+                            <option value="low" ${cfg.sensitivity === 'low' ? 'selected' : ''}>Baja (8% min de probabilidad - Flexible)</option>
                         </select>
                     </div>
 
@@ -1760,7 +1799,7 @@ function stopAdminTestCameraStream() {
     }
 }
 
-// PRUEBA DIRECTA DE ESCÁNER E IA DESDE LA CONFIGURACIÓN DOCENTE
+// EVALUACIÓN DE DISCRIMINACIÓN EN MÓDULO DOCENTE
 async function testAdminAiRecognition() {
     const statusBox = document.getElementById('adminTestCameraStatus');
     const videoEl = document.getElementById('adminTestVideo');
@@ -1778,7 +1817,7 @@ async function testAdminAiRecognition() {
         statusBox.innerHTML = `
             <div class="flex items-center justify-center gap-2 text-indigo-700 font-black animate-pulse">
                 <span class="text-xl animate-spin">🤖</span>
-                <span>Evaluando fotograma en vivo...</span>
+                <span>Evaluando discriminación semántica...</span>
             </div>
         `;
     }
@@ -1795,44 +1834,63 @@ async function testAdminAiRecognition() {
 
         const predictions = await model.classify(canvasEl, 5);
         const prodName = prod.name.toLowerCase();
-        let expectedKeywords = [];
+        
+        let targetKeywords = [];
+        let targetCategories = [];
 
         Object.keys(AI_PRODUCT_DICTIONARY).forEach(key => {
-            if (prodName.includes(key)) expectedKeywords.push(...AI_PRODUCT_DICTIONARY[key]);
+            if (prodName.includes(key)) {
+                targetKeywords.push(...AI_PRODUCT_DICTIONARY[key]);
+                targetCategories.push(key);
+            }
         });
 
-        if (expectedKeywords.length === 0) {
-            expectedKeywords = prodName.split(' ').filter(w => w.length > 3);
+        if (targetKeywords.length === 0) {
+            targetKeywords = prodName.split(' ').filter(w => w.length > 3);
         }
 
         const minConfidence = (APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'high') ? 0.25 :
                               ((APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'low') ? 0.08 : 0.12);
 
-        let matchFound = null;
-        let bestProbability = 0;
+        let targetMatch = null;
+        let conflictingDetectedObj = null;
 
         predictions.forEach(pred => {
             const labelLower = pred.className.toLowerCase();
-            const matchesKw = expectedKeywords.some(kw => labelLower.includes(kw));
-            if (matchesKw && pred.probability >= minConfidence) {
-                if (pred.probability > bestProbability) {
-                    bestProbability = pred.probability;
-                    matchFound = pred;
+            const matchesTarget = targetKeywords.some(kw => labelLower.includes(kw));
+            if (matchesTarget && pred.probability >= minConfidence) {
+                if (!targetMatch || pred.probability > targetMatch.probability) {
+                    targetMatch = pred;
                 }
             }
+
+            Object.keys(AI_PRODUCT_DICTIONARY).forEach(otherKey => {
+                if (!targetCategories.includes(otherKey)) {
+                    const otherKws = AI_PRODUCT_DICTIONARY[otherKey];
+                    const matchesOther = otherKws.some(kw => labelLower.includes(kw));
+                    if (matchesOther && pred.probability >= 0.12) {
+                        conflictingDetectedObj = { category: otherKey, pred: pred };
+                    }
+                }
+            });
         });
 
-        if (APP_STATE.aiConfig && APP_STATE.aiConfig.mode === 'permissive') {
-            matchFound = predictions[0] || { className: 'Simulado', probability: 0.9 };
+        let isValidMatch = false;
+        if (targetMatch && !conflictingDetectedObj) {
+            isValidMatch = true;
+        } else if (targetMatch && conflictingDetectedObj) {
+            if (targetMatch.probability >= conflictingDetectedObj.pred.probability) {
+                isValidMatch = true;
+            }
         }
 
-        if (matchFound) {
+        if (isValidMatch) {
             playChimeSound(false);
             if (statusBox) {
                 statusBox.innerHTML = `
                     <div class="space-y-2">
                         <div class="p-2 bg-emerald-100 border border-emerald-300 rounded-xl text-emerald-900 font-black text-xs text-center">
-                            ✅ ¡CORRECTO! La IA detectó "${matchFound.className}" (${Math.round(matchFound.probability * 100)}%).
+                            ✅ ¡CORRECTO! La IA validó "${targetMatch.className}" (${Math.round(targetMatch.probability * 100)}%).
                         </div>
                         <button onclick="openShelfPriceConfirmation('${prod.id}', '${photoDataUrl}')" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-900 font-black py-2 rounded-xl text-xs shadow border-b-2 border-amber-600">
                             🏷️ Probar Cambio de Precio en Góndola
@@ -1843,10 +1901,12 @@ async function testAdminAiRecognition() {
         } else {
             playChimeSound(true);
             const topLabel = predictions[0] ? `${predictions[0].className} (${Math.round(predictions[0].probability * 100)}%)` : 'objeto desconocido';
+            const conflictText = conflictingDetectedObj ? `Categoría detectada: "${conflictingDetectedObj.category.toUpperCase()}"` : `Detectado: "${topLabel}"`;
+
             if (statusBox) {
                 statusBox.innerHTML = `
                     <div class="p-2 bg-rose-100 border border-rose-300 rounded-xl text-rose-900 font-bold text-xs text-center">
-                        ❌ RECHAZADO: La IA vio "${topLabel}". No coincide con "${prod.name}".
+                        ❌ RECHAZADO: ${conflictText}. No coincide con el producto objetivo "${prod.name}".
                     </div>
                 `;
             }
