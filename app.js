@@ -164,15 +164,15 @@ const APP_STATE = {
     missionStartTime: null,
     html5QrcodeScanner: null,
     
-    // ESTADO DE MISIÓN Y ESCANEO CON CÁMARA
+    // ESTADO DE MISIÓN Y EVALUACIÓN DE AUTONOMÍA
     activeMission: null,          
     classroomMode: 'PREP',        
     listValidated: false,         
     scannedItemsInStore: {},      
-    classroomErrorsCount: 0,      
+    classroomErrorsCount: 0,      // Errores cometidos (descuentan porcentaje)
     priceAdjustmentsCount: 0,     
     pendingScanProduct: null,     
-    currentTargetScanProduct: null, // Producto que el estudiante debe escanear
+    currentTargetScanProduct: null, 
     invalidBasketItems: []        
 };
 
@@ -402,7 +402,7 @@ function renderHomeView(container) {
     let studentMissionBanner = '';
     if (APP_STATE.activeMission && APP_STATE.activeMission.active && APP_STATE.activeMission.itemIds) {
         const itemCount = APP_STATE.activeMission.itemIds.length;
-        const currentScore = Math.max(20, 100 - (APP_STATE.classroomErrorsCount * 20));
+        const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
         
         studentMissionBanner = `
             <div class="bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-900 p-6 rounded-3xl shadow-2xl border-4 border-amber-300 space-y-3">
@@ -515,7 +515,7 @@ function validateStudentList() {
         APP_STATE.classroomErrorsCount++;
         playChimeSound(true);
         
-        const currentScore = Math.max(20, 100 - (APP_STATE.classroomErrorsCount * 20));
+        const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
         APP_STATE.invalidBasketItems = extraItems;
 
         let extraNames = extraItems.map(id => {
@@ -528,7 +528,7 @@ function validateStudentList() {
             (extraItems.length > 0 ? `• Agregaste este producto que NO está en la lista: ${extraNames}.\n` : '') +
             `\n👉 Presiona el botón rojo "🗑️ QUITAR ESTE PRODUCTO" que está marcado en la tarjeta para corregir tu lista.\n\nPuntuación actual: ${currentScore}%`;
 
-        speakText(`Te equivocaste. Agregaste ${extraNames || 'un producto'} que no corresponde. Toca el botón rojo quitar en su tarjeta para eliminarlo.`);
+        speakText(`Este no es el producto que estamos buscando. Te equivocaste, inténtalo nuevamente.`);
         alert(alertMsg);
         renderApp();
     } else {
@@ -568,7 +568,7 @@ function renderSupermarketView(container, supId) {
         String(s.name).toLowerCase() === String(supId).toLowerCase()
     );
 
-    const currentScore = Math.max(20, 100 - (APP_STATE.classroomErrorsCount * 20));
+    const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
 
     let classroomValidationBanner = '';
     if (APP_STATE.activeMission && APP_STATE.activeMission.active) {
@@ -617,7 +617,7 @@ function renderSupermarketView(container, supId) {
                 <div class="bg-emerald-600 text-white p-4 rounded-3xl shadow-md border-4 border-emerald-808 flex justify-between items-center text-xs font-bold">
                     <div class="flex items-center gap-2">
                         <span class="text-2xl">🏪</span>
-                        <span>MODO TERRENO: Escanea los productos. El sistema reconocerá si es el producto correcto y ajustará el precio.</span>
+                        <span>MODO TERRENO: Escanea los productos en la góndola. El sistema verificará si es el producto correcto y registrará tu porcentaje de logro.</span>
                     </div>
                     <span class="bg-amber-400 text-slate-900 font-black px-3 py-1 rounded-xl text-xs">⭐ ${currentScore}% Logro</span>
                 </div>
@@ -763,7 +763,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// VERIFICACIÓN CON CÁMARA Y AJUSTE DE PRECIO EN GÓNDOLA
+// VERIFICACIÓN CON CÁMARA Y DESCUENTO DE PUNTOS POR DESACIERTO
 // ==========================================
 function verifyTerrenoProduct(productId) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
@@ -781,7 +781,6 @@ function openScannerModal(targetProductId = null) {
     const modal = document.getElementById('scannerModal');
     if (modal) modal.classList.remove('hidden');
 
-    // Tiempo de espera breve para asegurar que el modal y su contenedor en el DOM estén visibles
     setTimeout(() => {
         startCameraScanner();
     }, 250);
@@ -819,13 +818,13 @@ function initHtml5Qrcode() {
             (decodedText) => {
                 onProductScanned(decodedText);
             },
-            (err) => {}
+            () => {}
         ).catch(err => {
             console.warn("Cámara no iniciada:", err);
             const placeholder = document.getElementById('scannerPlaceholder');
             if (placeholder) {
                 placeholder.classList.remove('hidden');
-                placeholder.innerHTML = `<p class="text-amber-600 font-bold text-xs p-2">Si la cámara no enciende por permisos, presiona el botón "Simular Escaneo" para avanzar la prueba.</p>`;
+                placeholder.innerHTML = `<p class="text-amber-600 font-bold text-xs p-2">Si la cámara no enciende por permisos, presiona "Simular Escaneo" para probar.</p>`;
             }
         });
     } catch(e) {
@@ -849,7 +848,7 @@ function stopCameraScanner() {
 function onProductScanned(scannedCode) {
     const cleanCode = String(scannedCode).trim().toLowerCase();
     
-    // Buscar si el código escaneado coincide con algún producto
+    // Producto escaneado por el niño
     const foundProduct = (APP_STATE.products || []).find(p => 
         String(p.id).toLowerCase() === cleanCode ||
         String(p.code || '').toLowerCase() === cleanCode ||
@@ -860,18 +859,26 @@ function onProductScanned(scannedCode) {
     const targetProduct = targetId ? (APP_STATE.products || []).find(p => String(p.id) === String(targetId)) : null;
 
     if (targetProduct) {
-        // VALIDACIÓN POR CÁMARA DE PRODUCTO CORRECTO VS ERRORES
+        // EVALUACIÓN DE AUTONOMÍA: PRODUCTO CORRECTO VS ERRORES
         if (foundProduct && String(foundProduct.id) === String(targetProduct.id)) {
             playChimeSound(false);
             closeScannerModal();
-            speakText(`¡Excelente! La cámara ha reconocido ${targetProduct.name}. Ahora revisa el precio en la repisa.`);
+            speakText(`¡Excelente! Reconociste el producto ${targetProduct.name}. Ahora revisa el precio en la repisa.`);
             openShelfPriceConfirmation(targetProduct.id);
         } else {
+            // ERROR AL ESCANEAR EL PRODUCTO EQUIVOCADO (EJ: JABÓN LÍQUIDO EN LUGAR DE HARINA)
+            APP_STATE.classroomErrorsCount++; // Aumenta contador de errores y quita % de puntos
             playChimeSound(true);
-            const scannedName = foundProduct ? foundProduct.name : 'otro producto no registrado';
-            const msg = `¡Atención! Este no es el producto. La cámara detectó ${scannedName}, pero estás buscando ${targetProduct.name}.`;
-            speakText(msg);
-            alert(`⚠️ ¡PRODUCTO INCORRECTO EN GÓNDOLA!\n\nLa cámara de la app detectó: "${scannedName}".\n\nEn tu lista estás buscando: "${targetProduct.name}".\n\nApunta la cámara al producto correcto para verificarlo.`);
+            
+            const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
+            const scannedName = foundProduct ? foundProduct.name : 'otro producto';
+            
+            const errSpeech = `Este no es el producto que estamos buscando. Te equivocaste, inténtalo nuevamente.`;
+            speakText(errSpeech);
+            
+            alert(`⚠️ ¡PRODUCTO INCORRECTO!\n\nEscaneaste: "${scannedName}".\nBuscabas: "${targetProduct.name}".\n\nEste no es el producto que estamos buscando. Te equivocaste, inténtalo nuevamente.\n\n📉 Puntuación actual: ${currentScore}%`);
+            
+            renderApp();
         }
     } else {
         closeScannerModal();
@@ -1037,7 +1044,7 @@ function toggleStudentPreview(status) {
 }
 
 // ==========================================
-// CANASTO Y CAJA DE PAGO ADAPTATIVA
+// CANASTO Y CAJA DE PAGO CON REGISTRO DE EVALUACIÓN
 // ==========================================
 function updateBasketBadge() {
     const badge = document.getElementById('basketBadge');
@@ -1186,6 +1193,9 @@ function resetUserPayment() {
     renderBasketModalContent();
 }
 
+// ==========================================
+// CÁLCULO FINAL DE PUNTUACIÓN Y GUARDADO DE EVALUACIÓN
+// ==========================================
 function verifyAndCheckout() {
     let total = 0;
     (APP_STATE.basket || []).forEach(item => {
@@ -1204,21 +1214,22 @@ function verifyAndCheckout() {
     const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(APP_STATE.selectedSupermarketId));
     const elapsedSeconds = APP_STATE.missionStartTime ? Math.round((Date.now() - APP_STATE.missionStartTime) / 1000) : 25;
 
-    const errors = APP_STATE.classroomErrorsCount || 0;
-    const pointsEarned = Math.max(20, 100 - (errors * 20));
+    // Puntuación acumulada considerando desaciertos de escaneo y lista
+    const totalErrors = APP_STATE.classroomErrorsCount || 0;
+    const pointsEarned = Math.max(10, 100 - (totalErrors * 15));
     
     let medal = "🥇 Medalla de Oro (100% Perfecto)";
-    let feedback = "¡Increíble! Lograste completar tu lista a la primera sin errores.";
+    let feedback = "¡Increíble! Lograste completar tu compra sin cometer errores.";
 
-    if (errors === 1) {
-        medal = "🥈 Medalla de Plata (80% Gran trabajo)";
-        feedback = "¡Muy bien! Tuviste solo 1 intento fallido.";
-    } else if (errors === 2) {
-        medal = "🥉 Medalla de Bronce (60% Buen esfuerzo)";
-        feedback = "¡Bien hecho! Sigue practicando para ganar la medalla de oro.";
-    } else if (errors >= 3) {
-        medal = "🌟 Estrella de Participación (" + pointsEarned + "%)";
-        feedback = "¡Completaste tu compra! Cada intento te hace aprender.";
+    if (pointsEarned >= 80 && pointsEarned < 100) {
+        medal = `🥈 Medalla de Plata (${pointsEarned}% Gran trabajo)`;
+        feedback = "¡Muy bien! Tuviste solo 1 o 2 desaciertos.";
+    } else if (pointsEarned >= 50 && pointsEarned < 80) {
+        medal = `🥉 Medalla de Bronce (${pointsEarned}% Buen esfuerzo)`;
+        feedback = "¡Bien hecho! Sigue practicando para mejorar tu puntuación.";
+    } else if (pointsEarned < 50) {
+        medal = `🌟 Estrella de Participación (${pointsEarned}%)`;
+        feedback = "¡Completaste tu compra! Recuerda fijarte muy bien en los productos de tu lista.";
     }
 
     if (APP_STATE.currentUser) {
@@ -1229,6 +1240,7 @@ function verifyAndCheckout() {
         }
     }
 
+    // REGISTRO DE LA EVALUACIÓN COMPLETA EN FIREBASE
     const evalData = {
         id: 'eval-' + Date.now(),
         studentId: APP_STATE.currentUser ? APP_STATE.currentUser.id : 'anonimo',
@@ -1241,7 +1253,7 @@ function verifyAndCheckout() {
         changeCLP: vuelto,
         itemCount: APP_STATE.basket.length,
         timeSeconds: elapsedSeconds,
-        classroomErrorsCount: errors,
+        classroomErrorsCount: totalErrors,
         pointsEarned: pointsEarned,
         priceAdjustmentsCount: APP_STATE.priceAdjustmentsCount,
         voiceHelpCount: APP_STATE.telemetry.voiceHelpCount,
@@ -1270,7 +1282,7 @@ function verifyAndCheckout() {
 
     closeBasketModal();
     document.getElementById('checkoutSuccessModal').classList.remove('hidden');
-    speakText(`¡Excelente compra! Ganaste ${pointsEarned} puntos. Tu vuelto es de ${vuelto} pesos.`);
+    speakText(`¡Excelente compra! Ganaste una puntuación de ${pointsEarned} por ciento. Tu vuelto es de ${vuelto} pesos.`);
 }
 
 function closeSuccessModalAndFinish() {
@@ -1713,9 +1725,9 @@ function generateAIPedagogicalReport(evalId) {
     const priceAdjustments = ev.priceAdjustmentsCount || 0;
 
     let nivelAutonomia = "Alto / Independiente (100% de logro)";
-    if (classroomErrors === 1) nivelAutonomia = "Adecuado / Con 1 Apoyo Puntual (80% de logro)";
-    if (classroomErrors === 2) nivelAutonomia = "En Proceso de Autonomía (60% de logro)";
-    if (classroomErrors >= 3) nivelAutonomia = "Requiere Acompañamiento Intensivo (40% de logro)";
+    if (classroomErrors === 1) nivelAutonomia = "Adecuado / Con 1 Apoyo Puntual (85% de logro)";
+    if (classroomErrors === 2) nivelAutonomia = "En Proceso de Autonomía (70% de logro)";
+    if (classroomErrors >= 3) nivelAutonomia = "Requiere Acompañamiento Intensivo (Menos de 50% de logro)";
 
     const reportHtml = `
         <div id="printableReport" class="bg-white p-8 max-w-4xl mx-auto border border-slate-300 shadow-2xl rounded-2xl font-sans text-slate-800 space-y-6">
@@ -1743,8 +1755,8 @@ function generateAIPedagogicalReport(evalId) {
 
             <div class="grid grid-cols-2 gap-4 text-xs font-bold">
                 <div class="p-3 bg-slate-50 rounded-xl border">
-                    <span class="text-slate-500 block text-[10px] uppercase">Intentos Fallidos / Errores en Lista:</span>
-                    <span class="text-base font-black ${classroomErrors > 0 ? 'text-rose-600' : 'text-emerald-600'}">${classroomErrors} error(es) detectado(s)</span>
+                    <span class="text-slate-500 block text-[10px] uppercase">Intentos Fallidos / Errores Cometidos:</span>
+                    <span class="text-base font-black ${classroomErrors > 0 ? 'text-rose-600' : 'text-emerald-600'}">${classroomErrors} desacierto(s) detectado(s)</span>
                 </div>
                 <div class="p-3 bg-slate-50 rounded-xl border">
                     <span class="text-slate-500 block text-[10px] uppercase">Diferencia de Precios en Góndola:</span>
@@ -1754,7 +1766,7 @@ function generateAIPedagogicalReport(evalId) {
 
             <div class="p-4 bg-indigo-50 border rounded-2xl text-xs space-y-2">
                 <div class="font-black text-indigo-950">Diagnóstico de Autonomía Funcional: ${nivelAutonomia}</div>
-                <p class="text-slate-700">El estudiante seleccionó su supermercado de preferencia, organizó su canasto según la lista impresa, realizó la comprobación interactiva de la lista y reconoció el pago con moneda nacional.</p>
+                <p class="text-slate-700">El estudiante seleccionó su supermercado de preferencia, organizó su canasto según la lista impresa, realizó la comprobación interactiva con escaneo de cámara y reconoció el pago con moneda nacional.</p>
             </div>
         </div>
     `;
