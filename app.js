@@ -141,7 +141,7 @@ const PRESET_CATEGORIES = [
 ];
 
 // ==========================================
-// ESTADO GLOBAL CON MÁQUINA DE ESTADO DE MISIÓN
+// ESTADO GLOBAL DE LA APLICACIÓN
 // ==========================================
 const APP_STATE = {
     currentUser: null,
@@ -164,13 +164,14 @@ const APP_STATE = {
     missionStartTime: null,
     html5QrcodeScanner: null,
     
-    // FLUJO PEDAGÓGICO DE 4 ETAPAS Y GAMIFICACIÓN
+    // ESTADO DE MISIÓN PEDAGÓGICA Y GAMIFICACIÓN
     activeMission: null,          // Objeto misión docente
-    classroomMode: 'PREP',        // 'PREP' (Sala) | 'TERRENO' (Supermercado)
-    scannedItemsInStore: {},      // Registro de escaneo en góndola
-    classroomErrorsCount: 0,      // Errores cometidos
-    priceAdjustmentsCount: 0,     // Veces que cambió el precio en góndola
-    pendingScanProduct: null      // Producto en proceso de confirmación
+    classroomMode: 'PREP',        // 'PREP' (Armar Lista) | 'TERRENO' (Góndola/Supermercado)
+    listValidated: false,         // Si el estudiante ya comprobó su lista con éxito
+    scannedItemsInStore: {},      // Registro de escaneo/verificación en góndola
+    classroomErrorsCount: 0,      // Cantidad de errores cometidos al comprobar lista
+    priceAdjustmentsCount: 0,     // Veces que cambió el precio en repisa vs app
+    pendingScanProduct: null      // Producto en proceso de confirmación de precio
 };
 
 // ==========================================
@@ -192,23 +193,31 @@ function speakText(text) {
     } catch(e) {}
 }
 
-function playChimeSound() {
+function playChimeSound(isError = false) {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(783.99, audioCtx.currentTime + 0.25);
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.type = isError ? 'sawtooth' : 'sine';
+        
+        if (isError) {
+            osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+        } else {
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(783.99, audioCtx.currentTime + 0.25);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        }
         osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.35);
     } catch(e) {}
 }
 
 function compressImageBase64(base64Data, maxWidth = 300, maxHeight = 300, quality = 0.7) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         if (!base64Data || !base64Data.startsWith('data:image')) return resolve(base64Data || '');
         const img = new Image();
         img.onload = () => {
@@ -274,9 +283,7 @@ function renderApp() {
         ? APP_STATE.settings.teamName 
         : 'Equipo Multidisciplinario';
 
-    if (headerSubTitle) {
-        headerSubTitle.textContent = teamLabel;
-    }
+    if (headerSubTitle) headerSubTitle.textContent = teamLabel;
 
     if (APP_STATE.currentUser) {
         const roleTag = APP_STATE.currentUser.role === 'admin' ? '🔑 Admin General' :
@@ -373,6 +380,8 @@ function logout() {
     APP_STATE.selectedSupermarketId = null;
     APP_STATE.teacherPreviewMode = false;
     APP_STATE.classroomMode = 'PREP';
+    APP_STATE.listValidated = false;
+    APP_STATE.classroomErrorsCount = 0;
     localStorage.removeItem('nee_active_user');
     renderApp();
 }
@@ -383,16 +392,8 @@ function goHome() {
     renderApp();
 }
 
-function autoStartMission() {
-    if ((APP_STATE.supermarkets || []).length > 0) {
-        selectSupermarket(APP_STATE.supermarkets[0].id);
-    } else {
-        alert("Aún no hay supermercados disponibles. Consulta con tu profesor.");
-    }
-}
-
 // ==========================================
-// VISTA ESTUDIANTE Y MISIÓN EN SALA
+// VISTA ESTUDIANTE Y ELECCIÓN DE SUPERMERCADO
 // ==========================================
 function renderHomeView(container) {
     const activeThemeKey = APP_STATE.settings.activeTheme || 'standard';
@@ -400,26 +401,32 @@ function renderHomeView(container) {
     const mascot = APP_STATE.settings.mascotUrl;
     const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
 
-    // BANNER DE MISIÓN ACTIVA DESTACADA PARA EL ESTUDIANTE
+    // ALERTA DE MISIÓN ACTIVA PARA QUE EL ALUMNO ELIJA SU SUPERMERCADO
     let studentMissionBanner = '';
-    if (APP_STATE.activeMission && APP_STATE.activeMission.itemIds) {
+    if (APP_STATE.activeMission && APP_STATE.activeMission.active && APP_STATE.activeMission.itemIds) {
         const itemCount = APP_STATE.activeMission.itemIds.length;
+        const currentScore = Math.max(20, 100 - (APP_STATE.classroomErrorsCount * 20));
+        
         studentMissionBanner = `
-            <div class="bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-900 p-6 rounded-3xl shadow-2xl border-4 border-amber-300 space-y-3 animate-pulse">
+            <div class="bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-900 p-6 rounded-3xl shadow-2xl border-4 border-amber-300 space-y-3">
                 <div class="flex items-center justify-between flex-wrap gap-4">
                     <div class="flex items-center gap-3">
                         <span class="text-4xl sm:text-5xl">🎯</span>
                         <div>
                             <span class="bg-slate-900 text-amber-300 font-black px-3 py-1 rounded-full text-xs uppercase tracking-wider inline-block mb-1">
-                                🔴 ¡TIENES UNA MISIÓN ACTIVA EN SALA!
+                                🔴 ¡TIENES UNA MISIÓN ACTIVA!
                             </span>
                             <h3 class="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">${APP_STATE.activeMission.title}</h3>
-                            <p class="text-xs font-bold text-slate-800">Asignada por tu ${teamLabel} • ${itemCount} productos en la lista</p>
+                            <p class="text-xs font-extrabold text-slate-950">Asignada por tu ${teamLabel} • ${itemCount} productos en tu hoja impresa</p>
                         </div>
                     </div>
-                    <button onclick="autoStartMission()" class="w-full sm:w-auto bg-slate-900 hover:bg-black text-white font-black text-lg px-6 py-4 rounded-2xl shadow-xl border-b-4 border-slate-950 active:scale-95 flex items-center justify-center gap-2">
-                        <span>🛒</span> <span>¡COMENZAR MISIÓN AHORA!</span>
-                    </button>
+                    <div class="bg-slate-900 text-amber-300 font-black px-4 py-2 rounded-2xl text-center border-2 border-amber-400 shadow-md">
+                        <span class="text-[10px] text-white block uppercase">Puntuación Actual:</span>
+                        <span class="text-xl text-amber-400">${currentScore}%</span>
+                    </div>
+                </div>
+                <div class="p-3 bg-white/90 rounded-2xl border border-amber-600 text-slate-900 text-xs font-black flex items-center gap-2">
+                    <span>👇</span> <span><b>Elige a continuación en cuál supermercado deseas entrar para realizar tu lista:</b></span>
                 </div>
             </div>
         `;
@@ -442,27 +449,32 @@ function renderHomeView(container) {
                 ` : `<div class="text-6xl sm:text-8xl z-10 opacity-90">${theme.emoji}</div>`}
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                ${(APP_STATE.supermarkets || []).length === 0 ? `
-                    <div class="col-span-full text-center py-12 bg-white rounded-3xl border-4 border-slate-200 shadow-sm">
-                        <span class="text-6xl">🏪</span>
-                        <h3 class="text-xl font-black text-slate-700 mt-2">No hay supermercados disponibles.</h3>
-                    </div>
-                ` : (APP_STATE.supermarkets || []).map(sup => {
-                    const supLogo = sup.photoUrl || sup.photo || sup.logoUrl || '';
-                    const logoHtml = supLogo 
-                        ? `<img src="${supLogo}" class="w-28 h-28 object-contain rounded-3xl p-2 bg-white border-4 border-slate-200 shadow-sm">`
-                        : `<div class="bg-amber-400 p-4 rounded-3xl text-6xl flex items-center justify-center w-28 h-28 shadow-sm">${sup.icon || '🛒'}</div>`;
-                    return `
-                        <div onclick="selectSupermarket('${sup.id}')" class="bg-white rounded-3xl border-4 border-slate-300 p-6 shadow-xl hover:shadow-2xl cursor-pointer flex flex-col items-center text-center space-y-4 active:scale-95 transition-all hover:border-indigo-500">
-                            ${logoHtml}
-                            <h3 class="text-2xl font-black text-slate-800">${sup.name}</h3>
-                            <button class="w-full bg-indigo-600 text-white font-black py-3 rounded-2xl shadow-lg text-lg border-b-4 border-indigo-900 flex items-center justify-center gap-2">
-                                <span>🚀</span> <span>¡Entrar a Comprar!</span>
-                            </button>
+            <div class="space-y-3">
+                <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                    <span>🏪</span> <span>Supermercados Disponibles (Toca uno para entrar):</span>
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    ${(APP_STATE.supermarkets || []).length === 0 ? `
+                        <div class="col-span-full text-center py-12 bg-white rounded-3xl border-4 border-slate-200 shadow-sm">
+                            <span class="text-6xl">🏪</span>
+                            <h3 class="text-xl font-black text-slate-700 mt-2">No hay supermercados disponibles.</h3>
                         </div>
-                    `;
-                }).join('')}
+                    ` : (APP_STATE.supermarkets || []).map(sup => {
+                        const supLogo = sup.photoUrl || sup.photo || sup.logoUrl || '';
+                        const logoHtml = supLogo 
+                            ? `<img src="${supLogo}" class="w-28 h-28 object-contain rounded-3xl p-2 bg-white border-4 border-slate-200 shadow-sm">`
+                            : `<div class="bg-amber-400 p-4 rounded-3xl text-6xl flex items-center justify-center w-28 h-28 shadow-sm">${sup.icon || '🛒'}</div>`;
+                        return `
+                            <div onclick="selectSupermarket('${sup.id}')" class="bg-white rounded-3xl border-4 border-slate-300 p-6 shadow-xl hover:shadow-2xl cursor-pointer flex flex-col items-center text-center space-y-4 active:scale-95 transition-all hover:border-indigo-500">
+                                ${logoHtml}
+                                <h3 class="text-2xl font-black text-slate-800">${sup.name}</h3>
+                                <button class="w-full bg-indigo-600 text-white font-black py-3 rounded-2xl shadow-lg text-lg border-b-4 border-indigo-900 flex items-center justify-center gap-2">
+                                    <span>🚀</span> <span>¡Entrar a ${sup.name}!</span>
+                                </button>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
             </div>
         </div>
     `;
@@ -476,7 +488,7 @@ function selectSupermarket(id) {
     const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(id));
     const supName = sup ? sup.name : 'Supermercado';
 
-    speakText(`Entraste a ${supName}. Selecciona una categoría o producto.`);
+    speakText(`Entraste a ${supName}. Agrega los productos de tu lista y comprueba al terminar.`);
     renderApp();
 }
 
@@ -488,23 +500,49 @@ function setCategoryFilter(catName) {
     renderApp();
 }
 
-function checkClassroomListMatch() {
-    if (!APP_STATE.activeMission || !APP_STATE.activeMission.itemIds) return false;
-    const missionItems = APP_STATE.activeMission.itemIds;
-    const currentBasketItems = (APP_STATE.basket || []).map(b => String(b.productId));
-    
-    if (missionItems.length !== currentBasketItems.length) return false;
-    
-    const sortedMission = [...missionItems].sort();
-    const sortedBasket = [...currentBasketItems].sort();
-    
-    return sortedMission.every((val, index) => val === sortedBasket[index]);
+// ==========================================
+// VERIFICACIÓN DE LISTA EN SALA Y EVALUACIÓN DE ERRORES
+// ==========================================
+function validateStudentList() {
+    if (!APP_STATE.activeMission || !APP_STATE.activeMission.itemIds) {
+        return alert("No hay una misión activa en este momento.");
+    }
+
+    const targetMissionIds = APP_STATE.activeMission.itemIds.map(id => String(id));
+    const basketProductIds = (APP_STATE.basket || []).map(b => String(b.productId));
+
+    // Verificar si faltan productos o hay productos equivocados
+    const missingItems = targetMissionIds.filter(id => !basketProductIds.includes(id));
+    const extraItems = basketProductIds.filter(id => !targetMissionIds.includes(id));
+
+    if (missingItems.length > 0 || extraItems.length > 0) {
+        APP_STATE.classroomErrorsCount++;
+        playChimeSound(true);
+        
+        const currentScore = Math.max(20, 100 - (APP_STATE.classroomErrorsCount * 20));
+        
+        const alertMsg = `⚠️ Te equivocaste. Vuelve a revisar tu lista impresa y busca los productos correctos.\n\n` +
+            (missingItems.length > 0 ? `• Faltan ${missingItems.length} producto(s) por agregar.\n` : '') +
+            (extraItems.length > 0 ? `• Agregaste ${extraItems.length} producto(s) que no estaban en tu lista.\n` : '') +
+            `\nPuntuación actual: ${currentScore}%`;
+
+        speakText("Te equivocaste, vuelve a revisar tu lista impresa y busca los productos correctos.");
+        alert(alertMsg);
+        renderApp();
+    } else {
+        APP_STATE.listValidated = true;
+        playChimeSound(false);
+        if (typeof confetti !== 'undefined') confetti();
+        speakText("¡Excelente! Tu lista está perfecta y 100% correcta. Ahora puedes pasar al supermercado real.");
+        alert("🎉 ¡FELICITACIONES! Tu lista está 100% correcta.\nAhora presiona 'IR AL SUPERMERCADO GÓNDOLA' para escanear en repisa.");
+        renderApp();
+    }
 }
 
 function enterTerrenoStoreMode() {
     APP_STATE.classroomMode = 'TERRENO';
     APP_STATE.scannedItemsInStore = {};
-    speakText("¡Genial! Ahora estás en el supermercado. Escanea los productos de tu lista.");
+    speakText("¡Genial! Ahora estás en el supermercado real. Escanea los productos de la góndola o verifica sus precios en la repisa.");
     playChimeSound();
     renderApp();
 }
@@ -515,37 +553,55 @@ function renderSupermarketView(container, supId) {
         String(s.name).toLowerCase() === String(supId).toLowerCase()
     );
 
-    const isMissionMatched = checkClassroomListMatch();
+    const currentScore = Math.max(20, 100 - (APP_STATE.classroomErrorsCount * 20));
 
     let classroomValidationBanner = '';
-    if (APP_STATE.activeMission && APP_STATE.classroomMode === 'PREP') {
-        if (isMissionMatched) {
-            speakText("¡Tu lista está perfecta! Es hora de ir al supermercado");
-            classroomValidationBanner = `
-                <div class="bg-emerald-500 text-white p-5 rounded-3xl shadow-xl border-4 border-emerald-700 flex flex-col sm:flex-row justify-between items-center gap-4 animate-pulse">
-                    <div class="flex items-center gap-3">
-                        <span class="text-4xl">🎉</span>
-                        <div>
-                            <h3 class="text-xl font-black">¡Tu lista está perfecta como te la asignó tu profesor!</h3>
-                            <p class="text-xs font-bold text-emerald-100">Ahora continúa tu misión presionando el botón.</p>
+    if (APP_STATE.activeMission && APP_STATE.activeMission.active) {
+        if (APP_STATE.classroomMode === 'PREP') {
+            if (APP_STATE.listValidated) {
+                classroomValidationBanner = `
+                    <div class="bg-emerald-500 text-white p-5 rounded-3xl shadow-xl border-4 border-emerald-700 flex flex-col sm:flex-row justify-between items-center gap-4 animate-pulse">
+                        <div class="flex items-center gap-3">
+                            <span class="text-4xl">🎉</span>
+                            <div>
+                                <h3 class="text-xl font-black">¡Tu lista está 100% perfecta!</h3>
+                                <p class="text-xs font-bold text-emerald-100">Presiona el botón para ir a las góndolas y escanear precios.</p>
+                            </div>
+                        </div>
+                        <button onclick="enterTerrenoStoreMode()" class="w-full sm:w-auto bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-lg px-6 py-4 rounded-2xl shadow-2xl border-b-4 border-amber-600 active:scale-95 flex items-center justify-center gap-2">
+                            <span>🚀</span> <span>IR AL SUPERMERCADO (GÓNDOLA)</span>
+                        </button>
+                    </div>
+                `;
+            } else {
+                classroomValidationBanner = `
+                    <div class="bg-indigo-50 border-4 border-indigo-300 p-5 rounded-3xl flex flex-col sm:flex-row justify-between items-center gap-4 shadow-md">
+                        <div class="flex items-center gap-3">
+                            <span class="text-3xl">📋</span>
+                            <div>
+                                <h3 class="text-base font-black text-indigo-950">Ficha Activa: "${APP_STATE.activeMission.title}"</h3>
+                                <p class="text-xs font-bold text-slate-600">Revisa tu hoja impresa, añade los productos al canasto y presiona comprobar.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 w-full sm:w-auto">
+                            <div class="bg-indigo-600 text-white font-black px-3 py-2 rounded-xl text-center text-xs">
+                                <span>Puntaje:</span> <span class="text-amber-300 font-black text-sm">${currentScore}%</span>
+                            </div>
+                            <button onclick="validateStudentList()" class="w-full sm:w-auto bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-base px-5 py-3 rounded-2xl shadow border-b-4 border-amber-600 active:scale-95 flex items-center justify-center gap-2">
+                                <span>🔍</span> <span>¡Comprobar si mi lista está correcta!</span>
+                            </button>
                         </div>
                     </div>
-                    <button onclick="enterTerrenoStoreMode()" class="w-full sm:w-auto bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-lg px-6 py-4 rounded-2xl shadow-2xl border-b-4 border-amber-600 active:scale-95 flex items-center justify-center gap-2">
-                        <span>🚀</span> <span>IR AL SUPERMERCADO</span>
-                    </button>
-                </div>
-            `;
+                `;
+            }
         } else {
             classroomValidationBanner = `
-                <div class="bg-indigo-50 border-4 border-indigo-300 p-4 rounded-3xl flex justify-between items-center text-xs font-extrabold text-indigo-950">
+                <div class="bg-emerald-600 text-white p-4 rounded-3xl shadow-md border-4 border-emerald-800 flex justify-between items-center text-xs font-bold">
                     <div class="flex items-center gap-2">
-                        <span class="text-2xl">📋</span>
-                        <div>
-                            <span>Ficha de Misión Activa: "${APP_STATE.activeMission.title}"</span>
-                            <p class="text-[10px] text-slate-600">Revisa tu hoja impresa y añade exactamente esos productos.</p>
-                        </div>
+                        <span class="text-2xl">🏪</span>
+                        <span>MODO TERRENO: Escanea los productos en las repisas y verifica si su precio cambió.</span>
                     </div>
-                    <span class="bg-indigo-600 text-white px-3 py-1 rounded-xl text-[10px] font-black">${APP_STATE.basket.length} / ${APP_STATE.activeMission.itemIds.length} Productos</span>
+                    <span class="bg-amber-400 text-slate-900 font-black px-3 py-1 rounded-xl text-xs">⭐ ${currentScore}% Logro</span>
                 </div>
             `;
         }
@@ -601,15 +657,16 @@ function renderSupermarketView(container, supId) {
             
         const pricePictograms = getPricePictogramsHtml(prod.price || 0);
         const isScannedInTerreno = APP_STATE.scannedItemsInStore[prod.id];
+        const isInBasket = (APP_STATE.basket || []).some(b => String(b.productId) === String(prod.id));
 
         return `
-            <div class="bg-white p-5 rounded-3xl border-4 ${isScannedInTerreno ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
+            <div class="bg-white p-5 rounded-3xl border-4 ${isInBasket ? 'border-indigo-500 bg-indigo-50/30' : (isScannedInTerreno ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-200')} shadow-lg flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
                 <div class="flex items-start space-x-4">
                     ${prodImg}
                     <div class="space-y-1 w-full">
                         <div class="flex justify-between items-start">
                             <h3 class="text-xl font-black text-slate-800 leading-tight">${prod.name}</h3>
-                            ${isScannedInTerreno ? `<span class="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">✓ En Góndola</span>` : ''}
+                            ${isInBasket ? `<span class="bg-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">✓ En Lista</span>` : ''}
                         </div>
                         <div class="text-3xl font-black text-emerald-700">$${(prod.price || 0).toLocaleString('es-CL')}</div>
                         ${pricePictograms}
@@ -620,7 +677,7 @@ function renderSupermarketView(container, supId) {
                     <button onclick="speakText('${prod.name}, precio ${prod.price} pesos')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold p-3.5 rounded-2xl shadow-sm text-2xl active:scale-95">🔊</button>
                     ${APP_STATE.classroomMode === 'TERRENO' ? `
                         <button onclick="openShelfPriceConfirmation('${prod.id}')" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-900 font-black py-3.5 rounded-2xl shadow border-b-4 border-amber-600 active:scale-95 text-base flex items-center justify-center gap-1.5">
-                            <span>📷</span> <span>Escanear en Repisa</span>
+                            <span>📷</span> <span>Verificar en Repisa</span>
                         </button>
                     ` : `
                         <button onclick="addToBasket('${prod.id}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl shadow border-b-4 border-emerald-900 active:scale-95 text-lg">🛒 Añadir al Canasto</button>
@@ -644,7 +701,7 @@ function renderSupermarketView(container, supId) {
             </div>
 
             <div class="space-y-2">
-                <label class="text-xs font-black text-slate-600 uppercase tracking-wider block px-1">📁 Filtrar por Categoría (Toca para escuchar y seleccionar):</label>
+                <label class="text-xs font-black text-slate-600 uppercase tracking-wider block px-1">📁 Categorías disponibles:</label>
                 <div class="flex gap-2 overflow-x-auto pb-3 pt-1 scrollbar-thin">
                     ${categoryList.map(c => {
                         const active = (currentFilter.toLowerCase() === c.name.toLowerCase());
@@ -666,7 +723,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// RECONOCIMIENTO AUTOMÁTICO DE PRODUCTO Y PRECIO
+// ESCÁNER CÁMARA Y RECONOCIMIENTO DE PRECIO EN REPISA
 // ==========================================
 function openScannerModal() {
     const modal = document.getElementById('scannerModal');
@@ -703,11 +760,11 @@ function initHtml5Qrcode() {
         APP_STATE.html5QrcodeScanner.start(
             { facingMode: "environment" },
             { fps: 10, qrbox: { width: 220, height: 220 } },
-            (decodedText, decodedResult) => {
+            (decodedText) => {
                 onProductScanned(decodedText);
             },
-            (errorMessage) => {}
-        ).catch(err => {
+            () => {}
+        ).catch(() => {
             simulateAIScan();
         });
     } catch(e) {
@@ -734,15 +791,16 @@ function openShelfPriceConfirmation(productId) {
 
     APP_STATE.pendingScanProduct = prod;
     document.getElementById('shelfPriceProdName').textContent = prod.name;
+    document.getElementById('shelfPriceOriginalLabel').textContent = `$${(prod.price || 0).toLocaleString('es-CL')}`;
 
     const basePrice = prod.price || 1000;
-    const suggestedPrices = [basePrice, basePrice + 200, basePrice + 500, Math.max(500, basePrice - 200)];
+    const suggestedPrices = [basePrice, basePrice + 200, basePrice + 500, Math.max(500, basePrice - 300)];
 
     const btnContainer = document.getElementById('shelfPriceButtonsContainer');
     if (btnContainer) {
         btnContainer.innerHTML = suggestedPrices.map(p => `
-            <button onclick="applyShelfPriceChoice(${p})" class="p-3 bg-indigo-50 border-2 border-indigo-300 hover:bg-indigo-600 hover:text-white rounded-2xl font-black text-sm active:scale-95 shadow">
-                $${p.toLocaleString('es-CL')}
+            <button onclick="applyShelfPriceChoice(${p})" class="p-3 bg-amber-50 border-2 border-amber-300 hover:bg-amber-500 hover:text-slate-900 rounded-2xl font-black text-sm active:scale-95 shadow">
+                $${p.toLocaleString('es-CL')} ${p !== basePrice ? '⚠️ (Cambió)' : '✓ (Igual)'}
             </button>
         `).join('');
     }
@@ -758,13 +816,19 @@ function applyShelfPriceChoice(newPrice) {
     const oldPrice = prod.price || 0;
     APP_STATE.scannedItemsInStore[prod.id] = true;
 
+    // DETECCIÓN DE PRECIO DIFERENTE Y ACTUALIZACIÓN AUTOMÁTICA
     if (newPrice !== oldPrice) {
         APP_STATE.priceAdjustmentsCount++;
+        
+        // Actualizar precio en canasto
         const bItem = APP_STATE.basket.find(b => String(b.productId) === String(prod.id));
         if (bItem) bItem.actualPrice = newPrice;
+        
+        // Actualizar precio en catálogo
         prod.price = newPrice;
 
-        speakText(`¡Atención! El precio de ${prod.name} cambió. En tu lista salía a ${oldPrice} pesos, pero ahora cuesta ${newPrice} pesos. Se ha actualizado en tu canasto.`);
+        speakText(`¡Atención! El precio de ${prod.name} en la góndola es de ${newPrice} pesos. Era de ${oldPrice} pesos. Se ha actualizado automáticamente en tu canasto.`);
+        alert(`🔔 ¡CAMBIO DE PRECIO EN REPISA!\n\nEl producto "${prod.name}" cuesta hoy $${newPrice.toLocaleString('es-CL')} (en la app salía a $${oldPrice.toLocaleString('es-CL')}).\nSe ha actualizado el total en tu canasto automáticamente.`);
     } else {
         speakText(`¡Excelente! El precio de ${prod.name} se mantiene a ${newPrice} pesos.`);
     }
@@ -792,21 +856,9 @@ function onProductScanned(scannedCode) {
     closeScannerModal();
 
     if (foundProduct) {
-        if (APP_STATE.activeMission && APP_STATE.activeMission.itemIds) {
-            const isInMission = APP_STATE.activeMission.itemIds.includes(String(foundProduct.id));
-            
-            if (!isInMission) {
-                APP_STATE.classroomErrorsCount++;
-                playChimeSound();
-                speakText(`¡Atención! Este no es el producto de tu lista. Escaneaste ${foundProduct.name}. Busca el producto correcto.`);
-                alert(`⚠️ ¡Atención! Este no es el producto de tu lista.\nEscaneaste: ${foundProduct.name}.\nRevisa tu hoja de trabajo.`);
-                return;
-            }
-        }
-
         openShelfPriceConfirmation(foundProduct.id);
     } else {
-        playChimeSound();
+        playChimeSound(true);
         speakText("Nuevo producto detectado. Elige su pictograma.");
         promptAssignProductToBarcode(scannedCode);
     }
@@ -908,20 +960,18 @@ function updateBasketBadge() {
 
 function addToBasket(prodId) {
     let prod = (APP_STATE.products || []).find(p => String(p.id) === String(prodId));
-    if (!prod) {
-        prod = { id: prodId, name: 'Producto Escaneado', price: 2000 };
-    }
+    if (!prod) prod = { id: prodId, name: 'Producto Escaneado', price: 2000 };
     
-    if (APP_STATE.activeMission && APP_STATE.activeMission.itemIds) {
-        if (!APP_STATE.activeMission.itemIds.includes(String(prod.id))) {
-            APP_STATE.classroomErrorsCount++;
-        }
+    // Verificar si el producto ya está en el canasto
+    const existing = APP_STATE.basket.find(b => String(b.productId) === String(prod.id));
+    if (!existing) {
+        APP_STATE.basket.push({ productId: prod.id, quantity: 1, actualPrice: prod.price });
+        playChimeSound();
+        updateBasketBadge();
+        speakText(`Añadido ${prod.name}`);
+    } else {
+        speakText(`${prod.name} ya está en tu canasto`);
     }
-
-    APP_STATE.basket.push({ productId: prod.id, quantity: 1, actualPrice: prod.price });
-    playChimeSound();
-    updateBasketBadge();
-    speakText(`Añadido ${prod.name}`);
     renderApp();
 }
 
@@ -999,12 +1049,10 @@ function renderBasketModalContent() {
 
     if (breakdownEl) {
         if (!APP_STATE.userPaidItems || APP_STATE.userPaidItems.length === 0) {
-            breakdownEl.innerHTML = `<span class="text-xs text-slate-400 font-bold italic">Haz clic abajo en los billetes y monedas para añadirlos aquí.</span>`;
+            breakdownEl.innerHTML = `<span class="text-xs text-slate-400 font-bold italic">Toca abajo los billetes y monedas para pagar.</span>`;
         } else {
             const counts = {};
-            APP_STATE.userPaidItems.forEach(item => {
-                counts[item.id] = (counts[item.id] || 0) + 1;
-            });
+            APP_STATE.userPaidItems.forEach(item => { counts[item.id] = (counts[item.id] || 0) + 1; });
 
             breakdownEl.innerHTML = Object.keys(counts).map(id => {
                 const item = CLP_CURRENCY_ITEMS.find(c => c.id === id);
@@ -1071,21 +1119,19 @@ function verifyAndCheckout() {
     const elapsedSeconds = APP_STATE.missionStartTime ? Math.round((Date.now() - APP_STATE.missionStartTime) / 1000) : 25;
 
     const errors = APP_STATE.classroomErrorsCount || 0;
-    let pointsEarned = 100;
+    const pointsEarned = Math.max(20, 100 - (errors * 20));
+    
     let medal = "🥇 Medalla de Oro (100% Perfecto)";
-    let feedback = "¡Increíble! Respondiste a la primera sin ningún error.";
+    let feedback = "¡Increíble! Lograste completar tu lista a la primera sin errores.";
 
     if (errors === 1) {
-        pointsEarned = 80;
         medal = "🥈 Medalla de Plata (80% Gran trabajo)";
         feedback = "¡Muy bien! Tuviste solo 1 intento fallido.";
     } else if (errors === 2) {
-        pointsEarned = 60;
         medal = "🥉 Medalla de Bronce (60% Buen esfuerzo)";
-        feedback = "¡Bien hecho! Sigue practicando para ganar más puntos.";
+        feedback = "¡Bien hecho! Sigue practicando para ganar la medalla de oro.";
     } else if (errors >= 3) {
-        pointsEarned = 40;
-        medal = "🌟 Estrella de Participación (40%)";
+        medal = "🌟 Estrella de Participación (" + pointsEarned + "%)";
         feedback = "¡Completaste tu compra! Cada intento te hace aprender.";
     }
 
@@ -1145,12 +1191,13 @@ function closeSuccessModalAndFinish() {
     document.getElementById('checkoutSuccessModal').classList.add('hidden');
     clearBasket();
     APP_STATE.classroomMode = 'PREP';
+    APP_STATE.listValidated = false;
     APP_STATE.classroomErrorsCount = 0;
     goHome();
 }
 
 // ==========================================
-// PANEL DOCENTE Y MISIÓN ACTIVA (TIEMPO REAL)
+// PANEL DOCENTE Y CONTROL DE MISIÓN (ACTIVAR Y DESACTIVAR)
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -1178,6 +1225,7 @@ function closeMissionModal() {
     document.getElementById('missionModal').classList.add('hidden');
 }
 
+// CONTROL MANUAL DEL EDUCADOR: ACTIVAR MISIÓN
 function activateMissionForStudents() {
     const checked = Array.from(document.querySelectorAll('.missionProdCheckbox:checked')).map(cb => cb.value);
     if (checked.length === 0) return alert("Selecciona al menos un producto para la misión.");
@@ -1191,24 +1239,29 @@ function activateMissionForStudents() {
     };
 
     APP_STATE.activeMission = missionObj;
+    APP_STATE.classroomErrorsCount = 0;
+    APP_STATE.listValidated = false;
 
-    // GUARDAR Y TRANSMITIR A TODOS LOS ESTUDIANTES EN FIREBASE
     if (db) {
         db.collection('settings').doc('activeMission').set(missionObj);
     }
 
     closeMissionModal();
-    alert(`✅ Misión "${title}" activada para todos los estudiantes.`);
+    alert(`✅ Misión "${title}" ACTIVADA por el docente. Ahora los estudiantes verán la actividad en su panel.`);
     renderApp();
 }
 
+// CONTROL MANUAL DEL EDUCADOR: DESACTIVAR MISIÓN
 function cancelActiveMission() {
-    if (confirm("¿Deseas finalizar la misión activa en sala?")) {
+    if (confirm("¿Deseas DESACTIVAR la misión activa en sala para todos los alumnos?")) {
         APP_STATE.activeMission = null;
         APP_STATE.classroomMode = 'PREP';
+        APP_STATE.listValidated = false;
+        APP_STATE.classroomErrorsCount = 0;
         if (db) {
             db.collection('settings').doc('activeMission').delete();
         }
+        alert("⏹️ Misión desactivada por el educador.");
         renderApp();
     }
 }
@@ -1241,7 +1294,7 @@ function printCurrentMissionSheet() {
 
                     <div class="bg-indigo-50 p-4 rounded-2xl border text-center space-y-1">
                         <h2 class="text-xl font-black text-indigo-900">${title}</h2>
-                        <p class="text-xs font-bold text-slate-600">Instrucción: Busca y marca estos productos en tu aplicación y en el supermercado real.</p>
+                        <p class="text-xs font-bold text-slate-600">Instrucción: Busca y agrega estos productos en la aplicación. Luego presiona el botón para comprobar si tu lista está correcta.</p>
                     </div>
 
                     <div class="space-y-4">
@@ -1257,7 +1310,7 @@ function printCurrentMissionSheet() {
                                         ${imgHtml}
                                         <div>
                                             <span class="text-base font-black text-slate-800 block">${p.name}</span>
-                                            <span class="text-xs font-black text-emerald-700">Precio estimado: $${(p.price || 0).toLocaleString('es-CL')}</span>
+                                            <span class="text-xs font-black text-emerald-700">Precio de referencia: $${(p.price || 0).toLocaleString('es-CL')}</span>
                                         </div>
                                     </div>
                                     <div>${getPricePictogramsHtml(p.price || 0)}</div>
@@ -1283,18 +1336,18 @@ function renderTeacherDashboard(container) {
     const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
 
     let activeMissionAlertBanner = '';
-    if (APP_STATE.activeMission && APP_STATE.activeMission.itemIds) {
+    if (APP_STATE.activeMission && APP_STATE.activeMission.active && APP_STATE.activeMission.itemIds) {
         activeMissionAlertBanner = `
-            <div class="bg-rose-600 text-white p-4 rounded-2xl shadow-lg border-4 border-rose-800 flex justify-between items-center flex-wrap gap-2 animate-pulse">
+            <div class="bg-emerald-600 text-white p-4 rounded-2xl shadow-lg border-4 border-emerald-800 flex justify-between items-center flex-wrap gap-2">
                 <div class="flex items-center gap-2">
                     <span class="text-2xl">🔴</span>
                     <div>
-                        <h4 class="font-black text-sm uppercase">ACTIVIDAD ACTIVA EN SALA: "${APP_STATE.activeMission.title}"</h4>
-                        <p class="text-[11px] font-bold text-rose-100">${APP_STATE.activeMission.itemIds.length} productos asignados a los alumnos.</p>
+                        <h4 class="font-black text-sm uppercase">MISIÓN EN CURSO ACTIVADA POR EL EDUCADOR: "${APP_STATE.activeMission.title}"</h4>
+                        <p class="text-[11px] font-bold text-emerald-100">${APP_STATE.activeMission.itemIds.length} productos asignados a las tablets de los alumnos.</p>
                     </div>
                 </div>
-                <button onclick="cancelActiveMission()" class="bg-white text-rose-700 hover:bg-rose-50 font-black text-xs px-3.5 py-2 rounded-xl shadow border border-rose-200">
-                    ⏹️ Finalizar Misión
+                <button onclick="cancelActiveMission()" class="bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow border border-rose-300 active:scale-95 flex items-center gap-1.5">
+                    <span>⏹️</span> <span>Finalizar / Desactivar Misión</span>
                 </button>
             </div>
         `;
@@ -1315,7 +1368,7 @@ function renderTeacherDashboard(container) {
                     </div>
                     <div class="flex gap-2">
                         <button onclick="openMissionModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-4 py-2 rounded-xl shadow border-b-2 border-indigo-900 flex items-center gap-2 active:scale-95">
-                            <span>📋</span><span>Crear Misión</span>
+                            <span>📋</span><span>Crear / Activar Misión</span>
                         </button>
                         <button onclick="toggleStudentPreview(true)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-4 py-2 rounded-xl shadow border-b-2 border-amber-600 flex items-center gap-2 active:scale-95">
                             <span>🕹️</span><span>Probar Juego</span>
@@ -1394,7 +1447,7 @@ function renderTeacherHomeTab() {
             <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-md space-y-4">
                 <div class="border-b pb-3">
                     <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
-                        <span>✨</span> <span>Módulo de Evaluación Pedagógica e Informes Psicopedagógicos con IA</span>
+                        <span>✨</span> <span>Histórico de Evaluaciones e Informes Psicopedagógicos</span>
                     </h3>
                 </div>
 
@@ -1406,14 +1459,15 @@ function renderTeacherHomeTab() {
                                 <th class="py-2.5 px-3">Estudiante</th>
                                 <th class="py-2.5 px-3">Tienda</th>
                                 <th class="py-2.5 px-3">Total / Pago</th>
-                                <th class="py-2.5 px-3 text-center">Puntos / Logro</th>
-                                <th class="py-2.5 px-3 text-center">Acciones</th>
+                                <th class="py-2.5 px-3 text-center">Intentos / Errores</th>
+                                <th class="py-2.5 px-3 text-center">Logro</th>
+                                <th class="py-2.5 px-3 text-center">Acción</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 font-bold">
                             ${totalEvals === 0 ? `
                                 <tr>
-                                    <td colspan="6" class="py-8 text-center text-slate-400 italic">No hay evaluaciones registradas. Realiza una compra para generar informes.</td>
+                                    <td colspan="7" class="py-8 text-center text-slate-400 italic">No hay evaluaciones registradas. Realiza una compra para generar informes.</td>
                                 </tr>
                             ` : (APP_STATE.evaluations || []).map(e => `
                                 <tr class="hover:bg-slate-50">
@@ -1423,10 +1477,11 @@ function renderTeacherHomeTab() {
                                     <td class="py-3 px-3">
                                         <div class="font-black text-emerald-700">$${(e.totalCLP || 0).toLocaleString('es-CL')}</div>
                                     </td>
-                                    <td class="py-3 px-3 text-center font-black text-amber-600">⭐ ${e.pointsEarned || 100} pts</td>
+                                    <td class="py-3 px-3 text-center text-rose-600 font-black">${e.classroomErrorsCount || 0} error(es)</td>
+                                    <td class="py-3 px-3 text-center font-black text-amber-600">⭐ ${e.pointsEarned || 100}%</td>
                                     <td class="py-3 px-3 text-center">
                                         <button onclick="generateAIPedagogicalReport('${e.id}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-3 py-1.5 rounded-xl text-xs shadow-sm">
-                                            ✨ Generar Informe IA & PDF
+                                            ✨ Generar Informe IA
                                         </button>
                                     </td>
                                 </tr>
@@ -1452,9 +1507,10 @@ function generateAIPedagogicalReport(evalId) {
     const classroomErrors = ev.classroomErrorsCount || 0;
     const priceAdjustments = ev.priceAdjustmentsCount || 0;
 
-    let nivelAutonomia = "Alto / Independiente";
-    if (timeSec > 90 || classroomErrors > 2) nivelAutonomia = "Requiere Apoyos Puntuales";
-    if (paid < total) nivelAutonomia = "Etapa de Consolidación";
+    let nivelAutonomia = "Alto / Independiente (100% de logro)";
+    if (classroomErrors === 1) nivelAutonomia = "Adecuado / Con 1 Apoyo Puntual (80% de logro)";
+    if (classroomErrors === 2) nivelAutonomia = "En Proceso de Autonomía (60% de logro)";
+    if (classroomErrors >= 3) nivelAutonomia = "Requiere Acompañamiento Intensivo (40% de logro)";
 
     const reportHtml = `
         <div id="printableReport" class="bg-white p-8 max-w-4xl mx-auto border border-slate-300 shadow-2xl rounded-2xl font-sans text-slate-800 space-y-6">
@@ -1474,26 +1530,26 @@ function generateAIPedagogicalReport(evalId) {
             </div>
 
             <div class="grid grid-cols-4 gap-3 text-center">
-                <div class="p-3 bg-emerald-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-emerald-800">Total Recalculado</span><div class="text-base font-black text-emerald-700">$${total.toLocaleString('es-CL')}</div></div>
+                <div class="p-3 bg-emerald-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-emerald-800">Total Compra</span><div class="text-base font-black text-emerald-700">$${total.toLocaleString('es-CL')}</div></div>
                 <div class="p-3 bg-indigo-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-indigo-800">Pagó</span><div class="text-base font-black text-indigo-900">$${paid.toLocaleString('es-CL')}</div></div>
                 <div class="p-3 bg-amber-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-amber-900">Vuelto</span><div class="text-base font-black text-amber-800">$${change.toLocaleString('es-CL')}</div></div>
-                <div class="p-3 bg-sky-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-sky-900">Puntos Ganados</span><div class="text-base font-black text-amber-600">⭐ ${ev.pointsEarned || 100} pts</div></div>
+                <div class="p-3 bg-sky-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-sky-900">Porcentaje Logro</span><div class="text-base font-black text-amber-600">⭐ ${ev.pointsEarned || 100}%</div></div>
             </div>
 
             <div class="grid grid-cols-2 gap-4 text-xs font-bold">
                 <div class="p-3 bg-slate-50 rounded-xl border">
-                    <span class="text-slate-500 block text-[10px] uppercase">Errores de Escaneo / Selección:</span>
-                    <span class="text-base font-black ${classroomErrors > 0 ? 'text-amber-600' : 'text-emerald-600'}">${classroomErrors} error(es)</span>
+                    <span class="text-slate-500 block text-[10px] uppercase">Intentos Fallidos / Errores en Lista:</span>
+                    <span class="text-base font-black ${classroomErrors > 0 ? 'text-rose-600' : 'text-emerald-600'}">${classroomErrors} error(es) detectado(s)</span>
                 </div>
                 <div class="p-3 bg-slate-50 rounded-xl border">
-                    <span class="text-slate-500 block text-[10px] uppercase">Ajustes por Alza en Góndola:</span>
-                    <span class="text-base font-black text-indigo-900">${priceAdjustments} precio(s) ajustado(s)</span>
+                    <span class="text-slate-500 block text-[10px] uppercase">Diferencia de Precios en Góndola:</span>
+                    <span class="text-base font-black text-indigo-900">${priceAdjustments} cambio(s) de precio corregidos</span>
                 </div>
             </div>
 
             <div class="p-4 bg-indigo-50 border rounded-2xl text-xs space-y-2">
-                <div class="font-black text-indigo-950">Nivel de Autonomía Funcional: ${nivelAutonomia}</div>
-                <p class="text-slate-700">El alumno completó las 4 etapas del flujo pedagógico: Armó la lista según la ficha de sala, escaneó productos en la góndola, aceptó los recálculos de precios y seleccionó billetes de forma efectiva.</p>
+                <div class="font-black text-indigo-950">Diagnóstico de Autonomía Funcional: ${nivelAutonomia}</div>
+                <p class="text-slate-700">El estudiante seleccionó su supermercado de preferencia, organizó su canasto según la lista impresas, realizó la comprobación interactiva de la lista y reconoció el pago con moneda nacional.</p>
             </div>
         </div>
     `;
@@ -1617,14 +1673,9 @@ function renderTeacherCatalogTab() {
                         <p class="text-xs text-slate-400 italic py-4 text-center">No hay productos en el catálogo.</p>
                     ` : (APP_STATE.products || []).map(p => {
                         const isAll = p.isAll === true || p.supermarketId === 'ALL' || p.supermarketName === 'TODOS';
-                        let supBadge = '';
-                        if (isAll) {
-                            supBadge = `<span class="inline-block bg-sky-100 text-sky-900 text-[10px] font-black px-2 py-0.5 rounded-md my-0.5">🌐 Disponible en: Todos los supermercados</span>`;
-                        } else {
-                            const matchedSup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(p.supermarketId));
-                            const supName = matchedSup ? matchedSup.name : (p.supermarketName || 'Supermercado');
-                            supBadge = `<span class="inline-block bg-amber-100 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded-md my-0.5">🏪 Solo en: ${supName}</span>`;
-                        }
+                        let supBadge = isAll 
+                            ? `<span class="inline-block bg-sky-100 text-sky-900 text-[10px] font-black px-2 py-0.5 rounded-md my-0.5">🌐 Todos los supermercados</span>`
+                            : `<span class="inline-block bg-amber-100 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded-md my-0.5">🏪 Solo en: ${(APP_STATE.supermarkets || []).find(s => String(s.id) === String(p.supermarketId))?.name || 'Supermercado'}</span>`;
 
                         const imgUrl = p.photoUrl || p.photo || p.image || '';
                         const photoThumb = imgUrl 
@@ -1729,14 +1780,10 @@ function renderTeacherUsersTab() {
         <div class="space-y-6">
             <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-sm space-y-4">
                 <div class="flex justify-between items-center border-b pb-3">
-                    <div>
-                        <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
-                            <span>🏫</span> <span>Cursos Registrados</span>
-                        </h3>
-                    </div>
-                    <button onclick="addNewCoursePrompt()" class="bg-emerald-600 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow">
-                        + Crear Curso
-                    </button>
+                    <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                        <span>🏫</span> <span>Cursos Registrados</span>
+                    </h3>
+                    <button onclick="addNewCoursePrompt()" class="bg-emerald-600 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow">+ Crear Curso</button>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                     ${(APP_STATE.courses || []).length === 0 ? `
@@ -1761,7 +1808,7 @@ function renderTeacherUsersTab() {
 
                 <div class="bg-white p-5 rounded-3xl border-4 border-indigo-200 shadow space-y-4">
                     <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">👨‍🏫 Educadores / Profesionales (${teamLabel})</h3>
+                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">👨‍🏫 Educadores (${teamLabel})</h3>
                         ${isAdmin ? `<button onclick="openCreateUserModal('teacher')" class="bg-indigo-600 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Educador</button>` : ''}
                     </div>
                     <div class="space-y-2 max-h-96 overflow-y-auto">${renderUserRoleList('teacher')}</div>
@@ -1798,7 +1845,7 @@ function renderUserRoleList(role) {
             <div class="text-[11px] text-slate-600">
                 <div>RUT: <b>${u.rut || 'N/A'}</b> | Clave: <code class="bg-slate-200 px-1 py-0.5 rounded text-indigo-900 font-black">${u.pin}</code></div>
                 <div>📧 ${u.email || 'Sin correo'}</div>
-                ${role === 'student' ? `<div class="text-amber-700 font-black mt-1">⭐ Puntos Acumulados: ${u.points || 0} pts</div>` : ''}
+                ${role === 'student' ? `<div class="text-amber-700 font-black mt-1">⭐ Puntos: ${u.points || 0} pts</div>` : ''}
             </div>
         </div>
     `).join('');
@@ -1814,21 +1861,19 @@ function renderTeacherSettingsTab() {
                 <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
                     <span>⚙️</span> <span>Configuración de Equipo, Plantilla y Temáticas</span>
                 </h3>
-                <p class="text-xs font-bold text-slate-500">Personaliza el nombre de tu equipo (Multidisciplinario, PIE, Inclusión, etc.) y los logos institucionales.</p>
             </div>
 
             <div class="p-5 bg-indigo-50 border-4 border-indigo-300 rounded-3xl space-y-4">
                 <div class="flex items-center gap-3">
                     <span class="text-3xl">👥</span>
                     <div>
-                        <h4 class="font-black text-slate-800 text-sm uppercase">Nombre del Equipo de Apoyo Profesional</h4>
-                        <p class="text-xs text-slate-600 font-bold">Selecciona una sugerencia o escribe el nombre exacto de tu equipo:</p>
+                        <h4 class="font-black text-slate-800 text-sm uppercase">Nombre del Equipo Profesional</h4>
+                        <p class="text-xs text-slate-600 font-bold">Selecciona una sugerencia o escribe el nombre exacto:</p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[11px] font-black text-slate-700 uppercase mb-1">Elegir de la lista rápida:</label>
                         <select onchange="selectPresetTeamName(this.value)" class="w-full px-3 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-white text-indigo-950">
                             <option value="">-- Seleccionar Opciones --</option>
                             ${TEAM_NAME_PRESETS.map(preset => `
@@ -1837,7 +1882,6 @@ function renderTeacherSettingsTab() {
                         </select>
                     </div>
                     <div>
-                        <label class="block text-[11px] font-black text-slate-700 uppercase mb-1">Nombre Personalizado:</label>
                         <input type="text" id="settingTeamName" value="${currentTeamName}" placeholder="Ej: Equipo Multidisciplinario" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs bg-white">
                     </div>
                 </div>
@@ -1858,7 +1902,7 @@ function renderTeacherSettingsTab() {
                         <input type="text" id="settingDirectorName" value="${st.directorName || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
                     </div>
                     <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">🎨 Temática Estacional de la Tienda:</label>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">🎨 Temática Estacional:</label>
                         <select id="settingActiveTheme" class="w-full px-4 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-indigo-50 text-indigo-900">
                             ${Object.keys(SEASONAL_THEMES).map(key => `
                                 <option value="${key}" ${st.activeTheme === key ? 'selected' : ''}>${SEASONAL_THEMES[key].name}</option>
@@ -1869,22 +1913,19 @@ function renderTeacherSettingsTab() {
 
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Logo Institucional (PDF e Informe):</label>
-                        <input type="file" accept="image/*" onchange="handleSchoolLogoUpload(event)" class="w-full text-xs font-bold text-slate-600 border border-slate-300 p-2 rounded-xl">
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Logo Institucional:</label>
+                        <input type="file" accept="image/*" onchange="handleSchoolLogoUpload(event)" class="w-full text-xs font-bold text-slate-600 border p-2 rounded-xl">
                         <input type="hidden" id="settingSchoolLogo" value="${st.schoolLogo || ''}">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">🐶 Mascota de la Escuela (Imagen flotante):</label>
-                        <input type="file" accept="image/*" onchange="handleSchoolMascotUpload(event)" class="w-full text-xs font-bold text-slate-600 border border-slate-300 p-2 rounded-xl">
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">🐶 Mascota de la Escuela:</label>
+                        <input type="file" accept="image/*" onchange="handleSchoolMascotUpload(event)" class="w-full text-xs font-bold text-slate-600 border p-2 rounded-xl">
                         <input type="hidden" id="settingMascotUrl" value="${st.mascotUrl || ''}">
-                        <div id="settingMascotPreview" class="mt-2 h-20 w-20 border-2 rounded-2xl flex items-center justify-center p-1 bg-slate-50">
-                            ${st.mascotUrl ? `<img src="${st.mascotUrl}" class="h-full object-contain">` : `<span class="text-xs text-slate-400 font-bold">Sin mascota</span>`}
-                        </div>
                     </div>
 
                     <button onclick="saveInstitutionalSettings()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl text-xs uppercase shadow-lg border-b-4 border-emerald-900 active:scale-95">
-                        💾 Guardar Configuración del Equipo
+                        💾 Guardar Configuración
                     </button>
                 </div>
             </div>
@@ -1918,8 +1959,6 @@ function handleSchoolMascotUpload(event) {
     reader.onload = function(e) {
         compressImageBase64(e.target.result, 300, 300).then(compressed => {
             document.getElementById('settingMascotUrl').value = compressed;
-            const preview = document.getElementById('settingMascotPreview');
-            if (preview) preview.innerHTML = `<img src="${compressed}" class="h-full object-contain">`;
         });
     };
     reader.readAsDataURL(file);
@@ -1942,13 +1981,13 @@ function saveInstitutionalSettings() {
         db.collection('settings').doc('institutional').set(settingsData, { merge: true }).then(() => {
             APP_STATE.settings = { ...APP_STATE.settings, ...settingsData };
             renderApp();
-            alert(`✅ Configuración guardada. Nombre del equipo actualizado a: "${teamNameVal}".`);
+            alert(`✅ Configuración guardada exitosamente.`);
         });
     }
 }
 
 // ==========================================
-// GESTIÓN DE SUPERMERCADOS Y PRODUCTOS
+// GESTIÓN DE SUPERMERCADOS, PRODUCTOS Y USUARIOS
 // ==========================================
 function handleSupermarketLogoUpload(event) {
     const file = event.target.files[0];
@@ -1957,10 +1996,6 @@ function handleSupermarketLogoUpload(event) {
     reader.onload = function(e) {
         compressImageBase64(e.target.result, 300, 300).then(compressed => {
             document.getElementById('modalSupLogo').value = compressed;
-            const preview = document.getElementById('modalSupLogoPreview');
-            if (preview) {
-                preview.innerHTML = `<img src="${compressed}" class="h-full object-contain p-1">`;
-            }
         });
     };
     reader.readAsDataURL(file);
@@ -1970,40 +2005,24 @@ function openSupermarketModal(supId = null) {
     const el = document.getElementById('supermarketModal');
     if (!el) return;
 
-    const titleEl = document.getElementById('modalSupTitle');
-    const idInput = document.getElementById('modalSupId');
-    const nameInput = document.getElementById('modalSupName');
-    const logoInput = document.getElementById('modalSupLogo');
-    const previewEl = document.getElementById('modalSupLogoPreview');
-
     if (supId) {
         const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId));
         if (sup) {
-            if (titleEl) titleEl.textContent = 'Editar Supermercado';
-            if (idInput) idInput.value = sup.id;
-            if (nameInput) nameInput.value = sup.name || '';
-            if (logoInput) logoInput.value = sup.photoUrl || sup.photo || sup.logoUrl || '';
-            if (previewEl) {
-                const img = sup.photoUrl || sup.photo || sup.logoUrl;
-                previewEl.innerHTML = img 
-                    ? `<img src="${img}" class="h-full object-contain p-1">`
-                    : `<span class="text-xs font-bold text-slate-400">Sin logo cargado</span>`;
-            }
+            document.getElementById('modalSupId').value = sup.id;
+            document.getElementById('modalSupName').value = sup.name || '';
+            document.getElementById('modalSupLogo').value = sup.photoUrl || sup.photo || sup.logoUrl || '';
         }
     } else {
-        if (titleEl) titleEl.textContent = 'Agregar Supermercado';
-        if (idInput) idInput.value = '';
-        if (nameInput) nameInput.value = '';
-        if (logoInput) logoInput.value = '';
-        if (previewEl) previewEl.innerHTML = `<span class="text-xs font-bold text-slate-400">Sin logo cargado</span>`;
+        document.getElementById('modalSupId').value = '';
+        document.getElementById('modalSupName').value = '';
+        document.getElementById('modalSupLogo').value = '';
     }
 
     el.classList.remove('hidden');
 }
 
 function closeSupermarketModal() {
-    const el = document.getElementById('supermarketModal');
-    if (el) el.classList.add('hidden');
+    document.getElementById('supermarketModal').classList.add('hidden');
 }
 
 function saveSupermarketFromModal() {
@@ -2011,7 +2030,7 @@ function saveSupermarketFromModal() {
     const name = document.getElementById('modalSupName').value.trim();
     const photoUrl = document.getElementById('modalSupLogo').value;
 
-    if (!name) return alert("Por favor ingresa el nombre del supermercado.");
+    if (!name) return alert("Ingresa el nombre del supermercado.");
     if (!db) return alert("Error de conexión a Firebase.");
 
     const id = idInput ? idInput : ('sup-' + Date.now());
@@ -2024,35 +2043,26 @@ function saveSupermarketFromModal() {
         description: 'Supermercado'
     }, { merge: true }).then(() => {
         closeSupermarketModal();
-        alert(`✅ Supermercado "${name}" guardado con éxito.`);
+        alert(`✅ Supermercado "${name}" guardado.`);
     });
 }
 
 function deleteSupermarket(supId) {
-    const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId));
-    const name = sup ? sup.name : 'este supermercado';
-
-    if (confirm(`¿Estás seguro de que deseas eliminar el supermercado "${name}"?`) && db) {
-        db.collection('supermarkets').doc(supId).delete().then(() => {
-            alert(`✅ Supermercado "${name}" eliminado.`);
-        }).catch(err => alert("Error: " + err.message));
+    if (confirm("¿Eliminar este supermercado?") && db) {
+        db.collection('supermarkets').doc(supId).delete();
     }
 }
 
 function getNextProductCode() {
     const products = APP_STATE.products || [];
     if (products.length === 0) return '1001';
-
     let maxCode = 1000;
     products.forEach(p => {
         if (p.code) {
             const num = parseInt(String(p.code).replace(/\D/g, ''), 10);
-            if (!isNaN(num) && num >= maxCode && num < 999999) {
-                maxCode = num;
-            }
+            if (!isNaN(num) && num >= maxCode && num < 999999) maxCode = num;
         }
     });
-
     return String(maxCode + 1);
 }
 
@@ -2066,25 +2076,10 @@ function updateCategoryDropdowns(selectedName = null) {
 function handleProductPhotoUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
-
-    const preview = document.getElementById('modalProdPhotoPreview');
-    const saveBtn = document.getElementById('btnSaveProduct');
-    
-    if (preview) preview.innerHTML = `<span class="text-xs font-black text-amber-600 animate-pulse">⏳ Procesando...</span>`;
-    if (saveBtn) saveBtn.disabled = true;
-
     const reader = new FileReader();
     reader.onload = function(e) {
         compressImageBase64(e.target.result, 300, 300, 0.7).then(compressed => {
-            const photoInput = document.getElementById('modalProdPhoto');
-            if (photoInput) photoInput.value = compressed;
-            if (preview) {
-                preview.innerHTML = `<img src="${compressed}" class="h-full w-full object-contain rounded-xl">`;
-            }
-            if (saveBtn) saveBtn.disabled = false;
-        }).catch(() => {
-            if (preview) preview.innerHTML = `<span class="text-xs font-bold text-rose-500">Error en foto</span>`;
-            if (saveBtn) saveBtn.disabled = false;
+            document.getElementById('modalProdPhoto').value = compressed;
         });
     };
     reader.readAsDataURL(file);
@@ -2096,56 +2091,33 @@ function openProductModal(prodId = null) {
         supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
     }
 
-    const titleEl = document.getElementById('modalProdTitle');
-    const idInput = document.getElementById('modalProdId');
-    const nameInput = document.getElementById('modalProdName');
-    const codeInput = document.getElementById('modalProdCode');
-    const priceInput = document.getElementById('modalProdPrice');
-    const replicateInput = document.getElementById('modalProdReplicateAll');
-    const photoInput = document.getElementById('modalProdPhoto');
-    const previewEl = document.getElementById('modalProdPhotoPreview');
-    const saveBtn = document.getElementById('btnSaveProduct');
-
-    if (saveBtn) saveBtn.disabled = false;
-
     if (prodId) {
         const p = (APP_STATE.products || []).find(x => String(x.id) === String(prodId));
         if (p) {
-            const currentImg = p.photoUrl || p.photo || p.image || '';
-            if (titleEl) titleEl.textContent = 'Editar Producto';
-            if (idInput) idInput.value = p.id;
-            if (nameInput) nameInput.value = p.name || '';
-            if (codeInput) codeInput.value = p.code || p.id || '';
-            if (priceInput) priceInput.value = p.price || 0;
-            if (photoInput) photoInput.value = currentImg;
-            if (replicateInput) replicateInput.checked = !!p.isAll;
+            document.getElementById('modalProdId').value = p.id;
+            document.getElementById('modalProdName').value = p.name || '';
+            document.getElementById('modalProdCode').value = p.code || p.id || '';
+            document.getElementById('modalProdPrice').value = p.price || 0;
+            document.getElementById('modalProdPhoto').value = p.photoUrl || p.photo || p.image || '';
+            document.getElementById('modalProdReplicateAll').checked = !!p.isAll;
             if (supSelect && p.supermarketId) supSelect.value = p.supermarketId;
-            if (previewEl) {
-                previewEl.innerHTML = currentImg 
-                    ? `<img src="${currentImg}" class="h-full w-full object-contain rounded-xl">`
-                    : `<span class="text-[10px] font-bold text-slate-400">Sin foto</span>`;
-            }
             updateCategoryDropdowns(p.category);
         }
     } else {
-        if (titleEl) titleEl.textContent = 'Agregar Producto';
-        if (idInput) idInput.value = '';
-        if (nameInput) nameInput.value = '';
-        if (codeInput) codeInput.value = getNextProductCode();
-        if (priceInput) priceInput.value = '';
-        if (photoInput) photoInput.value = '';
-        if (replicateInput) replicateInput.checked = false;
-        if (previewEl) previewEl.innerHTML = `<span class="text-[10px] font-bold text-slate-400">Sin foto</span>`;
+        document.getElementById('modalProdId').value = '';
+        document.getElementById('modalProdName').value = '';
+        document.getElementById('modalProdCode').value = getNextProductCode();
+        document.getElementById('modalProdPrice').value = '';
+        document.getElementById('modalProdPhoto').value = '';
+        document.getElementById('modalProdReplicateAll').checked = false;
         updateCategoryDropdowns();
     }
 
-    const el = document.getElementById('productModal');
-    if (el) el.classList.remove('hidden');
+    document.getElementById('productModal').classList.remove('hidden');
 }
 
 function closeProductModal() {
-    const el = document.getElementById('productModal');
-    if (el) el.classList.add('hidden');
+    document.getElementById('productModal').classList.add('hidden');
 }
 
 function saveProductFromModal() {
@@ -2162,7 +2134,7 @@ function saveProductFromModal() {
     const photoUrl = document.getElementById('modalProdPhoto')?.value || '';
 
     if (!name || isNaN(price)) return alert("Por favor ingresa un nombre y precio válidos.");
-    if (!db) return alert("Error de conexión con la base de datos.");
+    if (!db) return alert("Error de conexión.");
 
     const id = prodId ? prodId : ('prod-' + Date.now());
 
@@ -2179,9 +2151,7 @@ function saveProductFromModal() {
         supermarketName: replicateAll ? 'TODOS' : ((APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId))?.name || 'Supermercado')
     }, { merge: true }).then(() => {
         closeProductModal();
-        alert(`✅ Producto "${name}" guardado con éxito.`);
-    }).catch(err => {
-        alert("Error al guardar en Firebase: " + err.message);
+        alert(`✅ Producto "${name}" guardado.`);
     });
 }
 
@@ -2194,30 +2164,16 @@ function deleteProduct(prodId) {
 function openCategoryModal() {
     const el = document.getElementById('categoryModal');
     const iconSelect = document.getElementById('modalCatIcon');
-    const nameInput = document.getElementById('modalCatName');
-
     if (iconSelect) {
         iconSelect.innerHTML = PRESET_CATEGORIES.map(c => 
             `<option value="${c.icon}">${c.icon} ${c.name}</option>`
-        ).join('') + `<option value="✨">✨ Otro (Emoji libre)</option>`;
-        
-        iconSelect.onchange = function() {
-            const selectedIcon = this.value;
-            const preset = PRESET_CATEGORIES.find(c => c.icon === selectedIcon);
-            if (preset && nameInput) nameInput.value = preset.name;
-        };
+        ).join('');
     }
-
-    if (nameInput && PRESET_CATEGORIES.length > 0) {
-        nameInput.value = PRESET_CATEGORIES[0].name;
-    }
-
     if (el) el.classList.remove('hidden');
 }
 
 function closeCategoryModal() {
-    const el = document.getElementById('categoryModal');
-    if (el) el.classList.add('hidden');
+    document.getElementById('categoryModal').classList.add('hidden');
 }
 
 function saveCategoryFromModal() {
@@ -2228,7 +2184,6 @@ function saveCategoryFromModal() {
     db.collection('categories').doc(id).set({ id, name, icon: icon || '🏷️' }).then(() => {
         closeCategoryModal();
         updateCategoryDropdowns(name);
-        alert(`✅ Categoría "${icon} ${name}" creada.`);
     });
 }
 
@@ -2241,13 +2196,11 @@ function deleteCategory(catId) {
 function openCreateUserModal(role) {
     const el = document.getElementById('userModal');
     if (el) {
-        const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
         document.getElementById('modalUserId').value = '';
         document.getElementById('modalUserRole').value = role;
         document.getElementById('modalName').value = '';
         document.getElementById('modalRut').value = '';
         document.getElementById('modalEmail').value = '';
-        document.getElementById('userModalTitle').textContent = `Crear nuevo ${role === 'admin' ? 'Administrador' : (role === 'teacher' ? `Educador (${teamLabel})` : 'Alumno')}`;
         el.classList.remove('hidden');
     }
 }
@@ -2262,14 +2215,12 @@ function openEditUserModal(userId) {
         document.getElementById('modalName').value = user.name || '';
         document.getElementById('modalRut').value = user.rut || '';
         document.getElementById('modalEmail').value = user.email || '';
-        document.getElementById('userModalTitle').textContent = `Editar Usuario (${user.name})`;
         el.classList.remove('hidden');
     }
 }
 
 function closeUserModal() {
-    const el = document.getElementById('userModal');
-    if (el) el.classList.add('hidden');
+    document.getElementById('userModal').classList.add('hidden');
 }
 
 function saveUserFromModal() {
@@ -2279,7 +2230,7 @@ function saveUserFromModal() {
     const rut = document.getElementById('modalRut').value.trim();
     const email = document.getElementById('modalEmail').value.trim();
 
-    if (!name || !rut || !db) return alert("Completa el nombre y RUT.");
+    if (!name || !rut || !db) return alert("Completa nombre y RUT.");
 
     const id = userId || ('u-' + Date.now());
     const pin = rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
@@ -2310,7 +2261,7 @@ function deleteCourse(courseId) {
 }
 
 // ==========================================
-// ESCUCHADORES FIRESTORE (TEMPO REAL)
+// ESCUCHADORES FIRESTORE (TIEMPO REAL)
 // ==========================================
 function initFirebaseListeners() {
     try {
@@ -2333,10 +2284,7 @@ function initFirebaseListeners() {
                     callback(data);
                     renderApp();
                 },
-                err => {
-                    console.warn(`Error en Firestore [${name}]:`, err.message);
-                    renderApp();
-                }
+                () => renderApp()
             );
         } catch(e) { renderApp(); }
     };
@@ -2351,18 +2299,18 @@ function initFirebaseListeners() {
     listenCol('products', data => { APP_STATE.products = data || []; });
     listenCol('evaluations', data => { APP_STATE.evaluations = data || []; });
 
-    // ESCUCHADOR EN TIEMPO REAL PARA MISIÓN ACTIVA EN SALA
+    // ESCUCHADOR DE MISIÓN ACTIVA FIRESTORE
     try {
         db.collection('settings').doc('activeMission').onSnapshot(
             doc => {
-                if (doc.exists && doc.data() && doc.data().itemIds) {
+                if (doc.exists && doc.data() && doc.data().active) {
                     APP_STATE.activeMission = doc.data();
                 } else {
                     APP_STATE.activeMission = null;
                 }
                 renderApp();
             },
-            err => renderApp()
+            () => renderApp()
         );
 
         db.collection('settings').doc('institutional').onSnapshot(
@@ -2370,7 +2318,7 @@ function initFirebaseListeners() {
                 if (doc.exists) APP_STATE.settings = { ...DEFAULT_SETTINGS, ...doc.data() };
                 renderApp();
             },
-            err => renderApp()
+            () => renderApp()
         );
 
         db.collection('settings').doc('currencies').onSnapshot(
@@ -2378,7 +2326,7 @@ function initFirebaseListeners() {
                 if (doc.exists) APP_STATE.customCurrencies = { ...APP_STATE.customCurrencies, ...doc.data() };
                 renderApp();
             },
-            err => renderApp()
+            () => renderApp()
         );
     } catch(e) { renderApp(); }
 }
