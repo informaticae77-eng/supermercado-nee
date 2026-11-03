@@ -164,15 +164,16 @@ const APP_STATE = {
     missionStartTime: null,
     html5QrcodeScanner: null,
     
-    // ESTADO DE MISIÓN Y GAMIFICACIÓN
-    activeMission: null,          // Objeto misión docente
-    classroomMode: 'PREP',        // 'PREP' (Armar Lista) | 'TERRENO' (Góndola/Supermercado)
-    listValidated: false,         // Si la lista ya fue comprobada con éxito
-    scannedItemsInStore: {},      // Registro de escaneo/verificación en góndola
-    classroomErrorsCount: 0,      // Intentos fallidos al comprobar lista
-    priceAdjustmentsCount: 0,     // Veces que cambió el precio de góndola vs app
-    pendingScanProduct: null,     // Producto en proceso de confirmación de precio
-    invalidBasketItems: []        // Lista de IDs de productos erróneos para destacar en rojo
+    // ESTADO DE MISIÓN Y ESCANEO CON CÁMARA
+    activeMission: null,          
+    classroomMode: 'PREP',        
+    listValidated: false,         
+    scannedItemsInStore: {},      
+    classroomErrorsCount: 0,      
+    priceAdjustmentsCount: 0,     
+    pendingScanProduct: null,     
+    currentTargetScanProduct: null, // Producto que el estudiante debe escanear
+    invalidBasketItems: []        
 };
 
 // ==========================================
@@ -515,8 +516,6 @@ function validateStudentList() {
         playChimeSound(true);
         
         const currentScore = Math.max(20, 100 - (APP_STATE.classroomErrorsCount * 20));
-        
-        // Guardamos los items erróneos para destacarlos en rojo parpadeante
         APP_STATE.invalidBasketItems = extraItems;
 
         let extraNames = extraItems.map(id => {
@@ -547,10 +546,7 @@ function removeFromBasketByProductId(prodId) {
     if (index !== -1) {
         const prod = (APP_STATE.products || []).find(p => String(p.id) === String(prodId));
         APP_STATE.basket.splice(index, 1);
-        
-        // Si eliminó el producto inválido, lo quitamos de la lista de destaque
         APP_STATE.invalidBasketItems = (APP_STATE.invalidBasketItems || []).filter(id => String(id) !== String(prodId));
-        
         updateBasketBadge();
         playChimeSound();
         if (prod) speakText(`Quitaste ${prod.name} de tu lista`);
@@ -767,32 +763,28 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// VERIFICACIÓN INTELIGENTE DE PRODUCTOS Y AJUSTE DE PRECIOS EN GÓNDOLA
+// VERIFICACIÓN CON CÁMARA Y AJUSTE DE PRECIO EN GÓNDOLA
 // ==========================================
 function verifyTerrenoProduct(productId) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
     if (!prod) return;
 
-    if (APP_STATE.activeMission && APP_STATE.activeMission.itemIds) {
-        const targetIds = APP_STATE.activeMission.itemIds.map(id => String(id));
-        if (!targetIds.includes(String(prod.id))) {
-            playChimeSound(true);
-            const msg = `¡Atención! Este no es el producto de tu lista. Estás buscando otro producto, no ${prod.name}.`;
-            speakText(msg);
-            alert(`⚠️ ¡PRODUCTO INCORRECTO!\n\nEste no es el producto de tu lista de misión.\nEstás buscando otro producto de tu lista impresa, no "${prod.name}".`);
-            return;
-        }
-    }
-
-    playChimeSound(false);
-    speakText(`¡Correcto! Este sí es el producto de tu lista: ${prod.name}. Revisa el letrero de la góndola para ver su precio real.`);
-    openShelfPriceConfirmation(prod.id);
+    APP_STATE.currentTargetScanProduct = prod.id;
+    speakText(`Apunta la cámara al producto ${prod.name} para verificarlo.`);
+    openScannerModal(prod.id);
 }
 
-function openScannerModal() {
+function openScannerModal(targetProductId = null) {
+    if (targetProductId) {
+        APP_STATE.currentTargetScanProduct = targetProductId;
+    }
     const modal = document.getElementById('scannerModal');
     if (modal) modal.classList.remove('hidden');
-    startCameraScanner();
+
+    // Tiempo de espera breve para asegurar que el modal y su contenedor en el DOM estén visibles
+    setTimeout(() => {
+        startCameraScanner();
+    }, 250);
 }
 
 function closeScannerModal() {
@@ -827,9 +819,14 @@ function initHtml5Qrcode() {
             (decodedText) => {
                 onProductScanned(decodedText);
             },
-            () => {}
-        ).catch(() => {
-            simulateAIScan();
+            (err) => {}
+        ).catch(err => {
+            console.warn("Cámara no iniciada:", err);
+            const placeholder = document.getElementById('scannerPlaceholder');
+            if (placeholder) {
+                placeholder.classList.remove('hidden');
+                placeholder.innerHTML = `<p class="text-amber-600 font-bold text-xs p-2">Si la cámara no enciende por permisos, presiona el botón "Simular Escaneo" para avanzar la prueba.</p>`;
+            }
         });
     } catch(e) {
         simulateAIScan();
@@ -846,6 +843,60 @@ function stopCameraScanner() {
         try {
             APP_STATE.html5QrcodeScanner.stop().catch(() => {});
         } catch(e) {}
+    }
+}
+
+function onProductScanned(scannedCode) {
+    const cleanCode = String(scannedCode).trim().toLowerCase();
+    
+    // Buscar si el código escaneado coincide con algún producto
+    const foundProduct = (APP_STATE.products || []).find(p => 
+        String(p.id).toLowerCase() === cleanCode ||
+        String(p.code || '').toLowerCase() === cleanCode ||
+        String(p.name || '').toLowerCase() === cleanCode
+    );
+
+    const targetId = APP_STATE.currentTargetScanProduct;
+    const targetProduct = targetId ? (APP_STATE.products || []).find(p => String(p.id) === String(targetId)) : null;
+
+    if (targetProduct) {
+        // VALIDACIÓN POR CÁMARA DE PRODUCTO CORRECTO VS ERRORES
+        if (foundProduct && String(foundProduct.id) === String(targetProduct.id)) {
+            playChimeSound(false);
+            closeScannerModal();
+            speakText(`¡Excelente! La cámara ha reconocido ${targetProduct.name}. Ahora revisa el precio en la repisa.`);
+            openShelfPriceConfirmation(targetProduct.id);
+        } else {
+            playChimeSound(true);
+            const scannedName = foundProduct ? foundProduct.name : 'otro producto no registrado';
+            const msg = `¡Atención! Este no es el producto. La cámara detectó ${scannedName}, pero estás buscando ${targetProduct.name}.`;
+            speakText(msg);
+            alert(`⚠️ ¡PRODUCTO INCORRECTO EN GÓNDOLA!\n\nLa cámara de la app detectó: "${scannedName}".\n\nEn tu lista estás buscando: "${targetProduct.name}".\n\nApunta la cámara al producto correcto para verificarlo.`);
+        }
+    } else {
+        closeScannerModal();
+        if (foundProduct) {
+            playChimeSound(false);
+            speakText(`Producto detectado: ${foundProduct.name}.`);
+            openShelfPriceConfirmation(foundProduct.id);
+        } else {
+            playChimeSound(true);
+            speakText("Nuevo producto detectado.");
+            promptAssignProductToBarcode(scannedCode);
+        }
+    }
+}
+
+function simulateAIScan() {
+    const targetId = APP_STATE.currentTargetScanProduct;
+    const targetProduct = targetId ? (APP_STATE.products || []).find(p => String(p.id) === String(targetId)) : null;
+
+    if (targetProduct) {
+        onProductScanned(targetProduct.code || targetProduct.id);
+    } else {
+        const fakeBarcodes = ['780123456789', '780999888777', '780555444333'];
+        const chosenCode = fakeBarcodes[Math.floor(Math.random() * fakeBarcodes.length)];
+        onProductScanned(chosenCode);
     }
 }
 
@@ -905,25 +956,6 @@ function applyCustomShelfPrice() {
     }
 }
 
-function onProductScanned(scannedCode) {
-    const cleanCode = String(scannedCode).trim().toLowerCase();
-    const foundProduct = (APP_STATE.products || []).find(p => 
-        String(p.id).toLowerCase() === cleanCode ||
-        String(p.code || '').toLowerCase() === cleanCode ||
-        String(p.name || '').toLowerCase() === cleanCode
-    );
-
-    closeScannerModal();
-
-    if (foundProduct) {
-        verifyTerrenoProduct(foundProduct.id);
-    } else {
-        playChimeSound(true);
-        speakText("Nuevo producto detectado.");
-        promptAssignProductToBarcode(scannedCode);
-    }
-}
-
 function promptAssignProductToBarcode(barcode) {
     const resContainer = document.getElementById('scannerResultContainer');
     if (!resContainer) return;
@@ -968,13 +1000,7 @@ function bindBarcodeToProduct(barcode, productId) {
     playChimeSound();
     speakText(`¡Excelente! Ahora este código es ${targetProduct.name}.`);
     closeScannerModal();
-    verifyTerrenoProduct(targetProduct.id);
-}
-
-function simulateAIScan() {
-    const fakeBarcodes = ['780123456789', '780999888777', '780555444333'];
-    const chosenCode = fakeBarcodes[Math.floor(Math.random() * fakeBarcodes.length)];
-    onProductScanned(chosenCode);
+    openShelfPriceConfirmation(targetProduct.id);
 }
 
 function renderStudentPreviewWrapper(container) {
