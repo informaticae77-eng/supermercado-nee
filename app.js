@@ -396,7 +396,6 @@ function renderHomeView(container) {
     const mascot = APP_STATE.settings.mascotUrl;
     const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
 
-    // ALERTA DE MISIÓN ACTIVA PARA QUE EL ALUMNO ELIJA SU SUPERMERCADO
     let studentMissionBanner = '';
     if (APP_STATE.activeMission && APP_STATE.activeMission.active && APP_STATE.activeMission.itemIds) {
         const itemCount = APP_STATE.activeMission.itemIds.length;
@@ -515,20 +514,19 @@ function validateStudentList() {
         
         const currentScore = Math.max(20, 100 - (APP_STATE.classroomErrorsCount * 20));
         
-        const alertMsg = `⚠️ Te equivocaste. Vuelve a revisar tu lista impresa y busca los productos correctos.\n\n` +
+        const alertMsg = `⚠️ Te equivocaste. Vuelve a revisar tu lista impresa y ajusta los productos.\n\n` +
             (missingItems.length > 0 ? `• Faltan ${missingItems.length} producto(s) por agregar.\n` : '') +
-            (extraItems.length > 0 ? `• Agregaste ${extraItems.length} producto(s) que no estaban en tu lista.\n` : '') +
+            (extraItems.length > 0 ? `• Agregaste ${extraItems.length} producto(s) que NO corresponden. Puedes presionarle "Quitar" en la tarjeta del producto.\n` : '') +
             `\nPuntuación actual: ${currentScore}%`;
 
-        speakText("Te equivocaste, vuelve a revisar tu lista impresa y busca los productos correctos.");
+        speakText("Te equivocaste, vuelve a revisar tu lista impresa. Si agregaste un producto que no es, puedes quitarlo en su tarjeta.");
         alert(alertMsg);
         renderApp();
     } else {
         APP_STATE.listValidated = true;
         playChimeSound(false);
         if (typeof confetti !== 'undefined') confetti();
-        speakText("¡Excelente! Tu lista está perfecta y 100% correcta. Ahora puedes pasar al supermercado real.");
-        alert("🎉 ¡FELICITACIONES! Tu lista está 100% correcta.\nAhora presiona 'IR AL SUPERMERCADO GÓNDOLA' para escanear en repisa.");
+        speakText("¡Excelente! Tu lista está perfecta y 100% correcta. Presiona sigamos con la misión para ir al supermercado.");
         renderApp();
     }
 }
@@ -554,16 +552,19 @@ function renderSupermarketView(container, supId) {
         if (APP_STATE.classroomMode === 'PREP') {
             if (APP_STATE.listValidated) {
                 classroomValidationBanner = `
-                    <div class="bg-emerald-500 text-white p-5 rounded-3xl shadow-xl border-4 border-emerald-700 flex flex-col sm:flex-row justify-between items-center gap-4 animate-pulse">
-                        <div class="flex items-center gap-3">
-                            <span class="text-4xl">🎉</span>
+                    <div class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-6 rounded-3xl shadow-2xl border-4 border-emerald-300 space-y-4">
+                        <div class="flex items-center gap-4">
+                            <span class="text-5xl">🎉</span>
                             <div>
-                                <h3 class="text-xl font-black">¡Tu lista está 100% perfecta!</h3>
-                                <p class="text-xs font-bold text-emerald-100">Presiona el botón para ir a las góndolas y escanear precios.</p>
+                                <span class="bg-white text-emerald-900 font-black px-3 py-1 rounded-full text-xs uppercase tracking-wider inline-block mb-1">
+                                    ¡COMPROBACIÓN EXITOSA!
+                                </span>
+                                <h3 class="text-2xl font-black text-white">¡Sigamos con la misión! 🚀</h3>
+                                <p class="text-sm font-bold text-emerald-100">Ahora tienes que ir al supermercado a escanear los productos y revisar si los precios coinciden con los precios que tenemos en la aplicación.</p>
                             </div>
                         </div>
-                        <button onclick="enterTerrenoStoreMode()" class="w-full sm:w-auto bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-lg px-6 py-4 rounded-2xl shadow-2xl border-b-4 border-amber-600 active:scale-95 flex items-center justify-center gap-2">
-                            <span>🚀</span> <span>IR AL SUPERMERCADO (GÓNDOLA)</span>
+                        <button onclick="enterTerrenoStoreMode()" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-lg py-4 rounded-2xl shadow-2xl border-b-4 border-amber-600 active:scale-95 flex items-center justify-center gap-2">
+                            <span>🏪</span> <span>IR AL SUPERMERCADO A ESCANEAR GÓNDOLA</span>
                         </button>
                     </div>
                 `;
@@ -574,7 +575,7 @@ function renderSupermarketView(container, supId) {
                             <span class="text-3xl">📋</span>
                             <div>
                                 <h3 class="text-base font-black text-indigo-950">Ficha Activa: "${APP_STATE.activeMission.title}"</h3>
-                                <p class="text-xs font-bold text-slate-600">Revisa tu hoja impresa, añade los productos al canasto y presiona comprobar.</p>
+                                <p class="text-xs font-bold text-slate-600">Revisa tu hoja impresa, añade los productos al canasto y presiona comprobar. Si te equivocas, puedes quitar el producto.</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-3 w-full sm:w-auto">
@@ -593,7 +594,7 @@ function renderSupermarketView(container, supId) {
                 <div class="bg-emerald-600 text-white p-4 rounded-3xl shadow-md border-4 border-emerald-800 flex justify-between items-center text-xs font-bold">
                     <div class="flex items-center gap-2">
                         <span class="text-2xl">🏪</span>
-                        <span>MODO TERRENO: Escanea o verifica el precio en góndola. Si cambió, se actualizará automáticamente.</span>
+                        <span>MODO TERRENO: Escanea los productos. El sistema reconocerá si es el producto correcto y ajustará el precio.</span>
                     </div>
                     <span class="bg-amber-400 text-slate-900 font-black px-3 py-1 rounded-xl text-xs">⭐ ${currentScore}% Logro</span>
                 </div>
@@ -651,7 +652,9 @@ function renderSupermarketView(container, supId) {
             
         const pricePictograms = getPricePictogramsHtml(prod.price || 0);
         const isScannedInTerreno = APP_STATE.scannedItemsInStore[prod.id];
-        const isInBasket = (APP_STATE.basket || []).some(b => String(b.productId) === String(prod.id));
+        
+        const basketIndex = (APP_STATE.basket || []).findIndex(b => String(b.productId) === String(prod.id));
+        const isInBasket = basketIndex !== -1;
 
         return `
             <div class="bg-white p-5 rounded-3xl border-4 ${isInBasket ? 'border-indigo-500 bg-indigo-50/30' : (isScannedInTerreno ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-200')} shadow-lg flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
@@ -670,11 +673,22 @@ function renderSupermarketView(container, supId) {
                 <div class="flex gap-2 pt-2 border-t">
                     <button onclick="speakText('${prod.name}, precio ${prod.price} pesos')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold p-3.5 rounded-2xl shadow-sm text-2xl active:scale-95">🔊</button>
                     ${APP_STATE.classroomMode === 'TERRENO' ? `
-                        <button onclick="openShelfPriceConfirmation('${prod.id}')" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-900 font-black py-3.5 rounded-2xl shadow border-b-4 border-amber-600 active:scale-95 text-base flex items-center justify-center gap-1.5">
-                            <span>📷</span> <span>Verificar Precio en Góndola</span>
+                        <button onclick="verifyTerrenoProduct('${prod.id}')" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-900 font-black py-3.5 rounded-2xl shadow border-b-4 border-amber-600 active:scale-95 text-base flex items-center justify-center gap-1.5">
+                            <span>📷</span> <span>Escanear / Verificar Góndola</span>
                         </button>
                     ` : `
-                        <button onclick="addToBasket('${prod.id}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl shadow border-b-4 border-emerald-900 active:scale-95 text-lg">🛒 Añadir al Canasto</button>
+                        ${isInBasket ? `
+                            <div class="flex gap-2 w-full">
+                                <button onclick="speakText('${prod.name} ya está en tu canasto')" class="w-2/3 bg-indigo-100 text-indigo-900 font-black py-3 rounded-2xl border-2 border-indigo-300 text-xs flex items-center justify-center gap-1">
+                                    <span>✓</span> <span>En Canasto</span>
+                                </button>
+                                <button onclick="removeFromBasket(${basketIndex})" class="w-1/3 bg-rose-500 hover:bg-rose-600 text-white font-black py-3 rounded-2xl shadow border-b-4 border-rose-800 text-xs active:scale-95 flex items-center justify-center gap-1">
+                                    <span>🗑️</span> <span>Quitar</span>
+                                </button>
+                            </div>
+                        ` : `
+                            <button onclick="addToBasket('${prod.id}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl shadow border-b-4 border-emerald-900 active:scale-95 text-lg">🛒 Añadir al Canasto</button>
+                        `}
                     `}
                 </div>
             </div>
@@ -717,8 +731,29 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// CAMBIO AUTOMÁTICO DE PRECIOS EN GÓNDOLA (HARINA EJEMPLO $800 -> $1500)
+// VERIFICACIÓN INTELIGENTE DE PRODUCTOS Y AJUSTE DE PRECIOS EN GÓNDOLA
 // ==========================================
+function verifyTerrenoProduct(productId) {
+    const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
+    if (!prod) return;
+
+    // VALIDACIÓN DE PRODUCTO PERTENECIENTE A LA MISIÓN
+    if (APP_STATE.activeMission && APP_STATE.activeMission.itemIds) {
+        const targetIds = APP_STATE.activeMission.itemIds.map(id => String(id));
+        if (!targetIds.includes(String(prod.id))) {
+            playChimeSound(true);
+            const msg = `¡Atención! Este no es el producto de tu lista. Estás buscando otro producto, no ${prod.name}.`;
+            speakText(msg);
+            alert(`⚠️ ¡PRODUCTO INCORRECTO!\n\nEste no es el producto de tu lista de misión.\nEstás buscando otro producto de tu lista impresa, no "${prod.name}".`);
+            return;
+        }
+    }
+
+    playChimeSound(false);
+    speakText(`¡Correcto! Este sí es el producto de tu lista: ${prod.name}. Revisa el letrero de la góndola para ver su precio real.`);
+    openShelfPriceConfirmation(prod.id);
+}
+
 function openScannerModal() {
     const modal = document.getElementById('scannerModal');
     if (modal) modal.classList.remove('hidden');
@@ -788,7 +823,6 @@ function openShelfPriceConfirmation(productId) {
     document.getElementById('shelfPriceOriginalLabel').textContent = `$${(prod.price || 0).toLocaleString('es-CL')}`;
 
     const basePrice = prod.price || 800;
-    // Opciones rápidas de prueba incluyendo diferencias (Ej: $800 vs $1.500)
     const suggestedPrices = [basePrice, 1500, basePrice + 300, Math.max(500, basePrice - 200)];
 
     const btnContainer = document.getElementById('shelfPriceButtonsContainer');
@@ -800,7 +834,6 @@ function openShelfPriceConfirmation(productId) {
         `).join('');
     }
 
-    speakText(`Encontraste ${prod.name}. Revisa el letrero de la góndola, ¿cuál es su precio hoy?`);
     document.getElementById('shelfPriceModal').classList.remove('hidden');
 }
 
@@ -811,21 +844,21 @@ function applyShelfPriceChoice(newPrice) {
     const oldPrice = prod.price || 0;
     APP_STATE.scannedItemsInStore[prod.id] = true;
 
-    // DETECCIÓN Y CONFIGURACIÓN AUTOMÁTICA DE PRECIO DIFERENTE EN EL SUPERMERCADO
+    // DETECCIÓN Y CONFIGURACIÓN AUTOMÁTICA DE PRECIO DIFERENTE
     if (newPrice !== oldPrice) {
         APP_STATE.priceAdjustmentsCount++;
         
-        // 1. Actualizar el precio real en el canasto del estudiante
+        // 1. Actualizar el precio real en el canasto
         const bItem = APP_STATE.basket.find(b => String(b.productId) === String(prod.id));
         if (bItem) bItem.actualPrice = newPrice;
         
-        // 2. Actualizar el valor en el catálogo activo
+        // 2. Actualizar precio en el catálogo
         prod.price = newPrice;
 
-        const msg = `El valor de ${prod.name} es diferente al que tenemos en la aplicación. Cambiará al valor del supermercado de $${newPrice.toLocaleString('es-CL')} pesos para calcular el pago exacto.`;
+        const msg = `El valor de ${prod.name} es diferente al que tenemos en la aplicación. Se cambiará al valor del supermercado de ${newPrice} pesos para pagar el monto real.`;
         speakText(msg);
 
-        alert(`🔔 ¡CAMBIO DE PRECIO EN GÓNDOLA DETECTADO!\n\nEl precio de "${prod.name}" en la aplicación era de $${oldPrice.toLocaleString('es-CL')}.\nEn el supermercado sale $${newPrice.toLocaleString('es-CL')}.\n\nSe ha realizado la configuración automática para que al pagar en la aplicación cobre el valor exacto del supermercado.`);
+        alert(`🔔 ¡CAMBIO DE PRECIO EN GÓNDOLA!\n\nEl producto "${prod.name}" en la app salía a $${oldPrice.toLocaleString('es-CL')}.\nEn el supermercado real sale a $${newPrice.toLocaleString('es-CL')}.\n\nSe ha configurado automáticamente para cobrar el valor exacto del supermercado en la caja de pago.`);
     } else {
         speakText(`¡Excelente! El precio de ${prod.name} coincide a ${newPrice} pesos.`);
     }
@@ -853,10 +886,10 @@ function onProductScanned(scannedCode) {
     closeScannerModal();
 
     if (foundProduct) {
-        openShelfPriceConfirmation(foundProduct.id);
+        verifyTerrenoProduct(foundProduct.id);
     } else {
         playChimeSound(true);
-        speakText("Nuevo producto detectado. Elige su pictograma.");
+        speakText("Nuevo producto detectado.");
         promptAssignProductToBarcode(scannedCode);
     }
 }
@@ -905,7 +938,7 @@ function bindBarcodeToProduct(barcode, productId) {
     playChimeSound();
     speakText(`¡Excelente! Ahora este código es ${targetProduct.name}.`);
     closeScannerModal();
-    openShelfPriceConfirmation(targetProduct.id);
+    verifyTerrenoProduct(targetProduct.id);
 }
 
 function simulateAIScan() {
@@ -1029,7 +1062,7 @@ function renderBasketModalContent() {
                     </div>
                     <div class="flex items-center gap-3">
                         <span class="font-black text-emerald-700 text-base">$${itemPrice.toLocaleString('es-CL')}</span>
-                        <button onclick="removeFromBasket(${idx})" class="text-rose-600 font-black px-2.5 py-1 rounded-xl bg-rose-100 hover:bg-rose-200 text-xs">✕</button>
+                        <button onclick="removeFromBasket(${idx})" class="text-rose-600 font-black px-2.5 py-1 rounded-xl bg-rose-100 hover:bg-rose-200 text-xs">✕ Quitar</button>
                     </div>
                 </div>
             `;
@@ -1447,7 +1480,7 @@ function renderTeacherDashboard(container) {
     let activeMissionAlertBanner = '';
     if (APP_STATE.activeMission && APP_STATE.activeMission.active && APP_STATE.activeMission.itemIds) {
         activeMissionAlertBanner = `
-            <div class="bg-emerald-600 text-white p-4 rounded-2xl shadow-lg border-4 border-emerald-800 flex justify-between items-center flex-wrap gap-2">
+            <div class="bg-emerald-600 text-white p-4 rounded-2xl shadow-lg border-4 border-emerald-808 flex justify-between items-center flex-wrap gap-2">
                 <div class="flex items-center gap-2">
                     <span class="text-2xl">🔴</span>
                     <div>
