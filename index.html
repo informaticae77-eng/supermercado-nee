@@ -23,7 +23,7 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen font-sans flex flex-col">
 
-    <!-- ENCABEZADO PRINCIPAL (BOTÓN DE ESCÁNER DE CABECERA ELIMINADO) -->
+    <!-- ENCABEZADO PRINCIPAL (BOTÓN ESCANEAR SUPERIOR ELIMINADO COMPLETAMENTE) -->
     <header class="bg-white border-b-4 border-indigo-600 shadow-md py-4 px-6 sticky top-0 z-40">
         <div class="max-w-6xl mx-auto flex items-center justify-between">
             <div class="flex items-center gap-3 cursor-pointer" onclick="goHome()">
@@ -54,12 +54,12 @@
         </div>
     </main>
 
-    <!-- MODAL: ESCÁNER / CAMARA DE PRODUCTO -->
+    <!-- MODAL: ESCÁNER / CÁMARA DE PRODUCTO GÓNDOLA -->
     <div id="scannerModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-3xl p-6 max-w-md w-full border-4 border-indigo-600 shadow-2xl space-y-4 text-center">
             <div class="flex justify-between items-center border-b pb-2">
                 <h3 class="text-lg font-black text-indigo-950 flex items-center gap-2">
-                    <span>📷</span> <span>Escáner de Cámara / Código de Barras</span>
+                    <span>📷</span> <span>Reconocimiento de Producto en Góndola</span>
                 </h3>
                 <button onclick="closeScannerModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg">✕</button>
             </div>
@@ -68,7 +68,7 @@
                 <div id="qrScannerReader" class="w-full h-full"></div>
                 <div id="laserLine" class="hidden absolute left-0 right-0 top-1/2 h-1 bg-red-500 shadow-[0_0_8px_red] animate-pulse"></div>
                 <div id="scannerPlaceholder" class="text-slate-400 font-bold text-xs p-4">
-                    <span>Apunta la cámara al código de barras del producto real...</span>
+                    <span>Apunta la cámara al código de barras o envase del producto real...</span>
                 </div>
             </div>
 
@@ -85,13 +85,13 @@
         </div>
     </div>
 
-    <!-- MODAL: VERIFICACIÓN Y CAMBIO AUTOMÁTICO DE PRECIO EN GÓNDOLA -->
+    <!-- MODAL: DETECCIÓN Y CAMBIO AUTOMÁTICO DE PRECIO EN REPISA -->
     <div id="shelfPriceModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-3xl p-6 max-w-lg w-full border-4 border-amber-400 shadow-2xl space-y-5 text-center">
             <div class="space-y-1">
                 <span class="text-5xl">🔍</span>
                 <h3 class="text-2xl font-black text-slate-900">Verifica el Precio en la Góndola</h3>
-                <p class="text-xs font-extrabold text-slate-600">Compara el letrero del supermercado para <span id="shelfPriceProdName" class="text-indigo-600 font-black"></span>:</p>
+                <p class="text-xs font-extrabold text-slate-600">Revisa el letrero del supermercado para <span id="shelfPriceProdName" class="text-indigo-600 font-black"></span>:</p>
                 <div class="inline-block bg-slate-100 border-2 border-slate-300 px-3 py-1 rounded-xl text-xs font-bold text-slate-700 mt-1">
                     Precio registrado en app: <span id="shelfPriceOriginalLabel" class="font-black text-emerald-700 text-sm"></span>
                 </div>
