@@ -174,7 +174,6 @@ const APP_STATE = {
     invalidBasketItems: []        
 };
 
-// Variable global del modelo de Inteligencia Artificial
 let mobilenetModel = null;
 
 // ==========================================
@@ -762,7 +761,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// RECONOCIMIENTO DE IMAGEN CON CÁMARA (TENSORFLOW.JS + MOBILENET REAL)
+// RECONOCIMIENTO DE IMAGEN CON CÁMARA (CONTROL ROBUSTO DE CHROME MÓVIL Y HTTPS)
 // ==========================================
 function startAiVisualRecognition(productId) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
@@ -785,40 +784,53 @@ async function initAiCameraStream() {
     const videoEl = document.getElementById('aiCameraVideo');
     if (!videoEl) return;
 
+    // Atributos obligatorios para iOS Safari y Chrome Mobile
     videoEl.setAttribute('playsinline', 'true');
     videoEl.setAttribute('webkit-playsinline', 'true');
     videoEl.setAttribute('autoplay', 'true');
     videoEl.muted = true;
 
+    // Intento progresivo de restricciones para cámaras traseras móviles
     const constraintsList = [
         { video: { facingMode: { ideal: "environment" } }, audio: false },
         { video: { facingMode: "environment" }, audio: false },
+        { video: { facingMode: "user" }, audio: false },
         { video: true, audio: false }
     ];
 
     let stream = null;
+    let lastError = null;
+
     for (const constraints of constraintsList) {
         try {
             stream = await navigator.mediaDevices.getUserMedia(constraints);
             if (stream) break;
         } catch (e) {
+            lastError = e;
             console.warn("Intento de cámara no compatible:", e);
         }
     }
 
     if (!stream) {
-        alert("No se pudo acceder a la cámara. Verifica que diste permisos de cámara en el navegador.");
+        if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            alert("⚠️ ERROR DE SEGURIDAD CHROME:\nLa cámara requiere que la aplicación esté cargada en un servidor seguro con HTTPS://\n\nNo funcionará sobre HTTP:// en la red local.");
+        } else if (lastError && (lastError.name === 'NotAllowedError' || lastError.name === 'PermissionDeniedError')) {
+            alert("⚠️ PERMISO DENEGADO:\nToca el ícono a la izquierda de la barra de direcciones en Chrome y cambia el permiso de Cámara a 'Permitir'.");
+        } else {
+            alert("⚠️ No se pudo encender la cámara. Asegúrate de cerrar otras apps que estén usando la cámara en segundo plano.");
+        }
         return;
     }
 
     APP_STATE.cameraStream = stream;
     videoEl.srcObject = stream;
 
+    // Reproducción al cargar metadatos
     videoEl.onloadedmetadata = async () => {
         try {
             await videoEl.play();
         } catch (err) {
-            console.error("Error al iniciar reproducción de video:", err);
+            console.error("Error al iniciar reproducción:", err);
         }
     };
 }
@@ -836,7 +848,6 @@ function closeScannerModal() {
     stopAiCameraStream();
 }
 
-// Carga inicial y almacenamiento de modelo de Visión por Computadora
 async function loadAiVisionModel() {
     if (!mobilenetModel && typeof mobilenet !== 'undefined') {
         try {
@@ -848,7 +859,6 @@ async function loadAiVisionModel() {
     return mobilenetModel;
 }
 
-// Diccionario de equivalencias visuales pedagógicas (Español -> Etiquetas Visión IA)
 const AI_PRODUCT_DICTIONARY = {
     'harina': ['flour', 'packet', 'bag', 'carton', 'powder', 'groceries', 'box', 'dough', 'envelope'],
     'leche': ['milk', 'carton', 'bottle', 'jug', 'beverage', 'container', 'can'],
@@ -907,7 +917,6 @@ async function captureAndAnalyzeImageWithAI() {
         let isMatched = false;
 
         if (model) {
-            // Clasificación por visión con cámara en tiempo real
             const predictions = await model.classify(videoEl);
             console.log("Resultados de clasificación por IA:", predictions);
 
@@ -924,13 +933,11 @@ async function captureAndAnalyzeImageWithAI() {
                 expectedKeywords = prodName.split(' ').filter(w => w.length > 3);
             }
 
-            // Comprobar si las predicciones de la IA coinciden con la harina o empaque
             isMatched = predictions.some(pred => {
                 const labelLower = pred.className.toLowerCase();
                 return expectedKeywords.some(kw => labelLower.includes(kw)) || pred.probability > 0.35;
             });
         } else {
-            // Tolerancia / Fallback pedagógico si no hay conexión externa a CDN
             isMatched = true; 
         }
 
