@@ -91,6 +91,13 @@ const DEFAULT_SETTINGS = {
     directorName: "Equipo Multidisciplinario"
 };
 
+const DEFAULT_AI_CONFIG = {
+    mode: 'hybrid',           // 'hybrid' (IA + Respaldo), 'strict' (Solo IA), 'permissive' (Muy tolerante)
+    sensitivity: 'medium',    // 'low', 'medium', 'high'
+    allowManualFallback: true, // Mostrar botón de pase asistido
+    cameraFacing: 'environment' // 'environment' (trasera), 'user' (frontal)
+};
+
 // ==========================================
 // MONEDAS Y BILLETES EN SVG (CLP CHILE)
 // ==========================================
@@ -155,11 +162,13 @@ const APP_STATE = {
     evaluations: [],
     customCurrencies: {},
     settings: { ...DEFAULT_SETTINGS },
+    aiConfig: { ...DEFAULT_AI_CONFIG },
     telemetry: { voiceHelpCount: 0 },
     missionStartTime: null,
     
     // RECONOCIMIENTO VISUAL CON CÁMARA E IA
     cameraStream: null,
+    adminTestStream: null,
     isAiAnalyzing: false,
     currentTargetScanProduct: null,
     
@@ -382,6 +391,7 @@ function logout() {
     APP_STATE.classroomErrorsCount = 0;
     APP_STATE.invalidBasketItems = [];
     stopAiCameraStream();
+    stopAdminTestCameraStream();
     localStorage.removeItem('nee_active_user');
     renderApp();
 }
@@ -762,7 +772,7 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// RECONOCIMIENTO DE IMAGEN CON CÁMARA E IA
+// RECONOCIMIENTO DE IMAGEN CON CÁMARA E IA (ULTRA COMPATIBLE MÓVIL)
 // ==========================================
 function startAiVisualRecognition(productId) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
@@ -774,8 +784,18 @@ function startAiVisualRecognition(productId) {
     const modal = document.getElementById('scannerModal');
     const targetLabel = document.getElementById('aiScannerTargetTitle');
     if (targetLabel) targetLabel.textContent = prod.name;
-    if (modal) modal.classList.remove('hidden');
+    
+    // Configurar visibilidad del botón de pase asistido según panel docente
+    const fallbackBtn = document.getElementById('aiFallbackManualBtn');
+    if (fallbackBtn) {
+        if (APP_STATE.aiConfig && APP_STATE.aiConfig.allowManualFallback) {
+            fallbackBtn.classList.remove('hidden');
+        } else {
+            fallbackBtn.classList.add('hidden');
+        }
+    }
 
+    if (modal) modal.classList.remove('hidden');
     initAiCameraStream();
 }
 
@@ -787,16 +807,6 @@ async function initAiCameraStream() {
                             window.location.hostname === 'localhost' || 
                             window.location.hostname === '127.0.0.1';
 
-    if (!isSecureContext) {
-        alert("🔴 ERROR DE SEGURIDAD MÓVIL:\n\nChrome y Safari bloquean la cámara si el sitio no se abre mediante HTTPS://");
-        return;
-    }
-
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert("⚠️ Tu navegador móvil no admite cámara directa.");
-        return;
-    }
-
     const videoEl = document.getElementById('aiCameraVideo');
     if (!videoEl) return;
 
@@ -805,9 +815,27 @@ async function initAiCameraStream() {
     videoEl.setAttribute('autoplay', 'true');
     videoEl.muted = true;
 
+    if (!isSecureContext) {
+        const msgBox = document.getElementById('aiScanStatusBox');
+        if (msgBox) {
+            msgBox.innerHTML = `
+                <div class="p-2 bg-rose-100 border border-rose-300 rounded-xl text-rose-800 font-bold text-xs text-center">
+                    🔴 CÁMARA BLOQUEADA POR HTTP: Abre esta web con HTTPS:// en tu celular para activar la cámara o usa el botón amarillo inferior.
+                </div>
+            `;
+        }
+        return;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("⚠️ Tu navegador móvil no admite cámara directa.");
+        return;
+    }
+
+    // Estrategia secuencial de fallback de cámaras para Android e iOS
+    const facingChoice = (APP_STATE.aiConfig && APP_STATE.aiConfig.cameraFacing) || 'environment';
     const constraintsList = [
-        { video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
-        { video: { facingMode: { ideal: "environment" } }, audio: false },
+        { video: { facingMode: { ideal: facingChoice } }, audio: false },
         { video: { facingMode: "environment" }, audio: false },
         { video: { facingMode: "user" }, audio: false },
         { video: true, audio: false }
@@ -826,7 +854,15 @@ async function initAiCameraStream() {
     }
 
     if (!stream) {
-        alert("⚠️ NO SE PUDO ACTIVAR LA CÁMARA. Asegúrate de otorgar permisos.");
+        console.warn("Sensor de cámara no disponible:", lastError);
+        const msgBox = document.getElementById('aiScanStatusBox');
+        if (msgBox) {
+            msgBox.innerHTML = `
+                <div class="p-2 bg-amber-100 border border-amber-300 rounded-xl text-amber-900 font-bold text-xs text-center">
+                    ⚠️ Cámara no detectada o permisos denegados. Usa el botón "Validar sin cámara" para continuar la clase.
+                </div>
+            `;
+        }
         return;
     }
 
@@ -882,8 +918,28 @@ async function captureAndAnalyzeImageWithAI() {
     const canvasEl = document.getElementById('aiCameraCanvas');
     const statusBox = document.getElementById('aiScanStatusBox');
 
+    const targetId = APP_STATE.currentTargetScanProduct;
+    const targetProduct = (APP_STATE.products || []).find(p => String(p.id) === String(targetId));
+
+    if (!targetProduct) {
+        alert("No se ha seleccionado ningún producto.");
+        APP_STATE.isAiAnalyzing = false;
+        return;
+    }
+
+    // Si el modo configurado es Permisivo, aprueba de inmediato
+    if (APP_STATE.aiConfig && APP_STATE.aiConfig.mode === 'permissive') {
+        forceManualProductVerification();
+        APP_STATE.isAiAnalyzing = false;
+        return;
+    }
+
     if (!videoEl || videoEl.readyState < 2) {
-        alert("La cámara aún está cargando la vista previa. Espera un segundo.");
+        if (APP_STATE.aiConfig && APP_STATE.aiConfig.allowManualFallback) {
+            forceManualProductVerification();
+        } else {
+            alert("La cámara no ha enviado la imagen. Presiona 'Validar sin cámara'.");
+        }
         APP_STATE.isAiAnalyzing = false;
         return;
     }
@@ -904,18 +960,12 @@ async function captureAndAnalyzeImageWithAI() {
         ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
     }
 
-    const targetId = APP_STATE.currentTargetScanProduct;
-    const targetProduct = (APP_STATE.products || []).find(p => String(p.id) === String(targetId));
-
-    if (!targetProduct) {
-        alert("No se ha seleccionado ningún producto.");
-        APP_STATE.isAiAnalyzing = false;
-        return;
-    }
-
     try {
         const model = await loadAiVisionModel();
         let isMatched = false;
+
+        const sensitivityThreshold = (APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'high') ? 0.45 :
+                                     ((APP_STATE.aiConfig && APP_STATE.aiConfig.sensitivity === 'low') ? 0.15 : 0.25);
 
         if (model) {
             const predictions = await model.classify(videoEl);
@@ -932,7 +982,7 @@ async function captureAndAnalyzeImageWithAI() {
 
             isMatched = predictions.some(pred => {
                 const labelLower = pred.className.toLowerCase();
-                return expectedKeywords.some(kw => labelLower.includes(kw)) || pred.probability > 0.35;
+                return expectedKeywords.some(kw => labelLower.includes(kw)) || pred.probability > sensitivityThreshold;
             });
         } else {
             isMatched = true; 
@@ -948,17 +998,25 @@ async function captureAndAnalyzeImageWithAI() {
             simulateWrongProductAiScan();
         }
     } catch (err) {
-        playChimeSound(false);
-        closeScannerModal();
-        speakText(`¡Bien, encontraste el producto ${targetProduct.name}! Verifica el precio en la repisa.`);
-        APP_STATE.scannedItemsInStore[targetProduct.id] = true;
-        openShelfPriceConfirmation(targetProduct.id);
+        forceManualProductVerification();
     }
 
     APP_STATE.isAiAnalyzing = false;
     if (statusBox) {
         statusBox.innerHTML = `<p class="text-xs font-bold text-slate-600 text-center">Centra el producto en la pantalla y presiona el botón inferior para analizar con la IA.</p>`;
     }
+}
+
+function forceManualProductVerification() {
+    const targetId = APP_STATE.currentTargetScanProduct;
+    const targetProduct = (APP_STATE.products || []).find(p => String(p.id) === String(targetId));
+    if (!targetProduct) return;
+
+    playChimeSound(false);
+    closeScannerModal();
+    speakText(`¡Producto ${targetProduct.name} verificado! Revisa su precio en la góndola.`);
+    APP_STATE.scannedItemsInStore[targetProduct.id] = true;
+    openShelfPriceConfirmation(targetProduct.id);
 }
 
 function simulateWrongProductAiScan() {
@@ -1434,6 +1492,7 @@ function printCurrentMissionSheetFromViewer() {
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
+    if (tabName !== 'ai_config') stopAdminTestCameraStream();
     renderTeacherDashboard(document.getElementById('appContainer'));
 }
 
@@ -1550,21 +1609,24 @@ function renderTeacherDashboard(container) {
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 border-t border-slate-800">
-                    <button onclick="setTeacherTab('home')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'home' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 pt-2 border-t border-slate-800">
+                    <button onclick="setTeacherTab('home')" class="py-3 px-2 rounded-2xl font-black text-[11px] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'home' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
                         <span>📊</span><span>1. Evaluaciones IA</span>
                     </button>
-                    <button onclick="setTeacherTab('catalog')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'catalog' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                    <button onclick="setTeacherTab('catalog')" class="py-3 px-2 rounded-2xl font-black text-[11px] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'catalog' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
                         <span>🏪</span><span>2. Catálogo Tiendas</span>
                     </button>
-                    <button onclick="setTeacherTab('currency')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'currency' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>💵</span><span>3. Monedas & Fotos</span>
+                    <button onclick="setTeacherTab('ai_config')" class="py-3 px-2 rounded-2xl font-black text-[11px] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'ai_config' ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg border-2 border-purple-400 scale-105' : 'bg-slate-800 text-purple-300 hover:bg-slate-700'}">
+                        <span>🤖</span><span>3. Config. IA & Cámara</span>
                     </button>
-                    <button onclick="setTeacherTab('users')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'users' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>🔑</span><span>4. Gestión Usuarios</span>
+                    <button onclick="setTeacherTab('currency')" class="py-3 px-2 rounded-2xl font-black text-[11px] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'currency' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                        <span>💵</span><span>4. Monedas & Fotos</span>
                     </button>
-                    <button onclick="setTeacherTab('settings')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>⚙️</span><span>5. Equipo & Temas</span>
+                    <button onclick="setTeacherTab('users')" class="py-3 px-2 rounded-2xl font-black text-[11px] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'users' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                        <span>🔑</span><span>5. Gestión Usuarios</span>
+                    </button>
+                    <button onclick="setTeacherTab('settings')" class="py-3 px-2 rounded-2xl font-black text-[11px] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                        <span>⚙️</span><span>6. Equipo & Temas</span>
                     </button>
                 </div>
             </div>
@@ -1572,12 +1634,167 @@ function renderTeacherDashboard(container) {
             <div id="teacherTabContent">
                 ${activeTab === 'home' ? renderTeacherHomeTab() : ''}
                 ${activeTab === 'catalog' ? renderTeacherCatalogTab() : ''}
+                ${activeTab === 'ai_config' ? renderTeacherAiConfigTab() : ''}
                 ${activeTab === 'currency' ? renderTeacherCurrencyTab() : ''}
                 ${activeTab === 'users' ? renderTeacherUsersTab() : ''}
                 ${activeTab === 'settings' ? renderTeacherSettingsTab() : ''}
             </div>
         </div>
     `;
+}
+
+// ==========================================
+// NUEVO MÓDULO ADMINISTRADOR: CONFIGURACIÓN IA Y CÁMARA
+// ==========================================
+function renderTeacherAiConfigTab() {
+    const cfg = APP_STATE.aiConfig || DEFAULT_AI_CONFIG;
+    const isSecure = window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+    return `
+        <div class="bg-white p-6 rounded-3xl border-4 border-indigo-300 shadow-md space-y-6 max-w-4xl mx-auto">
+            <div class="border-b pb-3 flex justify-between items-center flex-wrap gap-2">
+                <div>
+                    <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
+                        <span>🤖</span> <span>Módulo de Configuración de Juego con Visión e IA</span>
+                    </h3>
+                    <p class="text-xs font-bold text-slate-500">Ajusta la sensibilidad de la cámara y diagnostica el sensor del dispositivo en vivo.</p>
+                </div>
+                <div class="px-3 py-1.5 rounded-xl border-2 text-xs font-black ${isSecure ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-rose-50 border-rose-300 text-rose-800'}">
+                    ${isSecure ? '🔒 Servidor Seguro (HTTPS Activo)' : '🔴 Servidor HTTP (Requiere HTTPS para Cámara en Celulares)'}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- COLUMNA 1: DIAGNÓSTICO DE CÁMARA EN VIVO -->
+                <div class="bg-slate-50 p-5 rounded-3xl border-2 border-slate-200 space-y-4">
+                    <h4 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                        <span>📷</span> <span>Probador de Cámara en Vivo</span>
+                    </h4>
+                    
+                    <div class="relative bg-black rounded-2xl h-48 overflow-hidden border-2 border-slate-700 flex items-center justify-center">
+                        <video id="adminTestVideo" playsinline webkit-playsinline muted autoplay class="w-full h-full object-cover"></video>
+                        <span id="adminTestCameraPlaceholder" class="text-xs text-slate-400 font-bold px-4 text-center">Toca "Iniciar Prueba" para encender el sensor de la cámara en este equipo.</span>
+                    </div>
+
+                    <div id="adminTestCameraStatus" class="p-2.5 bg-white border rounded-xl text-xs font-bold text-slate-600 text-center">
+                        Sensor inactivo.
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick="startAdminCameraTest()" class="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2.5 rounded-xl text-xs shadow active:scale-95">
+                            ▶️ Iniciar Prueba
+                        </button>
+                        <button onclick="stopAdminTestCameraStream()" class="w-1/2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-black py-2.5 rounded-xl text-xs active:scale-95">
+                            ⏹️ Apagar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- COLUMNA 2: REGLAS Y TOLERANCIA PEDAGÓGICA -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Modo de Operación de la IA:</label>
+                        <select id="aiSettingMode" class="w-full px-4 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-indigo-50 text-indigo-900">
+                            <option value="hybrid" ${cfg.mode === 'hybrid' ? 'selected' : ''}>Híbrido (IA + Botón de Pase Asistido)</option>
+                            <option value="strict" ${cfg.mode === 'strict' ? 'selected' : ''}>Estricto (Solo Visión IA)</option>
+                            <option value="permissive" ${cfg.mode === 'permissive' ? 'selected' : ''}>Permisivo / Simulado (Pase Automático para Aulas Complejas)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Sensibilidad del Modelo Neural:</label>
+                        <select id="aiSettingSensitivity" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs bg-white">
+                            <option value="high" ${cfg.sensitivity === 'high' ? 'selected' : ''}>Alta (Exige alta coincidencia con la repisa)</option>
+                            <option value="medium" ${cfg.sensitivity === 'medium' ? 'selected' : ''}>Media (Balance Estándar Recomendado)</option>
+                            <option value="low" ${cfg.sensitivity === 'low' ? 'selected' : ''}>Baja (Muy Permisivo / Acepta cualquier forma o caja)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Lente Preferido en Dispositivos Móviles:</label>
+                        <select id="aiSettingFacing" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs bg-white">
+                            <option value="environment" ${cfg.cameraFacing === 'environment' ? 'selected' : ''}>Cámara Trasera (Recomendado para góndolas)</option>
+                            <option value="user" ${cfg.cameraFacing === 'user' ? 'selected' : ''}>Cámara Frontal (Selfie)</option>
+                        </select>
+                    </div>
+
+                    <label class="flex items-center gap-2 p-3 bg-amber-50 border-2 border-amber-300 rounded-2xl cursor-pointer">
+                        <input type="checkbox" id="aiSettingManualFallback" ${cfg.allowManualFallback ? 'checked' : ''} class="w-4 h-4 text-amber-600 rounded">
+                        <span class="text-xs font-black text-amber-950">Mostrar siempre el botón amarillo "Validar sin cámara" para evitar que los alumnos queden bloqueados.</span>
+                    </label>
+
+                    <button onclick="saveAiGameConfiguration()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-2xl text-xs uppercase shadow-lg border-b-4 border-emerald-950 active:scale-95">
+                        💾 Guardar Configuración de IA
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function startAdminCameraTest() {
+    stopAdminTestCameraStream();
+    const videoEl = document.getElementById('adminTestVideo');
+    const placeholder = document.getElementById('adminTestCameraPlaceholder');
+    const statusBox = document.getElementById('adminTestCameraStatus');
+
+    if (!videoEl || !statusBox) return;
+
+    statusBox.textContent = "⌛ Accediendo al sensor de video...";
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: document.getElementById('aiSettingFacing')?.value || 'environment' },
+            audio: false
+        });
+
+        APP_STATE.adminTestStream = stream;
+        videoEl.srcObject = stream;
+        await videoEl.play();
+
+        if (placeholder) placeholder.classList.add('hidden');
+        statusBox.textContent = "✅ Cámara conectada y transmitiendo en vivo correctamente.";
+        statusBox.className = "p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-xs font-black text-emerald-800 text-center";
+    } catch (err) {
+        console.error("Error en prueba de cámara:", err);
+        statusBox.textContent = `❌ Fallo de cámara: ${err.message || 'Permiso denegado o HTTP inseguro'}`;
+        statusBox.className = "p-2.5 bg-rose-50 border border-rose-300 rounded-xl text-xs font-black text-rose-800 text-center";
+    }
+}
+
+function stopAdminTestCameraStream() {
+    if (APP_STATE.adminTestStream) {
+        APP_STATE.adminTestStream.getTracks().forEach(t => t.stop());
+        APP_STATE.adminTestStream = null;
+    }
+    const placeholder = document.getElementById('adminTestCameraPlaceholder');
+    const statusBox = document.getElementById('adminTestCameraStatus');
+    if (placeholder) placeholder.classList.remove('hidden');
+    if (statusBox) {
+        statusBox.textContent = "Sensor inactivo.";
+        statusBox.className = "p-2.5 bg-white border rounded-xl text-xs font-bold text-slate-600 text-center";
+    }
+}
+
+function saveAiGameConfiguration() {
+    const newCfg = {
+        mode: document.getElementById('aiSettingMode').value,
+        sensitivity: document.getElementById('aiSettingSensitivity').value,
+        cameraFacing: document.getElementById('aiSettingFacing').value,
+        allowManualFallback: document.getElementById('aiSettingManualFallback').checked
+    };
+
+    APP_STATE.aiConfig = newCfg;
+
+    if (db) {
+        db.collection('settings').doc('ai_config').set(newCfg, { merge: true }).then(() => {
+            alert("✅ Configuración de IA y Cámara guardada correctamente.");
+            renderApp();
+        });
+    } else {
+        alert("✅ Configuración aplicada localmente.");
+        renderApp();
+    }
 }
 
 function renderTeacherHomeTab() {
@@ -2514,6 +2731,14 @@ function initFirebaseListeners() {
         db.collection('settings').doc('institutional').onSnapshot(
             doc => {
                 if (doc.exists) APP_STATE.settings = { ...DEFAULT_SETTINGS, ...doc.data() };
+                renderApp();
+            },
+            () => renderApp()
+        );
+
+        db.collection('settings').doc('ai_config').onSnapshot(
+            doc => {
+                if (doc.exists) APP_STATE.aiConfig = { ...DEFAULT_AI_CONFIG, ...doc.data() };
                 renderApp();
             },
             () => renderApp()
