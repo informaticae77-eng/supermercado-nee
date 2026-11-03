@@ -72,7 +72,6 @@ const SEASONAL_THEMES = {
     }
 };
 
-// OPCIONES DE EQUIPOS PARA SELECCIÓN RÁPIDA
 const TEAM_NAME_PRESETS = [
     "Equipo Multidisciplinario",
     "Programa de Integración Escolar (PIE)",
@@ -384,6 +383,14 @@ function goHome() {
     renderApp();
 }
 
+function autoStartMission() {
+    if ((APP_STATE.supermarkets || []).length > 0) {
+        selectSupermarket(APP_STATE.supermarkets[0].id);
+    } else {
+        alert("Aún no hay supermercados disponibles. Consulta con tu profesor.");
+    }
+}
+
 // ==========================================
 // VISTA ESTUDIANTE Y MISIÓN EN SALA
 // ==========================================
@@ -391,9 +398,37 @@ function renderHomeView(container) {
     const activeThemeKey = APP_STATE.settings.activeTheme || 'standard';
     const theme = SEASONAL_THEMES[activeThemeKey] || SEASONAL_THEMES.standard;
     const mascot = APP_STATE.settings.mascotUrl;
+    const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
+
+    // BANNER DE MISIÓN ACTIVA DESTACADA PARA EL ESTUDIANTE
+    let studentMissionBanner = '';
+    if (APP_STATE.activeMission && APP_STATE.activeMission.itemIds) {
+        const itemCount = APP_STATE.activeMission.itemIds.length;
+        studentMissionBanner = `
+            <div class="bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-900 p-6 rounded-3xl shadow-2xl border-4 border-amber-300 space-y-3 animate-pulse">
+                <div class="flex items-center justify-between flex-wrap gap-4">
+                    <div class="flex items-center gap-3">
+                        <span class="text-4xl sm:text-5xl">🎯</span>
+                        <div>
+                            <span class="bg-slate-900 text-amber-300 font-black px-3 py-1 rounded-full text-xs uppercase tracking-wider inline-block mb-1">
+                                🔴 ¡TIENES UNA MISIÓN ACTIVA EN SALA!
+                            </span>
+                            <h3 class="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">${APP_STATE.activeMission.title}</h3>
+                            <p class="text-xs font-bold text-slate-800">Asignada por tu ${teamLabel} • ${itemCount} productos en la lista</p>
+                        </div>
+                    </div>
+                    <button onclick="autoStartMission()" class="w-full sm:w-auto bg-slate-900 hover:bg-black text-white font-black text-lg px-6 py-4 rounded-2xl shadow-xl border-b-4 border-slate-950 active:scale-95 flex items-center justify-center gap-2">
+                        <span>🛒</span> <span>¡COMENZAR MISIÓN AHORA!</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
 
     container.innerHTML = `
         <div class="space-y-6">
+            ${studentMissionBanner}
+
             <div class="${theme.bannerBg} p-6 rounded-3xl shadow-xl flex justify-between items-center relative overflow-hidden border-4 border-white/30">
                 <div class="space-y-2 z-10">
                     <h2 class="text-2xl sm:text-4xl font-black ${theme.bannerText}">${theme.titleMsg}</h2>
@@ -1115,7 +1150,7 @@ function closeSuccessModalAndFinish() {
 }
 
 // ==========================================
-// PANEL DOCENTE Y MISIÓN ACTIVA
+// PANEL DOCENTE Y MISIÓN ACTIVA (TIEMPO REAL)
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -1148,14 +1183,22 @@ function activateMissionForStudents() {
     if (checked.length === 0) return alert("Selecciona al menos un producto para la misión.");
 
     const title = document.getElementById('missionTitleInput').value.trim() || 'Misión de Compra';
-    APP_STATE.activeMission = {
+    const missionObj = {
         id: 'mission-' + Date.now(),
         title: title,
-        itemIds: checked
+        itemIds: checked,
+        active: true
     };
 
+    APP_STATE.activeMission = missionObj;
+
+    // GUARDAR Y TRANSMITIR A TODOS LOS ESTUDIANTES EN FIREBASE
+    if (db) {
+        db.collection('settings').doc('activeMission').set(missionObj);
+    }
+
     closeMissionModal();
-    alert(`✅ Misión "${title}" activada para los estudiantes.`);
+    alert(`✅ Misión "${title}" activada para todos los estudiantes.`);
     renderApp();
 }
 
@@ -1163,6 +1206,9 @@ function cancelActiveMission() {
     if (confirm("¿Deseas finalizar la misión activa en sala?")) {
         APP_STATE.activeMission = null;
         APP_STATE.classroomMode = 'PREP';
+        if (db) {
+            db.collection('settings').doc('activeMission').delete();
+        }
         renderApp();
     }
 }
@@ -1237,7 +1283,7 @@ function renderTeacherDashboard(container) {
     const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
 
     let activeMissionAlertBanner = '';
-    if (APP_STATE.activeMission) {
+    if (APP_STATE.activeMission && APP_STATE.activeMission.itemIds) {
         activeMissionAlertBanner = `
             <div class="bg-rose-600 text-white p-4 rounded-2xl shadow-lg border-4 border-rose-800 flex justify-between items-center flex-wrap gap-2 animate-pulse">
                 <div class="flex items-center gap-2">
@@ -1758,7 +1804,6 @@ function renderUserRoleList(role) {
     `).join('');
 }
 
-// TARJETA DE CONFIGURACIÓN DINÁMICA DE NOMBRE DE EQUIPO Y PLANTILLA
 function renderTeacherSettingsTab() {
     const st = APP_STATE.settings || DEFAULT_SETTINGS;
     const currentTeamName = st.teamName || 'Equipo Multidisciplinario';
@@ -1772,7 +1817,6 @@ function renderTeacherSettingsTab() {
                 <p class="text-xs font-bold text-slate-500">Personaliza el nombre de tu equipo (Multidisciplinario, PIE, Inclusión, etc.) y los logos institucionales.</p>
             </div>
 
-            <!-- TARJETA DESTACADA: NOMBRE DEL EQUIPO PROFESIONAL -->
             <div class="p-5 bg-indigo-50 border-4 border-indigo-300 rounded-3xl space-y-4">
                 <div class="flex items-center gap-3">
                     <span class="text-3xl">👥</span>
@@ -2266,7 +2310,7 @@ function deleteCourse(courseId) {
 }
 
 // ==========================================
-// ESCUCHADORES FIRESTORE
+// ESCUCHADORES FIRESTORE (TEMPO REAL)
 // ==========================================
 function initFirebaseListeners() {
     try {
@@ -2307,7 +2351,20 @@ function initFirebaseListeners() {
     listenCol('products', data => { APP_STATE.products = data || []; });
     listenCol('evaluations', data => { APP_STATE.evaluations = data || []; });
 
+    // ESCUCHADOR EN TIEMPO REAL PARA MISIÓN ACTIVA EN SALA
     try {
+        db.collection('settings').doc('activeMission').onSnapshot(
+            doc => {
+                if (doc.exists && doc.data() && doc.data().itemIds) {
+                    APP_STATE.activeMission = doc.data();
+                } else {
+                    APP_STATE.activeMission = null;
+                }
+                renderApp();
+            },
+            err => renderApp()
+        );
+
         db.collection('settings').doc('institutional').onSnapshot(
             doc => {
                 if (doc.exists) APP_STATE.settings = { ...DEFAULT_SETTINGS, ...doc.data() };
