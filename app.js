@@ -163,6 +163,7 @@ const APP_STATE = {
     telemetry: { voiceHelpCount: 0 },
     missionStartTime: null,
     html5QrcodeScanner: null,
+    isScanProcessing: false,
     
     // ESTADO DE MISIÓN Y EVALUACIÓN DE AUTONOMÍA
     activeMission: null,          
@@ -598,7 +599,7 @@ function renderSupermarketView(container, supId) {
                             <span class="text-3xl">📋</span>
                             <div>
                                 <h3 class="text-base font-black text-indigo-950">Ficha Activa: "${APP_STATE.activeMission.title}"</h3>
-                                <p class="text-xs font-bold text-slate-600">Revisa tu hoja impresa, añade los productos al canasto y presiona comprobar. Si te equivocas, puedes quitar el producto presionando el botón rojo.</p>
+                                <p class="text-xs font-bold text-slate-600">Revisa tu hoja impresa, añade los productos al canasto y presiona comprobar. Si te equivocaste, puedes quitar el producto presionando el botón rojo.</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-3 w-full sm:w-auto">
@@ -763,14 +764,14 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// CONTROL ROBUSTO DE CÁMARA Y ESCÁNER DE CÓDIGO
+// CONTROL ROBUSTO DE CÁMARA Y ESCÁNER DE CÓDIGO (1D / EAN-13 / QR)
 // ==========================================
 function verifyTerrenoProduct(productId) {
     const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
     if (!prod) return;
 
     APP_STATE.currentTargetScanProduct = prod.id;
-    speakText(`Apunta la cámara al producto ${prod.name} para verificarlo.`);
+    speakText(`Apunta la cámara al código de barra del producto ${prod.name}.`);
     openScannerModal(prod.id);
 }
 
@@ -778,10 +779,10 @@ function openScannerModal(targetProductId = null) {
     if (targetProductId) {
         APP_STATE.currentTargetScanProduct = targetProductId;
     }
+    APP_STATE.isScanProcessing = false;
     const modal = document.getElementById('scannerModal');
     if (modal) modal.classList.remove('hidden');
 
-    // Esperar a que el modal se renderice en el DOM antes de encender la cámara
     setTimeout(() => {
         startCameraScanner();
     }, 300);
@@ -800,11 +801,10 @@ async function startCameraScanner() {
     if (laser) laser.classList.remove('hidden');
 
     if (typeof Html5Qrcode === 'undefined') {
-        showCameraError("Librería de cámara no cargada en la página.");
+        showCameraError("Librería de escáner no cargada en la página.");
         return;
     }
 
-    // Si ya existe una instancia corriendo, la detenemos antes de reactivar
     if (APP_STATE.html5QrcodeScanner) {
         try {
             await APP_STATE.html5QrcodeScanner.stop();
@@ -820,14 +820,29 @@ async function initHtml5Qrcode() {
     if (!scannerDiv) return;
 
     try {
-        APP_STATE.html5QrcodeScanner = new Html5Qrcode("qrScannerReader");
+        // Formatos de códigos de barra 1D soportados explícitamente para productos de supermercado
+        let formatsToSupport;
+        if (typeof Html5QrcodeSupportedFormats !== 'undefined') {
+            formatsToSupport = [
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.CODE_39,
+                Html5QrcodeSupportedFormats.QR_CODE
+            ];
+        }
 
-        // 1. Intentar detectar dispositivos / cámaras conectadas
+        APP_STATE.html5QrcodeScanner = new Html5Qrcode("qrScannerReader", {
+            formatsToSupport: formatsToSupport,
+            verbose: false
+        });
+
         const devices = await Html5Qrcode.getCameras().catch(() => []);
         let cameraConfig;
 
         if (devices && devices.length > 0) {
-            // Buscar cámara trasera por nombre o usar la primera que responda
             const backCam = devices.find(d => 
                 d.label.toLowerCase().includes('back') || 
                 d.label.toLowerCase().includes('rear') || 
@@ -835,32 +850,44 @@ async function initHtml5Qrcode() {
             );
             cameraConfig = backCam ? backCam.id : devices[0].id;
         } else {
-            // Regla por defecto si no se enumeran los nombres
             cameraConfig = { facingMode: "environment" };
         }
 
-        // 2. Iniciar escaneo con configuración flexible
+        // Configuración optimizada para lectura de códigos de barra lineales (EAN-13)
+        const scanConfig = {
+            fps: 15,
+            qrbox: { width: 280, height: 140 }, // Recuadro rectangular adaptado a barras horizontales
+            aspectRatio: 1.333333,
+            experimentalFeatures: {
+                useBarCodeDetectorIfSupported: true // Utiliza aceleración de lectura de barras nativa del SO
+            },
+            videoConstraints: {
+                focusMode: "continuous",
+                width: { min: 640, ideal: 1280 },
+                height: { min: 480, ideal: 720 }
+            }
+        };
+
         await APP_STATE.html5QrcodeScanner.start(
             cameraConfig,
-            { fps: 10, qrbox: { width: 220, height: 220 } },
+            scanConfig,
             (decodedText) => onProductScanned(decodedText),
             () => {}
         );
     } catch (err) {
-        console.warn("No se pudo iniciar con cámara principal. Probando modo alternativo:", err);
-        // Fallback a cámara frontal/webcam si la trasera falla o es bloqueada
+        console.warn("Fallo al iniciar escáner principal. Probando modo alternativo...", err);
         try {
             if (APP_STATE.html5QrcodeScanner) {
                 await APP_STATE.html5QrcodeScanner.start(
                     { facingMode: "user" },
-                    { fps: 10, qrbox: { width: 220, height: 220 } },
+                    { fps: 15, qrbox: { width: 280, height: 140 } },
                     (decodedText) => onProductScanned(decodedText),
                     () => {}
                 );
             }
         } catch (err2) {
-            console.error("Error definitivo al encender cámara:", err2);
-            showCameraError("No se pudo abrir la cámara. Asegúrate de otorgar permisos o usar HTTPS.");
+            console.error("Error definitivo en cámara:", err2);
+            showCameraError("No se pudo iniciar la cámara para lectura. Asegúrate de permitir su uso o prueba simular el escaneo.");
         }
     }
 }
@@ -899,8 +926,12 @@ function showCameraError(msg) {
 }
 
 function onProductScanned(scannedCode) {
+    if (APP_STATE.isScanProcessing) return;
+    APP_STATE.isScanProcessing = true;
+
     const cleanCode = String(scannedCode).trim().toLowerCase();
     
+    // Buscar si el código coincide con el código, ID o código asignado del catálogo
     const foundProduct = (APP_STATE.products || []).find(p => 
         String(p.id).toLowerCase() === cleanCode ||
         String(p.code || '').toLowerCase() === cleanCode ||
@@ -911,23 +942,33 @@ function onProductScanned(scannedCode) {
     const targetProduct = targetId ? (APP_STATE.products || []).find(p => String(p.id) === String(targetId)) : null;
 
     if (targetProduct) {
+        // Caso 1: El producto escaneado coincide con la meta de la misión
         if (foundProduct && String(foundProduct.id) === String(targetProduct.id)) {
             playChimeSound(false);
             closeScannerModal();
             speakText(`¡Excelente! Reconociste el producto ${targetProduct.name}. Ahora revisa el precio en la repisa.`);
             openShelfPriceConfirmation(targetProduct.id);
-        } else {
+        } 
+        // Caso 2: Es la primera vez que se escanea este envase físico para el producto objetivo
+        else if (!foundProduct && (!targetProduct.code || targetProduct.code === targetProduct.id || targetProduct.code.length < 5)) {
+            bindBarcodeToProduct(scannedCode, targetProduct.id);
+        } 
+        // Caso 3: Error por producto equivocado (ej. escaneó Jabón Líquido en vez de Harina)
+        else {
             APP_STATE.classroomErrorsCount++;
             playChimeSound(true);
             
             const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
-            const scannedName = foundProduct ? foundProduct.name : 'otro producto';
+            const scannedName = foundProduct ? foundProduct.name : `Código ${scannedCode}`;
             
             const errSpeech = `Este no es el producto que estamos buscando. Te equivocaste, inténtalo nuevamente.`;
             speakText(errSpeech);
             
             alert(`⚠️ ¡PRODUCTO INCORRECTO!\n\nEscaneaste: "${scannedName}".\nBuscabas: "${targetProduct.name}".\n\nEste no es el producto que estamos buscando. Te equivocaste, inténtalo nuevamente.\n\n📉 Puntuación actual: ${currentScore}%`);
             
+            setTimeout(() => {
+                APP_STATE.isScanProcessing = false;
+            }, 2000);
             renderApp();
         }
     } else {
@@ -1055,7 +1096,7 @@ function bindBarcodeToProduct(barcode, productId) {
     }
 
     playChimeSound();
-    speakText(`¡Excelente! Ahora este código es ${targetProduct.name}.`);
+    speakText(`¡Excelente! Vinculaste este envase con el producto ${targetProduct.name}.`);
     closeScannerModal();
     openShelfPriceConfirmation(targetProduct.id);
 }
@@ -1636,972 +1677,4 @@ function renderTeacherDashboard(container) {
                         <button onclick="openMissionModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-4 py-2 rounded-xl shadow border-b-2 border-indigo-900 flex items-center gap-2 active:scale-95">
                             <span>📋</span><span>Crear / Activar Misión</span>
                         </button>
-                        <button onclick="toggleStudentPreview(true)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-4 py-2 rounded-xl shadow border-b-2 border-amber-600 flex items-center gap-2 active:scale-95">
-                            <span>🕹️</span><span>Probar Juego</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 border-t border-slate-800">
-                    <button onclick="setTeacherTab('home')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'home' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>📊</span><span>1. Evaluaciones IA</span>
-                    </button>
-                    <button onclick="setTeacherTab('catalog')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'catalog' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>🏪</span><span>2. Catálogo Tiendas</span>
-                    </button>
-                    <button onclick="setTeacherTab('currency')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'currency' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>💵</span><span>3. Monedas & Fotos</span>
-                    </button>
-                    <button onclick="setTeacherTab('users')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'users' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>🔑</span><span>4. Gestión Usuarios</span>
-                    </button>
-                    <button onclick="setTeacherTab('settings')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>⚙️</span><span>5. Equipo & Temas</span>
-                    </button>
-                </div>
-            </div>
-
-            <div id="teacherTabContent">
-                ${activeTab === 'home' ? renderTeacherHomeTab() : ''}
-                ${activeTab === 'catalog' ? renderTeacherCatalogTab() : ''}
-                ${activeTab === 'currency' ? renderTeacherCurrencyTab() : ''}
-                ${activeTab === 'users' ? renderTeacherUsersTab() : ''}
-                ${activeTab === 'settings' ? renderTeacherSettingsTab() : ''}
-            </div>
-        </div>
-    `;
-}
-
-function renderTeacherHomeTab() {
-    const totalEvals = (APP_STATE.evaluations || []).length;
-    const avgTime = totalEvals > 0 ? Math.round(APP_STATE.evaluations.reduce((a, e) => a + (e.timeSeconds || 0), 0) / totalEvals) : 0;
-    const totalVoiceHelp = APP_STATE.telemetry ? APP_STATE.telemetry.voiceHelpCount || 0 : 0;
-
-    return `
-        <div class="space-y-6">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-white p-4 rounded-3xl border-4 border-indigo-200 shadow-sm flex items-center justify-between">
-                    <div>
-                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Evaluaciones Totales</span>
-                        <span class="text-2xl font-black text-indigo-950">${totalEvals}</span>
-                    </div>
-                    <div class="bg-indigo-100 text-indigo-600 p-3 rounded-2xl text-xl">🛍️</div>
-                </div>
-                <div class="bg-white p-4 rounded-3xl border-4 border-emerald-200 shadow-sm flex items-center justify-between">
-                    <div>
-                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Tiempo Promedio</span>
-                        <span class="text-2xl font-black text-emerald-700">${Math.floor(avgTime / 60)}m ${avgTime % 60}s</span>
-                    </div>
-                    <div class="bg-emerald-100 text-emerald-600 p-3 rounded-2xl text-xl">⏱️</div>
-                </div>
-                <div class="bg-white p-4 rounded-3xl border-4 border-amber-200 shadow-sm flex items-center justify-between">
-                    <div>
-                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Alumnos Registrados</span>
-                        <span class="text-2xl font-black text-amber-900">${(APP_STATE.users || []).filter(u => u.role === 'student').length}</span>
-                    </div>
-                    <div class="bg-amber-100 text-amber-600 p-3 rounded-2xl text-xl">🎒</div>
-                </div>
-                <div class="bg-white p-4 rounded-3xl border-4 border-sky-200 shadow-sm flex items-center justify-between">
-                    <div>
-                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Lecturas por Voz</span>
-                        <span class="text-2xl font-black text-sky-800">${totalVoiceHelp}</span>
-                    </div>
-                    <div class="bg-sky-100 text-sky-600 p-3 rounded-2xl text-xl">🔊</div>
-                </div>
-            </div>
-
-            <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-md space-y-4">
-                <div class="border-b pb-3">
-                    <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
-                        <span>✨</span> <span>Histórico de Evaluaciones e Informes Psicopedagógicos</span>
-                    </h3>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs">
-                        <thead>
-                            <tr class="border-b-2 border-slate-200 text-slate-500 uppercase font-black">
-                                <th class="py-2.5 px-3">Fecha</th>
-                                <th class="py-2.5 px-3">Estudiante</th>
-                                <th class="py-2.5 px-3">Tienda</th>
-                                <th class="py-2.5 px-3">Total / Pago</th>
-                                <th class="py-2.5 px-3 text-center">Intentos / Errores</th>
-                                <th class="py-2.5 px-3 text-center">Logro</th>
-                                <th class="py-2.5 px-3 text-center">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 font-bold">
-                            ${totalEvals === 0 ? `
-                                <tr>
-                                    <td colspan="7" class="py-8 text-center text-slate-400 italic">No hay evaluaciones registradas. Realiza una compra para generar informes.</td>
-                                </tr>
-                            ` : (APP_STATE.evaluations || []).map(e => `
-                                <tr class="hover:bg-slate-50">
-                                    <td class="py-3 px-3 text-slate-500">${e.date || 'Reciente'}</td>
-                                    <td class="py-3 px-3 font-black text-indigo-950">${e.studentName || 'Estudiante'}</td>
-                                    <td class="py-3 px-3">${e.supermarketName || 'Supermercado'}</td>
-                                    <td class="py-3 px-3">
-                                        <div class="font-black text-emerald-700">$${(e.totalCLP || 0).toLocaleString('es-CL')}</div>
-                                    </td>
-                                    <td class="py-3 px-3 text-center text-rose-600 font-black">${e.classroomErrorsCount || 0} error(es)</td>
-                                    <td class="py-3 px-3 text-center font-black text-amber-600">⭐ ${e.pointsEarned || 100}%</td>
-                                    <td class="py-3 px-3 text-center">
-                                        <button onclick="generateAIPedagogicalReport('${e.id}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-3 py-1.5 rounded-xl text-xs shadow-sm">
-                                            ✨ Generar Informe IA
-                                        </button>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function generateAIPedagogicalReport(evalId) {
-    const ev = (APP_STATE.evaluations || []).find(x => String(x.id) === String(evalId));
-    if (!ev) return alert("Evaluación no encontrada.");
-
-    const st = APP_STATE.settings || DEFAULT_SETTINGS;
-    const teamLabel = st.teamName || 'Equipo Multidisciplinario';
-    const paid = ev.paidCLP || 0;
-    const total = ev.totalCLP || 0;
-    const change = ev.changeCLP || 0;
-    const classroomErrors = ev.classroomErrorsCount || 0;
-    const priceAdjustments = ev.priceAdjustmentsCount || 0;
-
-    let nivelAutonomia = "Alto / Independiente (100% de logro)";
-    if (classroomErrors === 1) nivelAutonomia = "Adecuado / Con 1 Apoyo Puntual (85% de logro)";
-    if (classroomErrors === 2) nivelAutonomia = "En Proceso de Autonomía (70% de logro)";
-    if (classroomErrors >= 3) nivelAutonomia = "Requiere Acompañamiento Intensivo (Menos de 50% de logro)";
-
-    const reportHtml = `
-        <div id="printableReport" class="bg-white p-8 max-w-4xl mx-auto border border-slate-300 shadow-2xl rounded-2xl font-sans text-slate-800 space-y-6">
-            <div class="flex justify-between items-center border-b-4 border-indigo-600 pb-4">
-                <div>
-                    <h1 class="text-xl font-black text-indigo-950 uppercase">${st.schoolName}</h1>
-                    <p class="text-xs font-bold text-indigo-700">${st.schoolSubHeader} • ${teamLabel}</p>
-                </div>
-                ${st.schoolLogo ? `<img src="${st.schoolLogo}" class="h-16 object-contain">` : `<span class="text-3xl">🏫</span>`}
-            </div>
-
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-2xl border text-xs font-bold">
-                <div><span class="text-slate-400 block text-[10px] uppercase">Estudiante:</span> ${ev.studentName}</div>
-                <div><span class="text-slate-400 block text-[10px] uppercase">RUT:</span> ${ev.rut || 'N/A'}</div>
-                <div><span class="text-slate-400 block text-[10px] uppercase">Fecha:</span> ${ev.date || 'Reciente'}</div>
-                <div><span class="text-slate-400 block text-[10px] uppercase">Tienda:</span> ${ev.supermarketName}</div>
-            </div>
-
-            <div class="grid grid-cols-4 gap-3 text-center">
-                <div class="p-3 bg-emerald-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-emerald-800">Total Compra</span><div class="text-base font-black text-emerald-700">$${total.toLocaleString('es-CL')}</div></div>
-                <div class="p-3 bg-indigo-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-indigo-800">Pagó</span><div class="text-base font-black text-indigo-900">$${paid.toLocaleString('es-CL')}</div></div>
-                <div class="p-3 bg-amber-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-amber-900">Vuelto</span><div class="text-base font-black text-amber-800">$${change.toLocaleString('es-CL')}</div></div>
-                <div class="p-3 bg-sky-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-sky-900">Porcentaje Logro</span><div class="text-base font-black text-amber-600">⭐ ${ev.pointsEarned || 100}%</div></div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 text-xs font-bold">
-                <div class="p-3 bg-slate-50 rounded-xl border">
-                    <span class="text-slate-500 block text-[10px] uppercase">Intentos Fallidos / Errores Cometidos:</span>
-                    <span class="text-base font-black ${classroomErrors > 0 ? 'text-rose-600' : 'text-emerald-600'}">${classroomErrors} desacierto(s) detectado(s)</span>
-                </div>
-                <div class="p-3 bg-slate-50 rounded-xl border">
-                    <span class="text-slate-500 block text-[10px] uppercase">Diferencia de Precios en Góndola:</span>
-                    <span class="text-base font-black text-indigo-900">${priceAdjustments} cambio(s) de precio corregidos</span>
-                </div>
-            </div>
-
-            <div class="p-4 bg-indigo-50 border rounded-2xl text-xs space-y-2">
-                <div class="font-black text-indigo-950">Diagnóstico de Autonomía Funcional: ${nivelAutonomia}</div>
-                <p class="text-slate-700">El estudiante seleccionó su supermercado de preferencia, organizó su canasto según la lista impresa, realizó la comprobación interactiva con escaneo de cámara y reconoció el pago con moneda nacional.</p>
-            </div>
-        </div>
-    `;
-
-    const reportModal = document.getElementById('aiReportModal');
-    const container = document.getElementById('aiReportContainer');
-    if (container && reportModal) {
-        container.innerHTML = reportHtml;
-        window.currentReportEvalId = evalId;
-        reportModal.classList.remove('hidden');
-    }
-}
-
-function closeAIReportModal() {
-    const reportModal = document.getElementById('aiReportModal');
-    if (reportModal) reportModal.classList.add('hidden');
-}
-
-function printCurrentReport() {
-    const reportContent = document.getElementById('printableReport')?.outerHTML;
-    if (!reportContent) return;
-
-    const win = window.open('', '_blank');
-    win.document.write(`
-        <html>
-            <head>
-                <title>Informe Pedagógico PDF</title>
-                <script src="https://cdn.tailwindcss.com"></script>
-            </head>
-            <body class="bg-white p-6">
-                ${reportContent}
-                <script>setTimeout(() => { window.print(); window.close(); }, 750);</script>
-            </body>
-        </html>
-    `);
-    win.document.close();
-}
-
-function sendReportByEmail() {
-    const ev = (APP_STATE.evaluations || []).find(x => String(x.id) === String(window.currentReportEvalId));
-    if (!ev) return alert("Selecciona un informe válido.");
-    const destEmail = prompt("Ingresa el correo del apoderado:");
-    if (!destEmail) return;
-
-    if (typeof emailjs !== 'undefined') {
-        emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
-            to_email: destEmail,
-            to_name: ev.studentName,
-            user_rut: ev.rut || 'N/A',
-            user_pin: 'Informe Pedagógico Disponible',
-            app_url: window.location.href
-        }, EMAILJS_CONFIG.publicKey).then(() => alert("📧 Informe enviado con éxito.")).catch(e => alert("Error: " + e.message));
-    }
-}
-
-// ==========================================
-// CATÁLOGO DOCENTE
-// ==========================================
-function renderTeacherCatalogTab() {
-    return `
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="bg-white p-5 rounded-3xl border-4 border-emerald-300 shadow-md space-y-4">
-                <div class="flex justify-between items-center border-b pb-3">
-                    <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
-                        <span>🏪</span> <span>Supermercados (${(APP_STATE.supermarkets || []).length})</span>
-                    </h3>
-                    <button onclick="openSupermarketModal()" class="bg-emerald-600 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Tienda</button>
-                </div>
-                <div class="space-y-2 max-h-96 overflow-y-auto">
-                    ${(APP_STATE.supermarkets || []).length === 0 ? `
-                        <p class="text-xs text-slate-400 italic py-4 text-center">No hay supermercados creados.</p>
-                    ` : (APP_STATE.supermarkets || []).map(s => {
-                        const logo = s.photoUrl || s.photo || s.logoUrl || '';
-                        const imgHtml = logo 
-                            ? `<img src="${logo}" class="w-8 h-8 object-contain rounded-lg border bg-white p-0.5">`
-                            : `<span class="text-base">${s.icon || '🏪'}</span>`;
-                        return `
-                            <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
-                                <div class="flex items-center gap-2">
-                                    ${imgHtml}
-                                    <span class="font-black text-slate-800">${s.name}</span>
-                                </div>
-                                <div class="flex items-center gap-1">
-                                    <button onclick="openSupermarketModal('${s.id}')" class="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-xl text-[10px]">✏️ Editar</button>
-                                    <button onclick="deleteSupermarket('${s.id}')" class="bg-rose-100 text-rose-900 px-2 py-1 rounded-xl text-[10px]">✕</button>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-
-            <div class="bg-white p-5 rounded-3xl border-4 border-indigo-300 shadow-md space-y-4">
-                <div class="flex justify-between items-center border-b pb-3">
-                    <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
-                        <span>🏷️</span> <span>Categorías (${(APP_STATE.categories || []).length})</span>
-                    </h3>
-                    <button onclick="openCategoryModal()" class="bg-indigo-600 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Categoría</button>
-                </div>
-                <div class="space-y-2 max-h-96 overflow-y-auto">
-                    ${(APP_STATE.categories || []).length === 0 ? `
-                        <p class="text-xs text-slate-400 italic py-4 text-center">No hay categorías creadas.</p>
-                    ` : (APP_STATE.categories || []).map(c => `
-                        <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
-                            <span class="font-black text-slate-800">${c.icon || '🏷️'} ${c.name}</span>
-                            <button onclick="deleteCategory('${c.id}')" class="text-rose-600 font-bold px-2 py-1 rounded-lg bg-rose-50 text-[10px]">✕</button>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-
-            <div class="bg-white p-5 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
-                <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
-                    <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
-                        <span>📦</span> <span>Productos (${(APP_STATE.products || []).length})</span>
-                    </h3>
-                    <button onclick="openProductModal()" class="bg-amber-500 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Producto</button>
-                </div>
-                <div class="space-y-2 max-h-96 overflow-y-auto">
-                    ${(APP_STATE.products || []).length === 0 ? `
-                        <p class="text-xs text-slate-400 italic py-4 text-center">No hay productos en el catálogo.</p>
-                    ` : (APP_STATE.products || []).map(p => {
-                        const isAll = p.isAll === true || p.supermarketId === 'ALL' || p.supermarketName === 'TODOS';
-                        let supBadge = isAll 
-                            ? `<span class="inline-block bg-sky-100 text-sky-900 text-[10px] font-black px-2 py-0.5 rounded-md my-0.5">🌐 Todos los supermercados</span>`
-                            : `<span class="inline-block bg-amber-100 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded-md my-0.5">🏪 Solo en: ${(APP_STATE.supermarkets || []).find(s => String(s.id) === String(p.supermarketId))?.name || 'Supermercado'}</span>`;
-
-                        const imgUrl = p.photoUrl || p.photo || p.image || '';
-                        const photoThumb = imgUrl 
-                            ? `<img src="${imgUrl}" class="w-10 h-10 object-cover rounded-xl border border-slate-300">`
-                            : `<div class="w-10 h-10 bg-slate-200 rounded-xl flex items-center justify-center text-lg">📦</div>`;
-
-                        return `
-                            <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold gap-2">
-                                <div class="flex items-center gap-2">
-                                    ${photoThumb}
-                                    <div>
-                                        <span class="font-black text-slate-800 block">${p.name}</span>
-                                        <span class="bg-indigo-100 text-indigo-900 text-[9px] font-black px-1.5 py-0.5 rounded">ID: ${p.code || p.id}</span>
-                                        <span class="text-emerald-700 font-black inline-block ml-1">$${(p.price || 0).toLocaleString('es-CL')}</span>
-                                        <div>${supBadge}</div>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-1">
-                                    <button onclick="openProductModal('${p.id}')" class="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-xl text-[10px]">✏️ Editar</button>
-                                    <button onclick="deleteProduct('${p.id}')" class="bg-rose-100 text-rose-900 px-2 py-1 rounded-xl text-[10px]">✕</button>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function renderTeacherCurrencyTab() {
-    return `
-        <div class="bg-white p-6 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
-            <div class="border-b pb-3">
-                <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                    <span>💵</span> <span>Billetes y Monedas Chilenas (CLP)</span>
-                </h3>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                ${CLP_CURRENCY_ITEMS.map(item => {
-                    const currentImg = APP_STATE.customCurrencies[item.id] || item.img;
-                    const isCustom = !!APP_STATE.customCurrencies[item.id];
-                    return `
-                        <div class="p-4 bg-slate-50 border-2 border-slate-200 rounded-3xl flex flex-col items-center text-center space-y-3 shadow-sm">
-                            <span class="text-xs font-black text-slate-800">${item.name}</span>
-                            <div class="h-24 w-full flex items-center justify-center p-1 bg-white rounded-2xl border">
-                                <img src="${currentImg}" class="max-h-full max-w-full object-contain">
-                            </div>
-                            <div class="w-full space-y-1">
-                                <label class="block bg-indigo-600 text-white font-black py-1.5 rounded-xl text-[10px] cursor-pointer shadow text-center">
-                                    📁 Cambiar Imagen
-                                    <input type="file" accept="image/*" class="hidden" onchange="uploadCustomCurrencyImage(event, '${item.id}')">
-                                </label>
-                                ${isCustom ? `
-                                    <button onclick="resetCustomCurrencyImage('${item.id}')" class="w-full bg-slate-200 text-slate-700 font-bold py-1 rounded-xl text-[9px]">
-                                        🔄 Restablecer
-                                    </button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        </div>
-    `;
-}
-
-function uploadCustomCurrencyImage(event, itemId) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        compressImageBase64(e.target.result, 400, 400).then(compressed => {
-            APP_STATE.customCurrencies[itemId] = compressed;
-            if (db) {
-                db.collection('settings').doc('currencies').set({ [itemId]: compressed }, { merge: true });
-            }
-            try { localStorage.setItem('nee_custom_currencies', JSON.stringify(APP_STATE.customCurrencies)); } catch(err) {}
-            renderApp();
-            alert("✅ Imagen cargada exitosamente.");
-        });
-    };
-    reader.readAsDataURL(file);
-}
-
-function resetCustomCurrencyImage(itemId) {
-    delete APP_STATE.customCurrencies[itemId];
-    if (db) {
-        const update = {};
-        update[itemId] = firebase.firestore.FieldValue.delete();
-        db.collection('settings').doc('currencies').update(update);
-    }
-    try { localStorage.setItem('nee_custom_currencies', JSON.stringify(APP_STATE.customCurrencies)); } catch(e) {}
-    renderApp();
-}
-
-function renderTeacherUsersTab() {
-    const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
-    const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
-
-    return `
-        <div class="space-y-6">
-            <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-sm space-y-4">
-                <div class="flex justify-between items-center border-b pb-3">
-                    <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
-                        <span>🏫</span> <span>Cursos Registrados</span>
-                    </h3>
-                    <button onclick="addNewCoursePrompt()" class="bg-emerald-600 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow">+ Crear Curso</button>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                    ${(APP_STATE.courses || []).length === 0 ? `
-                        <p class="col-span-full text-xs text-slate-400 italic text-center py-2">No hay cursos creados.</p>
-                    ` : (APP_STATE.courses || []).map(c => `
-                        <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl flex justify-between items-center font-bold text-xs">
-                            <span class="text-slate-800 font-black">${c.name}</span>
-                            <button onclick="deleteCourse('${c.id}')" class="text-rose-600 font-black px-2 py-1 rounded-lg bg-rose-50">✕</button>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="bg-white p-5 rounded-3xl border-4 border-purple-200 shadow space-y-4">
-                    <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">🔑 Admin General</h3>
-                        ${isAdmin ? `<button onclick="openCreateUserModal('admin')" class="bg-purple-600 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Admin</button>` : ''}
-                    </div>
-                    <div class="space-y-2 max-h-96 overflow-y-auto">${renderUserRoleList('admin')}</div>
-                </div>
-
-                <div class="bg-white p-5 rounded-3xl border-4 border-indigo-200 shadow space-y-4">
-                    <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">👨‍🏫 Educadores (${teamLabel})</h3>
-                        ${isAdmin ? `<button onclick="openCreateUserModal('teacher')" class="bg-indigo-600 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Educador</button>` : ''}
-                    </div>
-                    <div class="space-y-2 max-h-96 overflow-y-auto">${renderUserRoleList('teacher')}</div>
-                </div>
-
-                <div class="bg-white p-5 rounded-3xl border-4 border-emerald-200 shadow space-y-4">
-                    <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">🎒 Estudiantes</h3>
-                        <button onclick="openCreateUserModal('student')" class="bg-emerald-600 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Alumno</button>
-                    </div>
-                    <div class="space-y-2 max-h-96 overflow-y-auto">${renderUserRoleList('student')}</div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function renderUserRoleList(role) {
-    const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
-    const users = (APP_STATE.users || []).filter(u => u.role === role);
-    if (users.length === 0) return `<p class="text-xs text-slate-400 italic py-4 text-center">No hay usuarios registrados.</p>`;
-
-    return users.map(u => `
-        <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl space-y-2 text-xs font-bold">
-            <div class="flex justify-between items-center">
-                <span class="text-indigo-950 font-black">${u.name}</span>
-                <div class="space-x-1">
-                    ${(isAdmin || role === 'student') ? `
-                        <button onclick="openEditUserModal('${u.id}')" class="text-amber-600 font-extrabold">✏️</button>
-                        <button onclick="deleteUser('${u.id}')" class="text-rose-600 font-extrabold">✕</button>
-                    ` : ''}
-                </div>
-            </div>
-            <div class="text-[11px] text-slate-600">
-                <div>RUT: <b>${u.rut || 'N/A'}</b> | Clave: <code class="bg-slate-200 px-1 py-0.5 rounded text-indigo-900 font-black">${u.pin}</code></div>
-                <div>📧 ${u.email || 'Sin correo'}</div>
-                ${role === 'student' ? `<div class="text-amber-700 font-black mt-1">⭐ Puntos: ${u.points || 0} pts</div>` : ''}
-            </div>
-        </div>
-    `).join('');
-}
-
-function renderTeacherSettingsTab() {
-    const st = APP_STATE.settings || DEFAULT_SETTINGS;
-    const currentTeamName = st.teamName || 'Equipo Multidisciplinario';
-
-    return `
-        <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow-md space-y-6 max-w-4xl mx-auto">
-            <div class="border-b pb-3">
-                <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                    <span>⚙️</span> <span>Configuración de Equipo, Plantilla y Temáticas</span>
-                </h3>
-            </div>
-
-            <div class="p-5 bg-indigo-50 border-4 border-indigo-300 rounded-3xl space-y-4">
-                <div class="flex items-center gap-3">
-                    <span class="text-3xl">👥</span>
-                    <div>
-                        <h4 class="font-black text-slate-800 text-sm uppercase">Nombre del Equipo Profesional</h4>
-                        <p class="text-xs text-slate-600 font-bold">Selecciona una sugerencia o escribe el nombre exacto:</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <select onchange="selectPresetTeamName(this.value)" class="w-full px-3 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-white text-indigo-950">
-                            <option value="">-- Seleccionar Opciones --</option>
-                            ${TEAM_NAME_PRESETS.map(preset => `
-                                <option value="${preset}" ${currentTeamName === preset ? 'selected' : ''}>${preset}</option>
-                            `).join('')}
-                        </select>
-                    </div>
-                    <div>
-                        <input type="text" id="settingTeamName" value="${currentTeamName}" placeholder="Ej: Equipo Multidisciplinario" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs bg-white">
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Nombre Colegio / Escuela:</label>
-                        <input type="text" id="settingSchoolName" value="${st.schoolName || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Subtítulo / Unidad:</label>
-                        <input type="text" id="settingSubHeader" value="${st.schoolSubHeader || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Firma / Encargado:</label>
-                        <input type="text" id="settingDirectorName" value="${st.directorName || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">🎨 Temática Estacional:</label>
-                        <select id="settingActiveTheme" class="w-full px-4 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-indigo-50 text-indigo-900">
-                            ${Object.keys(SEASONAL_THEMES).map(key => `
-                                <option value="${key}" ${st.activeTheme === key ? 'selected' : ''}>${SEASONAL_THEMES[key].name}</option>
-                            `).join('')}
-                        </select>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Logo Institucional:</label>
-                        <input type="file" accept="image/*" onchange="handleSchoolLogoUpload(event)" class="w-full text-xs font-bold text-slate-600 border p-2 rounded-xl">
-                        <input type="hidden" id="settingSchoolLogo" value="${st.schoolLogo || ''}">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">🐶 Mascota de la Escuela:</label>
-                        <input type="file" accept="image/*" onchange="handleSchoolMascotUpload(event)" class="w-full text-xs font-bold text-slate-600 border p-2 rounded-xl">
-                        <input type="hidden" id="settingMascotUrl" value="${st.mascotUrl || ''}">
-                    </div>
-
-                    <button onclick="saveInstitutionalSettings()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl text-xs uppercase shadow-lg border-b-4 border-emerald-900 active:scale-95">
-                        💾 Guardar Configuración
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function selectPresetTeamName(val) {
-    if (val) {
-        const input = document.getElementById('settingTeamName');
-        if (input) input.value = val;
-    }
-}
-
-function handleSchoolLogoUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        compressImageBase64(e.target.result, 300, 300).then(compressed => {
-            document.getElementById('settingSchoolLogo').value = compressed;
-        });
-    };
-    reader.readAsDataURL(file);
-}
-
-function handleSchoolMascotUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        compressImageBase64(e.target.result, 300, 300).then(compressed => {
-            document.getElementById('settingMascotUrl').value = compressed;
-        });
-    };
-    reader.readAsDataURL(file);
-}
-
-function saveInstitutionalSettings() {
-    const teamNameVal = document.getElementById('settingTeamName').value.trim() || 'Equipo Multidisciplinario';
-    
-    const settingsData = {
-        schoolName: document.getElementById('settingSchoolName').value.trim(),
-        schoolSubHeader: document.getElementById('settingSubHeader').value.trim(),
-        teamName: teamNameVal,
-        directorName: document.getElementById('settingDirectorName').value.trim(),
-        activeTheme: document.getElementById('settingActiveTheme').value,
-        schoolLogo: document.getElementById('settingSchoolLogo').value,
-        mascotUrl: document.getElementById('settingMascotUrl').value
-    };
-
-    if (db) {
-        db.collection('settings').doc('institutional').set(settingsData, { merge: true }).then(() => {
-            APP_STATE.settings = { ...APP_STATE.settings, ...settingsData };
-            renderApp();
-            alert(`✅ Configuración guardada exitosamente.`);
-        });
-    }
-}
-
-// ==========================================
-// GESTIÓN DE SUPERMERCADOS, PRODUCTOS Y USUARIOS
-// ==========================================
-function handleSupermarketLogoUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        compressImageBase64(e.target.result, 300, 300).then(compressed => {
-            document.getElementById('modalSupLogo').value = compressed;
-        });
-    };
-    reader.readAsDataURL(file);
-}
-
-function openSupermarketModal(supId = null) {
-    const el = document.getElementById('supermarketModal');
-    if (!el) return;
-
-    if (supId) {
-        const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId));
-        if (sup) {
-            document.getElementById('modalSupId').value = sup.id;
-            document.getElementById('modalSupName').value = sup.name || '';
-            document.getElementById('modalSupLogo').value = sup.photoUrl || sup.photo || sup.logoUrl || '';
-        }
-    } else {
-        document.getElementById('modalSupId').value = '';
-        document.getElementById('modalSupName').value = '';
-        document.getElementById('modalSupLogo').value = '';
-    }
-
-    el.classList.remove('hidden');
-}
-
-function closeSupermarketModal() {
-    document.getElementById('supermarketModal').classList.add('hidden');
-}
-
-function saveSupermarketFromModal() {
-    const idInput = document.getElementById('modalSupId')?.value;
-    const name = document.getElementById('modalSupName').value.trim();
-    const photoUrl = document.getElementById('modalSupLogo').value;
-
-    if (!name) return alert("Ingresa el nombre del supermercado.");
-    if (!db) return alert("Error de conexión a Firebase.");
-
-    const id = idInput ? idInput : ('sup-' + Date.now());
-
-    db.collection('supermarkets').doc(id).set({
-        id: id,
-        name: name,
-        photoUrl: photoUrl || '',
-        icon: '🏪',
-        description: 'Supermercado'
-    }, { merge: true }).then(() => {
-        closeSupermarketModal();
-        alert(`✅ Supermercado "${name}" guardado.`);
-    });
-}
-
-function deleteSupermarket(supId) {
-    if (confirm("¿Eliminar este supermercado?") && db) {
-        db.collection('supermarkets').doc(supId).delete();
-    }
-}
-
-function getNextProductCode() {
-    const products = APP_STATE.products || [];
-    if (products.length === 0) return '1001';
-    let maxCode = 1000;
-    products.forEach(p => {
-        if (p.code) {
-            const num = parseInt(String(p.code).replace(/\D/g, ''), 10);
-            if (!isNaN(num) && num >= maxCode && num < 999999) maxCode = num;
-        }
-    });
-    return String(maxCode + 1);
-}
-
-function updateCategoryDropdowns(selectedName = null) {
-    const catSelect = document.getElementById('modalProdCategory');
-    if (!catSelect) return;
-    const list = APP_STATE.categories || [];
-    catSelect.innerHTML = list.map(c => `<option value="${c.name}" ${selectedName === c.name ? 'selected' : ''}>${c.icon || '🏷️'} ${c.name}</option>`).join('');
-}
-
-function handleProductPhotoUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        compressImageBase64(e.target.result, 300, 300, 0.7).then(compressed => {
-            document.getElementById('modalProdPhoto').value = compressed;
-        });
-    };
-    reader.readAsDataURL(file);
-}
-
-function openProductModal(prodId = null) {
-    const supSelect = document.getElementById('modalProdSupermarket');
-    if (supSelect) {
-        supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-    }
-
-    if (prodId) {
-        const p = (APP_STATE.products || []).find(x => String(x.id) === String(prodId));
-        if (p) {
-            document.getElementById('modalProdId').value = p.id;
-            document.getElementById('modalProdName').value = p.name || '';
-            document.getElementById('modalProdCode').value = p.code || p.id || '';
-            document.getElementById('modalProdPrice').value = p.price || 0;
-            document.getElementById('modalProdPhoto').value = p.photoUrl || p.photo || p.image || '';
-            document.getElementById('modalProdReplicateAll').checked = !!p.isAll;
-            if (supSelect && p.supermarketId) supSelect.value = p.supermarketId;
-            updateCategoryDropdowns(p.category);
-        }
-    } else {
-        document.getElementById('modalProdId').value = '';
-        document.getElementById('modalProdName').value = '';
-        document.getElementById('modalProdCode').value = getNextProductCode();
-        document.getElementById('modalProdPrice').value = '';
-        document.getElementById('modalProdPhoto').value = '';
-        document.getElementById('modalProdReplicateAll').checked = false;
-        updateCategoryDropdowns();
-    }
-
-    document.getElementById('productModal').classList.remove('hidden');
-}
-
-function closeProductModal() {
-    document.getElementById('productModal').classList.add('hidden');
-}
-
-function saveProductFromModal() {
-    const prodId = document.getElementById('modalProdId')?.value;
-    const supSelect = document.getElementById('modalProdSupermarket');
-    const supId = supSelect ? supSelect.value : null;
-
-    const name = document.getElementById('modalProdName').value.trim();
-    const code = document.getElementById('modalProdCode').value.trim();
-    const categorySelect = document.getElementById('modalProdCategory');
-    const category = categorySelect ? categorySelect.value : 'General';
-    const price = parseInt(document.getElementById('modalProdPrice').value);
-    const replicateAll = document.getElementById('modalProdReplicateAll')?.checked || false;
-    const photoUrl = document.getElementById('modalProdPhoto')?.value || '';
-
-    if (!name || isNaN(price)) return alert("Por favor ingresa un nombre y precio válidos.");
-    if (!db) return alert("Error de conexión.");
-
-    const id = prodId ? prodId : ('prod-' + Date.now());
-
-    db.collection('products').doc(id).set({
-        id: id,
-        code: code || getNextProductCode(),
-        name: name,
-        category: category,
-        price: price,
-        photoUrl: photoUrl,
-        photo: photoUrl,
-        isAll: replicateAll,
-        supermarketId: replicateAll ? 'ALL' : supId,
-        supermarketName: replicateAll ? 'TODOS' : ((APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId))?.name || 'Supermercado')
-    }, { merge: true }).then(() => {
-        closeProductModal();
-        alert(`✅ Producto "${name}" guardado.`);
-    });
-}
-
-function deleteProduct(prodId) {
-    if (confirm("¿Eliminar este producto?") && db) {
-        db.collection('products').doc(prodId).delete();
-    }
-}
-
-function openCategoryModal() {
-    const el = document.getElementById('categoryModal');
-    const iconSelect = document.getElementById('modalCatIcon');
-    if (iconSelect) {
-        iconSelect.innerHTML = PRESET_CATEGORIES.map(c => 
-            `<option value="${c.icon}">${c.icon} ${c.name}</option>`
-        ).join('');
-    }
-    if (el) el.classList.remove('hidden');
-}
-
-function closeCategoryModal() {
-    document.getElementById('categoryModal').classList.add('hidden');
-}
-
-function saveCategoryFromModal() {
-    const name = document.getElementById('modalCatName').value.trim();
-    const icon = document.getElementById('modalCatIcon').value;
-    if (!name || !db) return alert("Ingresa el nombre de la categoría.");
-    const id = 'cat-' + Date.now();
-    db.collection('categories').doc(id).set({ id, name, icon: icon || '🏷️' }).then(() => {
-        closeCategoryModal();
-        updateCategoryDropdowns(name);
-    });
-}
-
-function deleteCategory(catId) {
-    if (confirm("¿Eliminar esta categoría?") && db) {
-        db.collection('categories').doc(catId).delete();
-    }
-}
-
-function openCreateUserModal(role) {
-    const el = document.getElementById('userModal');
-    if (el) {
-        document.getElementById('modalUserId').value = '';
-        document.getElementById('modalUserRole').value = role;
-        document.getElementById('modalName').value = '';
-        document.getElementById('modalRut').value = '';
-        document.getElementById('modalEmail').value = '';
-        el.classList.remove('hidden');
-    }
-}
-
-function openEditUserModal(userId) {
-    const user = (APP_STATE.users || []).find(u => String(u.id) === String(userId));
-    if (!user) return;
-    const el = document.getElementById('userModal');
-    if (el) {
-        document.getElementById('modalUserId').value = user.id;
-        document.getElementById('modalUserRole').value = user.role;
-        document.getElementById('modalName').value = user.name || '';
-        document.getElementById('modalRut').value = user.rut || '';
-        document.getElementById('modalEmail').value = user.email || '';
-        el.classList.remove('hidden');
-    }
-}
-
-function closeUserModal() {
-    document.getElementById('userModal').classList.add('hidden');
-}
-
-function saveUserFromModal() {
-    const userId = document.getElementById('modalUserId').value;
-    const role = document.getElementById('modalUserRole').value;
-    const name = document.getElementById('modalName').value.trim();
-    const rut = document.getElementById('modalRut').value.trim();
-    const email = document.getElementById('modalEmail').value.trim();
-
-    if (!name || !rut || !db) return alert("Completa nombre y RUT.");
-
-    const id = userId || ('u-' + Date.now());
-    const pin = rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
-
-    db.collection('users').doc(id).set({ id, role, name, rut, username: rut, email, pin, points: 0 }, { merge: true }).then(() => {
-        closeUserModal();
-        alert("✅ Usuario guardado.");
-    });
-}
-
-function deleteUser(id) {
-    if (confirm("¿Eliminar este usuario?") && db) {
-        db.collection('users').doc(id).delete();
-    }
-}
-
-function addNewCoursePrompt() {
-    const courseName = prompt("Nombre del nuevo curso:");
-    if (!courseName || !courseName.trim() || !db) return;
-    const id = 'course-' + Date.now();
-    db.collection('courses').doc(id).set({ id, name: courseName.trim() });
-}
-
-function deleteCourse(courseId) {
-    if (confirm("¿Eliminar este curso?") && db) {
-        db.collection('courses').doc(courseId).delete();
-    }
-}
-
-// ==========================================
-// ESCUCHADORES FIRESTORE (TIEMPO REAL)
-// ==========================================
-function initFirebaseListeners() {
-    try {
-        const storedUser = localStorage.getItem('nee_active_user');
-        if (storedUser) APP_STATE.currentUser = JSON.parse(storedUser);
-        const storedCurrencies = localStorage.getItem('nee_custom_currencies');
-        if (storedCurrencies) APP_STATE.customCurrencies = JSON.parse(storedCurrencies);
-    } catch(e) {}
-
-    if (!db) {
-        renderApp();
-        return;
-    }
-
-    const listenCol = (name, callback) => {
-        try {
-            db.collection(name).onSnapshot(
-                s => {
-                    const data = s.docs.map(d => ({ id: d.id, ...d.data() }));
-                    callback(data);
-                    renderApp();
-                },
-                () => renderApp()
-            );
-        } catch(e) { renderApp(); }
-    };
-
-    listenCol('users', data => { APP_STATE.users = data || []; });
-    listenCol('courses', data => { APP_STATE.courses = data || []; });
-    listenCol('categories', data => {
-        APP_STATE.categories = data || [];
-        updateCategoryDropdowns();
-    });
-    listenCol('supermarkets', data => { APP_STATE.supermarkets = data || []; });
-    listenCol('products', data => { APP_STATE.products = data || []; });
-    listenCol('evaluations', data => { APP_STATE.evaluations = data || []; });
-
-    try {
-        db.collection('settings').doc('activeMission').onSnapshot(
-            doc => {
-                if (doc.exists && doc.data() && doc.data().active) {
-                    APP_STATE.activeMission = doc.data();
-                } else {
-                    APP_STATE.activeMission = null;
-                }
-                renderApp();
-            },
-            () => renderApp()
-        );
-
-        db.collection('settings').doc('institutional').onSnapshot(
-            doc => {
-                if (doc.exists) APP_STATE.settings = { ...DEFAULT_SETTINGS, ...doc.data() };
-                renderApp();
-            },
-            () => renderApp()
-        );
-
-        db.collection('settings').doc('currencies').onSnapshot(
-            doc => {
-                if (doc.exists) APP_STATE.customCurrencies = { ...APP_STATE.customCurrencies, ...doc.data() };
-                renderApp();
-            },
-            () => renderApp()
-        );
-    } catch(e) { renderApp(); }
-}
-
-function mainInit() {
-    initFirebaseListeners();
-    renderApp();
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', mainInit);
-} else {
-    mainInit();
-}
+                        <button onclick="toggleStudentPreview(true)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-4 py-2 rounded-xl shadow border-b-2 border-
