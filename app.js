@@ -72,13 +72,24 @@ const SEASONAL_THEMES = {
     }
 };
 
+// OPCIONES DE EQUIPOS PARA SELECCIÓN RÁPIDA
+const TEAM_NAME_PRESETS = [
+    "Equipo Multidisciplinario",
+    "Programa de Integración Escolar (PIE)",
+    "Equipo de Apoyo Pedagógico",
+    "Equipo de Inclusión Escolar",
+    "Unidad de Autonomía Funcional",
+    "Equipo Psicopedagógico"
+];
+
 const DEFAULT_SETTINGS = {
-    schoolName: "Escuela Especial & Programa PIE",
+    schoolName: "Escuela Especial Adaptativa",
     schoolSubHeader: "Unidad de Autonomía Funcional",
+    teamName: "Equipo Multidisciplinario",
     schoolLogo: "",
     mascotUrl: "",
     activeTheme: "standard",
-    directorName: "Equipo PIE"
+    directorName: "Equipo Multidisciplinario"
 };
 
 // ==========================================
@@ -154,13 +165,13 @@ const APP_STATE = {
     missionStartTime: null,
     html5QrcodeScanner: null,
     
-    // VARIABLES PARA FLUJO PEDAGÓGICO DE 4 ETAPAS
+    // FLUJO PEDAGÓGICO DE 4 ETAPAS Y GAMIFICACIÓN
     activeMission: null,          // Objeto misión docente
     classroomMode: 'PREP',        // 'PREP' (Sala) | 'TERRENO' (Supermercado)
     scannedItemsInStore: {},      // Registro de escaneo en góndola
-    classroomErrorsCount: 0,      // Errores de armar lista en sala
+    classroomErrorsCount: 0,      // Errores cometidos
     priceAdjustmentsCount: 0,     // Veces que cambió el precio en góndola
-    pendingScanProduct: null      // Producto en proceso de confirmación de precio
+    pendingScanProduct: null      // Producto en proceso de confirmación
 };
 
 // ==========================================
@@ -257,17 +268,27 @@ function renderApp() {
     const headerBasketBtn = document.getElementById('headerBasketBtn');
     const headerScannerBtn = document.getElementById('headerScannerBtn');
     const userInfoHeader = document.getElementById('userInfoHeader');
+    const headerSubTitle = document.getElementById('headerSubTitle');
     if (!container) return;
+
+    const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) 
+        ? APP_STATE.settings.teamName 
+        : 'Equipo Multidisciplinario';
+
+    if (headerSubTitle) {
+        headerSubTitle.textContent = teamLabel;
+    }
 
     if (APP_STATE.currentUser) {
         const roleTag = APP_STATE.currentUser.role === 'admin' ? '🔑 Admin General' :
-                       (APP_STATE.currentUser.role === 'teacher' ? '👨‍🏫 Educador PIE' : '🎒 Alumno');
+                       (APP_STATE.currentUser.role === 'teacher' ? `👨‍🏫 ${teamLabel}` : '🎒 Alumno');
         
         if (userInfoHeader) {
             userInfoHeader.innerHTML = `
                 <div class="bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-xl text-xs flex items-center gap-2 shadow-sm">
                     <span class="font-bold text-indigo-900">${APP_STATE.currentUser.name}</span>
                     <span class="bg-indigo-600 text-white font-black px-2 py-0.5 rounded-md text-[10px]">${roleTag}</span>
+                    ${APP_STATE.currentUser.role === 'student' ? `<span class="bg-amber-400 text-slate-900 font-black px-2 py-0.5 rounded-md text-[10px] flex items-center gap-1">⭐ ${APP_STATE.currentUser.points || 0} pts</span>` : ''}
                 </div>
                 <button onclick="logout()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold px-3 py-1.5 rounded-xl text-xs border border-rose-300">Salir</button>
             `;
@@ -461,7 +482,6 @@ function renderSupermarketView(container, supId) {
 
     const isMissionMatched = checkClassroomListMatch();
 
-    // BANNER DE EVALUACIÓN EN SALA (FASE 2)
     let classroomValidationBanner = '';
     if (APP_STATE.activeMission && APP_STATE.classroomMode === 'PREP') {
         if (isMissionMatched) {
@@ -471,7 +491,7 @@ function renderSupermarketView(container, supId) {
                     <div class="flex items-center gap-3">
                         <span class="text-4xl">🎉</span>
                         <div>
-                            <h3 class="text-xl font-black">¡Tu lista está perfecta como te la mandó tu profesor!</h3>
+                            <h3 class="text-xl font-black">¡Tu lista está perfecta como te la asignó tu profesor!</h3>
                             <p class="text-xs font-bold text-emerald-100">Ahora continúa tu misión presionando el botón.</p>
                         </div>
                     </div>
@@ -611,11 +631,12 @@ function renderSupermarketView(container, supId) {
 }
 
 // ==========================================
-// ESCÁNER Y CONFIRMACIÓN DE PRECIO EN GÓNDOLA
+// RECONOCIMIENTO AUTOMÁTICO DE PRODUCTO Y PRECIO
 // ==========================================
 function openScannerModal() {
     const modal = document.getElementById('scannerModal');
     if (modal) modal.classList.remove('hidden');
+    startCameraScanner();
 }
 
 function closeScannerModal() {
@@ -637,7 +658,6 @@ function startCameraScanner() {
             initHtml5Qrcode();
         }
     } else {
-        alert("Escáner en modo interactivo.");
         simulateAIScan();
     }
 }
@@ -653,7 +673,6 @@ function initHtml5Qrcode() {
             },
             (errorMessage) => {}
         ).catch(err => {
-            alert("Usa la opción de Escaneo Rápido.");
             simulateAIScan();
         });
     } catch(e) {
@@ -706,12 +725,11 @@ function applyShelfPriceChoice(newPrice) {
 
     if (newPrice !== oldPrice) {
         APP_STATE.priceAdjustmentsCount++;
-        // Recalcular precio en canasto
         const bItem = APP_STATE.basket.find(b => String(b.productId) === String(prod.id));
         if (bItem) bItem.actualPrice = newPrice;
         prod.price = newPrice;
 
-        speakText(`¡Atención! El precio de ${prod.name} cambió. En tu lista salía a ${oldPrice} pesos, pero ahora en la góndola cuesta ${newPrice} pesos. Se ha actualizado en tu canasto.`);
+        speakText(`¡Atención! El precio de ${prod.name} cambió. En tu lista salía a ${oldPrice} pesos, pero ahora cuesta ${newPrice} pesos. Se ha actualizado en tu canasto.`);
     } else {
         speakText(`¡Excelente! El precio de ${prod.name} se mantiene a ${newPrice} pesos.`);
     }
@@ -736,8 +754,21 @@ function onProductScanned(scannedCode) {
         String(p.name || '').toLowerCase() === cleanCode
     );
 
+    closeScannerModal();
+
     if (foundProduct) {
-        closeScannerModal();
+        if (APP_STATE.activeMission && APP_STATE.activeMission.itemIds) {
+            const isInMission = APP_STATE.activeMission.itemIds.includes(String(foundProduct.id));
+            
+            if (!isInMission) {
+                APP_STATE.classroomErrorsCount++;
+                playChimeSound();
+                speakText(`¡Atención! Este no es el producto de tu lista. Escaneaste ${foundProduct.name}. Busca el producto correcto.`);
+                alert(`⚠️ ¡Atención! Este no es el producto de tu lista.\nEscaneaste: ${foundProduct.name}.\nRevisa tu hoja de trabajo.`);
+                return;
+            }
+        }
+
         openShelfPriceConfirmation(foundProduct.id);
     } else {
         playChimeSound();
@@ -846,7 +877,6 @@ function addToBasket(prodId) {
         prod = { id: prodId, name: 'Producto Escaneado', price: 2000 };
     }
     
-    // Si hay una misión activa y el alumno agrega un producto no incluido, registramos el error silenciosamente
     if (APP_STATE.activeMission && APP_STATE.activeMission.itemIds) {
         if (!APP_STATE.activeMission.itemIds.includes(String(prod.id))) {
             APP_STATE.classroomErrorsCount++;
@@ -1005,6 +1035,33 @@ function verifyAndCheckout() {
     const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(APP_STATE.selectedSupermarketId));
     const elapsedSeconds = APP_STATE.missionStartTime ? Math.round((Date.now() - APP_STATE.missionStartTime) / 1000) : 25;
 
+    const errors = APP_STATE.classroomErrorsCount || 0;
+    let pointsEarned = 100;
+    let medal = "🥇 Medalla de Oro (100% Perfecto)";
+    let feedback = "¡Increíble! Respondiste a la primera sin ningún error.";
+
+    if (errors === 1) {
+        pointsEarned = 80;
+        medal = "🥈 Medalla de Plata (80% Gran trabajo)";
+        feedback = "¡Muy bien! Tuviste solo 1 intento fallido.";
+    } else if (errors === 2) {
+        pointsEarned = 60;
+        medal = "🥉 Medalla de Bronce (60% Buen esfuerzo)";
+        feedback = "¡Bien hecho! Sigue practicando para ganar más puntos.";
+    } else if (errors >= 3) {
+        pointsEarned = 40;
+        medal = "🌟 Estrella de Participación (40%)";
+        feedback = "¡Completaste tu compra! Cada intento te hace aprender.";
+    }
+
+    if (APP_STATE.currentUser) {
+        APP_STATE.currentUser.points = (APP_STATE.currentUser.points || 0) + pointsEarned;
+        localStorage.setItem('nee_active_user', JSON.stringify(APP_STATE.currentUser));
+        if (db && APP_STATE.currentUser.id) {
+            db.collection('users').doc(APP_STATE.currentUser.id).set({ points: APP_STATE.currentUser.points }, { merge: true });
+        }
+    }
+
     const evalData = {
         id: 'eval-' + Date.now(),
         studentId: APP_STATE.currentUser ? APP_STATE.currentUser.id : 'anonimo',
@@ -1017,7 +1074,8 @@ function verifyAndCheckout() {
         changeCLP: vuelto,
         itemCount: APP_STATE.basket.length,
         timeSeconds: elapsedSeconds,
-        classroomErrorsCount: APP_STATE.classroomErrorsCount,
+        classroomErrorsCount: errors,
+        pointsEarned: pointsEarned,
         priceAdjustmentsCount: APP_STATE.priceAdjustmentsCount,
         voiceHelpCount: APP_STATE.telemetry.voiceHelpCount,
         date: new Date().toLocaleString('es-CL'),
@@ -1030,6 +1088,10 @@ function verifyAndCheckout() {
 
     if (typeof confetti !== 'undefined') confetti();
 
+    document.getElementById('gamificationPointsBadge').textContent = `+${pointsEarned} PUNTOS`;
+    document.getElementById('gamificationMedalIcon').textContent = medal;
+    document.getElementById('gamificationFeedbackText').textContent = feedback;
+
     document.getElementById('successModalTotal').textContent = `$${total.toLocaleString('es-CL')}`;
     document.getElementById('successModalPaid').textContent = `$${APP_STATE.userPaidAmount.toLocaleString('es-CL')}`;
     document.getElementById('successModalVueltoAmount').textContent = `$${vuelto.toLocaleString('es-CL')}`;
@@ -1041,18 +1103,19 @@ function verifyAndCheckout() {
 
     closeBasketModal();
     document.getElementById('checkoutSuccessModal').classList.remove('hidden');
-    speakText(`¡Excelente compra! Tu vuelto es de ${vuelto} pesos.`);
+    speakText(`¡Excelente compra! Ganaste ${pointsEarned} puntos. Tu vuelto es de ${vuelto} pesos.`);
 }
 
 function closeSuccessModalAndFinish() {
     document.getElementById('checkoutSuccessModal').classList.add('hidden');
     clearBasket();
     APP_STATE.classroomMode = 'PREP';
+    APP_STATE.classroomErrorsCount = 0;
     goHome();
 }
 
 // ==========================================
-// PANEL DOCENTE Y CREACIÓN DE MISIÓN
+// PANEL DOCENTE Y MISIÓN ACTIVA
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -1084,7 +1147,7 @@ function activateMissionForStudents() {
     const checked = Array.from(document.querySelectorAll('.missionProdCheckbox:checked')).map(cb => cb.value);
     if (checked.length === 0) return alert("Selecciona al menos un producto para la misión.");
 
-    const title = document.getElementById('missionTitleInput').value.trim() || 'Misión PIE';
+    const title = document.getElementById('missionTitleInput').value.trim() || 'Misión de Compra';
     APP_STATE.activeMission = {
         id: 'mission-' + Date.now(),
         title: title,
@@ -1096,19 +1159,28 @@ function activateMissionForStudents() {
     renderApp();
 }
 
+function cancelActiveMission() {
+    if (confirm("¿Deseas finalizar la misión activa en sala?")) {
+        APP_STATE.activeMission = null;
+        APP_STATE.classroomMode = 'PREP';
+        renderApp();
+    }
+}
+
 function printCurrentMissionSheet() {
     const checked = Array.from(document.querySelectorAll('.missionProdCheckbox:checked')).map(cb => cb.value);
     if (checked.length === 0) return alert("Selecciona al menos un producto para imprimir.");
 
     const selectedProds = (APP_STATE.products || []).filter(p => checked.includes(String(p.id)));
-    const title = document.getElementById('missionTitleInput').value.trim() || 'Misión PIE';
+    const title = document.getElementById('missionTitleInput').value.trim() || 'Misión de Compra';
     const st = APP_STATE.settings || DEFAULT_SETTINGS;
+    const teamLabel = st.teamName || 'Equipo Multidisciplinario';
 
     const win = window.open('', '_blank');
     win.document.write(`
         <html>
             <head>
-                <title>Ficha de Misión PIE</title>
+                <title>Ficha de Misión Adaptativa</title>
                 <script src="https://cdn.tailwindcss.com"></script>
             </head>
             <body class="bg-white p-8 font-sans text-slate-800">
@@ -1116,7 +1188,7 @@ function printCurrentMissionSheet() {
                     <div class="flex justify-between items-center border-b-2 pb-4">
                         <div>
                             <h1 class="text-2xl font-black text-indigo-950">${st.schoolName}</h1>
-                            <p class="text-xs font-bold text-indigo-600">Ficha de Apoyo Pedagógico PIE / NEE</p>
+                            <p class="text-xs font-bold text-indigo-600">Ficha de Apoyo Pedagógico (${teamLabel})</p>
                         </div>
                         <span class="text-4xl">📋</span>
                     </div>
@@ -1149,7 +1221,7 @@ function printCurrentMissionSheet() {
                     </div>
 
                     <div class="pt-6 border-t text-center text-xs font-bold text-slate-400">
-                        Programa de Integración Escolar • Unidad de Autonomía Funcional
+                        Programa de Autonomía Funcional • ${teamLabel}
                     </div>
                 </div>
                 <script>setTimeout(() => { window.print(); window.close(); }, 750);</script>
@@ -1162,21 +1234,42 @@ function printCurrentMissionSheet() {
 function renderTeacherDashboard(container) {
     const activeTab = APP_STATE.teacherActiveTab || 'home';
     const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
+    const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
+
+    let activeMissionAlertBanner = '';
+    if (APP_STATE.activeMission) {
+        activeMissionAlertBanner = `
+            <div class="bg-rose-600 text-white p-4 rounded-2xl shadow-lg border-4 border-rose-800 flex justify-between items-center flex-wrap gap-2 animate-pulse">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🔴</span>
+                    <div>
+                        <h4 class="font-black text-sm uppercase">ACTIVIDAD ACTIVA EN SALA: "${APP_STATE.activeMission.title}"</h4>
+                        <p class="text-[11px] font-bold text-rose-100">${APP_STATE.activeMission.itemIds.length} productos asignados a los alumnos.</p>
+                    </div>
+                </div>
+                <button onclick="cancelActiveMission()" class="bg-white text-rose-700 hover:bg-rose-50 font-black text-xs px-3.5 py-2 rounded-xl shadow border border-rose-200">
+                    ⏹️ Finalizar Misión
+                </button>
+            </div>
+        `;
+    }
 
     container.innerHTML = `
         <div class="space-y-6">
+            ${activeMissionAlertBanner}
+
             <div class="bg-slate-900 text-white p-5 rounded-3xl shadow-xl space-y-4 border-b-4 border-indigo-600">
                 <div class="flex flex-wrap justify-between items-center gap-3">
                     <div>
                         <h2 class="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
                             <span>🏫</span>
-                            <span>${isAdmin ? 'Panel de Administración General & PIE' : 'Panel Docente & Evaluación NEE'}</span>
+                            <span>${isAdmin ? `Panel de Administración General & ${teamLabel}` : `Panel Docente (${teamLabel})`}</span>
                         </h2>
                         <p class="text-xs text-indigo-300 font-bold mt-0.5">Gestión pedagógica, catálogo, usuarios e informes con IA.</p>
                     </div>
                     <div class="flex gap-2">
                         <button onclick="openMissionModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-4 py-2 rounded-xl shadow border-b-2 border-indigo-900 flex items-center gap-2 active:scale-95">
-                            <span>📋</span><span>Crear Misión PIE</span>
+                            <span>📋</span><span>Crear Misión</span>
                         </button>
                         <button onclick="toggleStudentPreview(true)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-4 py-2 rounded-xl shadow border-b-2 border-amber-600 flex items-center gap-2 active:scale-95">
                             <span>🕹️</span><span>Probar Juego</span>
@@ -1198,7 +1291,7 @@ function renderTeacherDashboard(container) {
                         <span>🔑</span><span>4. Gestión Usuarios</span>
                     </button>
                     <button onclick="setTeacherTab('settings')" class="py-3 px-2 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-1.5 ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>⚙️</span><span>5. Plantilla & Temas</span>
+                        <span>⚙️</span><span>5. Equipo & Temas</span>
                     </button>
                 </div>
             </div>
@@ -1267,7 +1360,7 @@ function renderTeacherHomeTab() {
                                 <th class="py-2.5 px-3">Estudiante</th>
                                 <th class="py-2.5 px-3">Tienda</th>
                                 <th class="py-2.5 px-3">Total / Pago</th>
-                                <th class="py-2.5 px-3 text-center">Vuelto</th>
+                                <th class="py-2.5 px-3 text-center">Puntos / Logro</th>
                                 <th class="py-2.5 px-3 text-center">Acciones</th>
                             </tr>
                         </thead>
@@ -1284,7 +1377,7 @@ function renderTeacherHomeTab() {
                                     <td class="py-3 px-3">
                                         <div class="font-black text-emerald-700">$${(e.totalCLP || 0).toLocaleString('es-CL')}</div>
                                     </td>
-                                    <td class="py-3 px-3 text-center font-black text-indigo-900">$${(e.changeCLP || 0).toLocaleString('es-CL')}</td>
+                                    <td class="py-3 px-3 text-center font-black text-amber-600">⭐ ${e.pointsEarned || 100} pts</td>
                                     <td class="py-3 px-3 text-center">
                                         <button onclick="generateAIPedagogicalReport('${e.id}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-3 py-1.5 rounded-xl text-xs shadow-sm">
                                             ✨ Generar Informe IA & PDF
@@ -1305,6 +1398,7 @@ function generateAIPedagogicalReport(evalId) {
     if (!ev) return alert("Evaluación no encontrada.");
 
     const st = APP_STATE.settings || DEFAULT_SETTINGS;
+    const teamLabel = st.teamName || 'Equipo Multidisciplinario';
     const timeSec = ev.timeSeconds || 30;
     const paid = ev.paidCLP || 0;
     const total = ev.totalCLP || 0;
@@ -1321,7 +1415,7 @@ function generateAIPedagogicalReport(evalId) {
             <div class="flex justify-between items-center border-b-4 border-indigo-600 pb-4">
                 <div>
                     <h1 class="text-xl font-black text-indigo-950 uppercase">${st.schoolName}</h1>
-                    <p class="text-xs font-bold text-indigo-700">${st.schoolSubHeader}</p>
+                    <p class="text-xs font-bold text-indigo-700">${st.schoolSubHeader} • ${teamLabel}</p>
                 </div>
                 ${st.schoolLogo ? `<img src="${st.schoolLogo}" class="h-16 object-contain">` : `<span class="text-3xl">🏫</span>`}
             </div>
@@ -1337,16 +1431,16 @@ function generateAIPedagogicalReport(evalId) {
                 <div class="p-3 bg-emerald-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-emerald-800">Total Recalculado</span><div class="text-base font-black text-emerald-700">$${total.toLocaleString('es-CL')}</div></div>
                 <div class="p-3 bg-indigo-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-indigo-800">Pagó</span><div class="text-base font-black text-indigo-900">$${paid.toLocaleString('es-CL')}</div></div>
                 <div class="p-3 bg-amber-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-amber-900">Vuelto</span><div class="text-base font-black text-amber-800">$${change.toLocaleString('es-CL')}</div></div>
-                <div class="p-3 bg-sky-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-sky-900">Tiempo Misión</span><div class="text-base font-black text-sky-800">${timeSec}s</div></div>
+                <div class="p-3 bg-sky-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-sky-900">Puntos Ganados</span><div class="text-base font-black text-amber-600">⭐ ${ev.pointsEarned || 100} pts</div></div>
             </div>
 
             <div class="grid grid-cols-2 gap-4 text-xs font-bold">
                 <div class="p-3 bg-slate-50 rounded-xl border">
-                    <span class="text-slate-500 block text-[10px] uppercase">Errores de Discriminación en Sala:</span>
+                    <span class="text-slate-500 block text-[10px] uppercase">Errores de Escaneo / Selección:</span>
                     <span class="text-base font-black ${classroomErrors > 0 ? 'text-amber-600' : 'text-emerald-600'}">${classroomErrors} error(es)</span>
                 </div>
                 <div class="p-3 bg-slate-50 rounded-xl border">
-                    <span class="text-slate-500 block text-[10px] uppercase">Flexibilidad Cognitiva (Alzas en Góndola):</span>
+                    <span class="text-slate-500 block text-[10px] uppercase">Ajustes por Alza en Góndola:</span>
                     <span class="text-base font-black text-indigo-900">${priceAdjustments} precio(s) ajustado(s)</span>
                 </div>
             </div>
@@ -1583,6 +1677,7 @@ function resetCustomCurrencyImage(itemId) {
 
 function renderTeacherUsersTab() {
     const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
+    const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
 
     return `
         <div class="space-y-6">
@@ -1620,7 +1715,7 @@ function renderTeacherUsersTab() {
 
                 <div class="bg-white p-5 rounded-3xl border-4 border-indigo-200 shadow space-y-4">
                     <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">👨‍🏫 Educadores PIE</h3>
+                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">👨‍🏫 Educadores / Profesionales (${teamLabel})</h3>
                         ${isAdmin ? `<button onclick="openCreateUserModal('teacher')" class="bg-indigo-600 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Educador</button>` : ''}
                     </div>
                     <div class="space-y-2 max-h-96 overflow-y-auto">${renderUserRoleList('teacher')}</div>
@@ -1657,32 +1752,65 @@ function renderUserRoleList(role) {
             <div class="text-[11px] text-slate-600">
                 <div>RUT: <b>${u.rut || 'N/A'}</b> | Clave: <code class="bg-slate-200 px-1 py-0.5 rounded text-indigo-900 font-black">${u.pin}</code></div>
                 <div>📧 ${u.email || 'Sin correo'}</div>
+                ${role === 'student' ? `<div class="text-amber-700 font-black mt-1">⭐ Puntos Acumulados: ${u.points || 0} pts</div>` : ''}
             </div>
         </div>
     `).join('');
 }
 
+// TARJETA DE CONFIGURACIÓN DINÁMICA DE NOMBRE DE EQUIPO Y PLANTILLA
 function renderTeacherSettingsTab() {
     const st = APP_STATE.settings || DEFAULT_SETTINGS;
+    const currentTeamName = st.teamName || 'Equipo Multidisciplinario';
+
     return `
         <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow-md space-y-6 max-w-4xl mx-auto">
             <div class="border-b pb-3">
                 <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                    <span>⚙️</span> <span>Diseñador de Plantilla, Temáticas Estacionales y Mascota</span>
+                    <span>⚙️</span> <span>Configuración de Equipo, Plantilla y Temáticas</span>
                 </h3>
+                <p class="text-xs font-bold text-slate-500">Personaliza el nombre de tu equipo (Multidisciplinario, PIE, Inclusión, etc.) y los logos institucionales.</p>
             </div>
+
+            <!-- TARJETA DESTACADA: NOMBRE DEL EQUIPO PROFESIONAL -->
+            <div class="p-5 bg-indigo-50 border-4 border-indigo-300 rounded-3xl space-y-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">👥</span>
+                    <div>
+                        <h4 class="font-black text-slate-800 text-sm uppercase">Nombre del Equipo de Apoyo Profesional</h4>
+                        <p class="text-xs text-slate-600 font-bold">Selecciona una sugerencia o escribe el nombre exacto de tu equipo:</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-black text-slate-700 uppercase mb-1">Elegir de la lista rápida:</label>
+                        <select onchange="selectPresetTeamName(this.value)" class="w-full px-3 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-white text-indigo-950">
+                            <option value="">-- Seleccionar Opciones --</option>
+                            ${TEAM_NAME_PRESETS.map(preset => `
+                                <option value="${preset}" ${currentTeamName === preset ? 'selected' : ''}>${preset}</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-black text-slate-700 uppercase mb-1">Nombre Personalizado:</label>
+                        <input type="text" id="settingTeamName" value="${currentTeamName}" placeholder="Ej: Equipo Multidisciplinario" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs bg-white">
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Nombre Colegio:</label>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Nombre Colegio / Escuela:</label>
                         <input type="text" id="settingSchoolName" value="${st.schoolName || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
                     </div>
                     <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Unidad PIE:</label>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Subtítulo / Unidad:</label>
                         <input type="text" id="settingSubHeader" value="${st.schoolSubHeader || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
                     </div>
                     <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Dirección / Firma:</label>
+                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Firma / Encargado:</label>
                         <input type="text" id="settingDirectorName" value="${st.directorName || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
                     </div>
                     <div>
@@ -1712,12 +1840,19 @@ function renderTeacherSettingsTab() {
                     </div>
 
                     <button onclick="saveInstitutionalSettings()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl text-xs uppercase shadow-lg border-b-4 border-emerald-900 active:scale-95">
-                        💾 Guardar Configuración
+                        💾 Guardar Configuración del Equipo
                     </button>
                 </div>
             </div>
         </div>
     `;
+}
+
+function selectPresetTeamName(val) {
+    if (val) {
+        const input = document.getElementById('settingTeamName');
+        if (input) input.value = val;
+    }
 }
 
 function handleSchoolLogoUpload(event) {
@@ -1747,9 +1882,12 @@ function handleSchoolMascotUpload(event) {
 }
 
 function saveInstitutionalSettings() {
+    const teamNameVal = document.getElementById('settingTeamName').value.trim() || 'Equipo Multidisciplinario';
+    
     const settingsData = {
         schoolName: document.getElementById('settingSchoolName').value.trim(),
         schoolSubHeader: document.getElementById('settingSubHeader').value.trim(),
+        teamName: teamNameVal,
         directorName: document.getElementById('settingDirectorName').value.trim(),
         activeTheme: document.getElementById('settingActiveTheme').value,
         schoolLogo: document.getElementById('settingSchoolLogo').value,
@@ -1760,7 +1898,7 @@ function saveInstitutionalSettings() {
         db.collection('settings').doc('institutional').set(settingsData, { merge: true }).then(() => {
             APP_STATE.settings = { ...APP_STATE.settings, ...settingsData };
             renderApp();
-            alert("✅ Configuración guardada correctamente.");
+            alert(`✅ Configuración guardada. Nombre del equipo actualizado a: "${teamNameVal}".`);
         });
     }
 }
@@ -2059,12 +2197,13 @@ function deleteCategory(catId) {
 function openCreateUserModal(role) {
     const el = document.getElementById('userModal');
     if (el) {
+        const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
         document.getElementById('modalUserId').value = '';
         document.getElementById('modalUserRole').value = role;
         document.getElementById('modalName').value = '';
         document.getElementById('modalRut').value = '';
         document.getElementById('modalEmail').value = '';
-        document.getElementById('userModalTitle').textContent = `Crear nuevo ${role === 'admin' ? 'Administrador' : (role === 'teacher' ? 'Educador PIE' : 'Alumno')}`;
+        document.getElementById('userModalTitle').textContent = `Crear nuevo ${role === 'admin' ? 'Administrador' : (role === 'teacher' ? `Educador (${teamLabel})` : 'Alumno')}`;
         el.classList.remove('hidden');
     }
 }
@@ -2101,7 +2240,7 @@ function saveUserFromModal() {
     const id = userId || ('u-' + Date.now());
     const pin = rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
 
-    db.collection('users').doc(id).set({ id, role, name, rut, username: rut, email, pin }, { merge: true }).then(() => {
+    db.collection('users').doc(id).set({ id, role, name, rut, username: rut, email, pin, points: 0 }, { merge: true }).then(() => {
         closeUserModal();
         alert("✅ Usuario guardado.");
     });
