@@ -279,7 +279,7 @@ function getAvatarHtml(type = 'mascot', customSpeechText = '') {
         } else {
             avatarImgHtml = `
                 <div class="relative w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-tr from-purple-600 to-pink-500 rounded-3xl p-2 border-4 border-white shadow-xl animate-avatar-float flex items-center justify-center">
-                    <span class="text-3xl sm:text-4xl">🐻</span>
+                    <span class="text-3xl sm:text-4xl animate-wave">🐻</span>
                     <span class="absolute -top-1 -right-1 bg-purple-300 text-[9px] font-black px-1.5 py-0.5 rounded-full text-purple-950 border">Corpóreo</span>
                 </div>
             `;
@@ -306,12 +306,12 @@ function renderThemeOverlay() {
     const container = document.getElementById('themeOverlayContainer');
     if (!container) return;
 
-    const activeKey = (APP_STATE.settings && APP_STATE.settings.activeTheme) || 'halloween';
+    const activeKey = (APP_STATE.settings && APP_STATE.settings.activeTheme) || 'standard';
 
     if (activeKey === 'halloween') {
         container.innerHTML = `
-            <!-- Bruja Voladora cruzando el cielo -->
-            <div class="absolute top-6 left-0 animate-witch z-50 text-5xl sm:text-6xl drop-shadow-xl pointer-events-none">
+            <!-- Bruja Voladora cruzando el cielo de la app -->
+            <div class="absolute top-8 left-0 animate-witch z-50 text-5xl sm:text-6xl drop-shadow-xl pointer-events-none">
                 🧙‍♀️🧹
             </div>
 
@@ -333,35 +333,22 @@ function renderThemeOverlay() {
                 </div>
             </div>
 
-            <!-- OLLA Y CALDERO ANTIGUO NEGRO DE BRUJA CON POCIÓN HIRVIENDO -->
-            <div class="absolute bottom-2 right-6 z-40 flex flex-col items-center">
-                <!-- Burbujas de poción efervescentes subiendo -->
-                <div class="flex gap-2 mb-[-10px] relative z-20">
-                    <span class="bubble-1 text-emerald-400 font-bold text-sm">🟢</span>
-                    <span class="bubble-2 text-purple-400 font-bold text-xs">🟣</span>
-                    <span class="bubble-3 text-emerald-300 font-bold text-base">✨</span>
+            <!-- Olla y Caldero de Pociones Hirviendo -->
+            <div class="absolute bottom-2 right-4 z-40 flex flex-col items-center">
+                <div class="flex gap-2 mb-[-12px] relative z-10">
+                    <span class="text-base font-bold bubble-1">🟢</span>
+                    <span class="text-xs font-bold bubble-2">🟣</span>
+                    <span class="text-sm font-bold bubble-3">✨</span>
                 </div>
-
-                <!-- Caldero de Hierro Negro en SVG -->
-                <svg class="w-24 h-24 sm:w-28 sm:h-28 animate-cauldron" viewBox="0 0 100 100">
-                    <path d="M22,78 L14,94 M78,78 L86,94 M50,82 L50,96" stroke="#0f172a" stroke-width="6" stroke-linecap="round"/>
-                    <path d="M14,30 C10,68 25,84 50,84 C75,84 90,68 86,30 Z" fill="#1e293b" stroke="#0f172a" stroke-width="4"/>
-                    <circle cx="10" cy="42" r="6" fill="none" stroke="#475569" stroke-width="3"/>
-                    <circle cx="90" cy="42" r="6" fill="none" stroke="#475569" stroke-width="3"/>
-                    <ellipse cx="50" cy="30" rx="36" ry="10" fill="#0f172a" stroke="#334155" stroke-width="2"/>
-                    <ellipse cx="50" cy="30" rx="32" ry="7" fill="#22c55e"/>
-                    <ellipse cx="45" cy="30" rx="20" ry="4" fill="#a855f7" opacity="0.75"/>
-                    <path d="M8,28 C8,23 92,23 92,28 C92,33 8,33 8,28 Z" fill="#334155" stroke="#0f172a" stroke-width="2"/>
-                    <path d="M22,40 C18,55 26,72 34,78" fill="none" stroke="#64748b" stroke-width="3" opacity="0.5" stroke-linecap="round"/>
-                </svg>
+                <div class="text-6xl sm:text-7xl animate-cauldron">🫕</div>
             </div>
 
-            <!-- Murciélagos y Fantasmas Flotantes -->
+            <!-- Murciélagos y Fantasmas -->
             <div class="absolute top-1/4 right-8 text-3xl animate-bounce">🦇</div>
             <div class="absolute top-1/2 left-6 text-3xl animate-pulse">👻</div>
         `;
     } else if (activeKey === 'navidad' || activeKey === 'invierno') {
-        const snowCount = 18;
+        const snowCount = 15;
         let snowHtml = '';
         for (let i = 0; i < snowCount; i++) {
             const leftPos = Math.floor(Math.random() * 95);
@@ -371,51 +358,35 @@ function renderThemeOverlay() {
             snowHtml += `<span class="animate-snowflake" style="left: ${leftPos}vw; animation-duration: ${duration}s; animation-delay: ${delay}s; font-size: ${size}px;">❄️</span>`;
         }
 
-        const isNavidad = activeKey === 'navidad';
+        const iconCorner = activeKey === 'navidad' ? '🎅' : '☕';
+        const iconOther = activeKey === 'navidad' ? '🎄' : '❄️';
 
         container.innerHTML = `
             ${snowHtml}
-            ${isNavidad ? `
-                <div class="absolute top-6 left-0 animate-sleigh z-50 text-4xl sm:text-5xl drop-shadow-lg pointer-events-none">🎅🛷🦌</div>
-                <div class="absolute bottom-3 left-4 text-5xl sm:text-6xl animate-pulse">🎄</div>
-                <div class="absolute bottom-3 right-4 text-5xl sm:text-6xl animate-bounce">🎁</div>
-            ` : `
-                <div class="absolute bottom-3 right-4 text-5xl sm:text-6xl animate-bounce">☕</div>
-                <div class="absolute bottom-3 left-4 text-5xl sm:text-6xl animate-pulse">🐧</div>
-            `}
+            <div class="absolute top-2 left-2 text-4xl sm:text-5xl animate-bounce">${iconOther}</div>
+            <div class="absolute bottom-3 right-3 text-5xl sm:text-6xl">${iconCorner}</div>
         `;
     } else if (activeKey === 'semana_santa') {
         container.innerHTML = `
-            <div class="absolute bottom-3 left-6 text-5xl sm:text-6xl animate-bunny">🐰</div>
-            <div class="absolute top-6 right-8 text-4xl animate-bounce">🥚✨</div>
-            <div class="absolute bottom-3 right-6 text-5xl flex gap-1 animate-pulse"><span>🥚</span><span>🍫</span></div>
+            <div class="absolute top-2 left-2 text-4xl animate-bounce">🐰</div>
+            <div class="absolute bottom-2 right-2 text-4xl sm:text-5xl flex gap-1">
+                <span>🥚</span><span>🍫</span>
+            </div>
         `;
     } else if (activeKey === 'fiestas_patrias') {
         container.innerHTML = `
-            <div class="absolute top-10 left-12 animate-kite text-5xl sm:text-6xl drop-shadow-md">🪁</div>
-            <div class="absolute bottom-3 right-4 text-5xl sm:text-6xl animate-pulse">🇨🇱</div>
-            <div class="absolute bottom-3 left-4 text-4xl animate-bounce">🥟</div>
+            <div class="absolute top-2 left-2 text-5xl animate-spider-crawl">🪁</div>
+            <div class="absolute bottom-2 right-2 text-5xl">🇨🇱</div>
         `;
     } else if (activeKey === 'mes_nino') {
-        const balloonEmojis = ['🎈', '🎈', '🎈', '🧸', '🎉'];
-        let balloonsHtml = '';
-        for (let i = 0; i < 7; i++) {
-            const leftPos = Math.floor(Math.random() * 90) + 5;
-            const duration = (6 + Math.random() * 5).toFixed(1);
-            const delay = (Math.random() * 4).toFixed(1);
-            const emoji = balloonEmojis[i % balloonEmojis.length];
-            balloonsHtml += `<span class="animate-balloon text-3xl sm:text-4xl" style="left: ${leftPos}vw; animation-duration: ${duration}s; animation-delay: ${delay}s;">${emoji}</span>`;
-        }
-
         container.innerHTML = `
-            ${balloonsHtml}
-            <div class="absolute bottom-3 right-4 text-5xl sm:text-6xl animate-bounce">🧸</div>
+            <div class="absolute top-2 left-2 text-5xl animate-bounce">🎈</div>
+            <div class="absolute bottom-2 right-2 text-5xl">🧸</div>
         `;
     } else if (activeKey === 'verano') {
         container.innerHTML = `
-            <div class="absolute top-4 left-4 text-6xl sm:text-7xl animate-spin drop-shadow-lg" style="animation-duration: 20s;">☀️</div>
-            <div class="absolute bottom-3 right-4 text-5xl sm:text-6xl animate-bounce">🍦</div>
-            <div class="absolute bottom-3 left-6 text-4xl animate-pulse">🏖️</div>
+            <div class="absolute top-2 left-2 text-6xl animate-spin" style="animation-duration: 15s;">☀️</div>
+            <div class="absolute bottom-2 right-2 text-5xl">🍦</div>
         `;
     } else {
         container.innerHTML = '';
