@@ -15,8 +15,69 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 }
 
 // ==========================================
-// 2. SISTEMA DE TEMÁTICAS (INCLUYE OLLA DE BRUJA)
+// 2. SISTEMA DE TEMÁTICAS (OLLÓN NEGRO ANTIGUO DE HIERRO)
 // ==========================================
+const SVG_OLLON_NEGRO = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" class="w-24 h-24 filter drop-shadow-2xl hover:scale-110 transition-transform cursor-pointer">
+    <defs>
+        <!-- Degradado de Hierro Fundido Antiguo -->
+        <radialGradient id="ironGrad" cx="35%" cy="30%" r="70%">
+            <stop offset="0%" stop-color="#4e4e50"/>
+            <stop offset="45%" stop-color="#1c1c1e"/>
+            <stop offset="85%" stop-color="#0a0a0c"/>
+            <stop offset="100%" stop-color="#000000"/>
+        </radialGradient>
+
+        <!-- Degradado de Pócima Verde Bruja -->
+        <linearGradient id="potionGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#10b981"/>
+            <stop offset="50%" stop-color="#a855f7"/>
+            <stop offset="100%" stop-color="#22c55e"/>
+        </linearGradient>
+
+        <!-- Sombra del Ollón -->
+        <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="rgba(0,0,0,0.6)"/>
+            <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+        </radialGradient>
+    </defs>
+
+    <!-- Sombra en el Suelo -->
+    <ellipse cx="60" cy="110" rx="42" ry="8" fill="url(#shadowGrad)"/>
+
+    <!-- Patas de Hierro del Ollón (Tripode Antiguo) -->
+    <path d="M 28 88 L 18 110 L 32 106 Z" fill="#0c0c0e" stroke="#000" stroke-width="1.5"/>
+    <path d="M 92 88 L 102 110 L 88 106 Z" fill="#0c0c0e" stroke="#000" stroke-width="1.5"/>
+    <path d="M 60 92 L 60 114 L 68 112 Z" fill="#050507"/>
+
+    <!-- Cuerpo Esférico del Ollón Negro -->
+    <ellipse cx="60" cy="68" rx="44" ry="36" fill="url(#ironGrad)" stroke="#18181b" stroke-width="2"/>
+
+    <!-- Remaches y Textura de Hierro -->
+    <circle cx="30" cy="68" r="1.5" fill="#666"/>
+    <circle cx="90" cy="68" r="1.5" fill="#666"/>
+    <circle cx="60" cy="90" r="1.5" fill="#555"/>
+
+    <!-- Asas/Anillos de Hierro Laterales -->
+    <path d="M 16 56 C 4 56, 4 72, 16 72" fill="none" stroke="#27272a" stroke-width="5" stroke-linecap="round"/>
+    <path d="M 104 56 C 116 56, 116 72, 104 72" fill="none" stroke="#27272a" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="16" cy="64" rx="3" ry="5" fill="none" stroke="#52525b" stroke-width="2"/>
+    <ellipse cx="104" cy="64" rx="3" ry="5" fill="none" stroke="#52525b" stroke-width="2"/>
+
+    <!-- Cuello y Borde Ancho Volado del Ollón -->
+    <ellipse cx="60" cy="42" rx="42" ry="11" fill="#18181b" stroke="#09090b" stroke-width="2"/>
+    <ellipse cx="60" cy="42" rx="36" ry="8" fill="#09090b"/>
+
+    <!-- Pócima Mágica Hirviendo -->
+    <ellipse cx="60" cy="42" rx="34" ry="7" fill="url(#potionGrad)"/>
+
+    <!-- Burbujas de Pócima Mágica -->
+    <circle cx="48" cy="41" r="3.5" fill="#a7f3d0" opacity="0.9"/>
+    <circle cx="70" cy="42" r="4.5" fill="#e9d5ff" opacity="0.85"/>
+    <circle cx="60" cy="44" r="2.5" fill="#6ee7b7" opacity="0.95"/>
+</svg>
+`;
+
 const THEMES_CONFIG = {
     standard: {
         id: 'standard',
@@ -29,35 +90,39 @@ const THEMES_CONFIG = {
         id: 'bruja',
         name: 'Noche de Brujas / Mágica',
         icon: '🧙‍♀️',
-        headerBg: 'bg-purple-900',
+        headerBg: 'bg-purple-950',
         overlayHtml: `
-            <!-- Olla negra de bruja flotante con burbujas -->
+            <!-- Ollón Negro de Bruja Flotante con Pócima Mágica -->
             <div class="fixed bottom-6 right-6 z-40 flex flex-col items-center pointer-events-auto">
-                <div class="relative group cursor-pointer" onclick="speakText('¡Olla mágica de bruja activada!')">
-                    <!-- Efecto de humo/burbujas verde sobre la olla -->
-                    <div class="absolute -top-6 left-1/2 -translate-x-1/2 flex gap-1 text-xs animate-bounce">
-                        <span class="text-emerald-400 font-bold opacity-80">🫧</span>
-                        <span class="text-purple-400 font-bold opacity-90 delay-100">✨</span>
-                        <span class="text-emerald-300 font-bold opacity-75 delay-200">🫧</span>
+                <div class="relative group" onclick="speakText('¡Ollón mágico de bruja activado!')">
+                    
+                    <!-- Burbujas y Humo Mágico Ascendente -->
+                    <div class="absolute -top-10 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 pointer-events-none">
+                        <span class="text-emerald-400 font-bold text-sm animate-steam">🫧</span>
+                        <span class="text-purple-300 font-bold text-base animate-steam delay-150">✨</span>
+                        <span class="text-emerald-300 font-bold text-xs animate-steam delay-300">🫧</span>
                     </div>
-                    <!-- Olla negra de bruja -->
-                    <div class="text-6xl filter drop-shadow-lg transform transition-transform group-hover:scale-110">
-                        🍲
-                    </div>
-                    <!-- Sombrero de bruja sobre la olla -->
-                    <div class="absolute -top-5 -left-2 text-3xl transform -rotate-12">
+
+                    <!-- Sombrero Antiguo de Bruja Encima -->
+                    <div class="absolute -top-7 left-1 text-3xl transform -rotate-12 z-20 pointer-events-none filter drop-shadow">
                         🧙‍♀️
                     </div>
+
+                    <!-- Dibujo Vectorial del Ollón Negro de Hierro -->
+                    <div class="relative z-10">
+                        ${SVG_OLLON_NEGRO}
+                    </div>
                 </div>
-                <span class="bg-purple-950/90 text-emerald-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-emerald-500/40 mt-1 shadow">
-                    Olla Mágica
+
+                <span class="bg-slate-950/90 text-emerald-300 text-[10px] font-black px-3 py-1 rounded-full border border-purple-500/50 mt-1 shadow-lg backdrop-blur">
+                    Ollón de Hierro
                 </span>
             </div>
 
-            <!-- Murciélagos y calabazas decorativas flotantes -->
-            <div class="fixed top-20 left-4 text-3xl opacity-40 pointer-events-none animate-pulse">🦇</div>
-            <div class="fixed top-40 right-6 text-3xl opacity-40 pointer-events-none animate-bounce">🎃</div>
-            <div class="fixed bottom-24 left-6 text-3xl opacity-30 pointer-events-none">🕷️</div>
+            <!-- Murciélagos y Decoración Antigua -->
+            <div class="fixed top-20 left-5 text-3xl opacity-30 pointer-events-none animate-pulse">🦇</div>
+            <div class="fixed top-36 right-8 text-3xl opacity-35 pointer-events-none animate-bounce">🎃</div>
+            <div class="fixed bottom-28 left-6 text-2xl opacity-25 pointer-events-none">🕷️</div>
         `
     }
 };
@@ -109,7 +174,7 @@ const CLP_CURRENCY_ITEMS = [
 ];
 
 // ==========================================
-// 4. ESTADO GLOBAL DE LA APLICACIÓN
+// 4. ESTADO GLOBAL
 // ==========================================
 const APP_STATE = {
     currentUser: {
@@ -222,7 +287,6 @@ function renderApp() {
         renderHomeView(container);
     }
     
-    // Aplicar la temática configurada
     applyTheme(APP_STATE.activeTheme || 'bruja');
     updateBasketBadge();
 }
@@ -250,7 +314,7 @@ function renderHomeView(container) {
                 </div>
             ` : ''}
 
-            <!-- PANEL SUPERIOR DE NIVEL (SIN LOS BOTONES DE EXAMEN/MEMORICE) -->
+            <!-- PANEL SUPERIOR DE NIVEL -->
             <div class="bg-white border-2 border-slate-200 rounded-2xl p-4 shadow-sm flex items-center justify-between flex-wrap gap-4">
                 <div class="flex items-center gap-3">
                     <div class="bg-amber-100 p-2.5 rounded-xl text-3xl">🏆</div>
@@ -261,18 +325,18 @@ function renderHomeView(container) {
                 </div>
             </div>
 
-            <!-- SELECTOR RÁPIDO DE TEMÁTICAS EN PANTALLA -->
+            <!-- SELECTOR RÁPIDO DE TEMÁTICAS -->
             <div class="bg-white p-3 rounded-2xl border-2 border-slate-200 shadow-sm flex items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
-                    <span class="text-2xl">🍲</span>
+                    <span class="text-2xl">🔮</span>
                     <span class="text-xs font-black text-slate-800 uppercase">Ambiente Temático:</span>
                 </div>
                 <div class="flex gap-2">
                     <button onclick="applyTheme('standard')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black rounded-xl text-xs active:scale-95">
                         🛒 Estándar
                     </button>
-                    <button onclick="applyTheme('bruja')" class="px-3 py-1.5 bg-purple-900 hover:bg-purple-800 text-emerald-300 font-black rounded-xl text-xs active:scale-95 shadow flex items-center gap-1">
-                        <span>🍲</span> <span>Olla de Bruja</span>
+                    <button onclick="applyTheme('bruja')" class="px-3 py-1.5 bg-purple-950 hover:bg-purple-900 text-emerald-300 font-black rounded-xl text-xs active:scale-95 shadow flex items-center gap-1 border border-purple-700">
+                        <span>🧙‍♀️</span> <span>Ollón de Hierro</span>
                     </button>
                 </div>
             </div>
