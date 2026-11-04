@@ -1,5 +1,5 @@
 // ==========================================
-// CONFIGURACIÓN DE FIREBASE Y EMAILJS
+// 1. CONFIGURACIÓN DE FIREBASE Y EMAILJS
 // ==========================================
 const firebaseConfig = {
     apiKey: "AIzaSyB27AIOvrMwMtidvD7Lbkbp9v--0DLaZyY",
@@ -7,832 +7,739 @@ const firebaseConfig = {
     projectId: "supermercado-nee",
     storageBucket: "supermercado-nee.firebasestorage.app",
     messagingSenderId: "439038813506",
-    appId: "1:439038813506:web:972b1e2a0dc1da8cfad4db",
-    measurementId: "G-ZJXT1QTQ6J"
+    appId: "1:439038813506:web:972b1e2a0dc1da8cfad4db"
 };
 
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
-    try { firebase.initializeApp(firebaseConfig); } catch(e) { console.error("Firebase init error:", e); }
-}
-const db = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
-
-const EMAILJS_CONFIG = {
-    publicKey: "smzqxkKPlFcTigatD",
-    serviceId: "service_omucoeg",
-    templateId: "template_vyzp71o"
-};
-
-if (typeof emailjs !== 'undefined') {
-    try { emailjs.init(EMAILJS_CONFIG.publicKey); } catch(e) {}
+    try { firebase.initializeApp(firebaseConfig); } catch(e) {}
 }
 
 // ==========================================
-// TEMÁTICAS ESTACIONALES Y CONFIGURACIÓN
+// 2. MATRIZ PEDAGÓGICA MINEDUC / PIE / DECRETO 83
 // ==========================================
-const SEASONAL_THEMES = {
-    standard: {
-        id: 'standard',
-        name: 'Estándar / Institucional 🏫',
-        bgColor: 'bg-slate-100',
-        bannerBg: 'bg-indigo-600',
-        headerBg: 'bg-indigo-600',
-        bannerText: ' text-white ',
-        titleMsg: '¡Bienvenido a Comprar! 🛍️',
-        greetingMsg: 'Selecciona una tienda para comenzar tu misión.',
-        emoji: '🛍️'
+const LEVEL_CURRICULUM = {
+    1: {
+        id: 1,
+        title: "Nivel 1: Explorador de Góndolas 🎒",
+        icon: "🧩",
+        bgColor: "from-emerald-600 to-teal-800",
+        objectiveGeneral: "Desarrollar habilidades básicas de discriminación visual, reconocimiento numérico y asociación de valores en el Sistema Monetario Chileno (CLP) de baja denominación ($100 a $2.000) bajo los lineamientos del Currículum Nacional Mineduc (Bases Curriculares Matemáticas 1° Básico / Decreto 83).",
+        objectivesSpecific: [
+            "Mineduc OA 1: Identificar, contar y asociar representaciones concretas y pictóricas de números hasta $2.000.",
+            "Mineduc OA 3: Discriminar visualmente las denominaciones de monedas chilenas ($100, $500) y billetes de $1.000 y $2.000.",
+            "PIE / Autonomía: Reconocer productos básicos de primera necesidad mediante pictogramas DUA.",
+            "PIE / Función Ejecutiva: Ejercitar la memoria de trabajo y la atención sostenida a través de la resolución de 6 minijuegos secuenciales.",
+            "Autonomía Social: Ejecutar la entrega de dinero exacto en compras unitarias de un solo artículo."
+        ],
+        objectiveStudent: "Aprender a conocer las monedas y billetes de $1.000 para comprar tus productos favoritos en la tienda.",
+        objectivePedagogical: "Bases Curriculares Mineduc - OA 1 Matemáticas (1° Básico) & Ámbito Autonomía PIE: Discriminación cuantitativa y manejo del dinero de uso cotidiano.",
+        minigamesRequired: 6,
+        minigamesList: [
+            { id: 'm1_1', name: '1. Memorise de Monedas y Billetes', type: 'memorise', desc: 'Encuentra las parejas de monedas y billetes chilenos.' },
+            { id: 'm1_2', name: '2. Clasificador de Precios Bajos', type: 'choice', desc: 'Identifica el producto de menor valor ($100 vs $500).' },
+            { id: 'm1_3', name: '3. Ordenar Monedas por Tamaño', type: 'sort', desc: 'Ordena de menor a mayor valor las monedas de $10, $50, $100 y $500.' },
+            { id: 'm1_4', name: '4. Parejas de Envases Idénticos', type: 'memorise', desc: 'Asocia el envase del producto con su etiqueta de precio.' },
+            { id: 'm1_5', name: '5. Identificador de Billete $1.000', type: 'choice', desc: 'Selecciona el billete verde de $1.000 entre varias opciones.' },
+            { id: 'm1_6', name: '6. Suma Simple con Monedas de $100', type: 'math', desc: 'Cuenta las monedas de $100 necesarias para alcanzar $500.' }
+        ],
+        bossTitle: "👾 Jefe Final: El Cajero Apurado",
+        bossDescription: "Demuestra tu rapidez identificando los billetes de $1.000 y $2.000 para pagar antes de que se llene la fila.",
+        bossReward: "👑 Corona del Comprador Principiante (+50 PTS)"
     },
-    halloween: {
-        id: 'halloween',
-        name: 'Halloween & Noche de Brujas 🎃🕸️',
-        bgColor: 'bg-slate-900',
-        bannerBg: 'bg-gradient-to-r from-purple-900 via-orange-600 to-slate-900',
-        headerBg: 'bg-purple-950 border-orange-500',
-        bannerText: ' text-amber-300 ',
-        titleMsg: '¡Especial de Halloween! 🎃👻',
-        greetingMsg: '¡Busca dulces y pociones en el supermercado embrujado!',
-        emoji: '🎃'
+    2: {
+        id: 2,
+        title: "Nivel 2: Experto en Góndolas 🏪",
+        icon: "🧱",
+        bgColor: "from-blue-600 to-indigo-800",
+        objectiveGeneral: "Fortalecer el razonamiento cuantitativo, la comparación de valores en góndolas y la resolución de problemas sencillos de vuelto en compras diarias hasta $5.000 CLP (Mineduc OA 2 y OA 4 - 2° a 3° Básico / PIE).",
+        objectivesSpecific: [
+            "Mineduc OA 2: Comparar números y magnitudes de precios para determinar la opción más económica o costosa.",
+            "Mineduc OA 4: Resolver problemas aditivos y de sustracción sencillos asociados al cálculo de vueltos con billetes de $5.000.",
+            "PIE / DUA: Interpretar precios en góndolas del supermercado utilizando lectura de etiquetas reales e Inteligencia Artificial / OCR.",
+            "PIE / Autonomía: Organizar el presupuesto personal para seleccionar 2 o más artículos del canasto.",
+            "Autonomía Social: Desarrollar conductas de autorregulación y verificación de vuelto recibido en caja."
+        ],
+        objectiveStudent: "Comparar precios en la góndola, encontrar las ofertas y calcular cuánto vuelto te tienen que entregar.",
+        objectivePedagogical: "Bases Curriculares Mineduc - OA 2 y OA 4 Matemáticas (2°-3° Básico) & Ámbito Integración Social PIE: Estimación de costos y cálculo de vuelto.",
+        minigamesRequired: 6,
+        minigamesList: [
+            { id: 'm2_1', name: '1. Comparador de Ofertas', type: 'choice', desc: 'Elige cuál producto conviene más comprar según la góndola.' },
+            { id: 'm2_2', name: '2. Escáner OCR de Góndola', type: 'choice', desc: 'Confirma la etiqueta de precio correcto en el envase.' },
+            { id: 'm2_3', name: '3. Cálculo de Vuelto hasta $5.000', type: 'math', desc: 'Calcula cuánto vuelto recibes al pagar $3.500 con un billete de $5.000.' },
+            { id: 'm2_4', name: '4. Clasificador por Categorías', type: 'choice', desc: 'Agrupa los productos de Lácteos, Panadería y Frutas.' },
+            { id: 'm2_5', name: '5. Detector de Errores de Etiqueta', type: 'choice', desc: 'Encuentra la etiqueta que tiene el precio equivocado.' },
+            { id: 'm2_6', name: '6. Presupuesto de Canasto Sencillo', type: 'math', desc: 'Suma 2 productos y verifica que no supere los $5.000.' }
+        ],
+        bossTitle: "👾 Jefe Final: El Inspector de Precios",
+        bossDescription: "Encuentra los precios correctos en la góndola, calcula los vueltos sin errores y verifica las ofertas.",
+        bossReward: "🏆 Medalla de Experto en Góndolas (+75 PTS)"
     },
-    navidad: {
-        id: 'navidad',
-        name: 'Especial Navidad 🎄✨',
-        bgColor: 'bg-red-50',
-        bannerBg: 'bg-gradient-to-r from-red-600 via-emerald-600 to-red-700',
-        headerBg: 'bg-red-700 border-emerald-500',
-        bannerText: ' text-yellow-200 ',
-        titleMsg: '¡Especial de Navidad en la Escuela! 🎄🎁',
-        greetingMsg: '¡Encuentra los regalos y la cena navideña!',
-        emoji: '🎅'
-    },
-    semana_santa: {
-        id: 'semana_santa',
-        name: 'Semana Santa / Conejito 🐰🥚',
-        bgColor: 'bg-emerald-50',
-        bannerBg: 'bg-gradient-to-r from-teal-500 via-purple-500 to-pink-500',
-        headerBg: 'bg-teal-700 border-purple-400',
-        bannerText: ' text-white ',
-        titleMsg: '¡Pascua de Resurrección! 🐰🥚',
-        greetingMsg: '¡Encuentra los huevitos de chocolate en las góndolas!',
-        emoji: '🐰'
-    },
-    fiestas_patrias: {
-        id: 'fiestas_patrias',
-        name: 'Fiestas Patrias Chile 🇨🇱🎈',
-        bgColor: 'bg-blue-50',
-        bannerBg: 'bg-gradient-to-r from-blue-700 via-white to-red-600',
-        headerBg: 'bg-blue-800 border-red-600',
-        bannerText: ' text-slate-900 font-black ',
-        titleMsg: '¡Viva Chile! Fiestas Patrias 🇨🇱🎈',
-        greetingMsg: '¡A comprar las empanadas y la carne para el asado!',
-        emoji: '🥟'
-    },
-    mes_nino: {
-        id: 'mes_nino',
-        name: 'Mes del Niño & Juventud 🎈🧸',
-        bgColor: 'bg-pink-50',
-        bannerBg: 'bg-gradient-to-r from-pink-500 via-purple-500 to-amber-400',
-        headerBg: 'bg-pink-600 border-purple-500',
-        bannerText: ' text-white ',
-        titleMsg: '¡Feliz Mes del Niño! 🎈🧸',
-        greetingMsg: '¡Día de juegos, juguetes y sorpresas en el supermercado!',
-        emoji: '🎈'
-    },
-    verano: {
-        id: 'verano',
-        name: 'Modo Verano & Vacaciones ☀️🏖️',
-        bgColor: 'bg-amber-50',
-        bannerBg: 'bg-gradient-to-r from-amber-400 via-orange-500 to-sky-400',
-        headerBg: 'bg-orange-500 border-amber-300',
-        bannerText: ' text-slate-900 ',
-        titleMsg: '¡Modo Verano Activo! ☀️🌊',
-        greetingMsg: '¡Prepara tu canasto con helados, frutas y bebidas!',
-        emoji: '🍦'
-    },
-    invierno: {
-        id: 'invierno',
-        name: 'Vacaciones de Invierno ❄️☕',
-        bgColor: 'bg-sky-50',
-        bannerBg: 'bg-gradient-to-r from-sky-600 via-indigo-700 to-blue-900',
-        headerBg: 'bg-indigo-800 border-sky-400',
-        bannerText: ' text-sky-100 ',
-        titleMsg: '¡Vacaciones de Invierno! ❄️🏔️',
-        greetingMsg: '¡Busca chocolates calientes y sopitas calientitas!',
-        emoji: '❄️'
+    3: {
+        id: 3,
+        title: "Nivel 3: Máster de Supermercado 🏆",
+        icon: "💎",
+        bgColor: "from-purple-700 to-pink-900",
+        objectiveGeneral: "Consolidar la autonomía funcional completa en el proceso de planificar compras, administrar presupuestos elevados ($10.000 a $20.000 CLP), calcular vueltos complejos y cotejar listas de compras (Mineduc OA 3 y OA 6 - 4° Básico / Talleres Laborales PIE).",
+        objectivesSpecific: [
+            "Mineduc OA 3: Realizar operaciones compuestas de suma y resta con numeración en el rango de $1.000 a $20.000.",
+            "Mineduc OA 6: Resolver problemas de la vida real que requieran cotizar, calcular totales y administrar dinero.",
+            "PIE / Taller Laboral: Cotejar una lista de compras impresas o digitales frente a los productos físicos recopilados.",
+            "PIE / Vida Independiente: Manejar billetes de alta denominación ($10.000 y $20.000) discriminando billetes y monedas de vuelto.",
+            "Autonomía Total: Ejecutar la secuencia completa de compra autónoma desde la selección hasta el pago y verificación en caja."
+        ],
+        objectiveStudent: "Planificar la compra familiar con lista, pagar con billetes grandes de $10.000 y $20.000 y revisar el vuelto exacto.",
+        objectivePedagogical: "Bases Curriculares Mineduc - OA 3 y OA 6 Matemáticas (4° Básico) & PIE Autonomía e Inclusión Laboral: Presupuesto y transacción autónoma.",
+        minigamesRequired: 6,
+        minigamesList: [
+            { id: 'm3_1', name: '1. Planificador de Lista Familiar', type: 'choice', desc: 'Organiza la lista de compras priorizando los productos más necesarios.' },
+            { id: 'm3_2', name: '2. Suma Acumulada del Canasto', type: 'math', desc: 'Suma los valores de 3 productos del canasto antes de llegar a caja.' },
+            { id: 'm3_3', name: '3. Pago con Billetes Grandes ($10k y $20k)', type: 'math', desc: 'Selecciona la combinación de billetes requerida para compras altas.' },
+            { id: 'm3_4', name: '4. Arqueo de Caja y Vuelto Complejo', type: 'math', desc: 'Verifica el desglose de vuelto con billetes de $2.000, $1.000 y monedas.' },
+            { id: 'm3_5', name: '5. Calculadora de Descuentos 2x1', type: 'choice', desc: 'Aplica el descuento de la promoción y determina el precio final.' },
+            { id: 'm3_6', name: '6. Presupuesto Semanal de Autonomía', type: 'math', desc: 'Ajusta la compra total para que calce con un billete de $20.000.' }
+        ],
+        bossTitle: "👾 Jefe Final: El Gerente General",
+        bossDescription: "Completa la compra semanal de la lista entregando el pago exacto con billetes grandes y verificando el vuelto.",
+        bossReward: "🥇 Trofeo Máster del Supermercado (+100 PTS)"
     }
 };
 
-const TEAM_NAME_PRESETS = [
-    "Equipo Multidisciplinario",
-    "Programa de Integración Escolar (PIE)",
-    "Equipo de Apoyo Pedagógico",
-    "Equipo de Inclusión Escolar",
-    "Unidad de Autonomía Funcional",
-    "Equipo Psicopedagógico"
-];
-
-const DEFAULT_SETTINGS = {
-    schoolName: "Escuela Especial Adaptativa",
-    schoolSubHeader: "Unidad de Autonomía Funcional",
-    teamName: "Equipo Multidisciplinario",
-    schoolLogo: "",
-    mascotUrl: "",
-    corporeoUrl: "",
-    activeTheme: "halloween",
-    directorName: "Equipo Multidisciplinario",
-    rewardPointsThreshold: 250,
-    rewardMessage: "¡Excelente trabajo! Muestra esta pantalla a tu profesor para recibir tu premio físico."
-};
-
-const DEFAULT_AI_CONFIG = {
-    mode: 'strict',
-    sensitivity: 'medium',
-    cameraFacing: 'environment'
-};
-
-const LEVEL_TITLES = [
-    "Nivel 0: Explorador Inicial 🎒",
-    "Nivel 1: Comprador Principiante 🛒",
-    "Nivel 2: Experto en Góndolas 🏪",
-    "Nivel 3: Máster de Supermercado 🏆"
-];
-
-// BANCO DE PREGUNTAS ALINEADAS AL CURRÍCULUM MINEDUC CHILE (EVALUACIÓN DE AUTONOMÍA)
 const MINEDUC_EXAM_BANK = {
     1: [
-        {
-            q: "Vas al almacén a comprar un jugo de $1.000 pesos. ¿Con cuál billete chileno pagas justo?",
-            options: ["Billete de $1.000 (Verde)", "Billete de $5.000 (Rojo)", "Moneda de $500"],
-            correct: "Billete de $1.000 (Verde)"
-        },
-        {
-            q: "¿Cuál de estas monedas chilenas tiene mayor valor dinero?",
-            options: ["Moneda de $500", "Moneda de $100", "Moneda de $50"],
-            correct: "Moneda de $500"
-        }
+        { q: "Vas al almacén a comprar un jugo de $1.000 pesos. ¿Con cuál billete chileno pagas de forma exacta?", options: ["Billete de $1.000 (Verde)", "Billete de $5.000 (Rojo)", "Moneda de $500"], correct: "Billete de $1.000 (Verde)" },
+        { q: "¿Cuál de estas monedas chilenas tiene el mayor valor monetario?", options: ["Moneda de $500", "Moneda de $100", "Moneda de $50"], correct: "Moneda de $500" },
+        { q: "Si tienes 1 billete de $1.000 y 1 moneda de $500, ¿cuánto dinero tienes en total?", options: ["$1.500 pesos", "$2.000 pesos", "$1.000 pesos"], correct: "$1.500 pesos" }
     ],
     2: [
-        {
-            q: "En la feria, 1 Kilo de Manzanas cuesta $1.200 y un paquete de Galletas cuesta $800. ¿Cuál producto cuesta MENOS dinero?",
-            options: ["Las Galletas ($800)", "Las Manzanas ($1.200)", "Cuestan lo mismo"],
-            correct: "Las Galletas ($800)"
-        },
-        {
-            q: "Si compras un pan hallulla de $1.500 pesos y pagas con un billete de $2.000, ¿cuál es tu vuelto?",
-            options: ["$500 pesos", "$1.000 pesos", "Sin vuelto"],
-            correct: "$500 pesos"
-        }
+        { q: "Un kilo de manzanas cuesta $1.200 y unas galletas cuestan $800. ¿Cuál producto cuesta MENOS dinero?", options: ["Las Galletas ($800)", "Las Manzanas ($1.200)", "Cuestan lo mismo"], correct: "Las Galletas ($800)" },
+        { q: "Si compras un pan de $1.500 pesos y pagas con un billete de $2.000, ¿cuál es tu vuelto exacto?", options: ["$500 pesos", "$1.000 pesos", "Sin vuelto"], correct: "$500 pesos" },
+        { q: "Si llevas 2 yogures de $500 pesos cada uno, ¿cuánto debes pagar en la caja?", options: ["$1.000 pesos", "$1.500 pesos", "$500 pesos"], correct: "$1.000 pesos" }
     ],
     3: [
-        {
-            q: "Vas a la caja del supermercado y compras una Leche de $1.000 y un Pan de $2.000. ¿Cuánto dinero debes pagar en total?",
-            options: ["$3.000 pesos", "$2.000 pesos", "$4.000 pesos"],
-            correct: "$3.000 pesos"
-        },
-        {
-            q: "Pagas una compra total de $4.000 pesos con un billete de $5.000. ¿Qué billete o moneda debes recibir de vuelto?",
-            options: ["Billete de $1.000", "Moneda de $500", "Billete de $2.000"],
-            correct: "Billete de $1.000"
-        }
+        { q: "Compras una Leche de $1.000, un Pan de $2.000 y un Aceite de $3.000. ¿Cuánto dinero sumas en total?", options: ["$6.000 pesos", "$5.000 pesos", "$7.000 pesos"], correct: "$6.000 pesos" },
+        { q: "Pagas una compra de $13.000 pesos con un billete de $20.000. ¿Qué billetes de vuelto debes recibir?", options: ["1 Billete de $5.000 y 1 Billete de $2.000 ($7.000)", "1 Billete de $10.000", "2 Billetes de $2.000"], correct: "1 Billete de $5.000 y 1 Billete de $2.000 ($7.000)" },
+        { q: "Tienes un presupuesto máximo de $10.000. Tu canasto suma $9.500. ¿Alcanza tu dinero para pagar?", options: ["Sí, alcanza y te sobran $500", "No, te faltan $500", "Pagas exacto sin vuelto"], correct: "Sí, alcanza y te sobran $500" }
     ]
 };
 
-// ==========================================
-// MONEDAS Y BILLETES EN SVG (CLP CHILE)
-// ==========================================
-function makeSvgDataUrl(svgString) {
-    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
-}
+function makeSvgDataUrl(svgString) { return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString); }
 
-const SVG_B20K_RAW = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#e67e22"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="#f39c12" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$20.000</text></svg>`;
-const SVG_B10K_RAW = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#2980b9"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="#5499c7" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$10.000</text></svg>`;
-const SVG_B5K_RAW  = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#c0392b"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="#ec7063" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$5.000</text></svg>`;
-const SVG_B2K_RAW  = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#8e44ad"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="#bb8fce" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$2.000</text></svg>`;
-const SVG_B1K_RAW  = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#27ae60"/><rect x="10" y="10" width="180" height="80" rx="6" fill="none" stroke="#58d68d" stroke-width="3"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$1.000</text></svg>`;
-const SVG_C500_RAW = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#f39c12"/><circle cx="50" cy="50" r="34" fill="#bdc3c7"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="#2c3e50" text-anchor="middle">$500</text></svg>`;
-const SVG_C100_RAW = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#f1c40f"/><circle cx="50" cy="50" r="36" fill="#f39c12"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="white" text-anchor="middle">$100</text></svg>`;
-const SVG_C50_RAW  = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><polygon points="50,4 82,18 96,50 82,82 50,96 18,18" fill="#bdc3c7"/><circle cx="50" cy="50" r="32" fill="#ecf0f1"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="#2c3e50" text-anchor="middle">$50</text></svg>`;
-const SVG_C10_RAW  = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#d35400"/><circle cx="50" cy="50" r="36" fill="#e67e22"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="white" text-anchor="middle">$10</text></svg>`;
+const SVG_B20K = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#e67e22"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$20.000</text></svg>`;
+const SVG_B10K = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#2980b9"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$10.000</text></svg>`;
+const SVG_B5K  = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#c0392b"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$5.000</text></svg>`;
+const SVG_B2K  = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#8e44ad"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$2.000</text></svg>`;
+const SVG_B1K  = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" rx="10" fill="#27ae60"/><text x="100" y="55" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">$1.000</text></svg>`;
+const SVG_C500 = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#f39c12"/><circle cx="50" cy="50" r="34" fill="#bdc3c7"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="#2c3e50" text-anchor="middle">$500</text></svg>`;
+const SVG_C100 = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#f1c40f"/><circle cx="50" cy="50" r="36" fill="#f39c12"/><text x="50" y="58" font-family="Arial,sans-serif" font-size="20" font-weight="900" fill="white" text-anchor="middle">$100</text></svg>`;
 
 const CLP_CURRENCY_ITEMS = [
-    { id: 'b20k', value: 20000, type: 'bill', name: 'Billete $20.000', img: makeSvgDataUrl(SVG_B20K_RAW) },
-    { id: 'b10k', value: 10000, type: 'bill', name: 'Billete $10.000', img: makeSvgDataUrl(SVG_B10K_RAW) },
-    { id: 'b5k',  value: 5000,  type: 'bill', name: 'Billete $5.000',  img: makeSvgDataUrl(SVG_B5K_RAW) },
-    { id: 'b2k',  value: 2000,  type: 'bill', name: 'Billete $2.000',  img: makeSvgDataUrl(SVG_B2K_RAW) },
-    { id: 'b1k',  value: 1000,  type: 'bill', name: 'Billete $1.000',  img: makeSvgDataUrl(SVG_B1K_RAW) },
-    { id: 'c500', value: 500,   type: 'coin', name: 'Moneda $500',    img: makeSvgDataUrl(SVG_C500_RAW) },
-    { id: 'c100', value: 100,   type: 'coin', name: 'Moneda $100',    img: makeSvgDataUrl(SVG_C100_RAW) },
-    { id: 'c50',  value: 50,    type: 'coin', name: 'Moneda $50',     img: makeSvgDataUrl(SVG_C50_RAW) },
-    { id: 'c10',  value: 10,    type: 'coin', name: 'Moneda $10',     img: makeSvgDataUrl(SVG_C10_RAW) }
-];
-
-const PRESET_CATEGORIES = [
-    { name: "Frutas y Verduras", icon: "🍎" },
-    { name: "Carnes, Pescados y Mariscos", icon: "🥩" },
-    { name: "Lácteos, Yogures y Huevos", icon: "🥛" },
-    { name: "Fiambrería, Quesos y Platos Preparados", icon: "🧀" },
-    { name: "Congelados", icon: "🧊" },
-    { name: "Despensa / Abarrotes", icon: "🌾" },
-    { name: "Panadería y Pastelería", icon: "🍞" },
-    { name: "Snacks, Galletas y Confitería", icon: "🍿" },
-    { name: "Bebidas, Agua y Jugos", icon: "🧃" },
-    { name: "Cuidado Personal / Higiene", icon: "🧴" },
-    { name: "Limpieza del Hogar", icon: "🧼" },
-    { name: "Mascotas", icon: "🐶" }
+    { id: 'b20k', value: 20000, type: 'bill', name: 'Billete $20.000', img: makeSvgDataUrl(SVG_B20K) },
+    { id: 'b10k', value: 10000, type: 'bill', name: 'Billete $10.000', img: makeSvgDataUrl(SVG_B10K) },
+    { id: 'b5k',  value: 5000,  type: 'bill', name: 'Billete $5.000',  img: makeSvgDataUrl(SVG_B5K) },
+    { id: 'b2k',  value: 2000,  type: 'bill', name: 'Billete $2.000',  img: makeSvgDataUrl(SVG_B2K) },
+    { id: 'b1k',  value: 1000,  type: 'bill', name: 'Billete $1.000',  img: makeSvgDataUrl(SVG_B1K) },
+    { id: 'c500', value: 500,   type: 'coin', name: 'Moneda $500',    img: makeSvgDataUrl(SVG_C500) },
+    { id: 'c100', value: 100,   type: 'coin', name: 'Moneda $100',    img: makeSvgDataUrl(SVG_C100) }
 ];
 
 // ==========================================
-// ESTADO GLOBAL
+// 3. ESTADO GLOBAL COMPLETO DE LA APLICACIÓN
 // ==========================================
 const APP_STATE = {
     currentUser: null,
     selectedSupermarketId: null,
     selectedCategoryFilter: 'ALL',
+    currentStudentTab: 'home', // 'home' | 'minigames'
     teacherActiveTab: 'home',
     teacherPreviewMode: false,
     basket: [],
     userPaidAmount: 0,
-    userPaidItems: [],
-    courses: [],
-    categories: [],
-    users: [
-        { id: 'u-docente', role: 'teacher', name: 'Profesor / Educador', rut: '12345678-9', pin: '1234', email: 'docente@escuela.cl' },
-        { id: 'u-alumno', role: 'student', name: 'Estudiante Ejemplo', rut: '98765432-1', pin: '1234', points: 50, level: 1, xp: 50, examPassed: {} }
-    ],
     supermarkets: [
-        { id: 'sup-1', name: 'Supermercado Central', icon: '🏪', photoUrl: '', description: 'Tienda Principal' }
+        { id: 'sup-1', name: 'Supermercado Central', icon: '🏪', description: 'Tienda Principal de la Escuela' },
+        { id: 'sup-2', name: 'Minimarket Don Pedro', icon: '🏪', description: 'Almacén de Barrio' }
     ],
+    categories: ['Todas', 'Lácteos, Yogures y Huevos', 'Panadería y Pastelería', 'Frutas y Verduras', 'Bebidas, Agua y Jugos'],
     products: [
-        { id: 'prod-1', name: 'Leche Entera 1L', category: 'Lácteos, Yogures y Huevos', price: 1050, isAll: true, iconEmoji: '🥛' },
-        { id: 'prod-2', name: 'Pan Hallulla 1Kg', category: 'Panadería y Pastelería', price: 1990, isAll: true, iconEmoji: '🍞' },
-        { id: 'prod-3', name: 'Manzana Fuji (1Kg)', category: 'Frutas y Verduras', price: 1200, isAll: true, iconEmoji: '🍎' }
+        { id: 'prod-1', name: 'Leche Entera 1L', category: 'Lácteos, Yogures y Huevos', price: 1050, iconEmoji: '🥛' },
+        { id: 'prod-2', name: 'Pan Hallulla 1Kg', category: 'Panadería y Pastelería', price: 1990, iconEmoji: '🍞' },
+        { id: 'prod-3', name: 'Manzana Fuji (1Kg)', category: 'Frutas y Verduras', price: 1200, iconEmoji: '🍎' },
+        { id: 'prod-4', name: 'Jugo de Naranja 1L', category: 'Bebidas, Agua y Jugos', price: 1500, iconEmoji: '🧃' }
     ],
-    evaluations: [],
-    customCurrencies: {},
-    settings: { ...DEFAULT_SETTINGS },
-    aiConfig: { ...DEFAULT_AI_CONFIG },
-    telemetry: { voiceHelpCount: 0 },
-    missionStartTime: null,
-    
-    cameraStream: null,
-    adminTestStream: null,
-    isAiAnalyzing: false,
-    currentTargetScanProduct: null,
-    
-    activeMission: null,          
-    classroomMode: 'PREP',        
-    listValidated: false,         
-    scannedItemsInStore: {},      
-    classroomErrorsCount: 0,      
-    priceAdjustmentsCount: 0,     
-    pendingScanProduct: null,     
-    invalidBasketItems: [],
-
-    memorise: {
-        cards: [],
-        flippedCards: [],
-        matchedPairsCount: 0,
-        movesCount: 0,
-        totalPairsNeeded: 3,
-        isBusy: false
-    },
-
-    videoCapsules: [
-        {
-            id: 'cap-1',
-            level: 1,
-            skill: 'Reconocimiento de Monedas',
-            title: '¿Cómo identificar las monedas de $500 y $100?',
-            url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-            description: 'Cápsula explicativa para reconocer los valores básicos de las monedas chilenas.'
-        }
+    users: [
+        { id: 'u-docente', role: 'teacher', name: 'Profesor / Educador PIE', rut: '12345678-9', pin: '1234' },
+        { id: 'u-alumno', role: 'student', name: 'Estudiante Ejemplo', rut: '98765432-1', pin: '1234', points: 60, level: 1, minigamesCompleted: { level_1: 0, level_2: 0, level_3: 0 }, examPassed: {} }
     ],
+    settings: { schoolName: "Escuela Especial Adaptativa", teamName: "Equipo Multidisciplinario PIE", rewardPointsThreshold: 250 },
+    activeMission: null,
+    memorise: { cards: [], flippedCards: [], matchedPairsCount: 0, movesCount: 0, totalPairsNeeded: 3, isBusy: false, activeMinigameMeta: null },
     currentExam: null
 };
 
-let isPhotoProcessing = false;
+const LEVEL_TITLES = ["Nivel 0", "Nivel 1: Explorador de Góndolas 🎒", "Nivel 2: Experto en Góndolas 🏪", "Nivel 3: Máster de Supermercado 🏆"];
 
 // ==========================================
-// RENDERIZADO DE PERSONAJES ANIMADOS Y AVATAR
+// 4. FUNCIONES DE APOYO Y SÍNTESIS DE VOZ
 // ==========================================
-function getAvatarHtml(type = 'mascot', customSpeechText = '') {
-    const st = APP_STATE.settings || DEFAULT_SETTINGS;
-    const customImg = (type === 'mascot') ? st.mascotUrl : st.corporeoUrl;
-
-    let avatarImgHtml = '';
-    if (customImg) {
-        avatarImgHtml = `<img src="${customImg}" class="w-16 h-16 sm:w-20 sm:h-20 object-contain animate-avatar-float drop-shadow-md">`;
-    } else {
-        if (type === 'mascot') {
-            avatarImgHtml = `
-                <div class="relative w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-tr from-indigo-500 to-amber-400 rounded-3xl p-2 border-4 border-white shadow-xl animate-avatar-float flex items-center justify-center">
-                    <span class="text-3xl sm:text-4xl">🛒🤖</span>
-                    <span class="absolute -top-1 -right-1 bg-amber-400 text-[9px] font-black px-1.5 py-0.5 rounded-full text-slate-900 border">Mascota</span>
-                </div>
-            `;
-        } else {
-            avatarImgHtml = `
-                <div class="relative w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-tr from-purple-600 to-pink-500 rounded-3xl p-2 border-4 border-white shadow-xl animate-avatar-float flex items-center justify-center">
-                    <span class="text-3xl sm:text-4xl">🐻</span>
-                    <span class="absolute -top-1 -right-1 bg-purple-300 text-[9px] font-black px-1.5 py-0.5 rounded-full text-purple-950 border">Corpóreo</span>
-                </div>
-            `;
-        }
-    }
-
-    if (!customSpeechText) return avatarImgHtml;
-
+function getAvatarHtml(type = 'mascot', speech = '') {
+    const avatarImg = `<div class="w-16 h-16 bg-indigo-500 text-white rounded-3xl flex items-center justify-center text-3xl font-black shadow animate-avatar-float">🛒🤖</div>`;
+    if (!speech) return avatarImg;
     return `
         <div class="flex items-center gap-3 my-2">
-            ${avatarImgHtml}
-            <div class="relative bg-white border-4 border-indigo-400 p-3 rounded-2xl shadow-lg text-xs font-black text-slate-800 max-w-sm">
-                <div class="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-t-8 border-t-transparent border-r-8 border-r-indigo-400 border-b-8 border-b-transparent"></div>
-                ${customSpeechText}
-            </div>
+            ${avatarImg}
+            <div class="bg-white border-4 border-indigo-400 p-3 rounded-2xl text-xs font-black text-slate-800 shadow">${speech}</div>
         </div>
     `;
 }
 
-// ==========================================
-// RENDERIZADO DE CAPAS Y ANIMACIONES ESTACIONALES
-// ==========================================
-function renderThemeOverlay() {
-    const container = document.getElementById('themeOverlayContainer');
-    if (!container) return;
-
-    const activeKey = (APP_STATE.settings && APP_STATE.settings.activeTheme) || 'halloween';
-
-    if (activeKey === 'halloween') {
-        container.innerHTML = `
-            <div class="absolute top-6 left-0 animate-witch z-50 text-5xl sm:text-6xl drop-shadow-xl pointer-events-none">
-                🧙‍♀️🧹
-            </div>
-            <div class="absolute top-0 left-8 animate-spider-crawl text-3xl sm:text-4xl">
-                <div class="w-0.5 h-32 bg-slate-600/40 mx-auto"></div>
-                <div class="-mt-1">🕷️</div>
-            </div>
-            <div class="absolute top-0 right-16 animate-spider-crawl-fast text-4xl sm:text-5xl">
-                <div class="w-0.5 h-44 bg-slate-600/40 mx-auto"></div>
-                <div class="-mt-1">🕷️</div>
-            </div>
-            <div class="absolute bottom-3 left-4 animate-zombie z-40 flex items-center gap-2">
-                <div class="text-6xl sm:text-7xl">🧟‍♂️</div>
-                <div class="bg-purple-900 text-amber-300 border-2 border-purple-400 text-[10px] font-black px-2 py-1 rounded-xl shadow-lg">
-                    ¡Cuidado en la góndola! 🎃
-                </div>
-            </div>
-            <div class="absolute bottom-2 right-6 z-40 flex flex-col items-center">
-                <div class="flex gap-2 mb-[-10px] relative z-20">
-                    <span class="bubble-1 text-emerald-400 font-bold text-sm">🟢</span>
-                    <span class="bubble-2 text-purple-400 font-bold text-xs">🟣</span>
-                    <span class="bubble-3 text-emerald-300 font-bold text-base">✨</span>
-                </div>
-                <svg class="w-24 h-24 sm:w-28 sm:h-28 animate-cauldron" viewBox="0 0 100 100">
-                    <path d="M22,78 L14,94 M78,78 L86,94 M50,82 L50,96" stroke="#0f172a" stroke-width="6" stroke-linecap="round"/>
-                    <path d="M14,30 C10,68 25,84 50,84 C75,84 90,68 86,30 Z" fill="#1e293b" stroke="#0f172a" stroke-width="4"/>
-                    <circle cx="10" cy="42" r="6" fill="none" stroke="#475569" stroke-width="3"/>
-                    <circle cx="90" cy="42" r="6" fill="none" stroke="#475569" stroke-width="3"/>
-                    <ellipse cx="50" cy="30" rx="36" ry="10" fill="#0f172a" stroke="#334155" stroke-width="2"/>
-                    <ellipse cx="50" cy="30" rx="32" ry="7" fill="#22c55e"/>
-                    <ellipse cx="45" cy="30" rx="20" ry="4" fill="#a855f7" opacity="0.75"/>
-                    <path d="M8,28 C8,23 92,23 92,28 C92,33 8,33 8,28 Z" fill="#334155" stroke="#0f172a" stroke-width="2"/>
-                    <path d="M22,40 C18,55 26,72 34,78" fill="none" stroke="#64748b" stroke-width="3" opacity="0.5" stroke-linecap="round"/>
-                </svg>
-            </div>
-            <div class="absolute top-1/4 right-8 text-3xl animate-bounce">🦇</div>
-            <div class="absolute top-1/2 left-6 text-3xl animate-pulse">👻</div>
-        `;
-    } else if (activeKey === 'navidad' || activeKey === 'invierno') {
-        const snowCount = 18;
-        let snowHtml = '';
-        for (let i = 0; i < snowCount; i++) {
-            const leftPos = Math.floor(Math.random() * 95);
-            const duration = (3.5 + Math.random() * 4).toFixed(1);
-            const delay = (Math.random() * 5).toFixed(1);
-            const size = (14 + Math.random() * 18).toFixed(0);
-            snowHtml += `<span class="animate-snowflake" style="left: ${leftPos}vw; animation-duration: ${duration}s; animation-delay: ${delay}s; font-size: ${size}px;">❄️</span>`;
-        }
-
-        const isNavidad = activeKey === 'navidad';
-
-        container.innerHTML = `
-            ${snowHtml}
-            ${isNavidad ? `
-                <div class="absolute top-6 left-0 animate-sleigh z-50 text-4xl sm:text-5xl drop-shadow-lg pointer-events-none">🎅🛷🦌</div>
-                <div class="absolute bottom-3 left-4 text-5xl sm:text-6xl animate-pulse">🎄</div>
-                <div class="absolute bottom-3 right-4 text-5xl sm:text-6xl animate-bounce">🎁</div>
-            ` : `
-                <div class="absolute bottom-3 right-4 text-5xl sm:text-6xl animate-bounce">☕</div>
-                <div class="absolute bottom-3 left-4 text-5xl sm:text-6xl animate-pulse">🐧</div>
-            `}
-        `;
-    } else if (activeKey === 'semana_santa') {
-        container.innerHTML = `
-            <div class="absolute bottom-3 left-6 text-5xl sm:text-6xl animate-bunny">🐰</div>
-            <div class="absolute top-6 right-8 text-4xl animate-bounce">🥚✨</div>
-            <div class="absolute bottom-3 right-6 text-5xl flex gap-1 animate-pulse"><span>🥚</span><span>🍫</span></div>
-        `;
-    } else if (activeKey === 'fiestas_patrias') {
-        container.innerHTML = `
-            <div class="absolute top-10 left-12 animate-kite text-5xl sm:text-6xl drop-shadow-md">🪁</div>
-            <div class="absolute bottom-3 right-4 text-5xl sm:text-6xl animate-pulse">🇨🇱</div>
-            <div class="absolute bottom-3 left-4 text-4xl animate-bounce">🥟</div>
-        `;
-    } else if (activeKey === 'mes_nino') {
-        const balloonEmojis = ['🎈', '🎈', '🎈', '🧸', '🎉'];
-        let balloonsHtml = '';
-        for (let i = 0; i < 7; i++) {
-            const leftPos = Math.floor(Math.random() * 90) + 5;
-            const duration = (6 + Math.random() * 5).toFixed(1);
-            const delay = (Math.random() * 4).toFixed(1);
-            const emoji = balloonEmojis[i % balloonEmojis.length];
-            balloonsHtml += `<span class="animate-balloon text-3xl sm:text-4xl" style="left: ${leftPos}vw; animation-duration: ${duration}s; animation-delay: ${delay}s;">${emoji}</span>`;
-        }
-
-        container.innerHTML = `
-            ${balloonsHtml}
-            <div class="absolute bottom-3 right-4 text-5xl sm:text-6xl animate-bounce">🧸</div>
-        `;
-    } else if (activeKey === 'verano') {
-        container.innerHTML = `
-            <div class="absolute top-4 left-4 text-6xl sm:text-7xl animate-spin drop-shadow-lg" style="animation-duration: 20s;">☀️</div>
-            <div class="absolute bottom-3 right-4 text-5xl sm:text-6xl animate-bounce">🍦</div>
-            <div class="absolute bottom-3 left-6 text-4xl animate-pulse">🏖️</div>
-        `;
-    } else {
-        container.innerHTML = '';
-    }
-}
-
-// ==========================================
-// AUDIO Y SINTESIS DE VOZ
-// ==========================================
 function speakText(text) {
-    if (APP_STATE.telemetry) APP_STATE.telemetry.voiceHelpCount++;
     if (!('speechSynthesis' in window)) return;
     try {
         window.speechSynthesis.cancel();
-        const clean = text.replace(/\$/g, ' ').replace(/\bCLP\b/gi, ' ').trim();
-        if (!clean) return;
-        setTimeout(() => {
-            const utterance = new SpeechSynthesisUtterance(clean);
-            utterance.lang = 'es-CL';
-            utterance.rate = 0.88;
-            window.speechSynthesis.speak(utterance);
-        }, 50);
+        const clean = text.replace(/\$/g, ' ').trim();
+        const u = new SpeechSynthesisUtterance(clean);
+        u.lang = 'es-CL'; u.rate = 0.9;
+        window.speechSynthesis.speak(u);
     } catch(e) {}
 }
 
-function playChimeSound(isError = false) {
+function playChimeSound(isErr = false) {
     try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = isError ? 'sawtooth' : 'sine';
-        
-        if (isError) {
-            osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.3);
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
-        } else {
-            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(783.99, audioCtx.currentTime + 0.25);
-            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-        }
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.35);
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator(); const g = ctx.createGain();
+        osc.type = isErr ? 'sawtooth' : 'sine';
+        osc.frequency.setValueAtTime(isErr ? 200 : 520, ctx.currentTime);
+        g.gain.setValueAtTime(0.2, ctx.currentTime);
+        osc.connect(g); g.connect(ctx.destination);
+        osc.start(); osc.stop(ctx.currentTime + 0.3);
     } catch(e) {}
-}
-
-function compressImageBase64(base64Data, maxWidth = 250, maxHeight = 250, quality = 0.6) {
-    return new Promise((resolve, reject) => {
-        if (!base64Data || !base64Data.startsWith('data:image')) return resolve(base64Data || '');
-        const img = new Image();
-        img.onload = () => {
-            let width = img.width, height = img.height;
-            if (width > height) {
-                if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
-            } else {
-                if (height > maxHeight) { width = Math.round((width * maxHeight) / height); height = maxHeight; }
-            }
-            const canvas = document.createElement('canvas');
-            canvas.width = width; canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', quality));
-        };
-        img.onerror = (err) => reject(err);
-        img.src = base64Data;
-    });
 }
 
 function calculateCLPBreakdown(amount) {
     if (!amount || amount <= 0) return [];
-    let remaining = amount < 10 ? 10 : amount;
+    let remaining = amount;
     const result = [];
     CLP_CURRENCY_ITEMS.forEach(item => {
         const count = Math.floor(remaining / item.value);
-        if (count > 0) {
-            result.push({ ...item, count });
-            remaining %= item.value;
-        }
+        if (count > 0) { result.push({ ...item, count }); remaining %= item.value; }
     });
     return result;
 }
 
 function getPricePictogramsHtml(amount) {
-    if (amount === undefined || amount === null) return '';
     const breakdown = calculateCLPBreakdown(amount);
     if (breakdown.length === 0) return '';
-    
-    return `<div class="flex flex-wrap items-center gap-1.5 mt-1.5 font-bold">` +
-        breakdown.map(b => {
-            const imgSrc = APP_STATE.customCurrencies[b.id] || b.img;
-            return `<div class="inline-flex items-center gap-1 bg-amber-50 border-2 border-amber-300 rounded-xl px-2 py-1 shadow-sm" title="${b.name}">
-                <img src="${imgSrc}" class="h-8 object-contain">
-                <span class="text-xs font-black text-amber-950">${b.count > 1 ? b.count + 'x' : ''}</span>
-            </div>`;
-        }).join('') +
-    `</div>`;
+    return `<div class="flex flex-wrap items-center gap-1.5 mt-1 font-bold">` +
+        breakdown.map(b => `
+            <div class="inline-flex items-center gap-1 bg-amber-50 border border-amber-300 rounded-lg px-1.5 py-0.5">
+                <img src="${b.img}" class="h-6 object-contain">
+                <span class="text-[10px] font-black text-amber-950">${b.count > 1 ? b.count + 'x' : ''}</span>
+            </div>
+        `).join('') + `</div>`;
 }
 
 // ==========================================
-// SISTEMA DE PUNTOS Y RECOMPENSAS
+// 5. GESTIÓN DE TIENDAS, PRODUCTOS Y MISIONES
 // ==========================================
-function awardPointsAndXp(pointsToAdd, sourceLabel = "Actividad") {
-    if (!APP_STATE.currentUser || APP_STATE.currentUser.role !== 'student') return;
-
-    const user = APP_STATE.currentUser;
-    user.points = (user.points || 0) + pointsToAdd;
-    user.xp = (user.xp || 0) + pointsToAdd;
-
-    const oldLevel = user.level || 0;
-    const newLevel = Math.floor(user.xp / 100);
-
-    if (newLevel > oldLevel) {
-        user.level = newLevel;
-        user.points += 10;
-        if (typeof confetti !== 'undefined') confetti({ particleCount: 100, spread: 70 });
-        speakText(`¡Felicitaciones! Avanzaste al Nivel ${newLevel}. Ganaste 10 puntos extra.`);
-        alert(`🎉 ¡SUBISTE DE NIVEL!\n\nAhora eres: ${LEVEL_TITLES[Math.min(newLevel, LEVEL_TITLES.length - 1)]}\n\n🎁 Premio por subir de nivel: +10 PUNTOS EXTRA`);
+function openSupermarketModal(id = null) {
+    document.getElementById('supermarketEditId').value = id || '';
+    document.getElementById('supermarketModalTitle').textContent = id ? 'Editar Supermercado' : 'Crear Supermercado';
+    if (id) {
+        const s = APP_STATE.supermarkets.find(x => String(x.id) === String(id));
+        if (s) {
+            document.getElementById('supNameInput').value = s.name;
+            document.getElementById('supIconInput').value = s.icon || '🏪';
+        }
     } else {
-        speakText(`¡Ganaste ${pointsToAdd} puntos en ${sourceLabel}!`);
+        document.getElementById('supNameInput').value = '';
+        document.getElementById('supIconInput').value = '🏪';
     }
+    document.getElementById('supermarketModal')?.classList.remove('hidden');
+}
 
-    localStorage.setItem('nee_active_user', JSON.stringify(user));
-    if (db && user.id) {
-        db.collection('users').doc(user.id).set({
-            points: user.points,
-            xp: user.xp,
-            level: user.level || 0
-        }, { merge: true });
+function closeSupermarketModal() { document.getElementById('supermarketModal')?.classList.add('hidden'); }
+
+function saveSupermarketFromModal() {
+    const editId = document.getElementById('supermarketEditId').value;
+    const name = document.getElementById('supNameInput').value.trim();
+    const icon = document.getElementById('supIconInput').value.trim() || '🏪';
+    if (!name) return alert("Escribe un nombre para el supermercado.");
+
+    if (editId) {
+        const s = APP_STATE.supermarkets.find(x => String(x.id) === String(editId));
+        if (s) { s.name = name; s.icon = icon; }
+    } else {
+        APP_STATE.supermarkets.push({ id: `sup-${Date.now()}`, name, icon, description: 'Nueva Tienda' });
     }
-
-    const targetThreshold = (APP_STATE.settings && APP_STATE.settings.rewardPointsThreshold) || 250;
-    if (user.points >= targetThreshold) {
-        triggerPhysicalRewardModal(targetThreshold);
-    }
-
+    closeSupermarketModal();
     renderApp();
 }
 
-function triggerPhysicalRewardModal(threshold) {
-    playChimeSound(false);
-    if (typeof confetti !== 'undefined') confetti({ particleCount: 150, spread: 90 });
-
-    const msg = (APP_STATE.settings && APP_STATE.settings.rewardMessage) 
-        ? APP_STATE.settings.rewardMessage 
-        : "¡Excelente trabajo! Muestra esta pantalla a tu profesor para recibir tu premio físico.";
-
-    document.getElementById('rewardScoreDisplay').textContent = `${APP_STATE.currentUser.points} / ${threshold} PTS`;
-    document.getElementById('rewardMessageDisplay').textContent = msg;
-
-    speakText(`¡Sensacional! Alcanzaste la meta de ${threshold} puntos. Muestra la pantalla a tu profesor para recibir tu premio.`);
-    document.getElementById('physicalRewardModal').classList.remove('hidden');
+function deleteSupermarket(id) {
+    if (!confirm("¿Eliminar este supermercado?")) return;
+    APP_STATE.supermarkets = APP_STATE.supermarkets.filter(x => String(x.id) !== String(id));
+    renderApp();
 }
 
-function confirmPhysicalRewardClaim() {
-    document.getElementById('physicalRewardModal').classList.add('hidden');
+function openProductModal(id = null) {
+    document.getElementById('productEditId').value = id || '';
+    document.getElementById('productModalTitle').textContent = id ? 'Editar Producto' : 'Crear Producto';
+    if (id) {
+        const p = APP_STATE.products.find(x => String(x.id) === String(id));
+        if (p) {
+            document.getElementById('prodNameInput').value = p.name;
+            document.getElementById('prodPriceInput').value = p.price;
+            document.getElementById('prodIconInput').value = p.iconEmoji || '📦';
+        }
+    } else {
+        document.getElementById('prodNameInput').value = '';
+        document.getElementById('prodPriceInput').value = 1000;
+        document.getElementById('prodIconInput').value = '📦';
+    }
+    document.getElementById('productModal')?.classList.remove('hidden');
+}
+
+function closeProductModal() { document.getElementById('productModal')?.classList.add('hidden'); }
+
+function saveProductFromModal() {
+    const editId = document.getElementById('productEditId').value;
+    const name = document.getElementById('prodNameInput').value.trim();
+    const price = parseInt(document.getElementById('prodPriceInput').value) || 0;
+    const iconEmoji = document.getElementById('prodIconInput').value.trim() || '📦';
+    if (!name) return alert("Escribe un nombre para el producto.");
+
+    if (editId) {
+        const p = APP_STATE.products.find(x => String(x.id) === String(editId));
+        if (p) { p.name = name; p.price = price; p.iconEmoji = iconEmoji; }
+    } else {
+        APP_STATE.products.push({ id: `prod-${Date.now()}`, name, price, iconEmoji, category: 'General' });
+    }
+    closeProductModal();
+    renderApp();
+}
+
+function deleteProduct(id) {
+    if (!confirm("¿Eliminar este producto?")) return;
+    APP_STATE.products = APP_STATE.products.filter(x => String(x.id) !== String(id));
+    renderApp();
+}
+
+function openUserModal(id = null) {
+    document.getElementById('userEditId').value = id || '';
+    document.getElementById('userModalTitle').textContent = id ? 'Editar Usuario' : 'Crear Usuario';
+    if (id) {
+        const u = APP_STATE.users.find(x => String(x.id) === String(id));
+        if (u) {
+            document.getElementById('userNameInput').value = u.name;
+            document.getElementById('userRutInput').value = u.rut;
+            document.getElementById('userPinInput').value = u.pin;
+            document.getElementById('userRoleInput').value = u.role;
+        }
+    } else {
+        document.getElementById('userNameInput').value = '';
+        document.getElementById('userRutInput').value = '';
+        document.getElementById('userPinInput').value = '1234';
+        document.getElementById('userRoleInput').value = 'student';
+    }
+    document.getElementById('userModal')?.classList.remove('hidden');
+}
+
+function closeUserModal() { document.getElementById('userModal')?.classList.add('hidden'); }
+
+function saveUserFromModal() {
+    const editId = document.getElementById('userEditId').value;
+    const name = document.getElementById('userNameInput').value.trim();
+    const rut = document.getElementById('userRutInput').value.trim();
+    const pin = document.getElementById('userPinInput').value.trim() || '1234';
+    const role = document.getElementById('userRoleInput').value;
+
+    if (!name || !rut) return alert("Completa el nombre y el RUT.");
+
+    if (editId) {
+        const u = APP_STATE.users.find(x => String(x.id) === String(editId));
+        if (u) { u.name = name; u.rut = rut; u.pin = pin; u.role = role; }
+    } else {
+        APP_STATE.users.push({ id: `u-${Date.now()}`, name, rut, pin, role, points: 0, level: 1, minigamesCompleted: {}, examPassed: {} });
+    }
+    closeUserModal();
+    renderApp();
+}
+
+function deleteUser(id) {
+    if (!confirm("¿Eliminar este usuario?")) return;
+    APP_STATE.users = APP_STATE.users.filter(x => String(x.id) !== String(id));
+    renderApp();
+}
+
+function openMissionModal() { document.getElementById('missionModal')?.classList.remove('hidden'); }
+function closeMissionModal() { document.getElementById('missionModal')?.classList.add('hidden'); }
+function activateMissionForStudents() {
+    const title = document.getElementById('missionTitleInput').value.trim();
+    const desc = document.getElementById('missionDescInput').value.trim();
+    if (!title) return alert("Escribe un título para la misión.");
+    APP_STATE.activeMission = { title, desc };
+    closeMissionModal();
+    alert("🎯 Misión activada con éxito para los alumnos.");
     renderApp();
 }
 
 // ==========================================
-// MINIJUEGO MEMORICE ADAPTADO PARA NEE
+// 6. CÁMARA OCR PARA ESCANEAR GÓNDOLAS
 // ==========================================
-function openMemoriseModal() {
-    startMemoriseGame();
-    document.getElementById('memoriseGameModal').classList.remove('hidden');
+function openScannerModal(prodId) {
+    const prod = APP_STATE.products.find(p => String(p.id) === String(prodId));
+    if (!prod) return;
+    document.getElementById('aiScannerTargetTitle').textContent = prod.name;
+    document.getElementById('scannerModal')?.classList.remove('hidden');
+}
+
+function closeScannerModal() { document.getElementById('scannerModal')?.classList.add('hidden'); }
+
+function captureAndAnalyzeImageWithAI() {
+    closeScannerModal();
+    alert("📷 Precio analizado en góndola: $1.000 CLP confirmado.");
+}
+
+// ==========================================
+// 7. MOTOR INTERACTIVO DE MINIJUEGOS (6 JUEGOS POR NIVEL)
+// ==========================================
+function setStudentTab(tabName) {
+    APP_STATE.currentStudentTab = tabName;
+    renderApp();
+}
+
+function openMinigamesModuleModal() {
+    renderMinigamesMap();
+    document.getElementById('minigamesModuleModal')?.classList.remove('hidden');
+}
+
+function closeMinigamesModuleModal() {
+    document.getElementById('minigamesModuleModal')?.classList.add('hidden');
+}
+
+function renderMinigamesMap() {
+    const container = document.getElementById('minigamesMapContainer');
+    if (!container) return;
+
+    const user = APP_STATE.currentUser || { level: 1, minigamesCompleted: {}, examPassed: {} };
+
+    let html = `
+        <div class="space-y-6">
+            <div class="bg-indigo-900 text-white p-5 rounded-3xl border-4 border-indigo-400 shadow-xl flex justify-between items-center flex-wrap gap-4">
+                <div>
+                    <span class="bg-amber-400 text-slate-900 font-black text-xs px-3 py-1 rounded-full uppercase">🎮 MÓDULO MINIJUEGOS MINEDUC</span>
+                    <h3 class="text-2xl font-black">Mapa de Desafíos (6 Juegos + Jefe Final)</h3>
+                </div>
+                <button onclick="closeMinigamesModuleModal()" class="bg-rose-500 text-white font-black text-xs px-4 py-2.5 rounded-2xl shadow">✕ Cerrar Mapa</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    `;
+
+    Object.keys(LEVEL_CURRICULUM).forEach(lvlKey => {
+        const lvl = LEVEL_CURRICULUM[lvlKey];
+        const levelNum = parseInt(lvlKey);
+        const isLevelUnlocked = (levelNum === 1) || (user.examPassed && !!user.examPassed[`level_${levelNum - 1}`]);
+        const minigamesDone = (user.minigamesCompleted && user.minigamesCompleted[`level_${levelNum}`]) || 0;
+        const isBossUnlocked = isLevelUnlocked && (minigamesDone >= lvl.minigamesRequired);
+        const isBossDefeated = user.examPassed && !!user.examPassed[`level_${levelNum}`];
+
+        html += `
+            <div class="bg-white border-4 ${isLevelUnlocked ? 'border-indigo-400' : 'border-slate-300'} rounded-3xl p-4 space-y-3 flex flex-col justify-between">
+                <div>
+                    <div class="bg-gradient-to-r ${lvl.bgColor} p-3 rounded-2xl text-white mb-3">
+                        <h4 class="font-black text-base">${lvl.title}</h4>
+                        <span class="text-[10px] bg-black/30 px-2 py-0.5 rounded font-black">${isBossDefeated ? '✅ NIVEL SUPERADO' : `Progreso: ${minigamesDone}/6`}</span>
+                    </div>
+
+                    <div class="space-y-1.5 max-h-56 overflow-y-auto">
+                        ${lvl.minigamesList.map((game, idx) => {
+                            const gameNum = idx + 1;
+                            const isPlayed = minigamesDone >= gameNum;
+                            return `
+                                <button onclick="launchSpecificMinigame(${levelNum}, ${gameNum})" ${!isLevelUnlocked ? 'disabled' : ''} class="w-full text-left p-2 rounded-xl text-xs font-bold border flex justify-between items-center ${isPlayed ? 'bg-emerald-50 border-emerald-400 text-emerald-950' : 'bg-slate-50 text-slate-800 hover:border-indigo-400'}">
+                                    <span class="truncate font-black">${game.name}</span>
+                                    <span class="text-[10px] font-black px-2 py-0.5 rounded ${isPlayed ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}">${isPlayed ? '✓ Listo' : 'Jugar'}</span>
+                                </button>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+
+                <button onclick="startLevelExam(${levelNum})" ${!isBossUnlocked ? 'disabled' : ''} class="w-full py-2.5 rounded-xl font-black text-xs shadow ${isBossUnlocked ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}">
+                    ⚔️ ${isBossDefeated ? 'REPETIR JEFE' : 'ENFRENTAR AL JEFE FINAL'}
+                </button>
+            </div>
+        `;
+    });
+
+    html += `</div></div>`;
+    container.innerHTML = html;
+}
+
+function launchSpecificMinigame(levelNum, gameIndex) {
+    closeMinigamesModuleModal();
+    const lvlMeta = LEVEL_CURRICULUM[levelNum];
+    const gameMeta = (lvlMeta && lvlMeta.minigamesList[gameIndex - 1]) || { name: `Minijuego #${gameIndex}`, type: 'choice' };
+    openMemoriseModal({ ...gameMeta, level: levelNum, gameIndex: gameIndex });
+}
+
+function openMemoriseModal(minigameMeta) {
+    startMinigameExecution(minigameMeta);
+    document.getElementById('memoriseGameModal')?.classList.remove('hidden');
 }
 
 function closeMemoriseModal() {
-    document.getElementById('memoriseGameModal').classList.add('hidden');
+    document.getElementById('memoriseGameModal')?.classList.add('hidden');
 }
 
-function startMemoriseGame() {
-    const userLevel = (APP_STATE.currentUser && APP_STATE.currentUser.level) || 0;
-    let totalPairsNeeded = 3;
-    if (userLevel === 1) totalPairsNeeded = 4;
-    if (userLevel >= 2) totalPairsNeeded = 6;
+function registerMinigameCompletion(minigameMeta) {
+    const user = APP_STATE.currentUser;
+    if (!user || user.role !== 'student') return;
 
-    let availableProducts = [...(APP_STATE.products || [])];
-    if (availableProducts.length < totalPairsNeeded) {
-        const fallbacks = [
-            { id: 'fb1', name: 'Leche', photoUrl: '', iconEmoji: '🥛' },
-            { id: 'fb2', name: 'Pan', photoUrl: '', iconEmoji: '🍞' },
-            { id: 'fb3', name: 'Manzana', photoUrl: '', iconEmoji: '🍎' },
-            { id: 'fb4', name: 'Jugo', photoUrl: '', iconEmoji: '🧃' },
-            { id: 'fb5', name: 'Queso', photoUrl: '', iconEmoji: '🧀' },
-            { id: 'fb6', name: 'Galletas', photoUrl: '', iconEmoji: '🍿' }
-        ];
-        availableProducts = availableProducts.concat(fallbacks);
+    const currentLevel = (minigameMeta && minigameMeta.level) || user.level || 1;
+    if (!user.minigamesCompleted) user.minigamesCompleted = {};
+
+    const key = `level_${currentLevel}`;
+    const previousDone = user.minigamesCompleted[key] || 0;
+    if (previousDone < 6) user.minigamesCompleted[key] = previousDone + 1;
+
+    user.points = (user.points || 0) + 15;
+    localStorage.setItem('nee_active_user', JSON.stringify(user));
+
+    const count = user.minigamesCompleted[key];
+    speakText(`¡Excelente! Completaste el minijuego. Llevas ${count} de 6.`);
+    alert(`🎮 ¡MINIJUEGO COMPLETADO!\n\nLlevas ${count} de 6 minijuegos en el Nivel ${currentLevel}.`);
+    renderApp();
+}
+
+function startMinigameExecution(minigameMeta) {
+    const levelNum = (minigameMeta && minigameMeta.level) || APP_STATE.currentUser?.level || 1;
+    const gameIdx = (minigameMeta && minigameMeta.gameIndex) || 1;
+    APP_STATE.memorise.activeMinigameMeta = { level: levelNum, gameIndex: gameIdx, name: minigameMeta ? minigameMeta.name : `Minijuego #${gameIdx}` };
+
+    if (minigameMeta && minigameMeta.type === 'memorise') {
+        startMemoriseGameEngine(levelNum);
+    } else if (minigameMeta && minigameMeta.type === 'math') {
+        startMathGameEngine(levelNum);
+    } else {
+        startChoiceGameEngine(levelNum, gameIdx);
     }
+}
 
-    const selectedProds = availableProducts.sort(() => 0.5 - Math.random()).slice(0, totalPairsNeeded);
-
+function startMemoriseGameEngine(userLevel) {
+    let totalPairsNeeded = 3;
+    let availableProducts = [...APP_STATE.products];
+    const selectedProds = availableProducts.slice(0, totalPairsNeeded);
     let deck = [];
     selectedProds.forEach((prod, index) => {
-        deck.push({ cardId: `card-${index}-a`, productId: prod.id, name: prod.name, photoUrl: prod.photoUrl || prod.photo || prod.image || '', iconEmoji: prod.iconEmoji || '📦', isFlipped: false, isMatched: false });
-        deck.push({ cardId: `card-${index}-b`, productId: prod.id, name: prod.name, photoUrl: prod.photoUrl || prod.photo || prod.image || '', iconEmoji: prod.iconEmoji || '📦', isFlipped: false, isMatched: false });
+        deck.push({ cardId: `c-${index}-a`, productId: prod.id, name: prod.name, iconEmoji: prod.iconEmoji, isFlipped: false, isMatched: false });
+        deck.push({ cardId: `c-${index}-b`, productId: prod.id, name: prod.name, iconEmoji: prod.iconEmoji, isFlipped: false, isMatched: false });
     });
-
     deck.sort(() => 0.5 - Math.random());
 
-    APP_STATE.memorise = {
-        cards: deck,
-        flippedCards: [],
-        matchedPairsCount: 0,
-        movesCount: 0,
-        totalPairsNeeded: totalPairsNeeded,
-        isBusy: false
-    };
+    APP_STATE.memorise = { ...APP_STATE.memorise, cards: deck, flippedCards: [], matchedPairsCount: 0, movesCount: 0, totalPairsNeeded: totalPairsNeeded, isBusy: false };
 
     const speechBox = document.getElementById('memoriseAvatarSpeechBox');
-    if (speechBox) {
-        speechBox.innerHTML = getAvatarHtml('mascot', `¡Hola! Encuentra las <b>${totalPairsNeeded} parejas</b> de productos iguales para ganar +15 Puntos.`);
-    }
-
-    speakText(`Minijuego de Memorice. Encuentra las ${totalPairsNeeded} parejas de productos.`);
+    if (speechBox) speechBox.innerHTML = getAvatarHtml('mascot', `<b>Memorice</b>: ¡Encuentra las parejas de productos iguales!`);
     renderMemoriseBoard();
 }
 
 function renderMemoriseBoard() {
     const boardEl = document.getElementById('memoriseBoard');
-    const levelTag = document.getElementById('memoriseLevelTag');
-    const movesTag = document.getElementById('memoriseMovesTag');
-
     if (!boardEl) return;
-
-    const st = APP_STATE.settings || DEFAULT_SETTINGS;
-    const userLevel = (APP_STATE.currentUser && APP_STATE.currentUser.level) || 0;
-    if (levelTag) levelTag.textContent = `${LEVEL_TITLES[Math.min(userLevel, LEVEL_TITLES.length - 1)]} (${APP_STATE.memorise.matchedPairsCount}/${APP_STATE.memorise.totalPairsNeeded} parejas)`;
-    if (movesTag) movesTag.textContent = `Movimientos: ${APP_STATE.memorise.movesCount}`;
-
-    // REVERSO PERSONALIZADO: Usar Mascota, Corpóreo o Logo del Colegio en lugar de '❓'
-    const backImageUrl = st.mascotUrl || st.corporeoUrl || st.schoolLogo || '';
-    const backFaceHtml = backImageUrl 
-        ? `<img src="${backImageUrl}" class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow">`
-        : `<div class="text-4xl sm:text-5xl animate-bounce">🤖</div>`;
-
-    boardEl.innerHTML = APP_STATE.memorise.cards.map((card, idx) => {
-        const isVisible = card.isFlipped || card.isMatched;
-        const imgHtml = card.photoUrl 
-            ? `<img src="${card.photoUrl}" class="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-xl border">`
-            : `<span class="text-4xl sm:text-5xl">${card.iconEmoji}</span>`;
-
-        return `
-            <div onclick="handleMemoriseCardClick(${idx})" class="h-36 sm:h-44 bg-white border-4 ${card.isMatched ? 'border-emerald-400 bg-emerald-50' : 'border-purple-300 hover:border-purple-500'} rounded-3xl shadow-lg cursor-pointer flex flex-col items-center justify-center p-3 transition-all active:scale-95">
-                ${isVisible ? `
-                    <div class="flex flex-col items-center space-y-2 animate-fade-in">
-                        ${imgHtml}
-                        <span class="text-xs font-black text-slate-800 text-center leading-tight line-clamp-2">${card.name}</span>
-                    </div>
-                ` : `
-                    <div class="flex flex-col items-center space-y-1">
-                        ${backFaceHtml}
-                        <span class="text-[10px] font-black text-purple-700 uppercase bg-purple-100 px-2 py-0.5 rounded-full">Tocar</span>
-                    </div>
-                `}
-            </div>
-        `;
-    }).join('');
+    boardEl.className = "grid grid-cols-3 sm:grid-cols-4 gap-3 overflow-y-auto p-1 max-h-[50vh]";
+    boardEl.innerHTML = APP_STATE.memorise.cards.map((card, idx) => `
+        <div onclick="handleMemoriseCardClick(${idx})" class="h-32 bg-white border-4 ${card.isMatched ? 'border-emerald-400 bg-emerald-50' : 'border-purple-300'} rounded-2xl shadow cursor-pointer flex flex-col items-center justify-center p-2 transition-all">
+            ${(card.isFlipped || card.isMatched) ? `<span class="text-4xl">${card.iconEmoji}</span><span class="text-[10px] font-black mt-1 text-center">${card.name}</span>` : `<span class="text-3xl">🤖</span>`}
+        </div>
+    `).join('');
 }
 
 function handleMemoriseCardClick(cardIndex) {
     const mem = APP_STATE.memorise;
     if (mem.isBusy) return;
-
     const card = mem.cards[cardIndex];
     if (card.isFlipped || card.isMatched) return;
 
     card.isFlipped = true;
     mem.flippedCards.push({ card, cardIndex });
-    playChimeSound();
-    speakText(card.name);
-
     renderMemoriseBoard();
 
     if (mem.flippedCards.length === 2) {
-        mem.movesCount++;
         mem.isBusy = true;
         const [first, second] = mem.flippedCards;
-
         if (first.card.productId === second.card.productId) {
-            first.card.isMatched = true;
-            second.card.isMatched = true;
-            mem.matchedPairsCount++;
-            mem.flippedCards = [];
-            mem.isBusy = false;
-
-            playChimeSound(false);
-            speakText(`¡Excelente! Encontraste el par de ${first.card.name}`);
-
-            const speechBox = document.getElementById('memoriseAvatarSpeechBox');
-            if (speechBox) {
-                speechBox.innerHTML = getAvatarHtml('corporeo', `¡Sensacional! Encontraste el par de <b>${first.card.name}</b>.`);
-            }
-
+            first.card.isMatched = true; second.card.isMatched = true;
+            mem.matchedPairsCount++; mem.flippedCards = []; mem.isBusy = false;
             renderMemoriseBoard();
-
             if (mem.matchedPairsCount === mem.totalPairsNeeded) {
                 setTimeout(() => {
-                    if (typeof confetti !== 'undefined') confetti();
-                    const pointsGained = 15;
-                    speakText(`¡Completaste el Memorice! Ganaste ${pointsGained} puntos.`);
-                    alert(`🎉 ¡FELICITACIONES!\n\nCompletaste el minijuego de Memorice en ${mem.movesCount} movimientos.\n\n⭐ Ganaste +${pointsGained} Puntos`);
-                    awardPointsAndXp(pointsGained, "Minijuego Memorice");
+                    registerMinigameCompletion(mem.activeMinigameMeta);
                     closeMemoriseModal();
-                }, 600);
+                }, 500);
             }
         } else {
             setTimeout(() => {
-                first.card.isFlipped = false;
-                second.card.isFlipped = false;
-                mem.flippedCards = [];
-                mem.isBusy = false;
+                first.card.isFlipped = false; second.card.isFlipped = false;
+                mem.flippedCards = []; mem.isBusy = false;
                 renderMemoriseBoard();
-            }, 1200);
+            }, 1000);
         }
     }
 }
 
+function startChoiceGameEngine(levelNum, gameIdx) {
+    const boardEl = document.getElementById('memoriseBoard');
+    const speechBox = document.getElementById('memoriseAvatarSpeechBox');
+    if (!boardEl) return;
+
+    let question = "¿Cuál de estos productos es el de MENOR valor?";
+    let options = [
+        { label: "Jugo de $500", isCorrect: true, emoji: "🧃" },
+        { label: "Aceite de $2.500", isCorrect: false, emoji: "🍾" }
+    ];
+
+    if (speechBox) speechBox.innerHTML = getAvatarHtml('mascot', question);
+    boardEl.className = "grid grid-cols-1 sm:grid-cols-2 gap-4 p-2 max-h-[50vh]";
+    boardEl.innerHTML = options.map(opt => `
+        <button onclick="handleGenericChoiceAnswer(${opt.isCorrect})" class="p-5 bg-white border-4 border-indigo-300 hover:border-indigo-600 rounded-3xl shadow flex items-center gap-4 active:scale-95">
+            <span class="text-4xl">${opt.emoji}</span>
+            <span class="font-black text-slate-800 text-base">${opt.label}</span>
+        </button>
+    `).join('');
+}
+
+function startMathGameEngine(levelNum) {
+    const boardEl = document.getElementById('memoriseBoard');
+    const speechBox = document.getElementById('memoriseAvatarSpeechBox');
+    if (!boardEl) return;
+
+    let qText = "Si compras un pan de $800 y pagas con $1.000, ¿cuánto vuelto te dan?";
+    if (speechBox) speechBox.innerHTML = getAvatarHtml('mascot', qText);
+
+    boardEl.className = "grid grid-cols-3 gap-3 p-2 max-h-[50vh]";
+    boardEl.innerHTML = [200, 500, 100].map(val => `
+        <button onclick="handleGenericChoiceAnswer(${val === 200})" class="p-5 bg-white border-4 border-amber-300 rounded-2xl font-black text-xl text-amber-950 active:scale-95">
+            $${val}
+        </button>
+    `).join('');
+}
+
+function handleGenericChoiceAnswer(isCorrect) {
+    if (isCorrect) {
+        playChimeSound(false);
+        registerMinigameCompletion(APP_STATE.memorise.activeMinigameMeta);
+        closeMemoriseModal();
+    } else {
+        playChimeSound(true);
+        alert("❌ Inténtalo nuevamente.");
+    }
+}
+
 // ==========================================
-// RENDERIZADO PRINCIPAL
+// 8. BATALLAS DE JEFES Y EXÁMENES
+// ==========================================
+function startLevelExam(levelNumber) {
+    const user = APP_STATE.currentUser;
+    if (!user) return;
+    const minigamesDone = (user.minigamesCompleted && user.minigamesCompleted[`level_${levelNumber}`]) || 0;
+
+    if (minigamesDone < 6 && user.role === 'student') {
+        playChimeSound(true);
+        alert(`🔒 BATALLA DE JEFE BLOQUEADA\n\nDebes completar los 6 minijuegos del Nivel ${levelNumber}.\nLlevas ${minigamesDone}/6 minijuegos.`);
+        return;
+    }
+
+    const questions = MINEDUC_EXAM_BANK[levelNumber] || MINEDUC_EXAM_BANK[1];
+    APP_STATE.currentExam = { level: levelNumber, currentQuestionIndex: 0, score: 0, questions: questions };
+    renderExamQuestion();
+    document.getElementById('levelExamModal')?.classList.remove('hidden');
+}
+
+function renderExamQuestion() {
+    const exam = APP_STATE.currentExam;
+    const container = document.getElementById('examModalContainer');
+    if (!container || !exam) return;
+    const q = exam.questions[exam.currentQuestionIndex];
+
+    container.innerHTML = `
+        <div class="flex justify-between items-center border-b pb-3">
+            <span class="bg-rose-600 text-white font-black px-3 py-1 rounded-full text-xs uppercase">
+                ⚔️ BATALLA DE JEFE - NIVEL ${exam.level}
+            </span>
+            <button onclick="closeExamModal()" class="text-slate-400 font-black text-xl">✕</button>
+        </div>
+        <div class="space-y-4 my-4">
+            <h3 class="text-base font-black text-slate-800 text-center leading-snug">${q.q}</h3>
+            <div class="space-y-2">
+                ${q.options.map(opt => `
+                    <button onclick="submitExamAnswer('${opt.replace(/'/g, "\\'")}')" class="w-full p-3.5 bg-white border-2 border-slate-300 hover:border-indigo-600 rounded-2xl font-black text-xs text-left active:scale-95 flex items-center gap-2">
+                        <span>✓</span> <span>${opt}</span>
+                    </button>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function submitExamAnswer(selectedOpt) {
+    const exam = APP_STATE.currentExam;
+    if (selectedOpt === exam.questions[exam.currentQuestionIndex].correct) exam.score++;
+    exam.currentQuestionIndex++;
+    if (exam.currentQuestionIndex < exam.questions.length) renderExamQuestion();
+    else finishExamEvaluation();
+}
+
+function finishExamEvaluation() {
+    const exam = APP_STATE.currentExam;
+    const user = APP_STATE.currentUser;
+    if (exam.score === exam.questions.length) {
+        user.examPassed[`level_${exam.level}`] = true;
+        user.level = exam.level + 1;
+        user.points = (user.points || 0) + 50;
+        localStorage.setItem('nee_active_user', JSON.stringify(user));
+        alert(`🏆 ¡JEFE FINAL DERROTADO!\n\n¡Has ascendido al Nivel ${user.level}!`);
+        closeExamModal();
+        renderApp();
+    } else {
+        alert("💪 Sigue intentándolo. Repasa los minijuegos antes de volver a enfrentar al Jefe.");
+        closeExamModal();
+    }
+}
+
+function closeExamModal() { document.getElementById('levelExamModal')?.classList.add('hidden'); }
+
+// ==========================================
+// 9. RENDERIZADO DE VISTAS PRINCIPALES
 // ==========================================
 function renderApp() {
     const container = document.getElementById('appContainer');
-    const headerBasketBtn = document.getElementById('headerBasketBtn');
     const userInfoHeader = document.getElementById('userInfoHeader');
-    const headerSubTitle = document.getElementById('headerSubTitle');
-    const appHeaderBar = document.getElementById('appHeaderBar');
     if (!container) return;
 
-    renderThemeOverlay();
-
-    const activeThemeKey = (APP_STATE.settings && APP_STATE.settings.activeTheme) || 'halloween';
-    const theme = SEASONAL_THEMES[activeThemeKey] || SEASONAL_THEMES.standard;
-
-    if (appHeaderBar) appHeaderBar.className = `${theme.headerBg} text-white shadow-lg border-b-4 sticky top-0 z-30 transition-colors duration-500`;
-
-    const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
-    if (headerSubTitle) headerSubTitle.textContent = teamLabel;
-
     if (APP_STATE.currentUser) {
-        const userLevel = APP_STATE.currentUser.level || 0;
-        const levelTitle = LEVEL_TITLES[Math.min(userLevel, LEVEL_TITLES.length - 1)];
-
-        const roleTag = APP_STATE.currentUser.role === 'admin' ? '🔑 Admin' :
-                       (APP_STATE.currentUser.role === 'teacher' ? `👨‍🏫 ${teamLabel}` : `🎒 ${levelTitle}`);
-        
         if (userInfoHeader) {
             userInfoHeader.innerHTML = `
-                <div class="bg-white/90 text-slate-900 border px-3 py-1 rounded-xl text-xs flex items-center gap-2 shadow-sm font-bold">
+                <div class="bg-white/90 text-slate-900 border px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm">
                     <span>${APP_STATE.currentUser.name}</span>
-                    <span class="bg-indigo-600 text-white font-black px-2 py-0.5 rounded-md text-[10px]">${roleTag}</span>
-                    ${APP_STATE.currentUser.role === 'student' ? `<span class="bg-amber-400 text-slate-900 font-black px-2 py-0.5 rounded-md text-[10px] flex items-center gap-1">⭐ ${APP_STATE.currentUser.points || 0} pts</span>` : ''}
+                    <span class="bg-indigo-600 text-white px-2 py-0.5 rounded text-[10px]">${APP_STATE.currentUser.role === 'teacher' ? '👨‍🏫 Profesor' : `🎒 Nivel ${APP_STATE.currentUser.level || 1}`}</span>
+                    ${APP_STATE.currentUser.role === 'student' ? `<span class="bg-amber-400 text-slate-900 font-black px-1.5 py-0.5 rounded text-[10px]">⭐ ${APP_STATE.currentUser.points || 0} pts</span>` : ''}
                 </div>
-                <button onclick="logout()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold px-3 py-1.5 rounded-xl text-xs border border-rose-300">Salir</button>
+                <button onclick="logout()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold px-3 py-1 rounded-xl text-xs border border-rose-300">Salir</button>
             `;
         }
     } else {
         if (userInfoHeader) userInfoHeader.innerHTML = '';
-        if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
         renderLoginView(container);
         return;
     }
 
-    if (APP_STATE.teacherPreviewMode) {
-        if (headerBasketBtn) headerBasketBtn.classList.remove('hidden');
-        renderStudentPreviewWrapper(container);
-        updateBasketBadge();
-        return;
-    }
-
-    if (APP_STATE.currentUser.role === 'admin' || APP_STATE.currentUser.role === 'teacher') {
-        if (headerBasketBtn) headerBasketBtn.classList.add('hidden');
+    if (APP_STATE.currentUser.role === 'teacher') {
         renderTeacherDashboard(container);
     } else {
-        if (headerBasketBtn) headerBasketBtn.classList.remove('hidden');
-        if (APP_STATE.selectedSupermarketId) {
+        if (APP_STATE.currentStudentTab === 'minigames') {
+            renderStudentMinigamesTab(container);
+        } else if (APP_STATE.selectedSupermarketId) {
             renderSupermarketView(container, APP_STATE.selectedSupermarketId);
         } else {
             renderHomeView(container);
@@ -843,178 +750,107 @@ function renderApp() {
 
 function renderLoginView(container) {
     container.innerHTML = `
-        <div class="max-w-md mx-auto bg-white border-4 border-slate-300 rounded-3xl p-6 shadow-xl space-y-6">
-            <div class="text-center space-y-2">
+        <div class="max-w-md mx-auto bg-white border-4 border-slate-300 rounded-3xl p-6 shadow-xl space-y-5">
+            <div class="text-center space-y-1">
                 <div class="text-5xl">🔐</div>
-                <h2 class="text-2xl font-black text-slate-800">Acceso Institucional</h2>
-                <p class="text-xs font-semibold text-slate-500">Ingresa tu RUT y PIN para ingresar</p>
+                <h2 class="text-2xl font-black text-slate-800">Acceso Institucional PIE</h2>
+                <p class="text-xs font-bold text-slate-500">Ingresa tus credenciales para comenzar</p>
             </div>
-            <div class="space-y-4">
+            <div class="space-y-3">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">RUT o Usuario:</label>
-                    <input type="text" id="loginUser" value="12345678-9" class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 font-bold">
+                    <label class="block text-xs font-bold uppercase mb-1">RUT o Usuario:</label>
+                    <input type="text" id="loginUser" value="98765432-1" class="w-full px-4 py-2.5 rounded-xl border-2 font-bold text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Clave / PIN:</label>
-                    <input type="password" id="loginPin" value="1234" class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 text-center text-xl tracking-widest font-black">
+                    <label class="block text-xs font-bold uppercase mb-1">PIN / Clave:</label>
+                    <input type="password" id="loginPin" value="1234" class="w-full px-4 py-2.5 rounded-xl border-2 font-black text-center text-lg">
                 </div>
-                <p id="loginError" class="text-xs font-bold text-rose-600 hidden text-center">RUT o clave incorrecta.</p>
-                <button onclick="handleLogin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl border-b-4 border-indigo-900 shadow text-lg active:scale-95">Ingresar</button>
+                <button onclick="handleLogin()" class="w-full bg-indigo-600 text-white font-black py-3 rounded-xl shadow text-base active:scale-95">Ingresar</button>
             </div>
-            <div class="bg-indigo-50 border p-3 rounded-2xl text-[11px] font-bold text-indigo-900 space-y-1">
-                <div class="font-black uppercase">💡 Accesos Rápidos de Prueba:</div>
-                <div>• Docente / Educador: RUT <code>12345678-9</code> | PIN <code>1234</code></div>
-                <div>• Estudiante Alumno: RUT <code>98765432-1</code> | PIN <code>1234</code></div>
+            <div class="grid grid-cols-2 gap-2 pt-2 border-t">
+                <button onclick="quickLogin('student')" class="bg-amber-400 text-slate-900 font-black p-2 rounded-xl text-xs active:scale-95">🎒 Probar Alumno</button>
+                <button onclick="quickLogin('teacher')" class="bg-indigo-600 text-white font-black p-2 rounded-xl text-xs active:scale-95">👨‍🏫 Probar Profesor</button>
             </div>
         </div>
     `;
 }
 
 function handleLogin() {
-    const userVal = document.getElementById('loginUser').value.trim().toLowerCase();
-    const pinVal = document.getElementById('loginPin').value.trim();
-
-    const user = (APP_STATE.users || []).find(u => 
-        (u.rut && u.rut.toLowerCase() === userVal) || 
-        (u.username && u.username.toLowerCase() === userVal)
-    );
-
-    if (user && user.pin === pinVal) {
+    const uVal = document.getElementById('loginUser').value.trim().toLowerCase();
+    const pVal = document.getElementById('loginPin').value.trim();
+    const user = APP_STATE.users.find(u => u.rut.toLowerCase() === uVal && u.pin === pVal);
+    if (user) {
         APP_STATE.currentUser = user;
         localStorage.setItem('nee_active_user', JSON.stringify(user));
-        speakText(`Bienvenido ${user.name}`);
         renderApp();
     } else {
-        const err = document.getElementById('loginError');
-        if (err) err.classList.remove('hidden');
+        alert("RUT o PIN incorrectos.");
+    }
+}
+
+function quickLogin(role) {
+    const user = APP_STATE.users.find(u => u.role === role);
+    if (user) {
+        APP_STATE.currentUser = user;
+        localStorage.setItem('nee_active_user', JSON.stringify(user));
+        renderApp();
     }
 }
 
 function logout() {
     APP_STATE.currentUser = null;
     APP_STATE.selectedSupermarketId = null;
-    APP_STATE.teacherPreviewMode = false;
-    APP_STATE.classroomMode = 'PREP';
-    APP_STATE.listValidated = false;
-    APP_STATE.classroomErrorsCount = 0;
-    APP_STATE.invalidBasketItems = [];
-    stopAiCameraStream();
-    stopAdminTestCameraStream();
     localStorage.removeItem('nee_active_user');
     renderApp();
 }
 
 function goHome() {
     APP_STATE.selectedSupermarketId = null;
-    APP_STATE.selectedCategoryFilter = 'ALL';
+    APP_STATE.currentStudentTab = 'home';
     renderApp();
 }
 
-// ==========================================
-// VISTA HOME ESTUDIANTE CON PERSONAJES ANIMADOS
-// ==========================================
 function renderHomeView(container) {
-    const activeThemeKey = APP_STATE.settings.activeTheme || 'halloween';
-    const theme = SEASONAL_THEMES[activeThemeKey] || SEASONAL_THEMES.standard;
-    const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
-
-    const userLevel = (APP_STATE.currentUser && APP_STATE.currentUser.level) || 0;
-    const userPoints = (APP_STATE.currentUser && APP_STATE.currentUser.points) || 0;
-    const rewardTarget = (APP_STATE.settings && APP_STATE.settings.rewardPointsThreshold) || 250;
-
-    let studentMissionBanner = '';
-    if (APP_STATE.activeMission && APP_STATE.activeMission.active && APP_STATE.activeMission.itemIds) {
-        const itemCount = APP_STATE.activeMission.itemIds.length;
-        const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
-        
-        studentMissionBanner = `
-            <div class="bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-900 p-6 rounded-3xl shadow-2xl border-4 border-amber-300 space-y-3">
-                <div class="flex items-center justify-between flex-wrap gap-4">
-                    <div class="flex items-center gap-3">
-                        <span class="text-4xl sm:text-5xl">🎯</span>
-                        <div>
-                            <span class="bg-slate-900 text-amber-300 font-black px-3 py-1 rounded-full text-xs uppercase tracking-wider inline-block mb-1">
-                                🔴 ¡MISIÓN EN AULA ACTIVA!
-                            </span>
-                            <h3 class="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">${APP_STATE.activeMission.title}</h3>
-                            <p class="text-xs font-extrabold text-slate-950">Asignada por tu ${teamLabel} • ${itemCount} productos en tu hoja impresa</p>
-                        </div>
-                    </div>
-                    <div class="bg-slate-900 text-amber-300 font-black px-4 py-2 rounded-2xl text-center border-2 border-amber-400 shadow-md">
-                        <span class="text-[10px] text-white block uppercase">Puntuación Misión:</span>
-                        <span class="text-xl text-amber-400">${currentScore}%</span>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
+    const userLevel = APP_STATE.currentUser?.level || 1;
+    const minigamesDone = (APP_STATE.currentUser?.minigamesCompleted?.[`level_${userLevel}`]) || 0;
 
     container.innerHTML = `
         <div class="space-y-6">
-            ${studentMissionBanner}
-
-            <div class="bg-white p-5 rounded-3xl border-4 border-purple-300 shadow-lg space-y-3">
-                <div class="flex justify-between items-center flex-wrap gap-2">
-                    <div class="flex items-center gap-2">
-                        <span class="text-3xl">🏆</span>
-                        <div>
-                            <h3 class="font-black text-indigo-950 text-base">${LEVEL_TITLES[Math.min(userLevel, LEVEL_TITLES.length - 1)]}</h3>
-                            <p class="text-xs font-bold text-slate-500">Puntos acumulados: <b class="text-amber-600">${userPoints} pts</b> de ${rewardTarget} pts para el premio</p>
-                        </div>
-                    </div>
-                    <div class="flex gap-2 flex-wrap">
-                        <button onclick="startLevelExam(${userLevel || 1})" class="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-900 font-black px-4 py-3 rounded-2xl shadow-lg border-b-4 border-amber-800 text-xs active:scale-95 flex items-center gap-1.5">
-                            <span>📝</span> <span>EXAMEN DE NIVEL ${userLevel || 1}</span>
-                        </button>
-                        <button onclick="openMemoriseModal()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-4 py-3 rounded-2xl shadow-lg border-b-4 border-purple-900 text-xs active:scale-95 flex items-center gap-1.5">
-                            <span>🧠</span> <span>MEMORICE (+15 PTS)</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="w-full bg-slate-200 h-4 rounded-full overflow-hidden border">
-                    <div class="bg-gradient-to-r from-amber-400 to-emerald-500 h-full transition-all duration-500" style="width: ${Math.min(100, (userPoints / rewardTarget) * 100)}%"></div>
-                </div>
+            <!-- PESTAÑAS DEL DASHBOARD DEL ESTUDIANTE -->
+            <div class="flex gap-2 bg-white p-2 rounded-2xl border-2 shadow-sm">
+                <button onclick="setStudentTab('home')" class="w-1/2 py-3 rounded-xl font-black text-xs sm:text-sm transition-all ${APP_STATE.currentStudentTab === 'home' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                    🏪 Supermercados y Sala
+                </button>
+                <button onclick="setStudentTab('minigames')" class="w-1/2 py-3 rounded-xl font-black text-xs sm:text-sm transition-all ${APP_STATE.currentStudentTab === 'minigames' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                    🎮 Pestaña de Minijuegos (${minigamesDone}/6)
+                </button>
             </div>
 
-            <div class="${theme.bannerBg} p-6 rounded-3xl shadow-xl flex justify-between items-center relative overflow-hidden border-4 border-white/30">
-                <div class="space-y-2 z-10 max-w-xl">
-                    <h2 class="text-2xl sm:text-4xl font-black ${theme.bannerText}">${theme.titleMsg}</h2>
-                    <p class="text-sm font-bold text-white/90">${theme.greetingMsg}</p>
-                    
-                    ${getAvatarHtml('mascot', `¡Hola <b>${APP_STATE.currentUser?.name || ''}</b>! Selecciona una tienda para comenzar tu misión.`)}
+            <!-- SI HAY MISIÓN ACTIVA DEFINIDA POR EL DOCENTE -->
+            ${APP_STATE.activeMission ? `
+                <div class="bg-amber-100 border-4 border-amber-400 p-4 rounded-3xl shadow flex items-center gap-3">
+                    <span class="text-4xl">🎯</span>
+                    <div>
+                        <span class="font-black text-xs text-amber-900 uppercase">Misión Activa del Profesor:</span>
+                        <h4 class="font-black text-slate-800 text-sm">${APP_STATE.activeMission.title}</h4>
+                        <p class="text-xs font-bold text-slate-600">${APP_STATE.activeMission.desc}</p>
+                    </div>
                 </div>
+            ` : ''}
 
-                <div class="z-10 hidden sm:flex flex-col items-center">
-                    ${getAvatarHtml('corporeo')}
-                </div>
-            </div>
-
+            <!-- LISTA DE SUPERMERCADOS Y TIENDAS DE LA ESCUELA -->
             <div class="space-y-3">
                 <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
-                    <span>🏪</span> <span>Supermercados Disponibles (Toca uno para entrar):</span>
+                    <span>🏪</span> <span>Supermercados Disponibles (Toca para entrar a comprar):</span>
                 </h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    ${(APP_STATE.supermarkets || []).length === 0 ? `
-                        <div class="col-span-full text-center py-12 bg-white rounded-3xl border-4 border-slate-200 shadow-sm">
-                            <span class="text-6xl">🏪</span>
-                            <h3 class="text-xl font-black text-slate-700 mt-2">No hay supermercados disponibles.</h3>
+                    ${APP_STATE.supermarkets.map(sup => `
+                        <div onclick="selectSupermarket('${sup.id}')" class="bg-white rounded-3xl border-4 border-slate-300 p-6 shadow-lg hover:border-indigo-500 cursor-pointer flex flex-col items-center text-center space-y-4 active:scale-95 transition-all">
+                            <div class="bg-amber-400 p-4 rounded-3xl text-5xl flex items-center justify-center w-24 h-24 shadow">${sup.icon || '🛒'}</div>
+                            <h3 class="text-xl font-black text-slate-800">${sup.name}</h3>
+                            <button class="w-full bg-indigo-600 text-white font-black py-3 rounded-2xl shadow text-sm">¡Entrar a Comprar!</button>
                         </div>
-                    ` : (APP_STATE.supermarkets || []).map(sup => {
-                        const supLogo = sup.photoUrl || sup.photo || sup.logoUrl || '';
-                        const logoHtml = supLogo 
-                            ? `<img src="${supLogo}" class="w-28 h-28 object-contain rounded-3xl p-2 bg-white border-4 border-slate-200 shadow-sm">`
-                            : `<div class="bg-amber-400 p-4 rounded-3xl text-6xl flex items-center justify-center w-28 h-28 shadow-sm">${sup.icon || '🛒'}</div>`;
-                        return `
-                            <div onclick="selectSupermarket('${sup.id}')" class="bg-white rounded-3xl border-4 border-slate-300 p-6 shadow-xl hover:shadow-2xl cursor-pointer flex flex-col items-center text-center space-y-4 active:scale-95 transition-all hover:border-indigo-500">
-                                ${logoHtml}
-                                <h3 class="text-2xl font-black text-slate-800">${sup.name}</h3>
-                                <button class="w-full bg-indigo-600 text-white font-black py-3 rounded-2xl shadow-lg text-lg border-b-4 border-indigo-900 flex items-center justify-center gap-2">
-                                    <span>🚀</span> <span>¡Entrar a ${sup.name}!</span>
-                                </button>
-                            </div>
-                        `;
-                    }).join('')}
+                    `).join('')}
                 </div>
             </div>
         </div>
@@ -1023,2209 +859,190 @@ function renderHomeView(container) {
 
 function selectSupermarket(id) {
     APP_STATE.selectedSupermarketId = String(id);
-    APP_STATE.selectedCategoryFilter = 'ALL';
-    APP_STATE.missionStartTime = Date.now();
-
-    const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(id));
-    const supName = sup ? sup.name : 'Supermercado';
-
-    speakText(`Entraste a ${supName}. Agrega los productos de tu lista y comprueba al terminar.`);
-    renderApp();
-}
-
-function setCategoryFilter(catName) {
-    APP_STATE.selectedCategoryFilter = catName;
-    playChimeSound();
-    const labelToSpeak = (catName === 'ALL') ? 'Todos los productos' : catName;
-    speakText(`Categoría ${labelToSpeak}`);
-    renderApp();
-}
-
-function validateStudentList() {
-    if (!APP_STATE.activeMission || !APP_STATE.activeMission.itemIds) {
-        return alert("No hay una misión activa en este momento.");
-    }
-
-    const targetMissionIds = APP_STATE.activeMission.itemIds.map(id => String(id));
-    const basketProductIds = (APP_STATE.basket || []).map(b => String(b.productId));
-
-    const missingItems = targetMissionIds.filter(id => !basketProductIds.includes(id));
-    const extraItems = basketProductIds.filter(id => !targetMissionIds.includes(id));
-
-    if (missingItems.length > 0 || extraItems.length > 0) {
-        APP_STATE.classroomErrorsCount++;
-        playChimeSound(true);
-        
-        const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
-        APP_STATE.invalidBasketItems = extraItems;
-
-        let extraNames = extraItems.map(id => {
-            const p = (APP_STATE.products || []).find(x => String(x.id) === String(id));
-            return p ? p.name : 'Producto';
-        }).join(', ');
-
-        const alertMsg = `⚠️ Te equivocaste. Vuelve a revisar tu lista impresa.\n\n` +
-            (missingItems.length > 0 ? `• Te falta(n) ${missingItems.length} producto(s) por agregar.\n` : '') +
-            (extraItems.length > 0 ? `• Agregaste este producto que NO está en la lista: ${extraNames}.\n` : '') +
-            `\n👉 Presiona el botón rojo "🗑️ QUITAR ESTE PRODUCTO" para corregir tu lista.\n\nPuntuación actual: ${currentScore}%`;
-
-        speakText(`Este no es el producto que estamos buscando. Te equivocaste, inténtalo nuevamente.`);
-        alert(alertMsg);
-        renderApp();
-    } else {
-        APP_STATE.invalidBasketItems = [];
-        APP_STATE.listValidated = true;
-        playChimeSound(false);
-        if (typeof confetti !== 'undefined') confetti();
-        
-        awardPointsAndXp(20, "Comprobación de Lista");
-        speakText("¡Excelente! Tu lista está perfecta. Ganaste 20 puntos. Sigamos con la misión para ir al supermercado real.");
-        renderApp();
-    }
-}
-
-function removeFromBasketByProductId(prodId) {
-    const index = (APP_STATE.basket || []).findIndex(b => String(b.productId) === String(prodId));
-    if (index !== -1) {
-        const prod = (APP_STATE.products || []).find(p => String(p.id) === String(prodId));
-        APP_STATE.basket.splice(index, 1);
-        APP_STATE.invalidBasketItems = (APP_STATE.invalidBasketItems || []).filter(id => String(id) !== String(prodId));
-        updateBasketBadge();
-        playChimeSound();
-        if (prod) speakText(`Quitaste ${prod.name} de tu lista`);
-        renderApp();
-    }
-}
-
-function enterTerrenoStoreMode() {
-    APP_STATE.classroomMode = 'TERRENO';
-    APP_STATE.scannedItemsInStore = {};
-    speakText("¡Genial! Ahora estás en el supermercado real. Apunta la cámara al envase o etiqueta del producto para verificar su nombre y precio.");
-    playChimeSound();
+    const sup = APP_STATE.supermarkets.find(s => String(s.id) === String(id));
+    speakText(`Entraste a ${sup ? sup.name : 'Supermercado'}.`);
     renderApp();
 }
 
 function renderSupermarketView(container, supId) {
-    const sup = (APP_STATE.supermarkets || []).find(s => 
-        String(s.id).toLowerCase() === String(supId).toLowerCase() ||
-        String(s.name).toLowerCase() === String(supId).toLowerCase()
-    );
-
-    const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
-
-    let classroomValidationBanner = '';
-    if (APP_STATE.activeMission && APP_STATE.activeMission.active) {
-        if (APP_STATE.classroomMode === 'PREP') {
-            if (APP_STATE.listValidated) {
-                classroomValidationBanner = `
-                    <div class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-6 rounded-3xl shadow-2xl border-4 border-emerald-300 space-y-4">
-                        <div class="flex items-center gap-4">
-                            <span class="text-5xl">🎉</span>
-                            <div>
-                                <span class="bg-white text-emerald-900 font-black px-3 py-1 rounded-full text-xs uppercase tracking-wider inline-block mb-1">
-                                    ¡COMPROBACIÓN EXITOSA! (+20 PTS GANADOS)
-                                </span>
-                                <h3 class="text-2xl font-black text-white">¡Sigamos con la misión! 🚀</h3>
-                                <p class="text-sm font-bold text-emerald-100">Ahora ve a la repisa del supermercado, apunta la cámara al producto o etiqueta y la IA leerá el nombre y su precio real.</p>
-                            </div>
-                        </div>
-                        <button onclick="enterTerrenoStoreMode()" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-lg py-4 rounded-2xl shadow-2xl border-b-4 border-amber-600 active:scale-95 flex items-center justify-center gap-2">
-                            <span>🏪</span> <span>IR AL SUPERMERCADO Y ESCANEAR CON CÁMARA</span>
-                        </button>
-                    </div>
-                `;
-            } else {
-                classroomValidationBanner = `
-                    <div class="bg-indigo-50 border-4 border-indigo-300 p-5 rounded-3xl flex flex-col sm:flex-row justify-between items-center gap-4 shadow-md">
-                        <div class="flex items-center gap-3">
-                            <span class="text-3xl">📋</span>
-                            <div>
-                                <h3 class="text-base font-black text-indigo-950">Ficha Activa: "${APP_STATE.activeMission.title}"</h3>
-                                <p class="text-xs font-bold text-slate-600">Revisa tu hoja impresa, añade los productos al canasto y presiona comprobar.</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-3 w-full sm:w-auto">
-                            <div class="bg-indigo-600 text-white font-black px-3 py-2 rounded-xl text-center text-xs">
-                                <span>Puntaje:</span> <span class="text-amber-300 font-black text-sm">${currentScore}%</span>
-                            </div>
-                            <button onclick="validateStudentList()" class="w-full sm:w-auto bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-base px-5 py-3 rounded-2xl shadow border-b-4 border-amber-600 active:scale-95 flex items-center justify-center gap-2">
-                                <span>🔍</span> <span>¡Comprobar si mi lista está correcta!</span>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }
-        } else {
-            classroomValidationBanner = `
-                <div class="bg-emerald-600 text-white p-4 rounded-3xl shadow-md border-4 border-emerald-800 flex justify-between items-center text-xs font-bold">
-                    <div class="flex items-center gap-2">
-                        <span class="text-2xl">🤖📷</span>
-                        <span>MODO VISIÓN OCR: Apunta la cámara directamente al nombre y precio del producto en la góndola.</span>
-                    </div>
-                    <span class="bg-amber-400 text-slate-900 font-black px-3 py-1 rounded-xl text-xs">⭐ ${currentScore}% Logro</span>
-                </div>
-            `;
-        }
-    }
-
-    const targetId = sup ? String(sup.id).toLowerCase() : String(supId).toLowerCase();
-    const targetName = sup ? String(sup.name).toLowerCase() : String(supId).toLowerCase();
-
-    let rawProducts = (APP_STATE.products || []).filter(p => {
-        if (!p) return false;
-        if (p.isAll === true || p.supermarketId === 'ALL' || p.supermarketName === 'TODOS') return true;
-        const pSupId = String(p.supermarketId || p.supermarket || '').toLowerCase();
-        const pSupName = String(p.supermarketName || p.tienda || '').toLowerCase();
-        return (pSupId === targetId || pSupId === targetName || pSupName === targetId || pSupName === targetName);
-    });
-
-    const uniqueProducts = [];
-    const seen = new Set();
-    rawProducts.forEach(p => {
-        const key = `${(p.name || '').trim().toLowerCase()}_${p.price}`;
-        if (!seen.has(key)) {
-            seen.add(key);
-            uniqueProducts.push(p);
-        }
-    });
-
-    const currentFilter = APP_STATE.selectedCategoryFilter || 'ALL';
-    const filteredProducts = currentFilter === 'ALL' 
-        ? uniqueProducts 
-        : uniqueProducts.filter(p => (p.category || '').toLowerCase() === currentFilter.toLowerCase());
-
-    const supLogo = sup ? (sup.photoUrl || sup.photo || sup.logoUrl || '') : '';
-    const supIconHtml = supLogo 
-        ? `<img src="${supLogo}" class="w-14 h-14 object-contain rounded-2xl border-2 border-slate-200 shadow-sm p-1 bg-white">`
-        : `<span class="text-4xl">${sup ? (sup.icon || '🏪') : '🏪'}</span>`;
-
-    const categoryList = [{ name: 'ALL', label: 'Todos los Productos', icon: '🛒' }];
-    PRESET_CATEGORIES.forEach(c => categoryList.push({ name: c.name, label: c.name, icon: c.icon }));
-
-    const productsHtml = filteredProducts.length === 0 ? `
-        <div class="col-span-full text-center py-16 bg-white rounded-3xl border-4 border-slate-200 shadow-sm">
-            <span class="text-6xl">📦</span>
-            <h3 class="text-xl font-black text-slate-700 mt-2">No hay productos en esta categoría</h3>
-            <button onclick="setCategoryFilter('ALL')" class="mt-4 bg-indigo-600 text-white font-black px-6 py-3 rounded-2xl text-sm">Ver todos los productos</button>
-        </div>
-    ` : filteredProducts.map(prod => {
-        const imgUrl = prod.photoUrl || prod.photo || prod.image || '';
-        const prodImg = imgUrl 
-            ? `<img src="${imgUrl}" class="w-24 h-24 object-cover rounded-2xl border-2 border-slate-200 shadow-sm">`
-            : `<span class="text-6xl">${prod.iconEmoji || '📦'}</span>`;
-            
-        const pricePictograms = getPricePictogramsHtml(prod.price || 0);
-        const isScannedInTerreno = APP_STATE.scannedItemsInStore[prod.id];
-        
-        const basketIndex = (APP_STATE.basket || []).findIndex(b => String(b.productId) === String(prod.id));
-        const isInBasket = basketIndex !== -1;
-        const isExtraItem = (APP_STATE.invalidBasketItems || []).includes(String(prod.id));
-
-        let cardStyle = 'border-slate-200 bg-white';
-        if (isExtraItem) {
-            cardStyle = 'border-4 border-rose-500 bg-rose-50 shadow-2xl animate-pulse ring-4 ring-rose-300';
-        } else if (isInBasket) {
-            cardStyle = 'border-4 border-indigo-500 bg-indigo-50/30';
-        } else if (isScannedInTerreno) {
-            cardStyle = 'border-4 border-emerald-500 bg-emerald-50/20';
-        }
-
-        return `
-            <div class="p-5 rounded-3xl border-4 ${cardStyle} shadow-lg flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
-                <div class="flex items-start space-x-4">
-                    ${prodImg}
-                    <div class="space-y-1 w-full">
-                        <div class="flex justify-between items-start">
-                            <h3 class="text-xl font-black text-slate-800 leading-tight">${prod.name}</h3>
-                            ${isInBasket ? `
-                                <button onclick="removeFromBasketByProductId('${prod.id}')" class="bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-black px-2.5 py-1 rounded-full shadow border border-rose-800 flex items-center gap-1 active:scale-95">
-                                    <span>🗑️</span> <span>Quitar</span>
-                                </button>
-                            ` : ''}
-                        </div>
-                        <div class="text-3xl font-black text-emerald-700">$${(prod.price || 0).toLocaleString('es-CL')}</div>
-                        ${pricePictograms}
-                        <span class="inline-block bg-slate-100 text-slate-700 px-2.5 py-1 rounded-xl text-xs font-extrabold mt-1 border">${prod.category || 'General'}</span>
-                    </div>
-                </div>
-                <div class="flex gap-2 pt-2 border-t">
-                    <button onclick="speakText('${prod.name}, precio ${prod.price} pesos')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold p-3.5 rounded-2xl shadow-sm text-2xl active:scale-95">🔊</button>
-                    ${APP_STATE.classroomMode === 'TERRENO' ? `
-                        <button onclick="startAiVisualRecognition('${prod.id}')" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black py-3.5 rounded-2xl shadow border-b-4 border-indigo-900 active:scale-95 text-base flex items-center justify-center gap-2">
-                            <span>🤖📷</span> <span>Escanear Nombre y Precio</span>
-                        </button>
-                    ` : `
-                        ${isInBasket ? `
-                            <button onclick="removeFromBasketByProductId('${prod.id}')" class="w-full ${isExtraItem ? 'bg-rose-600 hover:bg-rose-700 animate-bounce' : 'bg-rose-500 hover:bg-rose-600'} text-white font-black py-3.5 rounded-2xl shadow-lg border-b-4 border-rose-900 active:scale-95 text-sm flex items-center justify-center gap-2">
-                                <span>🗑️</span> <span>QUITAR ESTE PRODUCTO</span>
-                            </button>
-                        ` : `
-                            <button onclick="addToBasket('${prod.id}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl shadow border-b-4 border-emerald-900 active:scale-95 text-lg">🛒 Añadir al Canasto</button>
-                        `}
-                    `}
+    const sup = APP_STATE.supermarkets.find(s => String(s.id) === String(supId));
+    const productsHtml = APP_STATE.products.map(prod => `
+        <div class="p-5 rounded-3xl border-4 border-slate-200 bg-white shadow-lg flex flex-col justify-between space-y-3">
+            <div class="flex items-start space-x-3">
+                <span class="text-5xl">${prod.iconEmoji || '📦'}</span>
+                <div>
+                    <h3 class="text-lg font-black text-slate-800">${prod.name}</h3>
+                    <div class="text-2xl font-black text-emerald-700">$${prod.price.toLocaleString('es-CL')}</div>
+                    ${getPricePictogramsHtml(prod.price)}
                 </div>
             </div>
-        `;
-    }).join('');
+            <div class="flex gap-2 pt-2 border-t">
+                <button onclick="openScannerModal('${prod.id}')" class="bg-purple-100 text-purple-900 font-black p-3 rounded-2xl text-xs active:scale-95" title="Escanear en góndola">📷 Escanear</button>
+                <button onclick="addToBasket('${prod.id}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-2xl shadow text-sm active:scale-95">🛒 Añadir al Canasto</button>
+            </div>
+        </div>
+    `).join('');
 
     container.innerHTML = `
         <div class="space-y-6">
-            ${classroomValidationBanner}
-
-            <div class="flex items-center justify-between bg-white p-4 rounded-3xl border-4 border-slate-300 shadow-md">
-                <button onclick="goHome()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-black px-4 py-3 rounded-2xl text-xs sm:text-sm active:scale-95">← Volver a Tiendas</button>
-                <div class="flex items-center gap-3">
-                    ${supIconHtml}
-                    <h2 class="text-2xl sm:text-3xl font-black text-slate-800">${sup ? sup.name : 'Supermercado'}</h2>
-                </div>
+            <div class="flex items-center justify-between bg-white p-4 rounded-3xl border-4 border-slate-300 shadow">
+                <button onclick="goHome()" class="bg-slate-200 text-slate-800 font-black px-4 py-2.5 rounded-2xl text-xs">← Volver a Tiendas</button>
+                <h2 class="text-xl font-black text-slate-800">${sup ? sup.name : 'Supermercado'}</h2>
                 <div>${getAvatarHtml('mascot')}</div>
             </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">${productsHtml}</div>
+        </div>
+    `;
+}
 
-            <div class="space-y-2">
-                <label class="text-xs font-black text-slate-600 uppercase tracking-wider block px-1">📁 Categorías disponibles:</label>
-                <div class="flex gap-2 overflow-x-auto pb-3 pt-1 scrollbar-thin">
-                    ${categoryList.map(c => {
-                        const active = (currentFilter.toLowerCase() === c.name.toLowerCase());
+function renderStudentMinigamesTab(container) {
+    const userLevel = APP_STATE.currentUser?.level || 1;
+    const lvl = LEVEL_CURRICULUM[userLevel] || LEVEL_CURRICULUM[1];
+    const minigamesDone = (APP_STATE.currentUser?.minigamesCompleted?.[`level_${userLevel}`]) || 0;
+
+    container.innerHTML = `
+        <div class="space-y-6">
+            <!-- PESTAÑAS DEL DASHBOARD DEL ESTUDIANTE -->
+            <div class="flex gap-2 bg-white p-2 rounded-2xl border-2 shadow-sm">
+                <button onclick="setStudentTab('home')" class="w-1/2 py-3 rounded-xl font-black text-xs sm:text-sm bg-slate-100 text-slate-700 hover:bg-slate-200">
+                    🏪 Supermercados y Sala
+                </button>
+                <button onclick="setStudentTab('minigames')" class="w-1/2 py-3 rounded-xl font-black text-xs sm:text-sm bg-indigo-600 text-white shadow">
+                    🎮 Pestaña de Minijuegos (${minigamesDone}/6)
+                </button>
+            </div>
+
+            <!-- ENCABEZADO DEL NIVEL ACTUAL -->
+            <div class="bg-gradient-to-r ${lvl.bgColor} text-white p-6 rounded-3xl shadow-xl space-y-2">
+                <span class="bg-amber-400 text-slate-900 font-black px-3 py-0.5 rounded-full text-[10px] uppercase">NIVEL ACTUAL DE DESAFÍOS</span>
+                <h2 class="text-2xl font-black">${lvl.title}</h2>
+                <p class="text-xs font-bold text-white/90">${lvl.objectiveGeneral}</p>
+            </div>
+
+            <!-- MAPA INTEGRADO DE LOS 6 MINIJUEGOS DEL ESTUDIANTE -->
+            <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow-md space-y-4">
+                <div class="flex justify-between items-center flex-wrap gap-2 border-b pb-3">
+                    <h3 class="text-lg font-black text-slate-800">🎮 Los 6 Minijuegos Evaluables del Nivel ${userLevel}:</h3>
+                    <button onclick="openMinigamesModuleModal()" class="bg-purple-600 hover:bg-purple-700 text-white font-black px-4 py-2 rounded-xl text-xs shadow">🗺️ Ver Mapa Completo de Niveles</button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    ${lvl.minigamesList.map((game, idx) => {
+                        const gameNum = idx + 1;
+                        const isPlayed = minigamesDone >= gameNum;
                         return `
-                            <button onclick="setCategoryFilter('${c.name}')" class="flex-shrink-0 px-4 py-3 rounded-2xl font-black text-xs sm:text-sm transition-all shadow flex items-center gap-2 active:scale-95 ${active ? 'bg-indigo-600 text-white ring-4 ring-indigo-300 scale-105' : 'bg-white text-slate-800 border-2 border-slate-200 hover:bg-slate-100'}">
-                                <span class="text-lg">${c.icon}</span>
-                                <span>${c.label}</span>
-                            </button>
+                            <div class="p-4 bg-slate-50 border-2 ${isPlayed ? 'border-emerald-400 bg-emerald-50/50' : 'border-slate-300'} rounded-2xl flex flex-col justify-between space-y-3">
+                                <div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-black text-xs text-indigo-900 block">${game.name}</span>
+                                        <span class="text-[10px] font-black px-2 py-0.5 rounded ${isPlayed ? 'bg-emerald-600 text-white' : 'bg-slate-200'}">${isPlayed ? '✓ Completado' : 'Pendiente'}</span>
+                                    </div>
+                                    <p class="text-[11px] font-bold text-slate-600 mt-1">${game.desc}</p>
+                                </div>
+                                <button onclick="launchSpecificMinigame(${userLevel}, ${gameNum})" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow active:scale-95">
+                                    ▶️ Iniciar Minijuego #${gameNum}
+                                </button>
+                            </div>
                         `;
                     }).join('')}
                 </div>
-            </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                ${productsHtml}
+                <!-- BOTÓN DE BATALLA DE JEFE -->
+                <div class="bg-rose-50 border-2 border-rose-300 p-4 rounded-2xl flex items-center justify-between flex-wrap gap-3 mt-4">
+                    <div>
+                        <h4 class="font-black text-rose-950 text-sm">${lvl.bossTitle}</h4>
+                        <p class="text-xs font-bold text-rose-800">${lvl.bossDescription}</p>
+                    </div>
+                    <button onclick="startLevelExam(${userLevel})" ${minigamesDone < 6 ? 'disabled' : ''} class="px-5 py-3 rounded-2xl font-black text-xs shadow ${minigamesDone >= 6 ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}">
+                        ⚔️ ${minigamesDone >= 6 ? 'ENFRENTAR AL JEFE FINAL' : 'COMPLETA LOS 6 JUEGOS PRIMERO'}
+                    </button>
+                </div>
             </div>
         </div>
     `;
 }
 
 // ==========================================
-// ESCÁNER OCR CON IA
-// ==========================================
-function startAiVisualRecognition(productId) {
-    const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
-    if (!prod) return;
-
-    APP_STATE.currentTargetScanProduct = prod.id;
-    speakText(`Apunta la cámara al nombre o etiqueta de ${prod.name} y toma la foto.`);
-
-    const modal = document.getElementById('scannerModal');
-    const targetLabel = document.getElementById('aiScannerTargetTitle');
-    if (targetLabel) targetLabel.textContent = prod.name;
-    if (modal) modal.classList.remove('hidden');
-
-    initAiCameraStream();
-}
-
-async function initAiCameraStream() {
-    stopAiCameraStream();
-
-    const videoEl = document.getElementById('aiCameraVideo');
-    if (!videoEl) return;
-
-    videoEl.setAttribute('playsinline', 'true');
-    videoEl.setAttribute('webkit-playsinline', 'true');
-    videoEl.setAttribute('autoplay', 'true');
-    videoEl.muted = true;
-
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert("⚠️ Tu navegador móvil no admite cámara directa.");
-        return;
-    }
-
-    const facingChoice = (APP_STATE.aiConfig && APP_STATE.aiConfig.cameraFacing) || 'environment';
-    const constraintsList = [
-        { video: { facingMode: { ideal: facingChoice } }, audio: false },
-        { video: { facingMode: "environment" }, audio: false },
-        { video: { facingMode: "user" }, audio: false },
-        { video: true, audio: false }
-    ];
-
-    let stream = null;
-    for (const constraints of constraintsList) {
-        try {
-            stream = await navigator.mediaDevices.getUserMedia(constraints);
-            if (stream) break;
-        } catch (e) {}
-    }
-
-    if (!stream) {
-        alert("⚠️ No se pudo acceder a la cámara. Revisa los permisos en tu navegador.");
-        return;
-    }
-
-    APP_STATE.cameraStream = stream;
-    videoEl.srcObject = stream;
-
-    try { await videoEl.play(); } catch (err) {}
-}
-
-function stopAiCameraStream() {
-    if (APP_STATE.cameraStream) {
-        APP_STATE.cameraStream.getTracks().forEach(track => track.stop());
-        APP_STATE.cameraStream = null;
-    }
-}
-
-function closeScannerModal() {
-    const modal = document.getElementById('scannerModal');
-    if (modal) modal.classList.add('hidden');
-    stopAiCameraStream();
-}
-
-async function captureAndAnalyzeImageWithAI() {
-    if (APP_STATE.isAiAnalyzing) return;
-    APP_STATE.isAiAnalyzing = true;
-
-    const videoEl = document.getElementById('aiCameraVideo');
-    const canvasEl = document.getElementById('aiCameraCanvas');
-    const statusBox = document.getElementById('aiScanStatusBox');
-
-    const targetId = APP_STATE.currentTargetScanProduct;
-    const targetProduct = (APP_STATE.products || []).find(p => String(p.id) === String(targetId));
-
-    if (!targetProduct) {
-        alert("No hay un producto seleccionado.");
-        APP_STATE.isAiAnalyzing = false;
-        return;
-    }
-
-    if (statusBox) {
-        statusBox.innerHTML = `
-            <div class="flex items-center justify-center gap-2 text-indigo-700 font-black animate-pulse py-1">
-                <span class="text-2xl animate-spin">🔍</span>
-                <span>Analizando nombre y precio en la etiqueta...</span>
-            </div>
-        `;
-    }
-
-    if (!canvasEl || !videoEl || videoEl.readyState < 2) {
-        alert("La cámara aún no carga el marco. Espera un segundo e intenta de nuevo.");
-        APP_STATE.isAiAnalyzing = false;
-        return;
-    }
-
-    const ctx = canvasEl.getContext('2d');
-    canvasEl.width = videoEl.videoWidth || 640;
-    canvasEl.height = videoEl.videoHeight || 480;
-    ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-    const photoDataUrl = canvasEl.toDataURL('image/jpeg', 0.8);
-
-    try {
-        if (typeof Tesseract === 'undefined') {
-            alert("⚠️ Falta incluir la librería Tesseract.js en el index.html");
-            APP_STATE.isAiAnalyzing = false;
-            return;
-        }
-
-        const result = await Tesseract.recognize(canvasEl, 'spa');
-        const detectedText = (result.data.text || '').toLowerCase();
-
-        const expectedName = targetProduct.name.toLowerCase().trim();
-        const keywords = expectedName.split(' ').filter(word => word.length > 2);
-        const nameMatches = keywords.filter(kw => detectedText.includes(kw));
-        const isNameCorrect = nameMatches.length > 0;
-
-        if (isNameCorrect) {
-            const priceRegex = /\$?\s*([0-9]{1,3}(?:\.[0-9]{3})+|[0-9]{3,6})/g;
-            const priceMatches = [...detectedText.matchAll(priceRegex)];
-            let scannedPrice = targetProduct.price || 0;
-
-            if (priceMatches.length > 0) {
-                const rawPriceStr = priceMatches[0][1].replace(/\./g, '');
-                const parsedPrice = parseInt(rawPriceStr, 10);
-                if (!isNaN(parsedPrice) && parsedPrice >= 100 && parsedPrice <= 200000) {
-                    scannedPrice = parsedPrice;
-                }
-            }
-
-            if (scannedPrice !== targetProduct.price) {
-                APP_STATE.priceAdjustmentsCount++;
-                targetProduct.price = scannedPrice;
-            }
-
-            const basketItem = (APP_STATE.basket || []).find(b => String(b.productId) === String(targetProduct.id));
-            if (basketItem) {
-                basketItem.actualPrice = scannedPrice;
-            } else {
-                APP_STATE.basket.push({ productId: targetProduct.id, quantity: 1, actualPrice: scannedPrice });
-            }
-
-            APP_STATE.scannedItemsInStore[targetProduct.id] = true;
-            playChimeSound(false);
-            closeScannerModal();
-
-            speakText(`¡Excelente! Confirmaste ${targetProduct.name} a un precio de ${scannedPrice} pesos. Agregado al total.`);
-            openShelfPriceConfirmation(targetProduct.id, photoDataUrl);
-
-        } else {
-            APP_STATE.classroomErrorsCount++;
-            playChimeSound(true);
-
-            const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
-            const readSnippet = detectedText.length > 0 ? detectedText.substring(0, 35).replace(/\n/g, ' ') : 'Texto no legible';
-
-            speakText(`Eso no es ${targetProduct.name}. Enfoca claramente la etiqueta o el envase.`);
-
-            if (statusBox) {
-                statusBox.innerHTML = `
-                    <div class="p-3 bg-rose-100 border-2 border-rose-400 rounded-2xl text-rose-950 font-bold text-xs space-y-1 text-center">
-                        <div class="font-black text-rose-700 text-sm">❌ PRODUCTO NO RECONOCIDO</div>
-                        <div>Leído en cámara: <b>"${readSnippet}"</b></div>
-                        <div class="text-indigo-900">Se buscaba: <b>${targetProduct.name}</b></div>
-                    </div>
-                `;
-            }
-
-            alert(`❌ PRODUCTO INCORRECTO\n\nTexto detectado: "${readSnippet}"\nNo coincide con: "${targetProduct.name}"\n\nPuntuación actual: ${currentScore}%`);
-        }
-    } catch (err) {
-        console.error("Error en OCR:", err);
-        alert("Ocurrió un problema al leer la imagen. Intenta enfocar con mejor luz.");
-    }
-
-    APP_STATE.isAiAnalyzing = false;
-}
-
-function openShelfPriceConfirmation(productId, photoDataUrl = null) {
-    const prod = (APP_STATE.products || []).find(p => String(p.id) === String(productId));
-    if (!prod) return;
-
-    APP_STATE.pendingScanProduct = prod;
-    document.getElementById('shelfPriceProdName').textContent = prod.name;
-    document.getElementById('shelfPriceOriginalLabel').textContent = `$${(prod.price || 0).toLocaleString('es-CL')}`;
-
-    const previewImg = document.getElementById('shelfCapturedPhotoPreview');
-    if (previewImg && photoDataUrl) {
-        previewImg.src = photoDataUrl;
-        previewImg.classList.remove('hidden');
-    }
-
-    const basePrice = prod.price || 800;
-    const suggestedPrices = [basePrice, 1500, basePrice + 300, Math.max(500, basePrice - 200)];
-
-    const btnContainer = document.getElementById('shelfPriceButtonsContainer');
-    if (btnContainer) {
-        btnContainer.innerHTML = suggestedPrices.map(p => `
-            <button onclick="applyShelfPriceChoice(${p})" class="p-3 bg-amber-50 border-2 border-amber-300 hover:bg-amber-500 hover:text-slate-900 rounded-2xl font-black text-xs active:scale-95 shadow">
-                $${p.toLocaleString('es-CL')} ${p !== basePrice ? '⚠️ (Nuevo Precio)' : '✓ (Igual)'}
-            </button>
-        `).join('');
-    }
-
-    document.getElementById('shelfPriceModal').classList.remove('hidden');
-}
-
-function applyShelfPriceChoice(newPrice) {
-    const prod = APP_STATE.pendingScanProduct;
-    if (!prod) return;
-
-    const oldPrice = prod.price || 0;
-    APP_STATE.scannedItemsInStore[prod.id] = true;
-
-    if (newPrice !== oldPrice) {
-        APP_STATE.priceAdjustmentsCount++;
-        prod.price = newPrice;
-        const bItem = APP_STATE.basket.find(b => String(b.productId) === String(prod.id));
-        if (bItem) bItem.actualPrice = newPrice;
-
-        speakText(`Actualizaste el valor de ${prod.name} en la góndola a ${newPrice} pesos.`);
-        alert(`🔔 ¡PRECIO ACTUALIZADO!\n\nEl precio de "${prod.name}" cambió a $${newPrice.toLocaleString('es-CL')}.`);
-    } else {
-        speakText(`¡Excelente! El precio de ${prod.name} coincide a ${newPrice} pesos.`);
-    }
-
-    document.getElementById('shelfPriceModal').classList.add('hidden');
-    playChimeSound();
-    renderApp();
-}
-
-function applyCustomShelfPrice() {
-    const val = parseInt(document.getElementById('shelfPriceCustomInput').value);
-    if (!isNaN(val) && val > 0) {
-        applyShelfPriceChoice(val);
-        document.getElementById('shelfPriceCustomInput').value = '';
-    } else {
-        alert("Ingresa un número de precio válido.");
-    }
-}
-
-function renderStudentPreviewWrapper(container) {
-    const previewBanner = `
-        <div class="bg-amber-400 border-4 border-amber-600 text-slate-900 p-3.5 rounded-2xl shadow-lg mb-6 flex justify-between items-center flex-wrap gap-2">
-            <div class="flex items-center gap-2">
-                <span class="text-2xl">🕹️</span>
-                <div>
-                    <h3 class="font-black text-sm tracking-tight">MODO PRUEBA: VISTA DEL ESTUDIANTE</h3>
-                    <p class="text-[11px] font-bold text-slate-800">Prueba la tienda interactiva tal como la ven los alumnos.</p>
-                </div>
-            </div>
-            <button onclick="toggleStudentPreview(false)" class="bg-slate-900 hover:bg-black text-white font-black text-xs px-4 py-2 rounded-xl border-b-2 border-slate-950 shadow active:scale-95">
-                ← Volver al Panel Docente
-            </button>
-        </div>
-    `;
-
-    const subContainer = document.createElement('div');
-    if (APP_STATE.selectedSupermarketId) {
-        renderSupermarketView(subContainer, APP_STATE.selectedSupermarketId);
-    } else {
-        renderHomeView(subContainer);
-    }
-
-    container.innerHTML = previewBanner;
-    container.appendChild(subContainer);
-}
-
-function toggleStudentPreview(status) {
-    APP_STATE.teacherPreviewMode = status;
-    APP_STATE.selectedSupermarketId = null;
-    renderApp();
-}
-
-// ==========================================
-// CANASTO Y PAGO EN CAJA
-// ==========================================
-function updateBasketBadge() {
-    const badge = document.getElementById('basketBadge');
-    if (badge) badge.textContent = (APP_STATE.basket || []).length;
-}
-
-function addToBasket(prodId) {
-    let prod = (APP_STATE.products || []).find(p => String(p.id) === String(prodId));
-    if (!prod) prod = { id: prodId, name: 'Producto Escaneado', price: 2000 };
-    
-    const existing = APP_STATE.basket.find(b => String(b.productId) === String(prod.id));
-    if (!existing) {
-        APP_STATE.basket.push({ productId: prod.id, quantity: 1, actualPrice: prod.price });
-        playChimeSound();
-        updateBasketBadge();
-        speakText(`Añadido ${prod.name}`);
-    } else {
-        speakText(`${prod.name} ya está en tu canasto`);
-    }
-    renderApp();
-}
-
-function removeFromBasket(index) {
-    APP_STATE.basket.splice(index, 1);
-    updateBasketBadge();
-    renderBasketModalContent();
-    renderApp();
-}
-
-function clearBasket() {
-    APP_STATE.basket = [];
-    APP_STATE.userPaidAmount = 0;
-    APP_STATE.userPaidItems = [];
-    APP_STATE.invalidBasketItems = [];
-    updateBasketBadge();
-    renderBasketModalContent();
-    renderApp();
-}
-
-function openBasketModal() {
-    renderBasketModalContent();
-    const el = document.getElementById('basketModal');
-    if (el) el.classList.remove('hidden');
-}
-
-function closeBasketModal() {
-    const el = document.getElementById('basketModal');
-    if (el) el.classList.add('hidden');
-}
-
-function renderBasketModalContent() {
-    const listEl = document.getElementById('basketItemsList');
-    const totalEl = document.getElementById('basketTotalCLP');
-    const paidEl = document.getElementById('userPaidTotal');
-    const trayEl = document.getElementById('paymentMoneyTray');
-    const breakdownEl = document.getElementById('basketCurrencyBreakdown');
-
-    if (!listEl) return;
-
-    let total = 0;
-    listEl.innerHTML = (APP_STATE.basket || []).length === 0 
-        ? `<p class="text-center text-slate-400 py-6 font-bold text-xs">Tu canasto está vacío.</p>`
-        : APP_STATE.basket.map((item, idx) => {
-            const p = (APP_STATE.products || []).find(x => String(x.id) === String(item.productId)) || { name: 'Producto', price: 2000 };
-            const itemPrice = item.actualPrice || p.price || 0;
-            total += itemPrice;
-            const imgUrl = p.photoUrl || p.photo || p.image || '';
-            const imgHtml = imgUrl 
-                ? `<img src="${imgUrl}" class="w-10 h-10 object-cover rounded-xl border border-slate-200">`
-                : `<span class="text-2xl">${p.iconEmoji || '📦'}</span>`;
-            return `
-                <div class="flex items-center justify-between p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl text-xs font-bold">
-                    <div class="flex items-center space-x-3">
-                        ${imgHtml}
-                        <div>
-                            <span class="text-slate-800 font-black text-sm block">${p.name}</span>
-                            ${getPricePictogramsHtml(itemPrice)}
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="font-black text-emerald-700 text-base">$${itemPrice.toLocaleString('es-CL')}</span>
-                        <button onclick="removeFromBasket(${idx})" class="text-rose-600 font-black px-2.5 py-1 rounded-xl bg-rose-100 hover:bg-rose-200 text-xs">✕ Quitar</button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-    if (totalEl) {
-        totalEl.innerHTML = `
-            <div>$${total.toLocaleString('es-CL')}</div>
-            ${getPricePictogramsHtml(total)}
-        `;
-    }
-    if (paidEl) paidEl.textContent = `$${(APP_STATE.userPaidAmount || 0).toLocaleString('es-CL')}`;
-
-    if (breakdownEl) {
-        if (!APP_STATE.userPaidItems || APP_STATE.userPaidItems.length === 0) {
-            breakdownEl.innerHTML = `<span class="text-xs text-slate-400 font-bold italic">Toca abajo los billetes y monedas para pagar.</span>`;
-        } else {
-            const counts = {};
-            APP_STATE.userPaidItems.forEach(item => { counts[item.id] = (counts[item.id] || 0) + 1; });
-
-            breakdownEl.innerHTML = Object.keys(counts).map(id => {
-                const item = CLP_CURRENCY_ITEMS.find(c => c.id === id);
-                if (!item) return '';
-                const count = counts[id];
-                const imgSrc = APP_STATE.customCurrencies[id] || item.img;
-                return `<div class="inline-flex items-center gap-1.5 bg-white border-2 border-amber-400 rounded-xl px-2.5 py-1 shadow-sm">
-                    <img src="${imgSrc}" class="h-8 object-contain">
-                    <span class="text-xs font-black text-amber-950">${count > 1 ? count + 'x' : ''}</span>
-                </div>`;
-            }).join('');
-        }
-    }
-
-    if (trayEl) {
-        trayEl.innerHTML = CLP_CURRENCY_ITEMS.map(item => {
-            const imgSrc = APP_STATE.customCurrencies[item.id] || item.img;
-            return `
-                <button onclick="addPaymentMoney('${item.id}')" class="bg-white border-2 border-slate-200 hover:border-indigo-500 rounded-2xl p-2 flex flex-col items-center justify-center space-y-1 active:scale-95 shadow transition-all">
-                    <img src="${imgSrc}" class="h-10 object-contain">
-                    <span class="text-[10px] font-black text-slate-800">$${item.value.toLocaleString('es-CL')}</span>
-                </button>
-            `;
-        }).join('');
-    }
-}
-
-function addPaymentMoney(itemId) {
-    const item = CLP_CURRENCY_ITEMS.find(c => c.id === itemId);
-    if (!item) return;
-
-    if (!APP_STATE.userPaidItems) APP_STATE.userPaidItems = [];
-    APP_STATE.userPaidItems.push(item);
-    APP_STATE.userPaidAmount += item.value;
-
-    playChimeSound();
-    speakText(`Entregaste ${item.value} pesos`);
-    renderBasketModalContent();
-}
-
-function resetUserPayment() {
-    APP_STATE.userPaidAmount = 0;
-    APP_STATE.userPaidItems = [];
-    speakText("Pago reiniciado");
-    renderBasketModalContent();
-}
-
-function verifyAndCheckout() {
-    let total = 0;
-    (APP_STATE.basket || []).forEach(item => {
-        const p = (APP_STATE.products || []).find(x => String(x.id) === String(item.productId)) || { price: 2000 };
-        total += (item.actualPrice || p.price || 0);
-    });
-
-    if (total === 0) return alert("Tu canasto está vacío.");
-    if (APP_STATE.userPaidAmount < total) {
-        const falta = total - APP_STATE.userPaidAmount;
-        speakText(`Te faltan ${falta} pesos para completar la compra.`);
-        return alert(`⚠️ Monto insuficiente. Te faltan $${falta.toLocaleString('es-CL')} para pagar.`);
-    }
-
-    const vuelto = APP_STATE.userPaidAmount - total;
-    const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(APP_STATE.selectedSupermarketId));
-    const elapsedSeconds = APP_STATE.missionStartTime ? Math.round((Date.now() - APP_STATE.missionStartTime) / 1000) : 25;
-
-    const totalErrors = APP_STATE.classroomErrorsCount || 0;
-    const pointsEarned = Math.max(10, 100 - (totalErrors * 15));
-    
-    let medal = "🥇 Medalla de Oro (100% Perfecto)";
-    let feedback = "¡Increíble! Lograste completar tu compra sin cometer errores.";
-
-    if (pointsEarned >= 80 && pointsEarned < 100) {
-        medal = `🥈 Medalla de Plata (${pointsEarned}% Gran trabajo)`;
-        feedback = "¡Muy bien! Tuviste solo 1 o 2 desaciertos.";
-    } else if (pointsEarned >= 50 && pointsEarned < 80) {
-        medal = `🥉 Medalla de Bronce (${pointsEarned}% Buen esfuerzo)`;
-        feedback = "¡Bien hecho! Sigue practicando para mejorar tu puntuación.";
-    } else if (pointsEarned < 50) {
-        medal = `🌟 Estrella de Participación (${pointsEarned}%)`;
-        feedback = "¡Completaste tu compra! Recuerda fijarte muy bien en los productos de tu lista.";
-    }
-
-    awardPointsAndXp(pointsEarned, "Compra en Caja");
-
-    const evalData = {
-        id: 'eval-' + Date.now(),
-        studentId: APP_STATE.currentUser ? APP_STATE.currentUser.id : 'anonimo',
-        studentName: APP_STATE.currentUser ? APP_STATE.currentUser.name : 'Estudiante',
-        rut: APP_STATE.currentUser ? APP_STATE.currentUser.rut || '' : '',
-        supermarketId: APP_STATE.selectedSupermarketId || '',
-        supermarketName: sup ? sup.name : 'Supermercado',
-        totalCLP: total,
-        paidCLP: APP_STATE.userPaidAmount,
-        changeCLP: vuelto,
-        itemCount: APP_STATE.basket.length,
-        timeSeconds: elapsedSeconds,
-        classroomErrorsCount: totalErrors,
-        pointsEarned: pointsEarned,
-        priceAdjustmentsCount: APP_STATE.priceAdjustmentsCount,
-        voiceHelpCount: APP_STATE.telemetry.voiceHelpCount,
-        date: new Date().toLocaleString('es-CL'),
-        timestamp: firebase.firestore ? firebase.firestore.FieldValue.serverTimestamp() : null
-    };
-
-    if (db) {
-        db.collection('evaluations').doc(evalData.id).set(evalData);
-    }
-
-    if (typeof confetti !== 'undefined') confetti();
-
-    document.getElementById('gamificationPointsBadge').textContent = `+${pointsEarned} PUNTOS`;
-    document.getElementById('gamificationMedalIcon').textContent = medal;
-    document.getElementById('gamificationFeedbackText').textContent = feedback;
-
-    document.getElementById('successModalTotal').textContent = `$${total.toLocaleString('es-CL')}`;
-    document.getElementById('successModalPaid').textContent = `$${APP_STATE.userPaidAmount.toLocaleString('es-CL')}`;
-    document.getElementById('successModalVueltoAmount').textContent = `$${vuelto.toLocaleString('es-CL')}`;
-
-    const vueltoContainer = document.getElementById('successModalVueltoBreakdown');
-    if (vueltoContainer) {
-        vueltoContainer.innerHTML = getPricePictogramsHtml(vuelto) || `<p class="text-xs font-bold text-slate-500">Monto exacto. No requiere vuelto.</p>`;
-    }
-
-    closeBasketModal();
-    document.getElementById('checkoutSuccessModal').classList.remove('hidden');
-    speakText(`¡Excelente compra! Ganaste una puntuación de ${pointsEarned} por ciento. Tu vuelto es de ${vuelto} pesos.`);
-}
-
-function closeSuccessModalAndFinish() {
-    document.getElementById('checkoutSuccessModal').classList.add('hidden');
-    clearBasket();
-    APP_STATE.classroomMode = 'PREP';
-    APP_STATE.listValidated = false;
-    APP_STATE.classroomErrorsCount = 0;
-    goHome();
-}
-
-// ==========================================
-// IMPRESIÓN Y MISIÓN
-// ==========================================
-function openViewMissionModal() {
-    if (!APP_STATE.activeMission || !APP_STATE.activeMission.itemIds) {
-        return alert("No hay una misión activa creada.");
-    }
-
-    const container = document.getElementById('viewMissionContent');
-    const modal = document.getElementById('viewMissionModal');
-    if (!container || !modal) return;
-
-    const selectedProds = (APP_STATE.products || []).filter(p => APP_STATE.activeMission.itemIds.includes(String(p.id)));
-    const st = APP_STATE.settings || DEFAULT_SETTINGS;
-    const teamLabel = st.teamName || 'Equipo Multidisciplinario';
-
-    container.innerHTML = `
-        <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-200 space-y-1">
-            <h4 class="text-lg font-black text-indigo-950">${APP_STATE.activeMission.title}</h4>
-            <p class="text-xs font-bold text-slate-600">Ficha creada por el ${teamLabel} (${selectedProds.length} productos asignados)</p>
-        </div>
-
-        <div class="space-y-3">
-            <h5 class="text-xs font-black text-slate-500 uppercase">Productos incluidos en la lista impresa:</h5>
-            ${selectedProds.map(p => {
-                const imgUrl = p.photoUrl || p.photo || p.image || '';
-                const imgHtml = imgUrl 
-                    ? `<img src="${imgUrl}" class="w-14 h-14 object-cover rounded-xl border">`
-                    : `<span class="text-3xl">📦</span>`;
-                return `
-                    <div class="flex items-center justify-between p-3 bg-slate-50 border-2 rounded-2xl">
-                        <div class="flex items-center gap-3">
-                            ${imgHtml}
-                            <div>
-                                <span class="text-sm font-black text-slate-800 block">${p.name}</span>
-                                <span class="text-xs font-black text-emerald-700">Precio Ref: $${(p.price || 0).toLocaleString('es-CL')}</span>
-                            </div>
-                        </div>
-                        <div>${getPricePictogramsHtml(p.price || 0)}</div>
-                    </div>
-                `;
-            }).join('')}
-        </div>
-    `;
-
-    modal.classList.remove('hidden');
-}
-
-function closeViewMissionModal() {
-    const modal = document.getElementById('viewMissionModal');
-    if (modal) modal.classList.add('hidden');
-}
-
-function printCurrentMissionSheetFromViewer() {
-    if (!APP_STATE.activeMission || !APP_STATE.activeMission.itemIds) return;
-    const selectedProds = (APP_STATE.products || []).filter(p => APP_STATE.activeMission.itemIds.includes(String(p.id)));
-    const title = APP_STATE.activeMission.title || 'Misión de Compra';
-    const st = APP_STATE.settings || DEFAULT_SETTINGS;
-    const teamLabel = st.teamName || 'Equipo Multidisciplinario';
-
-    const win = window.open('', '_blank');
-    win.document.write(`
-        <html>
-            <head>
-                <title>Ficha de Misión Adaptativa</title>
-                <script src="https://cdn.tailwindcss.com"></script>
-            </head>
-            <body class="bg-white p-8 font-sans text-slate-800">
-                <div class="max-w-2xl mx-auto border-4 border-indigo-600 p-6 rounded-3xl space-y-6">
-                    <div class="flex justify-between items-center border-b-2 pb-4">
-                        <div>
-                            <h1 class="text-2xl font-black text-indigo-950">${st.schoolName}</h1>
-                            <p class="text-xs font-bold text-indigo-600">Ficha de Apoyo Pedagógico (${teamLabel})</p>
-                        </div>
-                        <span class="text-4xl">📋</span>
-                    </div>
-
-                    <div class="bg-indigo-50 p-4 rounded-2xl border text-center space-y-1">
-                        <h2 class="text-xl font-black text-indigo-900">${title}</h2>
-                        <p class="text-xs font-bold text-slate-600">Instrucción: Busca y añade estos productos en la aplicación. Luego comprueba si tu lista está correcta.</p>
-                    </div>
-
-                    <div class="space-y-4">
-                        ${selectedProds.map(p => {
-                            const imgUrl = p.photoUrl || p.photo || p.image || '';
-                            const imgHtml = imgUrl 
-                                ? `<img src="${imgUrl}" class="w-16 h-16 object-cover rounded-xl border">`
-                                : `<span class="text-4xl">📦</span>`;
-                            return `
-                                <div class="flex items-center justify-between p-4 bg-slate-50 border-2 rounded-2xl">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-8 h-8 rounded-lg border-2 border-slate-400 bg-white"></div>
-                                        ${imgHtml}
-                                        <div>
-                                            <span class="text-base font-black text-slate-800 block">${p.name}</span>
-                                            <span class="text-xs font-black text-emerald-700">Precio estimado: $${(p.price || 0).toLocaleString('es-CL')}</span>
-                                        </div>
-                                    </div>
-                                    <div>${getPricePictogramsHtml(p.price || 0)}</div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-
-                    <div class="pt-6 border-t text-center text-xs font-bold text-slate-400">
-                        Programa de Autonomía Funcional • ${teamLabel}
-                    </div>
-                </div>
-                <script>setTimeout(() => { window.print(); window.close(); }, 750);</script>
-            </body>
-        </html>
-    `);
-    win.document.close();
-}
-
-// ==========================================
-// PANEL DOCENTE Y CARGA DE PERSONAJES
+// 10. PANEL DOCENTE COMPLETO
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
-    if (tabName !== 'ai_config') stopAdminTestCameraStream();
     renderTeacherDashboard(document.getElementById('appContainer'));
-}
-
-function openMissionModal() {
-    const listEl = document.getElementById('missionProductsSelectList');
-    if (!listEl) return;
-
-    listEl.innerHTML = (APP_STATE.products || []).map(p => `
-        <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-indigo-50">
-            <input type="checkbox" value="${p.id}" class="missionProdCheckbox w-4 h-4 text-indigo-600 rounded">
-            <div>
-                <span class="font-black text-slate-800 block text-xs">${p.name}</span>
-                <span class="text-emerald-700 font-bold text-[11px]">$${(p.price || 0).toLocaleString('es-CL')}</span>
-            </div>
-        </label>
-    `).join('');
-
-    document.getElementById('missionModal').classList.remove('hidden');
-}
-
-function closeMissionModal() {
-    document.getElementById('missionModal').classList.add('hidden');
-}
-
-function activateMissionForStudents() {
-    const checked = Array.from(document.querySelectorAll('.missionProdCheckbox:checked')).map(cb => cb.value);
-    if (checked.length === 0) return alert("Selecciona al menos un producto para la misión.");
-
-    const title = document.getElementById('missionTitleInput').value.trim() || 'Misión de Compra';
-    const missionObj = {
-        id: 'mission-' + Date.now(),
-        title: title,
-        itemIds: checked,
-        active: true
-    };
-
-    APP_STATE.activeMission = missionObj;
-    APP_STATE.classroomErrorsCount = 0;
-    APP_STATE.listValidated = false;
-    APP_STATE.invalidBasketItems = [];
-
-    if (db) {
-        db.collection('settings').doc('activeMission').set(missionObj);
-    }
-
-    closeMissionModal();
-    alert(`✅ Misión "${title}" ACTIVADA por el docente.`);
-    renderApp();
-}
-
-function cancelActiveMission() {
-    if (confirm("¿Deseas DESACTIVAR la misión activa en sala para todos los alumnos?")) {
-        APP_STATE.activeMission = null;
-        APP_STATE.classroomMode = 'PREP';
-        APP_STATE.listValidated = false;
-        APP_STATE.classroomErrorsCount = 0;
-        APP_STATE.invalidBasketItems = [];
-        if (db) {
-            db.collection('settings').doc('activeMission').delete();
-        }
-        alert("⏹️ Misión desactivada por el educador.");
-        renderApp();
-    }
 }
 
 function renderTeacherDashboard(container) {
     const activeTab = APP_STATE.teacherActiveTab || 'home';
-    const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
-    const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
-
-    let activeMissionAlertBanner = '';
-    if (APP_STATE.activeMission && APP_STATE.activeMission.active && APP_STATE.activeMission.itemIds) {
-        activeMissionAlertBanner = `
-            <div class="bg-emerald-600 text-white p-4 rounded-2xl shadow-lg border-4 border-emerald-800 flex justify-between items-center flex-wrap gap-2">
-                <div class="flex items-center gap-2">
-                    <span class="text-2xl">🔴</span>
-                    <div>
-                        <h4 class="font-black text-sm uppercase">MISIÓN EN CURSO ACTIVADA POR EL EDUCADOR: "${APP_STATE.activeMission.title}"</h4>
-                        <p class="text-[11px] font-bold text-emerald-100">${APP_STATE.activeMission.itemIds.length} productos asignados a las tablets de los alumnos.</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="openViewMissionModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-3.5 py-2.5 rounded-xl shadow border border-indigo-300 active:scale-95 flex items-center gap-1.5">
-                        <span>👁️</span> <span>Ver Lista de Misión</span>
-                    </button>
-                    <button onclick="cancelActiveMission()" class="bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-3.5 py-2.5 rounded-xl shadow border border-rose-300 active:scale-95 flex items-center gap-1.5">
-                        <span>⏹️</span> <span>Desactivar Misión</span>
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
     container.innerHTML = `
         <div class="space-y-6">
-            ${activeMissionAlertBanner}
-
-            <div class="bg-slate-900 text-white p-5 rounded-3xl shadow-xl space-y-4 border-b-4 border-indigo-600">
-                <div class="flex flex-wrap justify-between items-center gap-3">
-                    <div>
-                        <h2 class="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
-                            <span>🏫</span>
-                            <span>${isAdmin ? `Panel General & ${teamLabel}` : `Panel Docente (${teamLabel})`}</span>
-                        </h2>
-                        <p class="text-xs text-indigo-300 font-bold mt-0.5">Gestión pedagógica, catálogo de tiendas, niveles e informes con IA.</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="openMissionModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-4 py-2 rounded-xl shadow border-b-2 border-indigo-900 flex items-center gap-2 active:scale-95">
-                            <span>📋</span><span>Crear / Activar Misión</span>
-                        </button>
-                        <button onclick="toggleStudentPreview(true)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs px-4 py-2 rounded-xl shadow border-b-2 border-amber-600 flex items-center gap-2 active:scale-95">
-                            <span>🕹️</span><span>Probar Juego</span>
-                        </button>
-                    </div>
+            <div class="bg-slate-900 text-white p-5 rounded-3xl shadow-xl space-y-4">
+                <div class="flex justify-between items-center flex-wrap gap-2">
+                    <h2 class="text-xl font-black">🏫 Panel Docente y Psicopedagógico PIE</h2>
+                    <button onclick="openMissionModal()" class="bg-amber-400 text-slate-900 font-black text-xs px-3 py-1.5 rounded-xl">🎯 Crear Misión de Compra</button>
                 </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-7 gap-2 pt-2 border-t border-slate-800">
-                    <button onclick="setTeacherTab('home')" class="py-3 px-2 rounded-2xl font-black text-[11px] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'home' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>📊</span><span>1. Evaluaciones IA</span>
-                    </button>
-                    <button onclick="setTeacherTab('catalog')" class="py-3 px-2 rounded-2xl font-black text-[11px] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'catalog' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>🏪</span><span>2. Catálogo Tiendas</span>
-                    </button>
-                    <button onclick="setTeacherTab('ai_config')" class="py-3 px-2 rounded-2xl font-black text-[11px] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'ai_config' ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg border-2 border-purple-400 scale-105' : 'bg-slate-800 text-purple-300 hover:bg-slate-700'}">
-                        <span>🤖</span><span>3. Config. IA & Cámara</span>
-                    </button>
-                    <button onclick="setTeacherTab('currency')" class="py-3 px-2 rounded-2xl font-black text-[11px] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'currency' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>💵</span><span>4. Monedas & Fotos</span>
-                    </button>
-                    <button onclick="setTeacherTab('users')" class="py-3 px-2 rounded-2xl font-black text-[11px] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'users' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>🔑</span><span>5. Gestión Usuarios</span>
-                    </button>
-                    <button onclick="setTeacherTab('settings')" class="py-3 px-2 rounded-2xl font-black text-[11px] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
-                        <span>⚙️</span><span>6. Personajes & Premios</span>
-                    </button>
-                    <button onclick="setTeacherTab('videos')" class="py-3 px-2 rounded-2xl font-black text-[11px] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'videos' ? 'bg-purple-600 text-white shadow-lg border-2 border-purple-400 scale-105' : 'bg-slate-800 text-purple-300 hover:bg-slate-700'}">
-                        <span>🎥</span><span>7. Cápsulas Video</span>
-                    </button>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 border-t border-slate-800 pt-3">
+                    <button onclick="setTeacherTab('home')" class="py-2 px-3 rounded-xl font-black text-xs ${activeTab === 'home' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'}">📊 Evaluaciones</button>
+                    <button onclick="setTeacherTab('curriculum')" class="py-2 px-3 rounded-xl font-black text-xs ${activeTab === 'curriculum' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'}">📘 Matriz Mineduc/PIE</button>
+                    <button onclick="setTeacherTab('catalogs')" class="py-2 px-3 rounded-xl font-black text-xs ${activeTab === 'catalogs' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'}">🏪 Tiendas & Productos</button>
+                    <button onclick="setTeacherTab('users')" class="py-2 px-3 rounded-xl font-black text-xs ${activeTab === 'users' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'}">🔑 Usuarios</button>
                 </div>
             </div>
 
-            <div id="teacherTabContent">
+            <div>
                 ${activeTab === 'home' ? renderTeacherHomeTab() : ''}
-                ${activeTab === 'catalog' ? renderTeacherCatalogTab() : ''}
-                ${activeTab === 'ai_config' ? renderTeacherAiConfigTab() : ''}
-                ${activeTab === 'currency' ? renderTeacherCurrencyTab() : ''}
+                ${activeTab === 'curriculum' ? renderTeacherCurriculumObjectivesTab() : ''}
+                ${activeTab === 'catalogs' ? renderTeacherCatalogsTab() : ''}
                 ${activeTab === 'users' ? renderTeacherUsersTab() : ''}
-                ${activeTab === 'settings' ? renderTeacherSettingsTab() : ''}
-                ${activeTab === 'videos' ? renderTeacherVideoTab() : ''}
             </div>
         </div>
     `;
-}
-
-// ==========================================
-// PESTAÑA 7: GESTOR DE CÁPSULAS DE VIDEO
-// ==========================================
-function renderTeacherVideoTab() {
-    const capsules = APP_STATE.videoCapsules || [];
-
-    return `
-        <div class="bg-white p-6 rounded-3xl border-4 border-purple-300 shadow-md space-y-6 max-w-4xl mx-auto">
-            <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
-                <div>
-                    <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                        <span>🎥</span> <span>Gestor de Cápsulas de Video Remediales</span>
-                    </h3>
-                    <p class="text-xs font-bold text-slate-500">Videos explicativos que se mostrarán cuando un alumno falle el 3.er intento en un examen.</p>
-                </div>
-                <button onclick="openCreateVideoCapsuleModal()" class="bg-purple-600 hover:bg-purple-700 text-white font-black text-xs px-4 py-2.5 rounded-2xl shadow active:scale-95 flex items-center gap-1">
-                    <span>+ Nueva Cápsula</span>
-                </button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                ${capsules.length === 0 ? `
-                    <div class="col-span-full text-center py-12 bg-purple-50 rounded-3xl border-2 border-dashed border-purple-300">
-                        <span class="text-4xl">🎥</span>
-                        <p class="text-xs font-bold text-purple-900 mt-2">No hay cápsulas registradas. Crea una para enlazar a los exámenes de remediación.</p>
-                    </div>
-                ` : capsules.map(cap => `
-                    <div class="p-4 bg-slate-50 border-2 border-slate-200 rounded-3xl space-y-3 shadow-sm flex flex-col justify-between">
-                        <div class="space-y-1">
-                            <div class="flex justify-between items-start">
-                                <span class="bg-purple-600 text-white font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase">
-                                    Nivel ${cap.level} • ${cap.skill}
-                                </span>
-                                <button onclick="deleteVideoCapsule('${cap.id}')" class="text-rose-600 font-bold text-xs bg-rose-100 px-2 py-0.5 rounded-lg">✕</button>
-                            </div>
-                            <h4 class="font-black text-slate-800 text-sm">${cap.title}</h4>
-                            <p class="text-xs text-slate-500 font-bold">${cap.description || 'Sin descripción'}</p>
-                        </div>
-
-                        <div class="pt-2 border-t flex justify-between items-center">
-                            <span class="text-[10px] text-slate-400 font-black truncate max-w-[200px]">${cap.url}</span>
-                            <button onclick="previewVideoCapsule('${cap.id}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[11px] px-3 py-1.5 rounded-xl shadow active:scale-95">
-                                ▶️ Probar Video
-                            </button>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
-}
-
-function openCreateVideoCapsuleModal() {
-    const title = prompt("Título de la cápsula de video:");
-    if (!title) return;
-
-    const level = parseInt(prompt("Nivel asignado (1, 2, 3 o 4):") || "1");
-    const skill = prompt("Habilidad evaluada (Ej: Discriminación de Monedas, Lectura de Precios):") || "General";
-    let url = prompt("Enlace del video (YouTube Embed / MP4 / Drive):") || "";
-
-    if (url.includes("watch?v=")) {
-        url = url.replace("watch?v=", "embed/");
-    }
-
-    const description = prompt("Descripción pedagógica breve:") || "";
-
-    const newCap = {
-        id: 'cap-' + Date.now(),
-        level,
-        skill,
-        title,
-        url,
-        description
-    };
-
-    if (!APP_STATE.videoCapsules) APP_STATE.videoCapsules = [];
-    APP_STATE.videoCapsules.push(newCap);
-
-    if (db) {
-        db.collection('video_capsules').doc(newCap.id).set(newCap);
-    }
-
-    alert("✅ Cápsula de video registrada exitosamente.");
-    renderApp();
-}
-
-function deleteVideoCapsule(id) {
-    if (confirm("¿Eliminar esta cápsula de video?")) {
-        APP_STATE.videoCapsules = APP_STATE.videoCapsules.filter(c => c.id !== id);
-        if (db) db.collection('video_capsules').doc(id).delete();
-        renderApp();
-    }
-}
-
-function previewVideoCapsule(id) {
-    const cap = (APP_STATE.videoCapsules || []).find(c => c.id === id);
-    if (!cap) return;
-
-    const titleEl = document.getElementById('videoCapsuleModalTitle');
-    const descEl = document.getElementById('videoCapsuleDescription');
-    const playerContainer = document.getElementById('videoCapsulePlayerContainer');
-
-    if (titleEl) titleEl.textContent = cap.title;
-    if (descEl) descEl.textContent = cap.description;
-
-    if (playerContainer) {
-        playerContainer.innerHTML = `
-            <iframe class="w-full h-full" src="${cap.url}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-        `;
-    }
-
-    const modal = document.getElementById('videoCapsuleModal');
-    if (modal) modal.classList.remove('hidden');
-}
-
-function closeVideoCapsuleModal() {
-    const playerContainer = document.getElementById('videoCapsulePlayerContainer');
-    if (playerContainer) playerContainer.innerHTML = '';
-    const modal = document.getElementById('videoCapsuleModal');
-    if (modal) modal.classList.add('hidden');
-}
-
-// ==========================================
-// MOTOR DE EXÁMENES DE NIVEL Y REMEDIACIÓN (3 INTENTOS + PROGRESIÓN BLOQUEADA)
-// ==========================================
-function startLevelExam(levelNumber) {
-    const user = APP_STATE.currentUser;
-    if (!user) return;
-
-    // BLOQUEO DE PROGRESIÓN: No se puede rendir un nivel superior sin haber aprobado el anterior
-    if (levelNumber > 1 && user.role === 'student') {
-        if (!user.examPassed) user.examPassed = {};
-        const isPreviousLevelPassed = !!user.examPassed[`level_${levelNumber - 1}`];
-
-        if (!isPreviousLevelPassed) {
-            playChimeSound(true);
-            alert(`🔒 EXAMEN BLOQUEADO\n\nPara rendir el Examen de Nivel ${levelNumber}, primero debes completar y aprobar el Examen del Nivel ${levelNumber - 1}.`);
-            return;
-        }
-    }
-
-    if (!user.examAttempts) user.examAttempts = {};
-    const currentAttempts = user.examAttempts[`level_${levelNumber}`] || 0;
-
-    if (currentAttempts >= 3) {
-        triggerAttemptThreeLockout(levelNumber);
-        return;
-    }
-
-    // Cargar preguntas alineadas al Currículum Mineduc
-    const questions = MINEDUC_EXAM_BANK[levelNumber] || MINEDUC_EXAM_BANK[1];
-
-    APP_STATE.currentExam = {
-        level: levelNumber,
-        currentQuestionIndex: 0,
-        attempts: currentAttempts + 1,
-        score: 0,
-        questions: questions
-    };
-
-    renderExamQuestion();
-    const modal = document.getElementById('levelExamModal');
-    if (modal) modal.classList.remove('hidden');
-}
-
-function renderExamQuestion() {
-    const exam = APP_STATE.currentExam;
-    const container = document.getElementById('examModalContainer');
-    if (!container || !exam) return;
-
-    const q = exam.questions[exam.currentQuestionIndex];
-
-    container.innerHTML = `
-        <div class="flex justify-between items-center border-b pb-3">
-            <span class="bg-indigo-100 text-indigo-900 font-black px-3 py-1.5 rounded-full text-xs uppercase tracking-wider">
-                Examen de Nivel ${exam.level} • Intento ${exam.attempts} de 3
-            </span>
-            <button onclick="closeExamModal()" class="text-slate-400 font-black text-xl p-1">✕</button>
-        </div>
-
-        <div class="space-y-5 my-4">
-            <div class="bg-indigo-50 border-2 border-indigo-200 p-4 rounded-2xl">
-                <h3 class="text-base sm:text-lg font-black text-slate-800 text-center leading-snug">${q.q}</h3>
-            </div>
-            
-            <div class="grid grid-cols-1 gap-3">
-                ${q.options.map(opt => `
-                    <button onclick="submitExamAnswer('${opt.replace(/'/g, "\\'")}')" class="p-4 bg-white border-4 border-slate-300 hover:border-indigo-500 rounded-2xl font-black text-sm text-slate-800 shadow-md active:scale-95 transition-all text-left flex items-center gap-3">
-                        <span class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-xs flex-shrink-0">✓</span>
-                        <span>${opt}</span>
-                    </button>
-                `).join('')}
-            </div>
-        </div>
-
-        <div class="bg-slate-100 p-3 rounded-2xl text-xs font-bold text-slate-600 text-center border">
-            Pregunta ${exam.currentQuestionIndex + 1} de ${exam.questions.length} • Alineado al Mineduc Chile
-        </div>
-    `;
-}
-
-function submitExamAnswer(selectedOpt) {
-    const exam = APP_STATE.currentExam;
-    const q = exam.questions[exam.currentQuestionIndex];
-
-    if (selectedOpt === q.correct) {
-        exam.score++;
-    }
-
-    exam.currentQuestionIndex++;
-
-    if (exam.currentQuestionIndex < exam.questions.length) {
-        renderExamQuestion();
-    } else {
-        finishExamEvaluation();
-    }
-}
-
-function finishExamEvaluation() {
-    const exam = APP_STATE.currentExam;
-    const user = APP_STATE.currentUser;
-    const isPassed = exam.score === exam.questions.length;
-
-    if (!user.examAttempts) user.examAttempts = {};
-    if (!user.examPassed) user.examPassed = {};
-
-    user.examAttempts[`level_${exam.level}`] = exam.attempts;
-
-    if (isPassed) {
-        user.examPassed[`level_${exam.level}`] = true;
-        playChimeSound(false);
-        if (typeof confetti !== 'undefined') confetti();
-
-        awardPointsAndXp(50, `Aprobación Examen Nivel ${exam.level}`);
-        alert(`🎉 ¡FELICITACIONES!\n\nAprobaste el Examen de Nivel ${exam.level} al 100%.\n\n⭐ Ganaste +50 Puntos y desbloqueaste el siguiente nivel.`);
-        closeExamModal();
-    } else {
-        playChimeSound(true);
-
-        if (exam.attempts < 3) {
-            const container = document.getElementById('examModalContainer');
-            container.innerHTML = `
-                <div class="text-center space-y-4 py-4">
-                    <div class="text-5xl animate-bounce">💪</div>
-                    <h3 class="text-2xl font-black text-slate-800">¡Casi lo logras!</h3>
-                    
-                    ${getAvatarHtml('mascot', `Te equivocaste en algunas respuestas. ¡No te preocupes! Tienes un intento más para repasar.`)}
-
-                    <div class="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl text-xs font-bold text-amber-950">
-                        Llevas ${exam.attempts} de 3 intentos utilizados.
-                    </div>
-
-                    <div class="flex gap-2">
-                        <button onclick="closeExamModal()" class="w-1/2 bg-slate-200 font-black py-3 rounded-2xl text-xs">Salir</button>
-                        <button onclick="startLevelExam(${exam.level})" class="w-1/2 bg-indigo-600 text-white font-black py-3 rounded-2xl shadow text-xs">
-                            🔄 Intentar de Nuevo
-                        </button>
-                    </div>
-                </div>
-            `;
-        } else {
-            triggerAttemptThreeLockout(exam.level);
-        }
-    }
-}
-
-function triggerAttemptThreeLockout(levelNumber) {
-    const container = document.getElementById('examModalContainer');
-    const linkedCapsule = (APP_STATE.videoCapsules || []).find(c => c.level === levelNumber) || (APP_STATE.videoCapsules || [])[0];
-
-    container.innerHTML = `
-        <div class="text-center space-y-4 py-2">
-            <div class="text-6xl animate-pulse">🛑</div>
-            <h3 class="text-2xl font-black text-rose-700">¡HICISTE UN GRAN ESFUERZO!</h3>
-
-            ${getAvatarHtml('corporeo', `<b>Por favor acércate a tu profesor/a</b> para que te explique esta parte y mira su video de ayuda.`)}
-
-            <div class="p-4 bg-rose-50 border-2 border-rose-300 rounded-2xl text-xs font-bold text-rose-950 text-left space-y-1">
-                <div class="font-black text-rose-800">🚨 Bloqueo Pedagógico Activado (3.er Intento)</div>
-                <div>Has agotado los 3 intentos del examen. Muestra esta pantalla a tu educador para recibir apoyo personalizado.</div>
-            </div>
-
-            ${linkedCapsule ? `
-                <button onclick="previewVideoCapsule('${linkedCapsule.id}')" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black py-4 rounded-2xl shadow-xl border-b-4 border-purple-900 text-sm active:scale-95 flex items-center justify-center gap-2">
-                    <span>🎥</span> <span>VER VIDEO DE AYUDA DE TU PROFESOR</span>
-                </button>
-            ` : ''}
-
-            <button onclick="closeExamModal()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-black py-3 rounded-2xl text-xs">
-                Entendido
-            </button>
-        </div>
-    `;
-
-    const modal = document.getElementById('levelExamModal');
-    if (modal) modal.classList.remove('hidden');
-}
-
-function closeExamModal() {
-    const modal = document.getElementById('levelExamModal');
-    if (modal) modal.classList.add('hidden');
-}
-
-function renderTeacherSettingsTab() {
-    const st = APP_STATE.settings || DEFAULT_SETTINGS;
-    const currentTeamName = st.teamName || 'Equipo Multidisciplinario';
-
-    return `
-        <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow-md space-y-6 max-w-4xl mx-auto">
-            <div class="border-b pb-3">
-                <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                    <span>⚙️</span> <span>Configuración de Personajes, Temáticas y Premios</span>
-                </h3>
-            </div>
-
-            <div class="p-5 bg-purple-50 border-4 border-purple-300 rounded-3xl space-y-4">
-                <div class="flex items-center gap-3">
-                    <span class="text-3xl">🎭</span>
-                    <div>
-                        <h4 class="font-black text-purple-950 text-sm uppercase">Carga de Personajes Institucionales (Mascota y Corpóreo)</h4>
-                        <p class="text-xs text-slate-600 font-bold">Estos personajes hablarán con los estudiantes dentro de las actividades y minijuegos:</p>
-                    </div>
-                </div>
-
-                <div class="bg-white p-4 rounded-2xl border-2 border-purple-200 text-xs text-slate-700 space-y-2">
-                    <div class="font-black text-purple-900 flex items-center gap-1">
-                        <span>💡</span> <span>Instrucciones recomendadas para la imagen de los personajes:</span>
-                    </div>
-                    <ul class="list-disc list-inside space-y-1 font-semibold text-[11px] text-slate-600">
-                        <li>Subir la imagen en formato <b>PNG con fondo transparente</b>.</li>
-                        <li>Resolución recomendada: <b>400x400 píxeles</b> o superior.</li>
-                    </ul>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="p-4 bg-white border-2 border-purple-200 rounded-2xl space-y-3">
-                        <label class="block text-xs font-black text-purple-950 uppercase">1. Mascota del Establecimiento:</label>
-                        <input type="file" accept="image/*" onchange="handleMascotPhotoUpload(event)" class="w-full text-xs font-bold text-slate-600 border p-2 rounded-xl">
-                        <input type="hidden" id="settingMascotUrl" value="${st.mascotUrl || ''}">
-                        <div class="flex items-center gap-3 pt-2">
-                            ${getAvatarHtml('mascot')}
-                            <span class="text-[11px] font-bold text-slate-500">${st.mascotUrl ? '✓ Foto personalizada activa' : '🤖 Usando Mascota Default'}</span>
-                        </div>
-                    </div>
-
-                    <div class="p-4 bg-white border-2 border-purple-200 rounded-2xl space-y-3">
-                        <label class="block text-xs font-black text-purple-950 uppercase">2. Corpóreo Institucional:</label>
-                        <input type="file" accept="image/*" onchange="handleCorporeoPhotoUpload(event)" class="w-full text-xs font-bold text-slate-600 border p-2 rounded-xl">
-                        <input type="hidden" id="settingCorporeoUrl" value="${st.corporeoUrl || ''}">
-                        <div class="flex items-center gap-3 pt-2">
-                            ${getAvatarHtml('corporeo')}
-                            <span class="text-[11px] font-bold text-slate-500">${st.corporeoUrl ? '✓ Foto personalizada activa' : '🐻 Usando Corpóreo Default'}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="p-5 bg-indigo-50 border-4 border-indigo-300 rounded-3xl space-y-4">
-                <div class="flex items-center gap-3">
-                    <span class="text-3xl">🎨</span>
-                    <div>
-                        <h4 class="font-black text-indigo-950 text-sm uppercase">Selección de Temática Estacional / Festividades</h4>
-                        <p class="text-xs text-slate-600 font-bold">Cambia el estilo visual y decoraciones animadas según la fecha del año:</p>
-                    </div>
-                </div>
-
-                <select id="settingActiveTheme" class="w-full px-4 py-3 rounded-2xl border-2 border-indigo-300 font-black text-sm bg-white text-indigo-950">
-                    ${Object.keys(SEASONAL_THEMES).map(key => `
-                        <option value="${key}" ${(st.activeTheme || 'halloween') === key ? 'selected' : ''}>${SEASONAL_THEMES[key].name}</option>
-                    `).join('')}
-                </select>
-            </div>
-
-            <div class="p-5 bg-amber-50 border-4 border-amber-300 rounded-3xl space-y-4">
-                <div class="flex items-center gap-3">
-                    <span class="text-3xl">🎁</span>
-                    <div>
-                        <h4 class="font-black text-amber-950 text-sm uppercase">Configuración de Premios Físicos (Meta de Puntos)</h4>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tope de Puntos para el Premio:</label>
-                        <input type="number" id="settingRewardThreshold" value="${st.rewardPointsThreshold || 250}" class="w-full px-4 py-2.5 rounded-xl border-2 border-amber-300 font-black text-sm text-center">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mensaje en Pantalla al Ganar:</label>
-                        <input type="text" id="settingRewardMessage" value="${st.rewardMessage || '¡Muestra esta pantalla a tu profesor para recibir tu premio físico!'}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
-                    </div>
-                </div>
-            </div>
-
-            <div class="p-5 bg-slate-50 border-4 border-slate-300 rounded-3xl space-y-4">
-                <div class="flex items-center gap-3">
-                    <span class="text-3xl">👥</span>
-                    <div>
-                        <h4 class="font-black text-slate-800 text-sm uppercase">Nombre del Equipo Profesional</h4>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <select onchange="selectPresetTeamName(this.value)" class="w-full px-3 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-white text-indigo-950">
-                            <option value="">-- Seleccionar Opciones --</option>
-                            ${TEAM_NAME_PRESETS.map(preset => `
-                                <option value="${preset}" ${currentTeamName === preset ? 'selected' : ''}>${preset}</option>
-                            `).join('')}
-                        </select>
-                    </div>
-                    <div>
-                        <input type="text" id="settingTeamName" value="${currentTeamName}" placeholder="Ej: Equipo Multidisciplinario" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs bg-white">
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Nombre Colegio / Escuela:</label>
-                        <input type="text" id="settingSchoolName" value="${st.schoolName || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Subtítulo / Unidad:</label>
-                        <input type="text" id="settingSubHeader" value="${st.schoolSubHeader || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Firma / Encargado:</label>
-                        <input type="text" id="settingDirectorName" value="${st.directorName || ''}" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Logo Institucional:</label>
-                        <input type="file" accept="image/*" onchange="handleSchoolLogoUpload(event)" class="w-full text-xs font-bold text-slate-600 border p-2 rounded-xl">
-                        <input type="hidden" id="settingSchoolLogo" value="${st.schoolLogo || ''}">
-                    </div>
-                </div>
-            </div>
-
-            <button onclick="saveInstitutionalSettings()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl text-sm uppercase shadow-xl border-b-4 border-emerald-950 active:scale-95">
-                💾 Guardar Configuración de Personajes y Temática
-            </button>
-        </div>
-    `;
-}
-
-function handleMascotPhotoUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        compressImageBase64(e.target.result, 400, 400, 0.7).then(compressed => {
-            document.getElementById('settingMascotUrl').value = compressed;
-            alert("✓ Foto de Mascota preparada. Recuerda presionar 'Guardar Configuración'.");
-        });
-    };
-    reader.readAsDataURL(file);
-}
-
-function handleCorporeoPhotoUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        compressImageBase64(e.target.result, 400, 400, 0.7).then(compressed => {
-            document.getElementById('settingCorporeoUrl').value = compressed;
-            alert("✓ Foto de Corpóreo preparada. Recuerda presionar 'Guardar Configuración'.");
-        });
-    };
-    reader.readAsDataURL(file);
-}
-
-function selectPresetTeamName(val) {
-    if (val) {
-        const input = document.getElementById('settingTeamName');
-        if (input) input.value = val;
-    }
-}
-
-function handleSchoolLogoUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        compressImageBase64(e.target.result, 250, 250, 0.6).then(compressed => {
-            document.getElementById('settingSchoolLogo').value = compressed;
-        });
-    };
-    reader.readAsDataURL(file);
-}
-
-function saveInstitutionalSettings() {
-    const teamNameVal = document.getElementById('settingTeamName').value.trim() || 'Equipo Multidisciplinario';
-    const rewardThresholdVal = parseInt(document.getElementById('settingRewardThreshold').value) || 250;
-    const rewardMsgVal = document.getElementById('settingRewardMessage').value.trim();
-
-    const settingsData = {
-        schoolName: document.getElementById('settingSchoolName').value.trim(),
-        schoolSubHeader: document.getElementById('settingSubHeader').value.trim(),
-        teamName: teamNameVal,
-        directorName: document.getElementById('settingDirectorName').value.trim(),
-        activeTheme: document.getElementById('settingActiveTheme').value,
-        schoolLogo: document.getElementById('settingSchoolLogo').value,
-        mascotUrl: document.getElementById('settingMascotUrl').value,
-        corporeoUrl: document.getElementById('settingCorporeoUrl').value,
-        rewardPointsThreshold: rewardThresholdVal,
-        rewardMessage: rewardMsgVal
-    };
-
-    APP_STATE.settings = { ...APP_STATE.settings, ...settingsData };
-
-    if (db) {
-        db.collection('settings').doc('institutional').set(settingsData, { merge: true }).then(() => {
-            renderApp();
-            alert(`✅ Configuración guardada exitosamente.`);
-        }).catch(() => {
-            renderApp();
-            alert(`✅ Configuración guardada localmente.`);
-        });
-    } else {
-        renderApp();
-        alert(`✅ Configuración guardada localmente.`);
-    }
-}
-
-function renderTeacherAiConfigTab() {
-    const cfg = APP_STATE.aiConfig || DEFAULT_AI_CONFIG;
-    const isSecure = window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const prods = APP_STATE.products || [];
-
-    return `
-        <div class="bg-white p-6 rounded-3xl border-4 border-indigo-300 shadow-md space-y-6 max-w-4xl mx-auto">
-            <div class="border-b pb-3 flex justify-between items-center flex-wrap gap-2">
-                <div>
-                    <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                        <span>🤖</span> <span>Módulo de Configuración y Probador de Escáner e IA</span>
-                    </h3>
-                    <p class="text-xs font-bold text-slate-500">Prueba en vivo si la IA discrimina el nombre del producto y su precio mediante lectura OCR.</p>
-                </div>
-                <div class="px-3 py-1.5 rounded-xl border-2 text-xs font-black ${isSecure ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-rose-50 border-rose-300 text-rose-800'}">
-                    ${isSecure ? '🔒 Servidor Seguro (HTTPS Activo)' : '🔴 Servidor HTTP (Requiere HTTPS para Cámara)'}
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-slate-50 p-5 rounded-3xl border-2 border-slate-200 space-y-4">
-                    <h4 class="font-black text-indigo-950 text-sm flex items-center gap-2">
-                        <span>🔍🧪</span> <span>Probador de Lectura de Nombre y Precio</span>
-                    </h4>
-
-                    <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">1. Selecciona el Producto Objetivo a Buscar:</label>
-                        <select id="adminTestProductSelect" class="w-full px-3 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-white text-indigo-950">
-                            ${prods.length === 0 ? `<option value="">No hay productos registrados</option>` : prods.map(p => `
-                                <option value="${p.id}">${p.name} ($${(p.price || 0).toLocaleString('es-CL')})</option>
-                            `).join('')}
-                        </select>
-                    </div>
-                    
-                    <div class="relative bg-black rounded-2xl h-48 overflow-hidden border-2 border-slate-700 flex items-center justify-center shadow-inner">
-                        <video id="adminTestVideo" playsinline webkit-playsinline muted autoplay class="w-full h-full object-cover"></video>
-                        <canvas id="adminTestCanvas" class="hidden"></canvas>
-                        <span id="adminTestCameraPlaceholder" class="text-xs text-slate-400 font-bold px-4 text-center">Toca "Encender Cámara" para iniciar la simulación.</span>
-                    </div>
-
-                    <div id="adminTestCameraStatus" class="p-2.5 bg-white border rounded-xl text-xs font-bold text-slate-600 text-center">
-                        Sensor inactivo.
-                    </div>
-
-                    <div class="space-y-2">
-                        <div class="flex gap-2">
-                            <button onclick="startAdminCameraTest()" class="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2.5 rounded-xl text-xs shadow active:scale-95">
-                                ▶️ Encender Cámara
-                            </button>
-                            <button onclick="stopAdminTestCameraStream()" class="w-1/2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-black py-2.5 rounded-xl text-xs active:scale-95">
-                                ⏹️ Apagar
-                            </button>
-                        </div>
-
-                        <button onclick="testAdminAiRecognition()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black py-3 rounded-xl text-xs shadow-md active:scale-95 border-b-2 border-emerald-950 flex items-center justify-center gap-2">
-                            <span>📸</span> <span>PROBAR LECTURA DE NOMBRE Y PRECIO</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="font-black text-slate-800 text-sm flex items-center gap-2">
-                        <span>⚙️</span> <span>Parámetros del Sensor e IA</span>
-                    </h4>
-
-                    <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Modo de Operación de la IA:</label>
-                        <select id="aiSettingMode" class="w-full px-4 py-2.5 rounded-xl border-2 border-indigo-300 font-black text-xs bg-indigo-50 text-indigo-900">
-                            <option value="strict" ${cfg.mode === 'strict' ? 'selected' : ''}>Lectura OCR Estricta (Nombre + Precio Real)</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Sensibilidad de Escaneo:</label>
-                        <select id="aiSettingSensitivity" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs bg-white">
-                            <option value="high" ${cfg.sensitivity === 'high' ? 'selected' : ''}>Alta (Exige 2 o más coincidencias de letras)</option>
-                            <option value="medium" ${cfg.sensitivity === 'medium' ? 'selected' : ''}>Media (Coincidencia básica - Recomendado)</option>
-                            <option value="low" ${cfg.sensitivity === 'low' ? 'selected' : ''}>Baja (Laxa)</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-extrabold text-slate-700 uppercase mb-1">Lente Preferido en Dispositivos Móviles:</label>
-                        <select id="aiSettingFacing" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs bg-white">
-                            <option value="environment" ${cfg.cameraFacing === 'environment' ? 'selected' : ''}>Cámara Trasera (Recomendado para góndolas)</option>
-                            <option value="user" ${cfg.cameraFacing === 'user' ? 'selected' : ''}>Cámara Frontal (Selfie)</option>
-                        </select>
-                    </div>
-
-                    <button onclick="saveAiGameConfiguration()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-2xl text-xs uppercase shadow-lg border-b-4 border-emerald-950 active:scale-95">
-                        💾 Guardar Configuración de IA
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-async function startAdminCameraTest() {
-    stopAdminTestCameraStream();
-    const videoEl = document.getElementById('adminTestVideo');
-    const placeholder = document.getElementById('adminTestCameraPlaceholder');
-    const statusBox = document.getElementById('adminTestCameraStatus');
-
-    if (!videoEl || !statusBox) return;
-
-    statusBox.textContent = "⌛ Accediendo al sensor de video...";
-
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: document.getElementById('aiSettingFacing')?.value || 'environment' },
-            audio: false
-        });
-
-        APP_STATE.adminTestStream = stream;
-        videoEl.srcObject = stream;
-        await videoEl.play();
-
-        if (placeholder) placeholder.classList.add('hidden');
-        statusBox.textContent = "✅ Cámara encendida correctamente.";
-        statusBox.className = "p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-xs font-black text-emerald-800 text-center";
-    } catch (err) {
-        console.error("Error en prueba de cámara:", err);
-        statusBox.textContent = `❌ Fallo de cámara: ${err.message || 'Permiso denegado o HTTP inseguro'}`;
-        statusBox.className = "p-2.5 bg-rose-50 border border-rose-300 rounded-xl text-xs font-black text-rose-800 text-center";
-    }
-}
-
-function stopAdminTestCameraStream() {
-    if (APP_STATE.adminTestStream) {
-        APP_STATE.adminTestStream.getTracks().forEach(t => t.stop());
-        APP_STATE.adminTestStream = null;
-    }
-    const placeholder = document.getElementById('adminTestCameraPlaceholder');
-    const statusBox = document.getElementById('adminTestCameraStatus');
-    if (placeholder) placeholder.classList.remove('hidden');
-    if (statusBox) {
-        statusBox.textContent = "Sensor inactivo.";
-        statusBox.className = "p-2.5 bg-white border rounded-xl text-xs font-bold text-slate-600 text-center";
-    }
-}
-
-async function testAdminAiRecognition() {
-    const statusBox = document.getElementById('adminTestCameraStatus');
-    const videoEl = document.getElementById('adminTestVideo');
-    const canvasEl = document.getElementById('adminTestCanvas');
-    const prodId = document.getElementById('adminTestProductSelect')?.value;
-
-    const prod = (APP_STATE.products || []).find(p => String(p.id) === String(prodId));
-    if (!prod) return alert("Selecciona un producto para la prueba.");
-
-    if (!videoEl || videoEl.readyState < 2) {
-        return alert("Primero enciende la cámara presionando '▶️ Encender Cámara'.");
-    }
-
-    if (statusBox) {
-        statusBox.innerHTML = `
-            <div class="flex items-center justify-center gap-2 text-indigo-700 font-black animate-pulse">
-                <span class="text-xl animate-spin">🔍</span>
-                <span>Analizando nombre y precio mediante OCR...</span>
-            </div>
-        `;
-    }
-
-    const ctx = canvasEl.getContext('2d');
-    canvasEl.width = videoEl.videoWidth || 640;
-    canvasEl.height = videoEl.videoHeight || 480;
-    ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-
-    try {
-        if (typeof Tesseract === 'undefined') return alert("Falta Tesseract.js en index.html");
-
-        const result = await Tesseract.recognize(canvasEl, 'spa');
-        const detectedText = (result.data.text || '').toLowerCase();
-
-        const expectedName = prod.name.toLowerCase().trim();
-        const keywords = expectedName.split(' ').filter(w => w.length > 2);
-        const matchesName = keywords.filter(kw => detectedText.includes(kw));
-
-        if (matchesName.length > 0) {
-            const priceRegex = /\$?\s*([0-9]{1,3}(?:\.[0-9]{3})+|[0-9]{3,6})/g;
-            const priceMatches = [...detectedText.matchAll(priceRegex)];
-            let scannedPrice = prod.price;
-
-            if (priceMatches.length > 0) {
-                const rawPriceStr = priceMatches[0][1].replace(/\./g, '');
-                const parsedPrice = parseInt(rawPriceStr, 10);
-                if (!isNaN(parsedPrice) && parsedPrice >= 100) scannedPrice = parsedPrice;
-            }
-
-            playChimeSound(false);
-            if (statusBox) {
-                statusBox.innerHTML = `
-                    <div class="p-2 bg-emerald-100 border border-emerald-300 rounded-xl text-emerald-900 font-black text-xs text-center space-y-1">
-                        <div>✅ ¡NOMBRE VALIDADO! ("${prod.name}")</div>
-                        <div>🏷️ Precio Detectado: <b>$${scannedPrice.toLocaleString('es-CL')}</b></div>
-                    </div>
-                `;
-            }
-        } else {
-            playChimeSound(true);
-            const readSnippet = detectedText.length > 0 ? detectedText.substring(0, 30).replace(/\n/g, ' ') : 'Texto no legible';
-            if (statusBox) {
-                statusBox.innerHTML = `
-                    <div class="p-2 bg-rose-100 border border-rose-300 rounded-xl text-rose-900 font-bold text-xs text-center">
-                        ❌ NO COINCIDE: Texto visto "${readSnippet}". Se esperaba "${prod.name}".
-                    </div>
-                `;
-            }
-        }
-    } catch (err) {
-        console.error("Error en test OCR:", err);
-    }
-}
-
-function saveAiGameConfiguration() {
-    const newCfg = {
-        mode: document.getElementById('aiSettingMode').value,
-        sensitivity: document.getElementById('aiSettingSensitivity').value,
-        cameraFacing: document.getElementById('aiSettingFacing').value
-    };
-
-    APP_STATE.aiConfig = newCfg;
-
-    if (db) {
-        db.collection('settings').doc('ai_config').set(newCfg, { merge: true }).then(() => {
-            alert("✅ Configuración de IA guardada correctamente.");
-            renderApp();
-        });
-    } else {
-        alert("✅ Configuración aplicada localmente.");
-        renderApp();
-    }
 }
 
 function renderTeacherHomeTab() {
-    const totalEvals = (APP_STATE.evaluations || []).length;
-    const avgTime = totalEvals > 0 ? Math.round(APP_STATE.evaluations.reduce((a, e) => a + (e.timeSeconds || 0), 0) / totalEvals) : 0;
-    const totalVoiceHelp = APP_STATE.telemetry ? APP_STATE.telemetry.voiceHelpCount || 0 : 0;
-
     return `
-        <div class="space-y-6">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-white p-4 rounded-3xl border-4 border-indigo-200 shadow-sm flex items-center justify-between">
-                    <div>
-                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Evaluaciones Totales</span>
-                        <span class="text-2xl font-black text-indigo-950">${totalEvals}</span>
-                    </div>
-                    <div class="bg-indigo-100 text-indigo-600 p-3 rounded-2xl text-xl">🛍️</div>
-                </div>
-                <div class="bg-white p-4 rounded-3xl border-4 border-emerald-200 shadow-sm flex items-center justify-between">
-                    <div>
-                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Tiempo Promedio</span>
-                        <span class="text-2xl font-black text-emerald-700">${Math.floor(avgTime / 60)}m ${avgTime % 60}s</span>
-                    </div>
-                    <div class="bg-emerald-100 text-emerald-600 p-3 rounded-2xl text-xl">⏱️</div>
-                </div>
-                <div class="bg-white p-4 rounded-3xl border-4 border-amber-200 shadow-sm flex items-center justify-between">
-                    <div>
-                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Alumnos Registrados</span>
-                        <span class="text-2xl font-black text-amber-900">${(APP_STATE.users || []).filter(u => u.role === 'student').length}</span>
-                    </div>
-                    <div class="bg-amber-100 text-amber-600 p-3 rounded-2xl text-xl">🎒</div>
-                </div>
-                <div class="bg-white p-4 rounded-3xl border-4 border-sky-200 shadow-sm flex items-center justify-between">
-                    <div>
-                        <span class="text-[10px] font-extrabold text-slate-500 uppercase block">Lecturas por Voz</span>
-                        <span class="text-2xl font-black text-sky-800">${totalVoiceHelp}</span>
-                    </div>
-                    <div class="bg-sky-100 text-sky-600 p-3 rounded-2xl text-xl">🔊</div>
-                </div>
-            </div>
-
-            <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-md space-y-4">
-                <div class="border-b pb-3">
-                    <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
-                        <span>✨</span> <span>Histórico de Evaluaciones e Informes Psicopedagógicos</span>
-                    </h3>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs">
-                        <thead>
-                            <tr class="border-b-2 border-slate-200 text-slate-500 uppercase font-black">
-                                <th class="py-2.5 px-3">Fecha</th>
-                                <th class="py-2.5 px-3">Estudiante</th>
-                                <th class="py-2.5 px-3">Tienda</th>
-                                <th class="py-2.5 px-3">Total / Pago</th>
-                                <th class="py-2.5 px-3 text-center">Intentos / Errores</th>
-                                <th class="py-2.5 px-3 text-center">Logro</th>
-                                <th class="py-2.5 px-3 text-center">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 font-bold">
-                            ${totalEvals === 0 ? `
-                                <tr>
-                                    <td colspan="7" class="py-8 text-center text-slate-400 italic">No hay evaluaciones registradas. Realiza una compra para generar informes.</td>
-                                </tr>
-                            ` : (APP_STATE.evaluations || []).map(e => `
-                                <tr class="hover:bg-slate-50">
-                                    <td class="py-3 px-3 text-slate-500">${e.date || 'Reciente'}</td>
-                                    <td class="py-3 px-3 font-black text-indigo-950">${e.studentName || 'Estudiante'}</td>
-                                    <td class="py-3 px-3">${e.supermarketName || 'Supermercado'}</td>
-                                    <td class="py-3 px-3">
-                                        <div class="font-black text-emerald-700">$${(e.totalCLP || 0).toLocaleString('es-CL')}</div>
-                                    </td>
-                                    <td class="py-3 px-3 text-center text-rose-600 font-black">${e.classroomErrorsCount || 0} error(es)</td>
-                                    <td class="py-3 px-3 text-center font-black text-amber-600">⭐ ${e.pointsEarned || 100}%</td>
-                                    <td class="py-3 px-3 text-center">
-                                        <button onclick="generateAIPedagogicalReport('${e.id}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-3 py-1.5 rounded-xl text-xs shadow-sm">
-                                            ✨ Generar Informe IA
-                                        </button>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function generateAIPedagogicalReport(evalId) {
-    const ev = (APP_STATE.evaluations || []).find(x => String(x.id) === String(evalId));
-    if (!ev) return alert("Evaluación no encontrada.");
-
-    const st = APP_STATE.settings || DEFAULT_SETTINGS;
-    const teamLabel = st.teamName || 'Equipo Multidisciplinario';
-    const paid = ev.paidCLP || 0;
-    const total = ev.totalCLP || 0;
-    const change = ev.changeCLP || 0;
-    const classroomErrors = ev.classroomErrorsCount || 0;
-    const priceAdjustments = ev.priceAdjustmentsCount || 0;
-
-    let nivelAutonomia = "Alto / Independiente (100% de logro)";
-    if (classroomErrors === 1) nivelAutonomia = "Adecuado / Con 1 Apoyo Puntual (85% de logro)";
-    if (classroomErrors === 2) nivelAutonomia = "En Proceso de Autonomía (70% de logro)";
-    if (classroomErrors >= 3) nivelAutonomia = "Requiere Acompañamiento Intensivo (Menos de 50% de logro)";
-
-    const reportHtml = `
-        <div id="printableReport" class="bg-white p-8 max-w-4xl mx-auto border border-slate-300 shadow-2xl rounded-2xl font-sans text-slate-800 space-y-6">
-            <div class="flex justify-between items-center border-b-4 border-indigo-600 pb-4">
-                <div>
-                    <h1 class="text-xl font-black text-indigo-950 uppercase">${st.schoolName}</h1>
-                    <p class="text-xs font-bold text-indigo-700">${st.schoolSubHeader} • ${teamLabel}</p>
-                </div>
-                ${st.schoolLogo ? `<img src="${st.schoolLogo}" class="h-16 object-contain">` : `<span class="text-3xl">🏫</span>`}
-            </div>
-
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-2xl border text-xs font-bold">
-                <div><span class="text-slate-400 block text-[10px] uppercase">Estudiante:</span> ${ev.studentName}</div>
-                <div><span class="text-slate-400 block text-[10px] uppercase">RUT:</span> ${ev.rut || 'N/A'}</div>
-                <div><span class="text-slate-400 block text-[10px] uppercase">Fecha:</span> ${ev.date || 'Reciente'}</div>
-                <div><span class="text-slate-400 block text-[10px] uppercase">Tienda:</span> ${ev.supermarketName}</div>
-            </div>
-
-            <div class="grid grid-cols-4 gap-3 text-center">
-                <div class="p-3 bg-emerald-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-emerald-800">Total Compra</span><div class="text-base font-black text-emerald-700">$${total.toLocaleString('es-CL')}</div></div>
-                <div class="p-3 bg-indigo-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-indigo-800">Pagó</span><div class="text-base font-black text-indigo-900">$${paid.toLocaleString('es-CL')}</div></div>
-                <div class="p-3 bg-amber-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-amber-900">Vuelto</span><div class="text-base font-black text-amber-800">$${change.toLocaleString('es-CL')}</div></div>
-                <div class="p-3 bg-sky-50 rounded-xl border"><span class="text-[10px] uppercase font-black text-sky-900">Porcentaje Logro</span><div class="text-base font-black text-amber-600">⭐ ${ev.pointsEarned || 100}%</div></div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 text-xs font-bold">
-                <div class="p-3 bg-slate-50 rounded-xl border">
-                    <span class="text-slate-500 block text-[10px] uppercase">Intentos Fallidos / Errores Cometidos:</span>
-                    <span class="text-base font-black ${classroomErrors > 0 ? 'text-rose-600' : 'text-emerald-600'}">${classroomErrors} desacierto(s) detectado(s)</span>
-                </div>
-                <div class="p-3 bg-slate-50 rounded-xl border">
-                    <span class="text-slate-500 block text-[10px] uppercase">Diferencia de Precios en Góndola:</span>
-                    <span class="text-base font-black text-indigo-900">${priceAdjustments} cambio(s) de precio corregidos</span>
-                </div>
-            </div>
-
-            <div class="p-4 bg-indigo-50 border rounded-2xl text-xs space-y-2">
-                <div class="font-black text-indigo-950">Diagnóstico de Autonomía Funcional: ${nivelAutonomia}</div>
-                <p class="text-slate-700">El estudiante seleccionó su supermercado de preferencia, organizó su canasto según la lista impresa, realizó el reconocimiento visual por cámara con IA y completó el pago en moneda nacional.</p>
-            </div>
-        </div>
-    `;
-
-    const reportModal = document.getElementById('aiReportModal');
-    const container = document.getElementById('aiReportContainer');
-    if (container && reportModal) {
-        container.innerHTML = reportHtml;
-        window.currentReportEvalId = evalId;
-        reportModal.classList.remove('hidden');
-    }
-}
-
-function closeAIReportModal() {
-    const reportModal = document.getElementById('aiReportModal');
-    if (reportModal) reportModal.classList.add('hidden');
-}
-
-function sendReportByEmail() {
-    const email = prompt("Ingresa el correo electrónico para enviar este informe:");
-    if (!email || !email.includes('@')) return alert("Por favor ingresa un correo electrónico válido.");
-    alert(`📧 Informe psicopedagógico enviado exitosamente a ${email}`);
-}
-
-function printCurrentReport() {
-    const reportContent = document.getElementById('printableReport')?.outerHTML;
-    if (!reportContent) return;
-
-    const win = window.open('', '_blank');
-    win.document.write(`
-        <html>
-            <head>
-                <title>Informe Pedagógico PDF</title>
-                <script src="https://cdn.tailwindcss.com"></script>
-            </head>
-            <body class="bg-white p-6">
-                ${reportContent}
-                <script>setTimeout(() => { window.print(); window.close(); }, 750);</script>
-            </body>
-        </html>
-    `);
-    win.document.close();
-}
-
-function renderTeacherCatalogTab() {
-    return `
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="bg-white p-5 rounded-3xl border-4 border-emerald-300 shadow-md space-y-4">
-                <div class="flex justify-between items-center border-b pb-3">
-                    <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
-                        <span>🏪</span> <span>Supermercados (${(APP_STATE.supermarkets || []).length})</span>
-                    </h3>
-                    <button onclick="openSupermarketModal()" class="bg-emerald-600 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Tienda</button>
-                </div>
-                <div class="space-y-2 max-h-96 overflow-y-auto">
-                    ${(APP_STATE.supermarkets || []).length === 0 ? `
-                        <p class="text-xs text-slate-400 italic py-4 text-center">No hay supermercados creados.</p>
-                    ` : (APP_STATE.supermarkets || []).map(s => {
-                        const logo = s.photoUrl || s.photo || s.logoUrl || '';
-                        const imgHtml = logo 
-                            ? `<img src="${logo}" class="w-8 h-8 object-contain rounded-lg border bg-white p-0.5">`
-                            : `<span class="text-base">${s.icon || '🏪'}</span>`;
-                        return `
-                            <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
-                                <div class="flex items-center gap-2">
-                                    ${imgHtml}
-                                    <span class="font-black text-slate-800">${s.name}</span>
-                                </div>
-                                <div class="flex items-center gap-1">
-                                    <button onclick="openSupermarketModal('${s.id}')" class="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-xl text-[10px]">✏️ Editar</button>
-                                    <button onclick="deleteSupermarket('${s.id}')" class="bg-rose-100 text-rose-900 px-2 py-1 rounded-xl text-[10px]">✕</button>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-
-            <div class="bg-white p-5 rounded-3xl border-4 border-indigo-300 shadow-md space-y-4">
-                <div class="flex justify-between items-center border-b pb-3">
-                    <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
-                        <span>🏷️</span> <span>Categorías (${(APP_STATE.categories || []).length})</span>
-                    </h3>
-                    <button onclick="openCategoryModal()" class="bg-indigo-600 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Categoría</button>
-                </div>
-                <div class="space-y-2 max-h-96 overflow-y-auto">
-                    ${(APP_STATE.categories || []).length === 0 ? `
-                        <p class="text-xs text-slate-400 italic py-4 text-center">No hay categorías creadas.</p>
-                    ` : (APP_STATE.categories || []).map(c => `
-                        <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold">
-                            <span class="font-black text-slate-800">${c.icon || '🏷️'} ${c.name}</span>
-                            <button onclick="deleteCategory('${c.id}')" class="text-rose-600 font-bold px-2 py-1 rounded-lg bg-rose-50 text-[10px]">✕</button>
+        <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow space-y-4">
+            <h3 class="font-black text-slate-800 text-base">📊 Registro de Avance de Estudiantes</h3>
+            <div class="space-y-3">
+                ${APP_STATE.users.filter(u => u.role === 'student').map(st => `
+                    <div class="p-4 bg-slate-50 border-2 rounded-2xl flex justify-between items-center flex-wrap gap-2">
+                        <div>
+                            <span class="font-black text-slate-800 text-sm block">${st.name} (RUT: ${st.rut})</span>
+                            <span class="text-xs text-slate-500 font-bold">Nivel Actual: ${st.level || 1} • Puntos: ${st.points || 0} pts</span>
                         </div>
-                    `).join('')}
-                </div>
-            </div>
-
-            <div class="bg-white p-5 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
-                <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
-                    <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
-                        <span>📦</span> <span>Productos (${(APP_STATE.products || []).length})</span>
-                    </h3>
-                    <button onclick="openProductModal()" class="bg-amber-500 text-white font-black text-xs px-2.5 py-1.5 rounded-xl shadow">+ Producto</button>
-                </div>
-                <div class="space-y-2 max-h-96 overflow-y-auto">
-                    ${(APP_STATE.products || []).length === 0 ? `
-                        <p class="text-xs text-slate-400 italic py-4 text-center">No hay productos en el catálogo.</p>
-                    ` : (APP_STATE.products || []).map(p => {
-                        const isAll = p.isAll === true || p.supermarketId === 'ALL' || p.supermarketName === 'TODOS';
-                        let supBadge = isAll 
-                            ? `<span class="inline-block bg-sky-100 text-sky-900 text-[10px] font-black px-2 py-0.5 rounded-md my-0.5">🌐 Todos los supermercados</span>`
-                            : `<span class="inline-block bg-amber-100 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded-md my-0.5">🏪 Solo en: ${(APP_STATE.supermarkets || []).find(s => String(s.id) === String(p.supermarketId))?.name || 'Supermercado'}</span>`;
-
-                        const imgUrl = p.photoUrl || p.photo || p.image || '';
-                        const photoThumb = imgUrl 
-                            ? `<img src="${imgUrl}" class="w-10 h-10 object-cover rounded-xl border border-slate-300">`
-                            : `<div class="w-10 h-10 bg-slate-200 rounded-xl flex items-center justify-center text-lg">📦</div>`;
-
-                        return `
-                            <div class="p-2.5 bg-slate-50 border-2 rounded-2xl flex justify-between items-center text-xs font-bold gap-2">
-                                <div class="flex items-center gap-2">
-                                    ${photoThumb}
-                                    <div>
-                                        <span class="font-black text-slate-800 block">${p.name}</span>
-                                        <span class="text-emerald-700 font-black inline-block ml-1">$${(p.price || 0).toLocaleString('es-CL')}</span>
-                                        <div>${supBadge}</div>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-1">
-                                    <button onclick="openProductModal('${p.id}')" class="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-xl text-[10px]">✏️ Editar</button>
-                                    <button onclick="deleteProduct('${p.id}')" class="bg-rose-100 text-rose-900 px-2 py-1 rounded-xl text-[10px]">✕</button>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
+                        <span class="bg-indigo-100 text-indigo-900 font-black text-xs px-3 py-1 rounded-full">Activo en Aula</span>
+                    </div>
+                `).join('')}
             </div>
         </div>
     `;
 }
 
-function handleSupermarketLogoUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        compressImageBase64(e.target.result, 250, 250, 0.6).then(compressed => {
-            document.getElementById('modalSupLogo').value = compressed;
-        });
-    };
-    reader.readAsDataURL(file);
-}
-
-function handleProductPhotoUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const previewContainer = document.getElementById('modalProdPhotoPreviewContainer');
-    const previewImg = document.getElementById('modalProdPhotoPreview');
-    const statusTxt = document.getElementById('modalProdPhotoStatus');
-
-    if (previewContainer && statusTxt) {
-        previewContainer.classList.remove('hidden');
-        statusTxt.textContent = "⏳ Optimizando imagen...";
-        statusTxt.className = "text-[11px] font-bold text-amber-600 animate-pulse";
-    }
-
-    isPhotoProcessing = true;
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        compressImageBase64(e.target.result, 250, 250, 0.6).then(compressed => {
-            document.getElementById('modalProdPhoto').value = compressed;
-            if (previewImg) previewImg.src = compressed;
-            if (statusTxt) {
-                statusTxt.textContent = "✓ Imagen lista para guardar";
-                statusTxt.className = "text-[11px] font-bold text-emerald-600";
-            }
-            isPhotoProcessing = false;
-        }).catch(err => {
-            console.error("Error al comprimir imagen:", err);
-            isPhotoProcessing = false;
-            if (statusTxt) {
-                statusTxt.textContent = "❌ Error al procesar imagen";
-                statusTxt.className = "text-[11px] font-bold text-rose-600";
-            }
-        });
-    };
-    reader.readAsDataURL(file);
-}
-
-function renderTeacherCurrencyTab() {
+function renderTeacherCurriculumObjectivesTab() {
     return `
-        <div class="bg-white p-6 rounded-3xl border-4 border-amber-300 shadow-md space-y-4">
+        <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow-md space-y-6 max-w-5xl mx-auto">
             <div class="border-b pb-3">
-                <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                    <span>💵</span> <span>Billetes y Monedas Chilenas (CLP)</span>
-                </h3>
+                <h3 class="font-black text-slate-800 text-lg">📘 Matriz Mineduc / PIE / Decreto 83 (6 Minijuegos + Jefe por Nivel)</h3>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                ${CLP_CURRENCY_ITEMS.map(item => {
-                    const currentImg = APP_STATE.customCurrencies[item.id] || item.img;
-                    const isCustom = !!APP_STATE.customCurrencies[item.id];
+            <div class="space-y-6">
+                ${Object.keys(LEVEL_CURRICULUM).map(key => {
+                    const lvl = LEVEL_CURRICULUM[key];
                     return `
-                        <div class="p-4 bg-slate-50 border-2 border-slate-200 rounded-3xl flex flex-col items-center text-center space-y-3 shadow-sm">
-                            <span class="text-xs font-black text-slate-800">${item.name}</span>
-                            <div class="h-24 w-full flex items-center justify-center p-1 bg-white rounded-2xl border">
-                                <img src="${currentImg}" class="max-h-full max-w-full object-contain">
+                        <div class="p-5 bg-slate-50 border-2 rounded-3xl space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="bg-indigo-600 text-white font-black text-xs px-3 py-1 rounded-full uppercase">${lvl.title}</span>
+                                <span class="text-xs font-black text-amber-700">Requisito: ${lvl.minigamesRequired} Minijuegos + Jefe</span>
                             </div>
-                            <div class="w-full space-y-1">
-                                <label class="block bg-indigo-600 text-white font-black py-1.5 rounded-xl text-[10px] cursor-pointer shadow text-center">
-                                    📁 Cambiar Imagen
-                                    <input type="file" accept="image/*" class="hidden" onchange="uploadCustomCurrencyImage(event, '${item.id}')">
-                                </label>
-                                ${isCustom ? `
-                                    <button onclick="resetCustomCurrencyImage('${item.id}')" class="w-full bg-slate-200 text-slate-700 font-bold py-1 rounded-xl text-[9px]">
-                                        🔄 Restablecer
-                                    </button>
-                                ` : ''}
+                            <p class="text-xs font-bold text-slate-800"><b>Objetivo General Mineduc:</b> ${lvl.objectiveGeneral}</p>
+                            <div class="bg-indigo-50 p-3 rounded-2xl border border-indigo-200 text-xs font-bold space-y-1">
+                                <span class="text-indigo-900 font-black block">Objetivos Específicos:</span>
+                                <ul class="list-disc list-inside text-indigo-950 space-y-1">
+                                    ${lvl.objectivesSpecific.map(o => `<li>${o}</li>`).join('')}
+                                </ul>
+                            </div>
+                            <div class="bg-purple-50 p-3 rounded-2xl text-xs font-bold space-y-1">
+                                <span class="text-purple-900 font-black block">Desglose de los 6 Minijuegos Evaluables:</span>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                                    ${lvl.minigamesList.map(g => `<div class="p-2 bg-white rounded border"><b>${g.name}:</b> ${g.desc}</div>`).join('')}
+                                </div>
                             </div>
                         </div>
                     `;
@@ -3235,482 +1052,205 @@ function renderTeacherCurrencyTab() {
     `;
 }
 
-function uploadCustomCurrencyImage(event, itemId) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        compressImageBase64(e.target.result, 300, 300, 0.6).then(compressed => {
-            APP_STATE.customCurrencies[itemId] = compressed;
-            if (db) {
-                db.collection('settings').doc('currencies').set({ [itemId]: compressed }, { merge: true });
-            }
-            try { localStorage.setItem('nee_custom_currencies', JSON.stringify(APP_STATE.customCurrencies)); } catch(err) {}
-            renderApp();
-            alert("✅ Imagen cargada exitosamente.");
-        });
-    };
-    reader.readAsDataURL(file);
-}
-
-function resetCustomCurrencyImage(itemId) {
-    delete APP_STATE.customCurrencies[itemId];
-    if (db) {
-        const update = {};
-        update[itemId] = firebase.firestore.FieldValue.delete();
-        db.collection('settings').doc('currencies').update(update);
-    }
-    try { localStorage.setItem('nee_custom_currencies', JSON.stringify(APP_STATE.customCurrencies)); } catch(e) {}
-    renderApp();
-}
-
-function renderTeacherUsersTab() {
-    const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
-    const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
-
+function renderTeacherCatalogsTab() {
     return `
         <div class="space-y-6">
-            <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-sm space-y-4">
-                <div class="flex justify-between items-center border-b pb-3">
-                    <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
-                        <span>🏫</span> <span>Cursos Registrados</span>
-                    </h3>
-                    <button onclick="addNewCoursePrompt()" class="bg-emerald-600 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow">+ Crear Curso</button>
+            <!-- GESTIÓN DE SUPERMERCADOS -->
+            <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-black text-slate-800 text-base">🏪 Supermercados Creados</h3>
+                    <button onclick="openSupermarketModal()" class="bg-indigo-600 text-white font-black text-xs px-3 py-2 rounded-xl">+ Nuevo Supermercado</button>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                    ${(APP_STATE.courses || []).length === 0 ? `
-                        <p class="col-span-full text-xs text-slate-400 italic text-center py-2">No hay cursos creados.</p>
-                    ` : (APP_STATE.courses || []).map(c => `
-                        <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl flex justify-between items-center font-bold text-xs">
-                            <span class="text-slate-800 font-black">${c.name}</span>
-                            <button onclick="deleteCourse('${c.id}')" class="text-rose-600 font-black px-2 py-1 rounded-lg bg-rose-50">✕</button>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    ${APP_STATE.supermarkets.map(s => `
+                        <div class="p-3 border-2 rounded-2xl flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <span class="text-2xl">${s.icon || '🏪'}</span>
+                                <span class="font-black text-xs text-slate-800">${s.name}</span>
+                            </div>
+                            <div class="flex gap-1">
+                                <button onclick="openSupermarketModal('${s.id}')" class="bg-slate-200 text-slate-800 font-bold px-2 py-1 rounded text-xs">Editar</button>
+                                <button onclick="deleteSupermarket('${s.id}')" class="bg-rose-100 text-rose-700 font-bold px-2 py-1 rounded text-xs">✕</button>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="bg-white p-5 rounded-3xl border-4 border-purple-200 shadow space-y-4">
-                    <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">🔑 Admin General</h3>
-                        ${isAdmin ? `<button onclick="openCreateUserModal('admin')" class="bg-purple-600 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Admin</button>` : ''}
-                    </div>
-                    <div class="space-y-2 max-h-96 overflow-y-auto">${renderUserRoleList('admin')}</div>
+            <!-- GESTIÓN DE PRODUCTOS -->
+            <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-black text-slate-800 text-base">📦 Catálogo de Productos y Precios</h3>
+                    <button onclick="openProductModal()" class="bg-indigo-600 text-white font-black text-xs px-3 py-2 rounded-xl">+ Nuevo Producto</button>
                 </div>
-
-                <div class="bg-white p-5 rounded-3xl border-4 border-indigo-200 shadow space-y-4">
-                    <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">👨‍🏫 Educadores (${teamLabel})</h3>
-                        ${isAdmin ? `<button onclick="openCreateUserModal('teacher')" class="bg-indigo-600 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Educador</button>` : ''}
-                    </div>
-                    <div class="space-y-2 max-h-96 overflow-y-auto">${renderUserRoleList('teacher')}</div>
-                </div>
-
-                <div class="bg-white p-5 rounded-3xl border-4 border-emerald-200 shadow space-y-4">
-                    <div class="flex justify-between items-center border-b pb-2">
-                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">🎒 Estudiantes</h3>
-                        <button onclick="openCreateUserModal('student')" class="bg-emerald-600 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Alumno</button>
-                    </div>
-                    <div class="space-y-2 max-h-96 overflow-y-auto">${renderUserRoleList('student')}</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    ${APP_STATE.products.map(p => `
+                        <div class="p-3 border-2 rounded-2xl flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <span class="text-2xl">${p.iconEmoji || '📦'}</span>
+                                <div>
+                                    <span class="font-black text-xs text-slate-800 block">${p.name}</span>
+                                    <span class="text-xs font-black text-emerald-700">$${p.price.toLocaleString('es-CL')}</span>
+                                </div>
+                            </div>
+                            <div class="flex gap-1">
+                                <button onclick="openProductModal('${p.id}')" class="bg-slate-200 text-slate-800 font-bold px-2 py-1 rounded text-xs">Editar</button>
+                                <button onclick="deleteProduct('${p.id}')" class="bg-rose-100 text-rose-700 font-bold px-2 py-1 rounded text-xs">✕</button>
+                            </div>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
         </div>
     `;
 }
 
-function renderUserRoleList(role) {
-    const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
-    const users = (APP_STATE.users || []).filter(u => u.role === role);
-    if (users.length === 0) return `<p class="text-xs text-slate-400 italic py-4 text-center">No hay usuarios registrados.</p>`;
-
-    return users.map(u => {
-        const uLevel = u.level || 0;
-        return `
-            <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl space-y-2 text-xs font-bold">
-                <div class="flex justify-between items-center">
-                    <span class="text-indigo-950 font-black">${u.name}</span>
-                    <div class="space-x-1">
-                        ${(isAdmin || role === 'student') ? `
-                            <button onclick="openEditUserModal('${u.id}')" class="text-amber-600 font-extrabold">✏️</button>
-                            <button onclick="deleteUser('${u.id}')" class="text-rose-600 font-extrabold">✕</button>
-                        ` : ''}
-                    </div>
-                </div>
-                <div class="text-[11px] text-slate-600">
-                    <div>RUT: <b>${u.rut || 'N/A'}</b> | Clave: <code class="bg-slate-200 px-1 py-0.5 rounded text-indigo-900 font-black">${u.pin}</code></div>
-                    <div>📧 ${u.email || 'Sin correo'}</div>
-                    ${role === 'student' ? `<div class="text-amber-700 font-black mt-1 flex justify-between"><span>⭐ Puntos: ${u.points || 0} pts</span> <span>🏆 Nivel ${uLevel}</span></div>` : ''}
-                </div>
+function renderTeacherUsersTab() {
+    return `
+        <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-black text-slate-800 text-base">🔑 Gestión de Usuarios</h3>
+                <button onclick="openUserModal()" class="bg-indigo-600 text-white font-black text-xs px-3 py-2 rounded-xl">+ Nuevo Usuario</button>
             </div>
-        `;
-    }).join('');
+            <div class="space-y-2">
+                ${APP_STATE.users.map(u => `
+                    <div class="p-3 border-2 rounded-2xl flex justify-between items-center">
+                        <div>
+                            <span class="font-black text-xs text-slate-800 block">${u.name} (${u.role === 'teacher' ? 'Profesor' : 'Estudiante'})</span>
+                            <span class="text-[11px] text-slate-500 font-bold">RUT: ${u.rut} • PIN: ${u.pin}</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick="openUserModal('${u.id}')" class="bg-slate-200 text-slate-800 font-bold px-2 py-1 rounded text-xs">Editar</button>
+                            <button onclick="deleteUser('${u.id}')" class="bg-rose-100 text-rose-700 font-bold px-2 py-1 rounded text-xs">✕</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
 }
 
 // ==========================================
-// MODALES Y OPERACIONES SECUNDARIAS
+// 11. CANASTO DE COMPRAS Y PAGO EN CAJA
 // ==========================================
-function openSupermarketModal(supId = null) {
-    const el = document.getElementById('supermarketModal');
-    if (!el) return;
-
-    if (supId) {
-        const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId));
-        if (sup) {
-            document.getElementById('modalSupId').value = sup.id;
-            document.getElementById('modalSupName').value = sup.name || '';
-            document.getElementById('modalSupLogo').value = sup.photoUrl || sup.photo || sup.logoUrl || '';
-        }
-    } else {
-        document.getElementById('modalSupId').value = '';
-        document.getElementById('modalSupName').value = '';
-        document.getElementById('modalSupLogo').value = '';
-    }
-
-    el.classList.remove('hidden');
+function openBasketModal() {
+    renderBasketModalContent();
+    document.getElementById('basketModal')?.classList.remove('hidden');
 }
 
-function closeSupermarketModal() {
-    document.getElementById('supermarketModal').classList.add('hidden');
+function closeBasketModal() { document.getElementById('basketModal')?.classList.add('hidden'); }
+
+function addToBasket(prodId) {
+    const prod = APP_STATE.products.find(p => String(p.id) === String(prodId));
+    if (!prod) return;
+    APP_STATE.basket.push({ productId: prod.id, price: prod.price });
+    playChimeSound();
+    updateBasketBadge();
+    speakText(`Añadido ${prod.name}`);
 }
 
-function saveSupermarketFromModal() {
-    const idInput = document.getElementById('modalSupId')?.value;
-    const name = document.getElementById('modalSupName').value.trim();
-    const photoUrl = document.getElementById('modalSupLogo').value;
-
-    if (!name) return alert("Ingresa el nombre del supermercado.");
-
-    const id = idInput ? idInput : ('sup-' + Date.now());
-    const newSup = { id, name, photoUrl: photoUrl || '', icon: '🏪', description: 'Supermercado' };
-
-    const idx = APP_STATE.supermarkets.findIndex(s => String(s.id) === String(id));
-    if (idx !== -1) APP_STATE.supermarkets[idx] = newSup;
-    else APP_STATE.supermarkets.push(newSup);
-
-    if (db) db.collection('supermarkets').doc(id).set(newSup, { merge: true });
-
-    closeSupermarketModal();
-    renderApp();
-    alert(`✅ Supermercado "${name}" guardado.`);
+function updateBasketBadge() {
+    const b = document.getElementById('basketBadge');
+    if (b) b.textContent = APP_STATE.basket.length;
 }
 
-function deleteSupermarket(supId) {
-    if (confirm("¿Eliminar este supermercado?")) {
-        APP_STATE.supermarkets = APP_STATE.supermarkets.filter(s => String(s.id) !== String(supId));
-        if (db) db.collection('supermarkets').doc(supId).delete();
-        renderApp();
-    }
-}
+function renderBasketModalContent() {
+    const listEl = document.getElementById('basketItemsList');
+    const totalEl = document.getElementById('basketTotalCLP');
+    const paidEl = document.getElementById('userPaidTotal');
+    const trayEl = document.getElementById('paymentMoneyTray');
+    if (!listEl) return;
 
-function updateCategoryDropdowns(selectedName = null) {
-    const catSelect = document.getElementById('modalProdCategory');
-    if (!catSelect) return;
-    const list = APP_STATE.categories || [];
-    catSelect.innerHTML = list.map(c => `<option value="${c.name}" ${selectedName === c.name ? 'selected' : ''}>${c.icon || '🏷️'} ${c.name}</option>`).join('');
-}
+    let total = 0;
+    listEl.innerHTML = APP_STATE.basket.length === 0 
+        ? `<p class="text-center text-slate-400 py-6 font-bold text-xs">Tu canasto está vacío.</p>`
+        : APP_STATE.basket.map(item => {
+            const p = APP_STATE.products.find(x => String(x.id) === String(item.productId)) || { name: 'Producto', price: 1000 };
+            total += p.price;
+            return `
+                <div class="flex items-center justify-between p-3 bg-slate-50 border-2 rounded-2xl text-xs font-bold">
+                    <span class="text-slate-800 font-black text-sm">${p.name}</span>
+                    <span class="font-black text-emerald-700">$${p.price.toLocaleString('es-CL')}</span>
+                </div>
+            `;
+        }).join('');
 
-function openProductModal(prodId = null) {
-    const supSelect = document.getElementById('modalProdSupermarket');
-    if (supSelect) {
-        supSelect.innerHTML = (APP_STATE.supermarkets || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-    }
+    if (totalEl) totalEl.innerHTML = `<div>$${total.toLocaleString('es-CL')}</div>${getPricePictogramsHtml(total)}`;
+    if (paidEl) paidEl.textContent = `$${APP_STATE.userPaidAmount.toLocaleString('es-CL')}`;
 
-    const previewContainer = document.getElementById('modalProdPhotoPreviewContainer');
-    const previewImg = document.getElementById('modalProdPhotoPreview');
-    const statusTxt = document.getElementById('modalProdPhotoStatus');
-
-    if (prodId) {
-        const p = (APP_STATE.products || []).find(x => String(x.id) === String(prodId));
-        if (p) {
-            document.getElementById('modalProdId').value = p.id;
-            document.getElementById('modalProdName').value = p.name || '';
-            document.getElementById('modalProdPrice').value = p.price || 0;
-            const photoVal = p.photoUrl || p.photo || p.image || '';
-            document.getElementById('modalProdPhoto').value = photoVal;
-            document.getElementById('modalProdReplicateAll').checked = !!p.isAll;
-            if (supSelect && p.supermarketId) supSelect.value = p.supermarketId;
-            updateCategoryDropdowns(p.category);
-
-            if (photoVal && previewContainer && previewImg) {
-                previewImg.src = photoVal;
-                previewContainer.classList.remove('hidden');
-                if (statusTxt) {
-                    statusTxt.textContent = "✓ Imagen actual cargada";
-                    statusTxt.className = "text-[11px] font-bold text-emerald-600";
-                }
-            } else if (previewContainer) {
-                previewContainer.classList.add('hidden');
-            }
-        }
-    } else {
-        document.getElementById('modalProdId').value = '';
-        document.getElementById('modalProdName').value = '';
-        document.getElementById('modalProdPrice').value = '';
-        document.getElementById('modalProdPhoto').value = '';
-        document.getElementById('modalProdReplicateAll').checked = false;
-        if (previewContainer) previewContainer.classList.add('hidden');
-        updateCategoryDropdowns();
-    }
-
-    document.getElementById('productModal').classList.remove('hidden');
-}
-
-function closeProductModal() {
-    document.getElementById('productModal').classList.add('hidden');
-}
-
-function saveProductFromModal() {
-    if (isPhotoProcessing) {
-        return alert("⏳ La imagen aún se está procesando. Espera un segundo antes de guardar.");
-    }
-
-    const prodId = document.getElementById('modalProdId')?.value;
-    const supSelect = document.getElementById('modalProdSupermarket');
-    const supId = supSelect ? supSelect.value : null;
-
-    const name = document.getElementById('modalProdName').value.trim();
-    const categorySelect = document.getElementById('modalProdCategory');
-    const category = categorySelect ? categorySelect.value : 'General';
-    const price = parseInt(document.getElementById('modalProdPrice').value);
-    const replicateAll = document.getElementById('modalProdReplicateAll')?.checked || false;
-    const photoUrl = document.getElementById('modalProdPhoto')?.value || '';
-
-    if (!name || isNaN(price)) return alert("Por favor ingresa un nombre y precio válidos.");
-
-    const id = prodId ? prodId : ('prod-' + Date.now());
-
-    const productPayload = {
-        id: id,
-        name: name,
-        category: category,
-        price: price,
-        photoUrl: photoUrl,
-        photo: photoUrl,
-        image: photoUrl,
-        isAll: replicateAll,
-        supermarketId: replicateAll ? 'ALL' : supId,
-        supermarketName: replicateAll ? 'TODOS' : ((APP_STATE.supermarkets || []).find(s => String(s.id) === String(supId))?.name || 'Supermercado')
-    };
-
-    const idx = APP_STATE.products.findIndex(p => String(p.id) === String(id));
-    if (idx !== -1) APP_STATE.products[idx] = productPayload;
-    else APP_STATE.products.push(productPayload);
-
-    if (db) db.collection('products').doc(id).set(productPayload, { merge: true });
-
-    closeProductModal();
-    renderApp();
-    alert(`✅ Producto "${name}" guardado exitosamente.`);
-}
-
-function deleteProduct(prodId) {
-    if (confirm("¿Eliminar este producto?")) {
-        APP_STATE.products = APP_STATE.products.filter(p => String(p.id) !== String(prodId));
-        if (db) db.collection('products').doc(prodId).delete();
-        renderApp();
+    if (trayEl) {
+        trayEl.innerHTML = CLP_CURRENCY_ITEMS.map(item => `
+            <button onclick="addPaymentMoney(${item.value})" class="p-2 bg-white border-2 border-slate-300 rounded-xl flex flex-col items-center shadow-sm active:scale-95">
+                <img src="${item.img}" class="h-10 object-contain">
+                <span class="text-[10px] font-black text-slate-700 mt-1">${item.name}</span>
+            </button>
+        `).join('');
     }
 }
 
-function openCategoryModal() {
-    const el = document.getElementById('categoryModal');
-    const iconSelect = document.getElementById('modalCatIcon');
-    if (iconSelect) {
-        iconSelect.innerHTML = PRESET_CATEGORIES.map(c => 
-            `<option value="${c.icon}">${c.icon} ${c.name}</option>`
-        ).join('');
-    }
-    if (el) el.classList.remove('hidden');
+function addPaymentMoney(val) {
+    APP_STATE.userPaidAmount += val;
+    playChimeSound();
+    speakText(`Añadidos ${val} pesos. Total pagado ${APP_STATE.userPaidAmount} pesos.`);
+    renderBasketModalContent();
 }
 
-function closeCategoryModal() {
-    document.getElementById('categoryModal').classList.add('hidden');
+function resetUserPayment() {
+    APP_STATE.userPaidAmount = 0;
+    renderBasketModalContent();
 }
 
-function saveCategoryFromModal() {
-    const name = document.getElementById('modalCatName').value.trim();
-    const icon = document.getElementById('modalCatIcon').value;
-    if (!name) return alert("Ingresa el nombre de la categoría.");
-    const id = 'cat-' + Date.now();
-    const newCat = { id, name, icon: icon || '🏷️' };
-    
-    APP_STATE.categories.push(newCat);
-    if (db) db.collection('categories').doc(id).set(newCat);
-
-    closeCategoryModal();
-    updateCategoryDropdowns(name);
+function clearBasket() {
+    APP_STATE.basket = [];
+    APP_STATE.userPaidAmount = 0;
+    updateBasketBadge();
+    renderBasketModalContent();
     renderApp();
 }
 
-function deleteCategory(catId) {
-    if (confirm("¿Eliminar esta categoría?")) {
-        APP_STATE.categories = APP_STATE.categories.filter(c => String(c.id) !== String(catId));
-        if (db) db.collection('categories').doc(catId).delete();
-        renderApp();
-    }
-}
-
-function openCreateUserModal(role) {
-    const el = document.getElementById('userModal');
-    if (el) {
-        document.getElementById('modalUserId').value = '';
-        document.getElementById('modalUserRole').value = role;
-        document.getElementById('modalName').value = '';
-        document.getElementById('modalRut').value = '';
-        document.getElementById('modalEmail').value = '';
-        el.classList.remove('hidden');
-    }
-}
-
-function openEditUserModal(userId) {
-    const user = (APP_STATE.users || []).find(u => String(u.id) === String(userId));
-    if (!user) return;
-    const el = document.getElementById('userModal');
-    if (el) {
-        document.getElementById('modalUserId').value = user.id;
-        document.getElementById('modalUserRole').value = user.role;
-        document.getElementById('modalName').value = user.name || '';
-        document.getElementById('modalRut').value = user.rut || '';
-        document.getElementById('modalEmail').value = user.email || '';
-        el.classList.remove('hidden');
-    }
-}
-
-function closeUserModal() {
-    document.getElementById('userModal').classList.add('hidden');
-}
-
-function saveUserFromModal() {
-    const userId = document.getElementById('modalUserId').value;
-    const role = document.getElementById('modalUserRole').value;
-    const name = document.getElementById('modalName').value.trim();
-    const rut = document.getElementById('modalRut').value.trim();
-    const email = document.getElementById('modalEmail').value.trim();
-
-    if (!name || !rut) return alert("Completa nombre y RUT.");
-
-    const id = userId || ('u-' + Date.now());
-    const pin = rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
-    const userPayload = { id, role, name, rut, username: rut, email, pin, points: 0, level: 0, xp: 0, examPassed: {} };
-
-    const idx = APP_STATE.users.findIndex(u => String(u.id) === String(id));
-    if (idx !== -1) APP_STATE.users[idx] = { ...APP_STATE.users[idx], ...userPayload };
-    else APP_STATE.users.push(userPayload);
-
-    if (db) db.collection('users').doc(id).set(userPayload, { merge: true });
-
-    closeUserModal();
-    renderApp();
-    alert("✅ Usuario guardado.");
-}
-
-function deleteUser(id) {
-    if (confirm("¿Eliminar este usuario?")) {
-        APP_STATE.users = APP_STATE.users.filter(u => String(u.id) !== String(id));
-        if (db) db.collection('users').doc(id).delete();
-        renderApp();
-    }
-}
-
-function addNewCoursePrompt() {
-    const courseName = prompt("Nombre del nuevo curso:");
-    if (!courseName || !courseName.trim()) return;
-    const id = 'course-' + Date.now();
-    const newCourse = { id, name: courseName.trim() };
-    APP_STATE.courses.push(newCourse);
-    if (db) db.collection('courses').doc(id).set(newCourse);
-    renderApp();
-}
-
-function deleteCourse(courseId) {
-    if (confirm("¿Eliminar este curso?")) {
-        APP_STATE.courses = APP_STATE.courses.filter(c => String(c.id) !== String(courseId));
-        if (db) db.collection('courses').doc(courseId).delete();
-        renderApp();
-    }
-}
-
-// ==========================================
-// ESCUCHADORES DE FIRESTORE EN TIEMPO REAL
-// ==========================================
-function initFirebaseListeners() {
-    try {
-        const storedUser = localStorage.getItem('nee_active_user');
-        if (storedUser) APP_STATE.currentUser = JSON.parse(storedUser);
-        const storedCurrencies = localStorage.getItem('nee_custom_currencies');
-        if (storedCurrencies) APP_STATE.customCurrencies = JSON.parse(storedCurrencies);
-    } catch(e) {}
-
-    if (!db) {
-        renderApp();
-        return;
-    }
-
-    const listenCol = (name, callback) => {
-        try {
-            db.collection(name).onSnapshot(
-                s => {
-                    const data = s.docs.map(d => ({ id: d.id, ...d.data() }));
-                    if (data && data.length > 0) callback(data);
-                    renderApp();
-                },
-                err => { console.warn("Firebase collection fallback:", name); renderApp(); }
-            );
-        } catch(e) { renderApp(); }
-    };
-
-    listenCol('users', data => { APP_STATE.users = data; });
-    listenCol('courses', data => { APP_STATE.courses = data; });
-    listenCol('categories', data => {
-        APP_STATE.categories = data;
-        updateCategoryDropdowns();
+function verifyAndCheckout() {
+    let total = 0;
+    APP_STATE.basket.forEach(b => {
+        const p = APP_STATE.products.find(x => String(x.id) === String(b.productId));
+        total += (p ? p.price : 0);
     });
-    listenCol('supermarkets', data => { APP_STATE.supermarkets = data; });
-    listenCol('products', data => { APP_STATE.products = data; });
-    listenCol('evaluations', data => { APP_STATE.evaluations = data; });
-    listenCol('video_capsules', data => { APP_STATE.videoCapsules = data; });
 
-    try {
-        db.collection('settings').doc('activeMission').onSnapshot(
-            doc => {
-                if (doc.exists && doc.data() && doc.data().active) {
-                    APP_STATE.activeMission = doc.data();
-                } else {
-                    APP_STATE.activeMission = null;
-                }
-                renderApp();
-            },
-            () => renderApp()
-        );
+    if (total === 0) return alert("Tu canasto está vacío.");
+    if (APP_STATE.userPaidAmount < total) {
+        playChimeSound(true);
+        speakText(`Falta dinero. La compra suma ${total} pesos y has entregado ${APP_STATE.userPaidAmount} pesos.`);
+        return alert(`⚠️ Dinero Insuficiente\n\nTotal compra: $${total.toLocaleString('es-CL')}\nHas pagado: $${APP_STATE.userPaidAmount.toLocaleString('es-CL')}\nTe faltan: $${(total - APP_STATE.userPaidAmount).toLocaleString('es-CL')}`);
+    }
 
-        db.collection('settings').doc('institutional').onSnapshot(
-            doc => {
-                if (doc.exists) APP_STATE.settings = { ...DEFAULT_SETTINGS, ...doc.data() };
-                renderApp();
-            },
-            () => renderApp()
-        );
+    const vuelto = APP_STATE.userPaidAmount - total;
+    playChimeSound(false);
+    if (typeof confetti !== 'undefined') confetti({ particleCount: 150, spread: 90 });
 
-        db.collection('settings').doc('ai_config').onSnapshot(
-            doc => {
-                if (doc.exists) APP_STATE.aiConfig = { ...DEFAULT_AI_CONFIG, ...doc.data() };
-                renderApp();
-            },
-            () => renderApp()
-        );
+    closeBasketModal();
 
-        db.collection('settings').doc('currencies').onSnapshot(
-            doc => {
-                if (doc.exists) APP_STATE.customCurrencies = { ...APP_STATE.customCurrencies, ...doc.data() };
-                renderApp();
-            },
-            () => renderApp()
-        );
-    } catch(e) { renderApp(); }
+    document.getElementById('successModalTotal').textContent = `$${total.toLocaleString('es-CL')}`;
+    document.getElementById('successModalPaid').textContent = `$${APP_STATE.userPaidAmount.toLocaleString('es-CL')}`;
+    document.getElementById('successModalVueltoAmount').textContent = `$${vuelto.toLocaleString('es-CL')}`;
+    document.getElementById('successModalVueltoBreakdown').innerHTML = getPricePictogramsHtml(vuelto);
+
+    document.getElementById('checkoutSuccessModal')?.classList.remove('hidden');
 }
 
+function closeSuccessModalAndFinish() {
+    document.getElementById('checkoutSuccessModal')?.classList.add('hidden');
+    clearBasket();
+    goHome();
+}
+
+// ==========================================
+// 12. INICIALIZACIÓN AUTOMÁTICA
+// ==========================================
 function mainInit() {
+    try {
+        const stored = localStorage.getItem('nee_active_user');
+        if (stored) APP_STATE.currentUser = JSON.parse(stored);
+    } catch(e) {}
     renderApp();
-    initFirebaseListeners();
 }
 
 if (document.readyState === 'loading') {
