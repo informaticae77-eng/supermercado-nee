@@ -493,5 +493,35 @@
     </div>
 
     <script src="app.js"></script>
+
+    <!-- MODAL: EXAMEN DE NIVEL Y REMEDIACIÓN DE 3 INTENTOS -->
+<div id="levelExamModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div id="examModalContainer" class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border-4 border-indigo-500 space-y-4 max-h-[92vh] flex flex-col justify-between">
+        <!-- El contenido dinámico del examen o bloqueo por 3er intento se renderiza vía JavaScript -->
+    </div>
+</div>
+
+<!-- MODAL: REPRODUCTOR DE CÁPSULA DE VIDEO PEDAGÓGICA -->
+<div id="videoCapsuleModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border-4 border-purple-500 space-y-4">
+        <div class="flex justify-between items-center border-b pb-3">
+            <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                <span>🎥</span> <span id="videoCapsuleModalTitle">Cápsula Educativa de Apoyo</span>
+            </h3>
+            <button onclick="closeVideoCapsuleModal()" class="text-slate-400 hover:text-slate-700 font-black text-xl p-1">✕</button>
+        </div>
+        
+        <div id="videoCapsulePlayerContainer" class="relative aspect-video bg-black rounded-2xl overflow-hidden border-2 border-slate-800 flex items-center justify-center">
+            <!-- Reproductor de iframe / video dinámico -->
+        </div>
+
+        <p id="videoCapsuleDescription" class="text-xs font-bold text-slate-600 bg-purple-50 p-3 rounded-2xl border border-purple-200"></p>
+
+        <button onclick="closeVideoCapsuleModal()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-black py-3 rounded-2xl text-xs shadow active:scale-95">
+             Entendido, volver al menú
+        </button>
+    </div>
+</div>
+    
 </body>
 </html>
