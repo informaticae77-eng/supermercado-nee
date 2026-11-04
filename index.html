@@ -30,7 +30,7 @@
         .backface-hidden { backface-visibility: hidden; }
 
         /* =================================================== */
-        /* ANIMACIONES AVANZADAS: TODAS LAS TEMÁTICAS          */
+        /* ANIMACIONES AVANZADAS: TODAS LAS TEMÁTICAS           */
         /* =================================================== */
 
         /* 1. Caída de nieve continua */
@@ -480,47 +480,38 @@
     <div id="aiReportModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border-4 border-indigo-400 space-y-4 max-h-[90vh] flex flex-col justify-between">
             <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="font-black text-slate-800 text-base flex items-center gap-2"><span>✨</span> <span>Informe Pedagógico de Autonomía Funcional</span></h3>
-                <button onclick="closeAIReportModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
-            </div>
-            <div id="aiReportContainer" class="overflow-y-auto pr-1 space-y-4"></div>
-            <div class="flex gap-2 pt-3 border-t">
-                <button onclick="closeAIReportModal()" class="bg-slate-200 text-slate-800 font-black px-4 py-3 rounded-2xl text-xs active:scale-95">Cerrar</button>
-                <button onclick="sendReportByEmail()" class="bg-sky-600 hover:bg-sky-700 text-white font-black px-4 py-3 rounded-2xl text-xs shadow active:scale-95 flex items-center gap-1.5"><span>📧</span> <span>Enviar Correo</span></button>
-                <button onclick="printCurrentReport()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-2xl shadow text-xs border-b-2 border-indigo-950 active:scale-95 flex items-center justify-center gap-2"><span>🖨️</span> <span>Imprimir PDF</span></button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL 14: EXAMEN DE NIVEL Y REMEDIACIÓN DE 3 INTENTOS -->
-    <div id="levelExamModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-        <div id="examModalContainer" class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border-4 border-indigo-500 space-y-4 max-h-[92vh] flex flex-col justify-between">
-            <!-- El contenido dinámico se renderiza en app.js -->
-        </div>
-    </div>
-
-    <!-- MODAL 15: REPRODUCTOR DE CÁPSULA DE VIDEO PEDAGÓGICA -->
-    <div id="videoCapsuleModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border-4 border-purple-500 space-y-4">
-            <div class="flex justify-between items-center border-b pb-3">
                 <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
-                    <span>🎥</span> <span id="videoCapsuleModalTitle">Cápsula Educativa de Apoyo</span>
+                    <span>📊</span> <span>Informe Pedagógico Cualitativo con IA</span>
                 </h3>
-                <button onclick="closeVideoCapsuleModal()" class="text-slate-400 hover:text-slate-700 font-black text-xl p-1">✕</button>
+                <button onclick="closeAiReportModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
             </div>
-            
-            <div id="videoCapsulePlayerContainer" class="relative aspect-video bg-black rounded-2xl overflow-hidden border-2 border-slate-800 flex items-center justify-center">
-                <!-- Reproductor iframe -->
+            <div id="aiReportModalContent" class="space-y-3 overflow-y-auto pr-1 text-xs font-bold text-slate-700">
+                <!-- Se llena dinámicamente desde JS -->
             </div>
-
-            <p id="videoCapsuleDescription" class="text-xs font-bold text-slate-600 bg-purple-50 p-3 rounded-2xl border border-purple-200"></p>
-
-            <button onclick="closeVideoCapsuleModal()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-black py-3 rounded-2xl text-xs shadow active:scale-95">
-                Entendido, volver al menú
-            </button>
+            <div class="flex gap-2 pt-3 border-t">
+                <button onclick="closeAiReportModal()" class="w-1/3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-black py-3 rounded-2xl text-xs active:scale-95">Cerrar</button>
+                <button onclick="window.print()" class="w-2/3 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-2xl shadow text-xs border-b-2 border-indigo-900 active:scale-95 flex items-center justify-center gap-2">
+                    <span>🖨️</span> <span>Imprimir Informe</span>
+                </button>
+            </div>
         </div>
     </div>
 
+    <!-- MODAL 14: MAPA DE MINIJUEGOS Y JEFES -->
+    <div id="minigamesModuleModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-100 rounded-3xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border-4 border-indigo-400" id="minigamesMapContainer">
+            <!-- Render dinámico desde JS con renderMinigamesMap() -->
+        </div>
+    </div>
+
+    <!-- MODAL 15: BATALLA DE JEFE / EXAMEN DE NIVEL -->
+    <div id="levelExamModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border-4 border-rose-500" id="examModalContainer">
+            <!-- Render dinámico desde JS con renderExamQuestion() -->
+        </div>
+    </div>
+
+    <!-- CÓDIGO PRINCIPAL DE LA APLICACIÓN -->
     <script src="app.js"></script>
 </body>
 </html>
