@@ -38,7 +38,7 @@
 </head>
 <body class="bg-slate-100 font-sans min-h-screen text-slate-900 pb-16 relative overflow-x-hidden">
 
-    <!-- CONTENEDOR DE CAPAS Y DECORACIONES ANIMADAS -->
+    <!-- CONTENEDOR DE CAPAS Y DECORACIONES -->
     <div id="themeOverlayContainer" class="pointer-events-none fixed inset-0 z-40 overflow-hidden"></div>
 
     <!-- ENCABEZADO PRINCIPAL DE LA APLICACIÓN -->
@@ -73,7 +73,11 @@
         </div>
     </main>
 
-    <!-- MODAL 1: MINIJUEGOS Y MEMORICE -->
+    <!-- ========================================== -->
+    <!-- MODALES DEL SISTEMA Y HERRAMIENTAS         -->
+    <!-- ========================================== -->
+
+    <!-- MODAL MINIJUEGOS Y MEMORICE -->
     <div id="memoriseGameModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border-4 border-purple-500 space-y-4 max-h-[92vh] flex flex-col justify-between">
             <div class="flex justify-between items-center border-b pb-3">
@@ -104,7 +108,7 @@
         </div>
     </div>
 
-    <!-- MODAL 2: PREMIO FÍSICO -->
+    <!-- MODAL PREMIO FÍSICO -->
     <div id="physicalRewardModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 text-center space-y-5 border-8 border-amber-400 shadow-2xl">
             <div class="text-6xl animate-bounce">🎁🏆</div>
@@ -119,7 +123,7 @@
         </div>
     </div>
 
-    <!-- MODAL 3: CÁMARA OCR PARA ESCANEAR GÓNDOLA -->
+    <!-- MODAL ESCÁNER OCR -->
     <div id="scannerModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border-4 border-indigo-400 space-y-4">
             <div class="flex justify-between items-center border-b pb-3">
@@ -139,7 +143,7 @@
         </div>
     </div>
 
-    <!-- MODAL 4: CANASTO DE COMPRAS Y CAJA -->
+    <!-- MODAL CANASTO Y CAJA -->
     <div id="basketModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border-4 border-indigo-400 space-y-4 max-h-[90vh] flex flex-col justify-between">
             <div class="flex justify-between items-center border-b pb-3">
@@ -171,7 +175,7 @@
         </div>
     </div>
 
-    <!-- MODAL 5: ÉXITO EN COMPRA Y VUELTO -->
+    <!-- MODAL ÉXITO COMPRA -->
     <div id="checkoutSuccessModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-emerald-400 space-y-4 text-center">
             <div class="text-5xl animate-bounce">🎉</div>
@@ -186,17 +190,17 @@
         </div>
     </div>
 
-    <!-- MODAL 6: MAPA DE MINIJUEGOS Y JEFES -->
+    <!-- MODAL MAPA NIVELES -->
     <div id="minigamesModuleModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
         <div class="bg-slate-100 rounded-3xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border-4 border-indigo-400" id="minigamesMapContainer"></div>
     </div>
 
-    <!-- MODAL 7: BATALLA DE JEFE / EXAMEN DE NIVEL -->
+    <!-- MODAL BATALLA DE JEFE -->
     <div id="levelExamModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border-4 border-rose-500" id="examModalContainer"></div>
     </div>
 
-    <!-- MODAL 8: CREACIÓN Y EDICIÓN DE SUPERMERCADO -->
+    <!-- MODAL CREACIÓN SUPERMERCADO -->
     <div id="supermarketModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-indigo-400 space-y-4">
             <h3 class="text-xl font-black text-slate-800" id="supermarketModalTitle">Crear Supermercado</h3>
@@ -218,7 +222,7 @@
         </div>
     </div>
 
-    <!-- MODAL 9: CREACIÓN Y EDICIÓN DE PRODUCTO -->
+    <!-- MODAL CREACIÓN PRODUCTO -->
     <div id="productModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-indigo-400 space-y-4">
             <h3 class="text-xl font-black text-slate-800" id="productModalTitle">Crear Producto</h3>
@@ -244,7 +248,7 @@
         </div>
     </div>
 
-    <!-- MODAL 10: CREACIÓN Y EDICIÓN DE USUARIOS -->
+    <!-- MODAL CREACIÓN USUARIOS -->
     <div id="userModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-indigo-400 space-y-4">
             <h3 class="text-xl font-black text-slate-800" id="userModalTitle">Crear Usuario</h3>
@@ -277,7 +281,7 @@
         </div>
     </div>
 
-    <!-- MODAL 11: MISIONES DE COMPRA Y GUÍAS DE TRABAJO -->
+    <!-- MODAL MISIONES DOCENTES -->
     <div id="missionModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-indigo-400 space-y-4">
             <h3 class="text-xl font-black text-slate-800">Crear Misión / Desafío de Compra</h3>
@@ -298,7 +302,7 @@
         </div>
     </div>
 
-    <!-- VÍNCULO AL CÓDIGO JAVASCRIPT EXTERNO -->
+    <!-- ARCHIVO DE LÓGICA PRINCIPAL -->
     <script src="app.js"></script>
 </body>
 </html>
