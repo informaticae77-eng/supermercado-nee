@@ -107,6 +107,58 @@
             75% { transform: rotate(-10deg); }
         }
         .animate-wave { animation: waveHand 1.8s ease-in-out infinite; transform-origin: bottom center; }
+
+        /* =================================================== */
+        /* ANIMACIONES DINÁMICAS PARA TODAS LAS TEMÁTICAS     */
+        /* =================================================== */
+
+        /* 1. Volantín / Kite volando (Fiestas Patrias) */
+        @keyframes flyKite {
+            0%, 100% { transform: translate(0, 0) rotate(8deg); }
+            50% { transform: translate(50px, -35px) rotate(-12deg); }
+        }
+        .animate-kite { animation: flyKite 4s ease-in-out infinite; }
+
+        /* 2. Trineo de Navidad cruzando el cielo */
+        @keyframes sleighFly {
+            0% { transform: translateX(-160px) translateY(10px) scale(0.9); }
+            50% { transform: translateX(50vw) translateY(-15px) scale(1.05); }
+            100% { transform: translateX(105vw) translateY(20px) scale(0.9); }
+        }
+        .animate-sleigh { animation: sleighFly 10s linear infinite; }
+
+        /* 3. Globos subiendo desde abajo (Mes del Niño) */
+        @keyframes balloonRise {
+            0% { transform: translateY(105vh) translateX(0) rotate(0deg); opacity: 0.9; }
+            50% { transform: translateY(50vh) translateX(30px) rotate(10deg); opacity: 0.8; }
+            100% { transform: translateY(-15vh) translateX(-20px) rotate(-10deg); opacity: 0.1; }
+        }
+        .animate-balloon { position: absolute; bottom: -10vh; animation: balloonRise linear infinite; pointer-events: none; }
+
+        /* 4. Conejito Saltando (Semana Santa) */
+        @keyframes bunnyHop {
+            0%, 100% { transform: translateY(0) scaleY(1); }
+            30% { transform: translateY(-28px) scaleY(1.1) rotate(-5deg); }
+            60% { transform: translateY(0) scaleY(0.9); }
+        }
+        .animate-bunny { animation: bunnyHop 1.6s ease-in-out infinite; }
+
+        /* 5. Caldero de bruja e iluminación de poción */
+        @keyframes cauldronGlow {
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(34, 197, 94, 0.9)) drop-shadow(0 0 25px rgba(168, 85, 247, 0.6)); }
+            50% { filter: drop-shadow(0 0 25px rgba(168, 85, 247, 0.9)) drop-shadow(0 0 35px rgba(34, 197, 94, 0.8)); }
+        }
+        .animate-cauldron { animation: cauldronGlow 2.5s ease-in-out infinite; }
+
+        @keyframes potionBubbleRise {
+            0% { transform: translateY(0) scale(0.4); opacity: 0; }
+            40% { opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.4); opacity: 0; }
+        }
+        .bubble-1 { animation: potionBubbleRise 1.8s infinite ease-out; }
+        .bubble-2 { animation: potionBubbleRise 2.2s infinite ease-out 0.5s; }
+        .bubble-3 { animation: potionBubbleRise 1.6s infinite ease-out 1s; }
+        
     </style>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen text-slate-900 pb-16 relative overflow-x-hidden">
