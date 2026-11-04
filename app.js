@@ -1,5 +1,5 @@
 // ==========================================
-// 1. CONFIGURACIÓN DE FIREBASE Y EMAILJS
+// 1. CONFIGURACIÓN FIREBASE Y ENTORNOS
 // ==========================================
 const firebaseConfig = {
     apiKey: "AIzaSyB27AIOvrMwMtidvD7Lbkbp9v--0DLaZyY",
@@ -15,7 +15,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 }
 
 // ==========================================
-// 2. MATRIZ PEDAGÓGICA MINEDUC / PIE / DECRETO 83
+// 2. MATRIZ CURRICULAR MINEDUC / PIE
 // ==========================================
 const LEVEL_CURRICULUM = {
     1: {
@@ -23,27 +23,25 @@ const LEVEL_CURRICULUM = {
         title: "Nivel 1: Explorador de Góndolas 🎒",
         icon: "🧩",
         bgColor: "from-emerald-600 to-teal-800",
-        objectiveGeneral: "Desarrollar habilidades básicas de discriminación visual, reconocimiento numérico y asociación de valores en el Sistema Monetario Chileno (CLP) de baja denominación ($100 a $2.000) bajo los lineamientos del Currículum Nacional Mineduc (Bases Curriculares Matemáticas 1° Básico / Decreto 83).",
+        objectiveGeneral: "Desarrollar habilidades básicas de discriminación visual, reconocimiento numérico y asociación de valores en el Sistema Monetario Chileno (CLP) de baja denominación ($100 a $2.000) bajo Decreto 83.",
         objectivesSpecific: [
-            "Mineduc OA 1: Identificar, contar y asociar representaciones concretas y pictóricas de números hasta $2.000.",
-            "Mineduc OA 3: Discriminar visualmente las denominaciones de monedas chilenas ($100, $500) y billetes de $1.000 y $2.000.",
-            "PIE / Autonomía: Reconocer productos básicos de primera necesidad mediante pictogramas DUA.",
-            "PIE / Función Ejecutiva: Ejercitar la memoria de trabajo y la atención sostenida a través de la resolución de 6 minijuegos secuenciales.",
-            "Autonomía Social: Ejecutar la entrega de dinero exacto en compras unitarias de un solo artículo."
+            "Mineduc OA 1: Identificar y contar números hasta $2.000.",
+            "Mineduc OA 3: Discriminar monedas ($100, $500) y billetes de $1.000 y $2.000.",
+            "PIE / Autonomía: Reconocer productos básicos con pictogramas DUA.",
+            "PIE / Función Ejecutiva: Ejercitar la atención en 6 minijuegos.",
+            "Autonomía Social: Entrega de dinero exacto en compras unitarias."
         ],
-        objectiveStudent: "Aprender a conocer las monedas y billetes de $1.000 para comprar tus productos favoritos en la tienda.",
-        objectivePedagogical: "Bases Curriculares Mineduc - OA 1 Matemáticas (1° Básico) & Ámbito Autonomía PIE: Discriminación cuantitativa y manejo del dinero de uso cotidiano.",
         minigamesRequired: 6,
         minigamesList: [
-            { id: 'm1_1', name: '1. Memorise de Monedas y Billetes', type: 'memorise', desc: 'Encuentra las parejas de monedas y billetes chilenos.' },
-            { id: 'm1_2', name: '2. Clasificador de Precios Bajos', type: 'choice', desc: 'Identifica el producto de menor valor ($100 vs $500).' },
-            { id: 'm1_3', name: '3. Ordenar Monedas por Tamaño', type: 'sort', desc: 'Ordena de menor a mayor valor las monedas de $10, $50, $100 y $500.' },
-            { id: 'm1_4', name: '4. Parejas de Envases Idénticos', type: 'memorise', desc: 'Asocia el envase del producto con su etiqueta de precio.' },
-            { id: 'm1_5', name: '5. Identificador de Billete $1.000', type: 'choice', desc: 'Selecciona el billete verde de $1.000 entre varias opciones.' },
-            { id: 'm1_6', name: '6. Suma Simple con Monedas de $100', type: 'math', desc: 'Cuenta las monedas de $100 necesarias para alcanzar $500.' }
+            { id: 'm1_1', name: '1. Memorise de Monedas y Billetes', type: 'memorise', desc: 'Encuentra las parejas de dinero chileno.' },
+            { id: 'm1_2', name: '2. Clasificador de Precios Bajos', type: 'choice', desc: 'Identifica el producto de menor valor.' },
+            { id: 'm1_3', name: '3. Ordenar Monedas por Tamaño', type: 'sort', desc: 'Ordena de menor a mayor valor las monedas.' },
+            { id: 'm1_4', name: '4. Parejas de Envases Idénticos', type: 'memorise', desc: 'Asocia el envase con su precio.' },
+            { id: 'm1_5', name: '5. Identificador de Billete $1.000', type: 'choice', desc: 'Selecciona el billete verde de $1.000.' },
+            { id: 'm1_6', name: '6. Suma Simple de Monedas', type: 'math', desc: 'Cuenta las monedas de $100 para llegar a $500.' }
         ],
         bossTitle: "👾 Jefe Final: El Cajero Apurado",
-        bossDescription: "Demuestra tu rapidez identificando los billetes de $1.000 y $2.000 para pagar antes de que se llene la fila.",
+        bossDescription: "Demuestra tu rapidez identificando los billetes de $1.000 y $2.000 antes de que se llene la fila.",
         bossReward: "👑 Corona del Comprador Principiante (+50 PTS)"
     },
     2: {
@@ -51,27 +49,24 @@ const LEVEL_CURRICULUM = {
         title: "Nivel 2: Experto en Góndolas 🏪",
         icon: "🧱",
         bgColor: "from-blue-600 to-indigo-800",
-        objectiveGeneral: "Fortalecer el razonamiento cuantitativo, la comparación de valores en góndolas y la resolución de problemas sencillos de vuelto en compras diarias hasta $5.000 CLP (Mineduc OA 2 y OA 4 - 2° a 3° Básico / PIE).",
+        objectiveGeneral: "Fortalecer la comparación de valores y cálculo de vueltos sencillos hasta $5.000 CLP (Mineduc OA 2 y OA 4 / PIE).",
         objectivesSpecific: [
-            "Mineduc OA 2: Comparar números y magnitudes de precios para determinar la opción más económica o costosa.",
-            "Mineduc OA 4: Resolver problemas aditivos y de sustracción sencillos asociados al cálculo de vueltos con billetes de $5.000.",
-            "PIE / DUA: Interpretar precios en góndolas del supermercado utilizando lectura de etiquetas reales e Inteligencia Artificial / OCR.",
-            "PIE / Autonomía: Organizar el presupuesto personal para seleccionar 2 o más artículos del canasto.",
-            "Autonomía Social: Desarrollar conductas de autorregulación y verificación de vuelto recibido en caja."
+            "Mineduc OA 2: Comparar ofertas y precios económicos.",
+            "Mineduc OA 4: Resolver problemas aditivos con billetes de $5.000.",
+            "PIE / DUA: Leer etiquetas con Inteligencia Artificial / OCR.",
+            "PIE / Autonomía: Administrar presupuesto de 2 o más artículos."
         ],
-        objectiveStudent: "Comparar precios en la góndola, encontrar las ofertas y calcular cuánto vuelto te tienen que entregar.",
-        objectivePedagogical: "Bases Curriculares Mineduc - OA 2 y OA 4 Matemáticas (2°-3° Básico) & Ámbito Integración Social PIE: Estimación de costos y cálculo de vuelto.",
         minigamesRequired: 6,
         minigamesList: [
-            { id: 'm2_1', name: '1. Comparador de Ofertas', type: 'choice', desc: 'Elige cuál producto conviene más comprar según la góndola.' },
+            { id: 'm2_1', name: '1. Comparador de Ofertas', type: 'choice', desc: 'Elige cuál producto conviene más comprar.' },
             { id: 'm2_2', name: '2. Escáner OCR de Góndola', type: 'choice', desc: 'Confirma la etiqueta de precio correcto en el envase.' },
-            { id: 'm2_3', name: '3. Cálculo de Vuelto hasta $5.000', type: 'math', desc: 'Calcula cuánto vuelto recibes al pagar $3.500 con un billete de $5.000.' },
-            { id: 'm2_4', name: '4. Clasificador por Categorías', type: 'choice', desc: 'Agrupa los productos de Lácteos, Panadería y Frutas.' },
-            { id: 'm2_5', name: '5. Detector de Errores de Etiqueta', type: 'choice', desc: 'Encuentra la etiqueta que tiene el precio equivocado.' },
-            { id: 'm2_6', name: '6. Presupuesto de Canasto Sencillo', type: 'math', desc: 'Suma 2 productos y verifica que no supere los $5.000.' }
+            { id: 'm2_3', name: '3. Cálculo de Vuelto hasta $5.000', type: 'math', desc: 'Calcula cuánto vuelto recibes al pagar $3.500 con $5.000.' },
+            { id: 'm2_4', name: '4. Clasificador por Categorías', type: 'choice', desc: 'Agrupa productos por familias DUA.' },
+            { id: 'm2_5', name: '5. Detector de Errores de Etiqueta', type: 'choice', desc: 'Encuentra el precio equivocado.' },
+            { id: 'm2_6', name: '6. Presupuesto de Canasto Sencillo', type: 'math', desc: 'Suma 2 productos que no superen $5.000.' }
         ],
         bossTitle: "👾 Jefe Final: El Inspector de Precios",
-        bossDescription: "Encuentra los precios correctos en la góndola, calcula los vueltos sin errores y verifica las ofertas.",
+        bossDescription: "Encuentra los precios correctos en la góndola y calcula los vueltos sin errores.",
         bossReward: "🏆 Medalla de Experto en Góndolas (+75 PTS)"
     },
     3: {
@@ -79,46 +74,40 @@ const LEVEL_CURRICULUM = {
         title: "Nivel 3: Máster de Supermercado 🏆",
         icon: "💎",
         bgColor: "from-purple-700 to-pink-900",
-        objectiveGeneral: "Consolidar la autonomía funcional completa en el proceso de planificar compras, administrar presupuestos elevados ($10.000 a $20.000 CLP), calcular vueltos complejos y cotejar listas de compras (Mineduc OA 3 y OA 6 - 4° Básico / Talleres Laborales PIE).",
+        objectiveGeneral: "Consolidar autonomía en presupuestos altos ($10.000 a $20.000 CLP) y vueltos complejos (Mineduc OA 3 y OA 6).",
         objectivesSpecific: [
-            "Mineduc OA 3: Realizar operaciones compuestas de suma y resta con numeración en el rango de $1.000 a $20.000.",
-            "Mineduc OA 6: Resolver problemas de la vida real que requieran cotizar, calcular totales y administrar dinero.",
-            "PIE / Taller Laboral: Cotejar una lista de compras impresas o digitales frente a los productos físicos recopilados.",
-            "PIE / Vida Independiente: Manejar billetes de alta denominación ($10.000 y $20.000) discriminando billetes y monedas de vuelto.",
-            "Autonomía Total: Ejecutar la secuencia completa de compra autónoma desde la selección hasta el pago y verificación en caja."
+            "Mineduc OA 3: Operaciones compuestas hasta $20.000 CLP.",
+            "PIE / Talleres Laborales: Cotejar listas de compras físicas/digitales.",
+            "Autonomía Total: Secuencia completa de compra y arqueo de dinero."
         ],
-        objectiveStudent: "Planificar la compra familiar con lista, pagar con billetes grandes de $10.000 y $20.000 y revisar el vuelto exacto.",
-        objectivePedagogical: "Bases Curriculares Mineduc - OA 3 y OA 6 Matemáticas (4° Básico) & PIE Autonomía e Inclusión Laboral: Presupuesto y transacción autónoma.",
         minigamesRequired: 6,
         minigamesList: [
-            { id: 'm3_1', name: '1. Planificador de Lista Familiar', type: 'choice', desc: 'Organiza la lista de compras priorizando los productos más necesarios.' },
-            { id: 'm3_2', name: '2. Suma Acumulada del Canasto', type: 'math', desc: 'Suma los valores de 3 productos del canasto antes de llegar a caja.' },
-            { id: 'm3_3', name: '3. Pago con Billetes Grandes ($10k y $20k)', type: 'math', desc: 'Selecciona la combinación de billetes requerida para compras altas.' },
-            { id: 'm3_4', name: '4. Arqueo de Caja y Vuelto Complejo', type: 'math', desc: 'Verifica el desglose de vuelto con billetes de $2.000, $1.000 y monedas.' },
-            { id: 'm3_5', name: '5. Calculadora de Descuentos 2x1', type: 'choice', desc: 'Aplica el descuento de la promoción y determina el precio final.' },
-            { id: 'm3_6', name: '6. Presupuesto Semanal de Autonomía', type: 'math', desc: 'Ajusta la compra total para que calce con un billete de $20.000.' }
+            { id: 'm3_1', name: '1. Planificador de Lista Familiar', type: 'choice', desc: 'Organiza la lista priorizando compras necesarias.' },
+            { id: 'm3_2', name: '2. Suma Acumulada del Canasto', type: 'math', desc: 'Suma 3 productos antes de pasar por caja.' },
+            { id: 'm3_3', name: '3. Pago con Billetes Grandes', type: 'math', desc: 'Selecciona combinaciones de $10.000 y $20.000.' },
+            { id: 'm3_4', name: '4. Arqueo de Caja y Vuelto Complejo', type: 'math', desc: 'Verifica el desglose de dinero entregado.' },
+            { id: 'm3_5', name: '5. Calculadora de Promociones', type: 'choice', desc: 'Calcula precios finales con descuentos.' },
+            { id: 'm3_6', name: '6. Presupuesto Semanal Autónomo', type: 'math', desc: 'Ajusta compras para calzar con un billete de $20.000.' }
         ],
         bossTitle: "👾 Jefe Final: El Gerente General",
-        bossDescription: "Completa la compra semanal de la lista entregando el pago exacto con billetes grandes y verificando el vuelto.",
+        bossDescription: "Completa la compra de la semana entregando el pago exacto y revisando el vuelto.",
         bossReward: "🥇 Trofeo Máster del Supermercado (+100 PTS)"
     }
 };
 
 const MINEDUC_EXAM_BANK = {
     1: [
-        { q: "Vas al almacén a comprar un jugo de $1.000 pesos. ¿Con cuál billete chileno pagas de forma exacta?", options: ["Billete de $1.000 (Verde)", "Billete de $5.000 (Rojo)", "Moneda de $500"], correct: "Billete de $1.000 (Verde)" },
-        { q: "¿Cuál de estas monedas chilenas tiene el mayor valor monetario?", options: ["Moneda de $500", "Moneda de $100", "Moneda de $50"], correct: "Moneda de $500" },
-        { q: "Si tienes 1 billete de $1.000 y 1 moneda de $500, ¿cuánto dinero tienes en total?", options: ["$1.500 pesos", "$2.000 pesos", "$1.000 pesos"], correct: "$1.500 pesos" }
+        { q: "Vas a comprar un jugo de $1.000 pesos. ¿Con cuál billete pagas exacto?", options: ["Billete de $1.000 (Verde)", "Billete de $5.000 (Rojo)", "Moneda de $500"], correct: "Billete de $1.000 (Verde)" },
+        { q: "¿Cuál de estas monedas tiene el mayor valor monetario?", options: ["Moneda de $500", "Moneda de $100", "Moneda de $50"], correct: "Moneda de $500" },
+        { q: "Si tienes 1 billete de $1.000 y 1 moneda de $500, ¿cuánto suma?", options: ["$1.500 pesos", "$2.000 pesos", "$1.000 pesos"], correct: "$1.500 pesos" }
     ],
     2: [
-        { q: "Un kilo de manzanas cuesta $1.200 y unas galletas cuestan $800. ¿Cuál producto cuesta MENOS dinero?", options: ["Las Galletas ($800)", "Las Manzanas ($1.200)", "Cuestan lo mismo"], correct: "Las Galletas ($800)" },
-        { q: "Si compras un pan de $1.500 pesos y pagas con un billete de $2.000, ¿cuál es tu vuelto exacto?", options: ["$500 pesos", "$1.000 pesos", "Sin vuelto"], correct: "$500 pesos" },
-        { q: "Si llevas 2 yogures de $500 pesos cada uno, ¿cuánto debes pagar en la caja?", options: ["$1.000 pesos", "$1.500 pesos", "$500 pesos"], correct: "$1.000 pesos" }
+        { q: "Un kilo de manzanas cuesta $1.200 y galletas $800. ¿Cuál cuesta MENOS?", options: ["Las Galletas ($800)", "Las Manzanas ($1.200)", "Cuestan lo mismo"], correct: "Las Galletas ($800)" },
+        { q: "Pagas un pan de $1.500 con un billete de $2.000. ¿Cuál es tu vuelto?", options: ["$500 pesos", "$1.000 pesos", "Sin vuelto"], correct: "$500 pesos" }
     ],
     3: [
-        { q: "Compras una Leche de $1.000, un Pan de $2.000 y un Aceite de $3.000. ¿Cuánto dinero sumas en total?", options: ["$6.000 pesos", "$5.000 pesos", "$7.000 pesos"], correct: "$6.000 pesos" },
-        { q: "Pagas una compra de $13.000 pesos con un billete de $20.000. ¿Qué billetes de vuelto debes recibir?", options: ["1 Billete de $5.000 y 1 Billete de $2.000 ($7.000)", "1 Billete de $10.000", "2 Billetes de $2.000"], correct: "1 Billete de $5.000 y 1 Billete de $2.000 ($7.000)" },
-        { q: "Tienes un presupuesto máximo de $10.000. Tu canasto suma $9.500. ¿Alcanza tu dinero para pagar?", options: ["Sí, alcanza y te sobran $500", "No, te faltan $500", "Pagas exacto sin vuelto"], correct: "Sí, alcanza y te sobran $500" }
+        { q: "Compras Leche ($1.000), Pan ($2.000) y Aceite ($3.000). ¿Cuánto sumas?", options: ["$6.000 pesos", "$5.000 pesos", "$7.000 pesos"], correct: "$6.000 pesos" },
+        { q: "Pagas $13.000 con un billete de $20.000. ¿Qué vuelto recibes?", options: ["1 Billete de $5.000 y 1 de $2.000 ($7.000)", "1 Billete de $10.000", "2 Billetes de $2.000"], correct: "1 Billete de $5.000 y 1 de $2.000 ($7.000)" }
     ]
 };
 
@@ -143,12 +132,11 @@ const CLP_CURRENCY_ITEMS = [
 ];
 
 // ==========================================
-// 3. ESTADO GLOBAL COMPLETO DE LA APLICACIÓN
+// 3. ESTADO GLOBAL DE LA APLICACIÓN
 // ==========================================
 const APP_STATE = {
     currentUser: null,
     selectedSupermarketId: null,
-    selectedCategoryFilter: 'ALL',
     currentStudentTab: 'home', // 'home' | 'minigames'
     teacherActiveTab: 'home',
     teacherPreviewMode: false,
@@ -158,27 +146,23 @@ const APP_STATE = {
         { id: 'sup-1', name: 'Supermercado Central', icon: '🏪', description: 'Tienda Principal de la Escuela' },
         { id: 'sup-2', name: 'Minimarket Don Pedro', icon: '🏪', description: 'Almacén de Barrio' }
     ],
-    categories: ['Todas', 'Lácteos, Yogures y Huevos', 'Panadería y Pastelería', 'Frutas y Verduras', 'Bebidas, Agua y Jugos'],
     products: [
-        { id: 'prod-1', name: 'Leche Entera 1L', category: 'Lácteos, Yogures y Huevos', price: 1050, iconEmoji: '🥛' },
-        { id: 'prod-2', name: 'Pan Hallulla 1Kg', category: 'Panadería y Pastelería', price: 1990, iconEmoji: '🍞' },
-        { id: 'prod-3', name: 'Manzana Fuji (1Kg)', category: 'Frutas y Verduras', price: 1200, iconEmoji: '🍎' },
-        { id: 'prod-4', name: 'Jugo de Naranja 1L', category: 'Bebidas, Agua y Jugos', price: 1500, iconEmoji: '🧃' }
+        { id: 'prod-1', name: 'Leche Entera 1L', price: 1050, iconEmoji: '🥛' },
+        { id: 'prod-2', name: 'Pan Hallulla 1Kg', price: 1990, iconEmoji: '🍞' },
+        { id: 'prod-3', name: 'Manzana Fuji (1Kg)', price: 1200, iconEmoji: '🍎' },
+        { id: 'prod-4', name: 'Jugo de Naranja 1L', price: 1500, iconEmoji: '🧃' }
     ],
     users: [
-        { id: 'u-docente', role: 'teacher', name: 'Profesor / Educador PIE', rut: '12345678-9', pin: '1234' },
-        { id: 'u-alumno', role: 'student', name: 'Estudiante Ejemplo', rut: '98765432-1', pin: '1234', points: 60, level: 1, minigamesCompleted: { level_1: 0, level_2: 0, level_3: 0 }, examPassed: {} }
+        { id: 'u-docente', role: 'teacher', name: 'Profe María', rut: '12345678-9', pin: '1234' },
+        { id: 'u-alumno', role: 'student', name: 'Estudiante Ejemplo', rut: '98765432-1', pin: '1234', points: 0, level: 1, minigamesCompleted: { level_1: 0, level_2: 0, level_3: 0 }, examPassed: {} }
     ],
-    settings: { schoolName: "Escuela Especial Adaptativa", teamName: "Equipo Multidisciplinario PIE", rewardPointsThreshold: 250 },
     activeMission: null,
     memorise: { cards: [], flippedCards: [], matchedPairsCount: 0, movesCount: 0, totalPairsNeeded: 3, isBusy: false, activeMinigameMeta: null },
     currentExam: null
 };
 
-const LEVEL_TITLES = ["Nivel 0", "Nivel 1: Explorador de Góndolas 🎒", "Nivel 2: Experto en Góndolas 🏪", "Nivel 3: Máster de Supermercado 🏆"];
-
 // ==========================================
-// 4. FUNCIONES DE APOYO Y SÍNTESIS DE VOZ
+// 4. FUNCIONES DE APOYO Y ACCESIBILIDAD DUA
 // ==========================================
 function getAvatarHtml(type = 'mascot', speech = '') {
     const avatarImg = `<div class="w-16 h-16 bg-indigo-500 text-white rounded-3xl flex items-center justify-center text-3xl font-black shadow animate-avatar-float">🛒🤖</div>`;
@@ -238,7 +222,7 @@ function getPricePictogramsHtml(amount) {
 }
 
 // ==========================================
-// 5. GESTIÓN DE TIENDAS, PRODUCTOS Y MISIONES
+// 5. GESTIÓN DE TIENDAS Y MISIONES
 // ==========================================
 function openSupermarketModal(id = null) {
     document.getElementById('supermarketEditId').value = id || '';
@@ -311,7 +295,7 @@ function saveProductFromModal() {
         const p = APP_STATE.products.find(x => String(x.id) === String(editId));
         if (p) { p.name = name; p.price = price; p.iconEmoji = iconEmoji; }
     } else {
-        APP_STATE.products.push({ id: `prod-${Date.now()}`, name, price, iconEmoji, category: 'General' });
+        APP_STATE.products.push({ id: `prod-${Date.now()}`, name, price, iconEmoji });
     }
     closeProductModal();
     renderApp();
@@ -400,7 +384,7 @@ function captureAndAnalyzeImageWithAI() {
 }
 
 // ==========================================
-// 7. MOTOR INTERACTIVO DE MINIJUEGOS (6 JUEGOS POR NIVEL)
+// 7. MOTOR INTERACTIVO DE MINIJUEGOS (6 POR NIVEL)
 // ==========================================
 function setStudentTab(tabName) {
     APP_STATE.currentStudentTab = tabName;
@@ -427,7 +411,7 @@ function renderMinigamesMap() {
             <div class="bg-indigo-900 text-white p-5 rounded-3xl border-4 border-indigo-400 shadow-xl flex justify-between items-center flex-wrap gap-4">
                 <div>
                     <span class="bg-amber-400 text-slate-900 font-black text-xs px-3 py-1 rounded-full uppercase">🎮 MÓDULO MINIJUEGOS MINEDUC</span>
-                    <h3 class="text-2xl font-black">Mapa de Desafíos (6 Juegos + Jefe Final)</h3>
+                    <h3 class="text-2xl font-black">Mapa de Desafíos por Nivel</h3>
                 </div>
                 <button onclick="closeMinigamesModuleModal()" class="bg-rose-500 text-white font-black text-xs px-4 py-2.5 rounded-2xl shadow">✕ Cerrar Mapa</button>
             </div>
@@ -637,7 +621,7 @@ function handleGenericChoiceAnswer(isCorrect) {
 }
 
 // ==========================================
-// 8. BATALLAS DE JEFES Y EXÁMENES
+// 8. BATALLAS DE JEFES Y EVALUACIONES
 // ==========================================
 function startLevelExam(levelNumber) {
     const user = APP_STATE.currentUser;
@@ -710,7 +694,7 @@ function finishExamEvaluation() {
 function closeExamModal() { document.getElementById('levelExamModal')?.classList.add('hidden'); }
 
 // ==========================================
-// 9. RENDERIZADO DE VISTAS PRINCIPALES
+// 9. RENDERIZADO DE VISTAS Y DASHBOARD
 // ==========================================
 function renderApp() {
     const container = document.getElementById('appContainer');
@@ -734,7 +718,7 @@ function renderApp() {
         return;
     }
 
-    if (APP_STATE.currentUser.role === 'teacher') {
+    if (APP_STATE.currentUser.role === 'teacher' && !APP_STATE.teacherPreviewMode) {
         renderTeacherDashboard(container);
     } else {
         if (APP_STATE.currentStudentTab === 'minigames') {
@@ -800,6 +784,7 @@ function quickLogin(role) {
 function logout() {
     APP_STATE.currentUser = null;
     APP_STATE.selectedSupermarketId = null;
+    APP_STATE.teacherPreviewMode = false;
     localStorage.removeItem('nee_active_user');
     renderApp();
 }
@@ -810,13 +795,45 @@ function goHome() {
     renderApp();
 }
 
+function toggleTeacherPreview() {
+    APP_STATE.teacherPreviewMode = !APP_STATE.teacherPreviewMode;
+    renderApp();
+}
+
 function renderHomeView(container) {
-    const userLevel = APP_STATE.currentUser?.level || 1;
-    const minigamesDone = (APP_STATE.currentUser?.minigamesCompleted?.[`level_${userLevel}`]) || 0;
+    const user = APP_STATE.currentUser || { level: 1, points: 0 };
+    const userLevel = user.level || 1;
+    const points = user.points || 0;
+    const minigamesDone = (user.minigamesCompleted && user.minigamesCompleted[`level_${userLevel}`]) || 0;
 
     container.innerHTML = `
         <div class="space-y-6">
-            <!-- PESTAÑAS DEL DASHBOARD DEL ESTUDIANTE -->
+            <!-- BARRA DE MODO PRUEBA DOCENTE (SI APLICA) -->
+            ${APP_STATE.teacherPreviewMode ? `
+                <div class="bg-amber-400 border-4 border-amber-600 p-4 rounded-3xl flex items-center justify-between flex-wrap gap-2 shadow">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">🕹️</span>
+                        <div>
+                            <h4 class="font-black text-slate-900 text-sm">MODO PRUEBA: VISTA DEL ESTUDIANTE</h4>
+                            <p class="text-[11px] font-bold text-slate-800">Prueba la tienda interactiva tal como la ven los alumnos.</p>
+                        </div>
+                    </div>
+                    <button onclick="toggleTeacherPreview()" class="bg-slate-900 text-white font-black px-4 py-2 rounded-xl text-xs shadow">← Volver al Panel Docente</button>
+                </div>
+            ` : ''}
+
+            <!-- BARRA DE PROGRESO DE NIVEL (SIN BOTONES DE EXAMEN O MEMORICE) -->
+            <div class="bg-white border-4 border-slate-200 rounded-3xl p-4 shadow flex items-center justify-between flex-wrap gap-3">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">🏆</span>
+                    <div>
+                        <h3 class="font-black text-slate-800 text-base">Nivel ${userLevel}: Explorador Inicial</h3>
+                        <p class="text-xs font-bold text-slate-500">Puntos acumulados: <b class="text-indigo-600">${points} pts</b> de 250 pts para el premio</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PESTAÑAS NAVEGABLES DEL ALUMNO -->
             <div class="flex gap-2 bg-white p-2 rounded-2xl border-2 shadow-sm">
                 <button onclick="setStudentTab('home')" class="w-1/2 py-3 rounded-xl font-black text-xs sm:text-sm transition-all ${APP_STATE.currentStudentTab === 'home' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
                     🏪 Supermercados y Sala
@@ -826,22 +843,19 @@ function renderHomeView(container) {
                 </button>
             </div>
 
-            <!-- SI HAY MISIÓN ACTIVA DEFINIDA POR EL DOCENTE -->
-            ${APP_STATE.activeMission ? `
-                <div class="bg-amber-100 border-4 border-amber-400 p-4 rounded-3xl shadow flex items-center gap-3">
-                    <span class="text-4xl">🎯</span>
-                    <div>
-                        <span class="font-black text-xs text-amber-900 uppercase">Misión Activa del Profesor:</span>
-                        <h4 class="font-black text-slate-800 text-sm">${APP_STATE.activeMission.title}</h4>
-                        <p class="text-xs font-bold text-slate-600">${APP_STATE.activeMission.desc}</p>
-                    </div>
+            <!-- BANNER DE BIENVENIDA Y ACCESO A SUPERMERCADOS -->
+            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 rounded-3xl shadow-xl flex justify-between items-center flex-wrap gap-4 relative overflow-hidden">
+                <div class="space-y-1 relative z-10">
+                    <h2 class="text-2xl font-black">¡Bienvenido a Comprar! 🛍️</h2>
+                    <p class="text-xs font-bold text-indigo-100">Selecciona una tienda para comenzar tu misión.</p>
                 </div>
-            ` : ''}
+                <div class="relative z-10">${getAvatarHtml('mascot', `¡Hola ${user.name}! Selecciona una tienda.`)}</div>
+            </div>
 
-            <!-- LISTA DE SUPERMERCADOS Y TIENDAS DE LA ESCUELA -->
+            <!-- LISTA DE SUPERMERCADOS DISPONIBLES -->
             <div class="space-y-3">
                 <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
-                    <span>🏪</span> <span>Supermercados Disponibles (Toca para entrar a comprar):</span>
+                    <span>🏪</span> <span>Supermercados Disponibles (Toca uno para entrar):</span>
                 </h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     ${APP_STATE.supermarkets.map(sup => `
@@ -902,7 +916,7 @@ function renderStudentMinigamesTab(container) {
 
     container.innerHTML = `
         <div class="space-y-6">
-            <!-- PESTAÑAS DEL DASHBOARD DEL ESTUDIANTE -->
+            <!-- PESTAÑAS DE NAVEGACIÓN -->
             <div class="flex gap-2 bg-white p-2 rounded-2xl border-2 shadow-sm">
                 <button onclick="setStudentTab('home')" class="w-1/2 py-3 rounded-xl font-black text-xs sm:text-sm bg-slate-100 text-slate-700 hover:bg-slate-200">
                     🏪 Supermercados y Sala
@@ -912,18 +926,18 @@ function renderStudentMinigamesTab(container) {
                 </button>
             </div>
 
-            <!-- ENCABEZADO DEL NIVEL ACTUAL -->
+            <!-- CABECERA DEL NIVEL Y MINIJUEGOS -->
             <div class="bg-gradient-to-r ${lvl.bgColor} text-white p-6 rounded-3xl shadow-xl space-y-2">
-                <span class="bg-amber-400 text-slate-900 font-black px-3 py-0.5 rounded-full text-[10px] uppercase">NIVEL ACTUAL DE DESAFÍOS</span>
+                <span class="bg-amber-400 text-slate-900 font-black px-3 py-0.5 rounded-full text-[10px] uppercase">DESAFÍOS COGNITIVOS EVALUABLES</span>
                 <h2 class="text-2xl font-black">${lvl.title}</h2>
                 <p class="text-xs font-bold text-white/90">${lvl.objectiveGeneral}</p>
             </div>
 
-            <!-- MAPA INTEGRADO DE LOS 6 MINIJUEGOS DEL ESTUDIANTE -->
+            <!-- CONTENEDOR INTEGRADO DE LOS 6 JUEGOS + EXAMEN DE JEFE -->
             <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow-md space-y-4">
                 <div class="flex justify-between items-center flex-wrap gap-2 border-b pb-3">
-                    <h3 class="text-lg font-black text-slate-800">🎮 Los 6 Minijuegos Evaluables del Nivel ${userLevel}:</h3>
-                    <button onclick="openMinigamesModuleModal()" class="bg-purple-600 hover:bg-purple-700 text-white font-black px-4 py-2 rounded-xl text-xs shadow">🗺️ Ver Mapa Completo de Niveles</button>
+                    <h3 class="text-lg font-black text-slate-800">🎮 Minijuegos de Autonomía (Nivel ${userLevel}):</h3>
+                    <button onclick="openMinigamesModuleModal()" class="bg-purple-600 hover:bg-purple-700 text-white font-black px-4 py-2 rounded-xl text-xs shadow">🗺️ Ver Mapa Completo</button>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -940,17 +954,17 @@ function renderStudentMinigamesTab(container) {
                                     <p class="text-[11px] font-bold text-slate-600 mt-1">${game.desc}</p>
                                 </div>
                                 <button onclick="launchSpecificMinigame(${userLevel}, ${gameNum})" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow active:scale-95">
-                                    ▶️ Iniciar Minijuego #${gameNum}
+                                    ▶️ Iniciar Minijuego #${gameNum} (+15 PTS)
                                 </button>
                             </div>
                         `;
                     }).join('')}
                 </div>
 
-                <!-- BOTÓN DE BATALLA DE JEFE -->
+                <!-- BLOQUE DEL JEFE / EXAMEN REUBICADO -->
                 <div class="bg-rose-50 border-2 border-rose-300 p-4 rounded-2xl flex items-center justify-between flex-wrap gap-3 mt-4">
                     <div>
-                        <h4 class="font-black text-rose-950 text-sm">${lvl.bossTitle}</h4>
+                        <h4 class="font-black text-rose-950 text-sm">📝 EXAMEN Y BATALLA DE JEFE (NIVEL ${userLevel})</h4>
                         <p class="text-xs font-bold text-rose-800">${lvl.bossDescription}</p>
                     </div>
                     <button onclick="startLevelExam(${userLevel})" ${minigamesDone < 6 ? 'disabled' : ''} class="px-5 py-3 rounded-2xl font-black text-xs shadow ${minigamesDone >= 6 ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}">
@@ -963,7 +977,7 @@ function renderStudentMinigamesTab(container) {
 }
 
 // ==========================================
-// 10. PANEL DOCENTE COMPLETO
+// 10. PANEL DOCENTE
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -977,7 +991,10 @@ function renderTeacherDashboard(container) {
             <div class="bg-slate-900 text-white p-5 rounded-3xl shadow-xl space-y-4">
                 <div class="flex justify-between items-center flex-wrap gap-2">
                     <h2 class="text-xl font-black">🏫 Panel Docente y Psicopedagógico PIE</h2>
-                    <button onclick="openMissionModal()" class="bg-amber-400 text-slate-900 font-black text-xs px-3 py-1.5 rounded-xl">🎯 Crear Misión de Compra</button>
+                    <div class="flex gap-2">
+                        <button onclick="toggleTeacherPreview()" class="bg-amber-400 text-slate-900 font-black text-xs px-3 py-1.5 rounded-xl">👁️ Vista Estudiante</button>
+                        <button onclick="openMissionModal()" class="bg-indigo-600 text-white font-black text-xs px-3 py-1.5 rounded-xl">🎯 Crear Misión</button>
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 border-t border-slate-800 pt-3">
                     <button onclick="setTeacherTab('home')" class="py-2 px-3 rounded-xl font-black text-xs ${activeTab === 'home' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'}">📊 Evaluaciones</button>
@@ -1031,18 +1048,12 @@ function renderTeacherCurriculumObjectivesTab() {
                                 <span class="bg-indigo-600 text-white font-black text-xs px-3 py-1 rounded-full uppercase">${lvl.title}</span>
                                 <span class="text-xs font-black text-amber-700">Requisito: ${lvl.minigamesRequired} Minijuegos + Jefe</span>
                             </div>
-                            <p class="text-xs font-bold text-slate-800"><b>Objetivo General Mineduc:</b> ${lvl.objectiveGeneral}</p>
+                            <p class="text-xs font-bold text-slate-800"><b>Objetivo General:</b> ${lvl.objectiveGeneral}</p>
                             <div class="bg-indigo-50 p-3 rounded-2xl border border-indigo-200 text-xs font-bold space-y-1">
                                 <span class="text-indigo-900 font-black block">Objetivos Específicos:</span>
                                 <ul class="list-disc list-inside text-indigo-950 space-y-1">
                                     ${lvl.objectivesSpecific.map(o => `<li>${o}</li>`).join('')}
                                 </ul>
-                            </div>
-                            <div class="bg-purple-50 p-3 rounded-2xl text-xs font-bold space-y-1">
-                                <span class="text-purple-900 font-black block">Desglose de los 6 Minijuegos Evaluables:</span>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-                                    ${lvl.minigamesList.map(g => `<div class="p-2 bg-white rounded border"><b>${g.name}:</b> ${g.desc}</div>`).join('')}
-                                </div>
                             </div>
                         </div>
                     `;
@@ -1055,7 +1066,6 @@ function renderTeacherCurriculumObjectivesTab() {
 function renderTeacherCatalogsTab() {
     return `
         <div class="space-y-6">
-            <!-- GESTIÓN DE SUPERMERCADOS -->
             <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow space-y-4">
                 <div class="flex justify-between items-center">
                     <h3 class="font-black text-slate-800 text-base">🏪 Supermercados Creados</h3>
@@ -1077,7 +1087,6 @@ function renderTeacherCatalogsTab() {
                 </div>
             </div>
 
-            <!-- GESTIÓN DE PRODUCTOS -->
             <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow space-y-4">
                 <div class="flex justify-between items-center">
                     <h3 class="font-black text-slate-800 text-base">📦 Catálogo de Productos y Precios</h3>
@@ -1131,7 +1140,7 @@ function renderTeacherUsersTab() {
 }
 
 // ==========================================
-// 11. CANASTO DE COMPRAS Y PAGO EN CAJA
+// 11. CANASTO DE COMPRAS Y PAGO
 // ==========================================
 function openBasketModal() {
     renderBasketModalContent();
@@ -1243,7 +1252,7 @@ function closeSuccessModalAndFinish() {
 }
 
 // ==========================================
-// 12. INICIALIZACIÓN AUTOMÁTICA
+// 12. INICIALIZACIÓN DE LA APLICACIÓN
 // ==========================================
 function mainInit() {
     try {
