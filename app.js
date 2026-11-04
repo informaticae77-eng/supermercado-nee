@@ -27,7 +27,7 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
-// 2. MATRIZ DE OBJETIVOS PEDAGÓGICOS (MINEDUC / PIE)
+// 2. MATRIZ DE OBJETIVOS PEDAGÓGICOS (MINEDUC / PIE / DECRETO 83)
 // ==========================================
 const LEVEL_CURRICULUM = {
     1: {
@@ -35,17 +35,27 @@ const LEVEL_CURRICULUM = {
         title: "Nivel 1: Explorador de Góndolas 🎒",
         icon: "🧩",
         bgColor: "from-emerald-600 to-teal-800",
-        objectiveGeneral: "Desarrollar habilidades básicas de discriminación visual, reconocimiento numérico y asociación de valores en el Sistema Monetario Chileno (CLP) de baja denominación ($100 a $2.000).",
+        objectiveGeneral: "Desarrollar habilidades básicas de discriminación visual, reconocimiento numérico y asociación de valores en el Sistema Monetario Chileno (CLP) de baja denominación ($100 a $2.000) bajo los lineamientos del Currículum Nacional Mineduc (Bases Curriculares Matemáticas 1° Básico / Decreto 83).",
         objectivesSpecific: [
-            "Identificar y diferenciar visualmente monedas ($100, $500) y billetes de $1.000 y $2.000.",
-            "Asociar el valor escrito en el precio de un producto con la moneda o billete correspondiente.",
-            "Ejercitar memoria de trabajo y motricidad fina mediante el minijuego de parejas adaptadas."
+            "Mineduc OA 1: Identificar, contar y asociar representaciones concretas y pictóricas de números hasta $2.000.",
+            "Mineduc OA 3: Discriminar visualmente las denominaciones de monedas chilenas ($100, $500) y billetes de $1.000 y $2.000.",
+            "PIE / Autonomía: Reconocer productos básicos de primera necesidad mediante pictogramas DUA.",
+            "PIE / Función Ejecutiva: Ejercitar la memoria de trabajo y la atención sostenida a través de la resolución de 6 minijuegos secuenciales.",
+            "Autonomía Social: Ejecutar la entrega de dinero exacto en compras unitarias de un solo artículo."
         ],
-        objectiveStudent: "Aprender a conocer los billetes de $1.000 y las monedas para pagar tus productos favoritos.",
-        objectivePedagogical: "OA 1 Matemáticas / Autonomía PIE: Identificación y discriminación de magnitudes numéricas y monedas de uso cotidiano.",
-        minigamesRequired: 5,
+        objectiveStudent: "Aprender a conocer las monedas y billetes de $1.000 para comprar tus productos favoritos en la tienda.",
+        objectivePedagogical: "Bases Curriculares Mineduc - OA 1 Matemáticas (1° Básico) & Ámbito Autonomía PIE: Discriminación cuantitativa y manejo del dinero de uso cotidiano.",
+        minigamesRequired: 6,
+        minigamesList: [
+            { id: 'm1_1', name: '1. Memorise de Monedas y Billetes', type: 'memorise', desc: 'Encuentra las parejas de monedas y billetes chilenos.' },
+            { id: 'm1_2', name: '2. Clasificador de Precios Bajos', type: 'choice', desc: 'Identifica el producto de menor valor ($100 vs $500).' },
+            { id: 'm1_3', name: '3. Ordenar Monedas por Tamaño', type: 'sort', desc: 'Ordena de menor a mayor valor las monedas de $10, $50, $100 y $500.' },
+            { id: 'm1_4', name: '4. Parejas de Envases Identicos', type: 'memorise', desc: 'Asocia el envase del producto con su etiqueta de precio.' },
+            { id: 'm1_5', name: '5. Identificador de Billete $1.000', type: 'choice', desc: 'Selecciona el billete verde de $1.000 entre varias opciones.' },
+            { id: 'm1_6', name: '6. Suma Simple con Monedas de $100', type: 'math', desc: 'Cuenta las monedas de $100 necesarias para alcanzar $500.' }
+        ],
         bossTitle: "👾 Jefe Final: El Cajero Apurado",
-        bossDescription: "Demuestra tu rapidez identificando los billetes correctos para pagar antes de que se llene la fila.",
+        bossDescription: "Demuestra tu rapidez identificando los billetes de $1.000 y $2.000 para pagar antes de que se llene la fila.",
         bossReward: "👑 Corona del Comprador Principiante (+50 PTS)"
     },
     2: {
@@ -53,17 +63,27 @@ const LEVEL_CURRICULUM = {
         title: "Nivel 2: Experto en Góndolas 🏪",
         icon: "🧱",
         bgColor: "from-blue-600 to-indigo-800",
-        objectiveGeneral: "Fortalecer el razonamiento cuantitativo y la comparación de valores en góndolas para tomar decisiones económicas autónomas.",
+        objectiveGeneral: "Fortalecer el razonamiento cuantitativo, la comparación de valores en góndolas y la resolución de problemas sencillos de vuelto en compras diarias hasta $5.000 CLP (Mineduc OA 2 y OA 4 - 2° a 3° Básico / PIE).",
         objectivesSpecific: [
-            "Comparar precios para determinar cuál producto es más costoso o más económico.",
-            "Escanear e interpretar etiquetas de góndola en entornos reales usando la cámara con Inteligencia Artificial.",
-            "Calcular vueltos simples en compras con pago de hasta $5.000 pesos."
+            "Mineduc OA 2: Comparar números y magnitudes de precios para determinar la opción más económica o costosa.",
+            "Mineduc OA 4: Resolver problemas aditivos y de sustracción sencillos asociados al cálculo de vueltos con billetes de $5.000.",
+            "PIE / DUA: Interpretar precios en góndolas del supermercado utilizando lectura de etiquetas reales e Inteligencia Artificial / OCR.",
+            "PIE / Autonomía: Organizar el presupuesto personal para seleccionar 2 o más artículos del canasto.",
+            "Autonomía Social: Desarrollar conductas de autorregulación y verificación de vuelto recibido en caja."
         ],
-        objectiveStudent: "Comparar precios en las repisas y descubrir qué producto te conviene más llevar.",
-        objectivePedagogical: "OA 2 Matemáticas / Autonomía PIE: Comparación de magnitudes cuantitativas, lecturas de etiquetas y estimación de costos.",
-        minigamesRequired: 5,
+        objectiveStudent: "Comparar precios en la góndola, encontrar las ofertas y calcular cuánto vuelto te tienen que entregar.",
+        objectivePedagogical: "Bases Curriculares Mineduc - OA 2 y OA 4 Matemáticas (2°-3° Básico) & Ámbito Integración Social PIE: Estimación de costos y cálculo de vuelto.",
+        minigamesRequired: 6,
+        minigamesList: [
+            { id: 'm2_1', name: '1. Comparador de Ofertas', type: 'choice', desc: 'Elige cuál producto conviene más comprar según la góndola.' },
+            { id: 'm2_2', name: '2. Escáner OCR de Góndola', type: 'camera', desc: 'Apunta la cámara al producto para confirmar su precio exacto.' },
+            { id: 'm2_3', name: '3. Cálculo de Vuelto hasta $5.000', type: 'math', desc: 'Calcula cuánto vuelto recibes al pagar $3.500 con un billete de $5.000.' },
+            { id: 'm2_4', name: '4. Clasificador por Categorías', type: 'sort', desc: 'Agrupa los productos de Lácteos, Panadería y Frutas.' },
+            { id: 'm2_5', name: '5. Detector de Errores de Etiqueta', type: 'choice', desc: 'Encuentra la etiqueta que tiene el precio equivocado.' },
+            { id: 'm2_6', name: '6. Presupuesto de Canasto Sencillo', type: 'math', desc: 'Suma 2 productos y verifica que no supere los $5.000.' }
+        ],
         bossTitle: "👾 Jefe Final: El Inspector de Precios",
-        bossDescription: "Encuentra los precios correctos en la góndola y verifica las ofertas sin equivocarte.",
+        bossDescription: "Encuentra los precios correctos en la góndola, calcula los vueltos sin errores y verifica las ofertas.",
         bossReward: "🏆 Medalla de Experto en Góndolas (+75 PTS)"
     },
     3: {
@@ -71,17 +91,27 @@ const LEVEL_CURRICULUM = {
         title: "Nivel 3: Máster de Supermercado 🏆",
         icon: "💎",
         bgColor: "from-purple-700 to-pink-900",
-        objectiveGeneral: "Consolidar la autonomía funcional del estudiante en el proceso completo de compra, presupuesto y verificación de vueltos.",
+        objectiveGeneral: "Consolidar la autonomía funcional completa en el proceso de planificar compras, administrar presupuestos elevados ($10.000 a $20.000 CLP), calcular vueltos complejos y cotejar listas de compras (Mineduc OA 3 y OA 6 - 4° Básico / Talleres Laborales PIE).",
         objectivesSpecific: [
-            "Planificar y cotejar una lista de compras impresa frente a la selección de artículos.",
-            "Sumar costos acumulados de múltiples productos dentro del canasto.",
-            "Manejar billetes de alta denominación ($5.000, $10.000, $20.000) y calcular el vuelto exacto."
+            "Mineduc OA 3: Realizar operaciones compuestas de suma y resta con numeración en el rango de $1.000 a $20.000.",
+            "Mineduc OA 6: Resolver problemas de la vida real que requieran cotizar, calcular totales y administrar dinero.",
+            "PIE / Taller Laboral: Cotejar una lista de compras impresas o digitales frente a los productos físicos recopilados.",
+            "PIE / Vida Independiente: Manejar billetes de alta denominación ($10.000 y $20.000) discriminando billetes y monedas de vuelto.",
+            "Autonomía Total: Ejecutar la secuencia completa de compra autónoma desde la selección hasta el pago y verificación en caja."
         ],
-        objectiveStudent: "Armar tu lista de compras completa, pagar con billetes grandes y revisar que tu vuelto esté correcto.",
-        objectivePedagogical: "OA 3 Matemáticas / Autonomía PIE: Transacciones compuestas, presupuesto familiar y resolución de problemas de la vida diaria.",
-        minigamesRequired: 5,
+        objectiveStudent: "Planificar la compra familiar con lista, pagar con billetes grandes de $10.000 y $20.000 y revisar el vuelto exacto.",
+        objectivePedagogical: "Bases Curriculares Mineduc - OA 3 y OA 6 Matemáticas (4° Básico) & PIE Autonomía e Inclusión Laboral: Presupuesto y transacción autónoma.",
+        minigamesRequired: 6,
+        minigamesList: [
+            { id: 'm3_1', name: '1. Planificador de Lista Familiar', type: 'sort', desc: 'Organiza la lista de compras priorizando los productos más necesarios.' },
+            { id: 'm3_2', name: '2. Suma Acumulada del Canasto', type: 'math', desc: 'Suma los valores de 3 productos del canasto antes de llegar a caja.' },
+            { id: 'm3_3', name: '3. Pago con Billetes Grandes ($10k y $20k)', type: 'math', desc: 'Selecciona la combinación de billetes requerida para compras altas.' },
+            { id: 'm3_4', name: '4. Arqueo de Caja y Vuelto Complejo', type: 'math', desc: 'Verifica la desglose de vuelto con billetes de $2.000, $1.000 y monedas.' },
+            { id: 'm3_5', name: '5. Calculadora de Descuentos 2x1', type: 'choice', desc: 'Aplica el descuento de la promoción y determina el precio final.' },
+            { id: 'm3_6', name: '6. Presupuesto Semanal de Autonomía', type: 'math', desc: 'Ajusta la compra total para que calce con un billete de $20.000.' }
+        ],
         bossTitle: "👾 Jefe Final: El Gerente General",
-        bossDescription: "Completa la compra semanal de la lista entregando el pago exacto y verificando tu vuelto.",
+        bossDescription: "Completa la compra semanal de la lista entregando el pago exacto con billetes grandes y verificando el vuelto.",
         bossReward: "🥇 Trofeo Máster del Supermercado (+100 PTS)"
     }
 };
@@ -89,38 +119,53 @@ const LEVEL_CURRICULUM = {
 const MINEDUC_EXAM_BANK = {
     1: [
         {
-            q: "Vas al almacén a comprar un jugo de $1.000 pesos. ¿Con cuál billete chileno pagas justo?",
+            q: "Vas al almacén a comprar un jugo de $1.000 pesos. ¿Con cuál billete chileno pagas de forma justa?",
             options: ["Billete de $1.000 (Verde)", "Billete de $5.000 (Rojo)", "Moneda de $500"],
             correct: "Billete de $1.000 (Verde)"
         },
         {
-            q: "¿Cuál de estas monedas chilenas tiene mayor valor en dinero?",
+            q: "¿Cuál de estas monedas chilenas tiene el mayor valor monetario?",
             options: ["Moneda de $500", "Moneda de $100", "Moneda de $50"],
             correct: "Moneda de $500"
+        },
+        {
+            q: "Si tienes 1 billete de $1.000 y 1 moneda de $500, ¿cuánto dinero tienes en total?",
+            options: ["$1.500 pesos", "$2.000 pesos", "$1.000 pesos"],
+            correct: "$1.500 pesos"
         }
     ],
     2: [
         {
-            q: "En la feria, 1 Kilo de Manzanas cuesta $1.200 y unas Galletas cuestan $800. ¿Cuál producto cuesta MENOS dinero?",
+            q: "Un kilo de manzanas cuesta $1.200 y unas galletas cuestan $800. ¿Cuál producto cuesta MENOS dinero?",
             options: ["Las Galletas ($800)", "Las Manzanas ($1.200)", "Cuestan lo mismo"],
             correct: "Las Galletas ($800)"
         },
         {
-            q: "Si compras un pan de $1.500 pesos y pagas con un billete de $2.000, ¿cuál es tu vuelto?",
+            q: "Si compras un pan de $1.500 pesos y pagas con un billete de $2.000, ¿cuál es tu vuelto exacto?",
             options: ["$500 pesos", "$1.000 pesos", "Sin vuelto"],
             correct: "$500 pesos"
+        },
+        {
+            q: "Si llevas 2 yogures de $500 pesos cada uno, ¿cuánto debes pagar en la caja?",
+            options: ["$1.000 pesos", "$1.500 pesos", "$500 pesos"],
+            correct: "$1.000 pesos"
         }
     ],
     3: [
         {
-            q: "Compras una Leche de $1.000 y un Pan de $2.000. ¿Cuánto dinero debes pagar en total?",
-            options: ["$3.000 pesos", "$2.000 pesos", "$4.000 pesos"],
-            correct: "$3.000 pesos"
+            q: "Compras una Leche de $1.000, un Pan de $2.000 y un Aceite de $3.000. ¿Cuánto dinero sumas en total?",
+            options: ["$6.000 pesos", "$5.000 pesos", "$7.000 pesos"],
+            correct: "$6.000 pesos"
         },
         {
-            q: "Pagas una compra de $4.000 pesos con un billete de $5.000. ¿Qué billete o moneda debes recibir de vuelto?",
-            options: ["Billete de $1.000", "Moneda de $500", "Billete de $2.000"],
-            correct: "Billete de $1.000"
+            q: "Pagas una compra de $13.000 pesos con un billete de $20.000. ¿Qué billetes de vuelto debes recibir?",
+            options: ["1 Billete de $5.000 y 1 Billete de $2.000 ($7.000)", "1 Billete de $10.000", "2 Billetes de $2.000"],
+            correct: "1 Billete de $5.000 y 1 Billete de $2.000 ($7.000)"
+        },
+        {
+            q: "Tienes un presupuesto máximo de $10.000. Tu canasto suma $9.500. ¿Alcanza tu dinero para pagar?",
+            options: ["Sí, alcanza y te sobran $500", "No, te faltan $500", "Pagas exacto sin vuelto"],
+            correct: "Sí, alcanza y te sobran $500"
         }
     ]
 };
@@ -142,11 +187,11 @@ const SEASONAL_THEMES = {
 const DEFAULT_SETTINGS = {
     schoolName: "Escuela Especial Adaptativa",
     schoolSubHeader: "Unidad de Autonomía Funcional",
-    teamName: "Equipo Multidisciplinario",
+    teamName: "Equipo Multidisciplinario PIE",
     schoolLogo: "",
     mascotUrl: "",
     corporeoUrl: "",
-    activeTheme: "halloween",
+    activeTheme: "standard",
     rewardPointsThreshold: 250,
     rewardMessage: "¡Excelente trabajo! Muestra esta pantalla a tu profesor para recibir tu premio físico."
 };
@@ -191,6 +236,7 @@ const APP_STATE = {
     currentUser: null,
     selectedSupermarketId: null,
     selectedCategoryFilter: 'ALL',
+    currentStudentTab: 'home', // 'home' | 'minigames'
     teacherActiveTab: 'home',
     teacherPreviewMode: false,
     basket: [],
@@ -205,18 +251,13 @@ const APP_STATE = {
     ],
     users: [
         { id: 'u-docente', role: 'teacher', name: 'Profesor / Educador', rut: '12345678-9', pin: '1234', email: 'docente@escuela.cl' },
-        { id: 'u-alumno', role: 'student', name: 'Estudiante Ejemplo', rut: '98765432-1', pin: '1234', points: 50, level: 1, xp: 50, minigamesCompleted: { level_1: 0 }, examPassed: {} }
+        { id: 'u-alumno', role: 'student', name: 'Estudiante Ejemplo', rut: '98765432-1', pin: '1234', points: 60, level: 1, xp: 60, minigamesCompleted: { level_1: 0, level_2: 0, level_3: 0 }, examPassed: {} }
     ],
     customCurrencies: {},
     settings: { ...DEFAULT_SETTINGS },
     activeMission: null,
-    classroomErrorsCount: 0,
-    invalidBasketItems: [],
-    memorise: { cards: [], flippedCards: [], matchedPairsCount: 0, movesCount: 0, totalPairsNeeded: 3, isBusy: false },
-    currentExam: null,
-    videoCapsules: [
-        { id: 'cap-1', level: 1, skill: 'Reconocimiento de Monedas', title: '¿Cómo identificar billetes y monedas?', url: 'https://www.youtube.com/embed/dQw4w9WgXcQ' }
-    ]
+    memorise: { cards: [], flippedCards: [], matchedPairsCount: 0, movesCount: 0, totalPairsNeeded: 3, isBusy: false, activeMinigameMeta: null },
+    currentExam: null
 };
 
 // ==========================================
@@ -254,7 +295,7 @@ function getAvatarHtml(type = 'mascot', customSpeechText = '') {
 function renderThemeOverlay() {
     const container = document.getElementById('themeOverlayContainer');
     if (!container) return;
-    const activeKey = (APP_STATE.settings && APP_STATE.settings.activeTheme) || 'halloween';
+    const activeKey = (APP_STATE.settings && APP_STATE.settings.activeTheme) || 'standard';
     if (activeKey === 'halloween') {
         container.innerHTML = `<div class="absolute top-6 left-0 animate-witch z-50 text-5xl sm:text-6xl drop-shadow-xl pointer-events-none">🧙‍♀️🧹</div>`;
     } else {
@@ -355,38 +396,42 @@ function confirmPhysicalRewardClaim() {
 }
 
 // ==========================================
-// 7. REGISTRO DE MINIJUEGOS (5 PARA EL JEFE)
+// 7. REGISTRO DE MINIJUEGOS (6 POR NIVEL)
 // ==========================================
-function registerMinigameCompletion(minigameName = "Memorice") {
+function registerMinigameCompletion(minigameMeta) {
     const user = APP_STATE.currentUser;
     if (!user || user.role !== 'student') return;
 
-    const currentLevel = user.level || 1;
+    const currentLevel = (minigameMeta && minigameMeta.level) || user.level || 1;
     if (!user.minigamesCompleted) user.minigamesCompleted = {};
 
     const key = `level_${currentLevel}`;
-    user.minigamesCompleted[key] = (user.minigamesCompleted[key] || 0) + 1;
+    const previousDone = user.minigamesCompleted[key] || 0;
+    if (previousDone < 6) {
+        user.minigamesCompleted[key] = previousDone + 1;
+    }
 
     localStorage.setItem('nee_active_user', JSON.stringify(user));
     if (db && user.id) db.collection('users').doc(user.id).set({ minigamesCompleted: user.minigamesCompleted }, { merge: true });
 
     const count = user.minigamesCompleted[key];
-    if (count < 5) {
-        speakText(`¡Excelente! Ganaste el minijuego. Llevas ${count} de 5 minijuegos para enfrentarte al Jefe Final.`);
-    } else if (count === 5) {
+    if (count < 6) {
+        speakText(`¡Excelente trabajo! Ganaste el minijuego. Llevas ${count} de 6 minijuegos para desbloquear al Jefe Final.`);
+        alert(`🎮 ¡MINIJUEGO COMPLETADO!\n\nLlevas ${count} de 6 minijuegos completados en el Nivel ${currentLevel}.\n¡Sigue así para llegar a la Batalla de Jefe!`);
+    } else if (count === 6) {
         playChimeSound(false);
         if (typeof confetti !== 'undefined') confetti();
-        speakText(`¡Sensacional! Completaste los 5 minijuegos del Nivel ${currentLevel}. Se ha desbloqueado la Batalla con el Jefe Final.`);
-        alert(`🎉 ¡JEFE FINAL DESBLOQUEADO!\n\nCompletaste los 5 minijuegos del Nivel ${currentLevel}.\n¡Enfréntate al Jefe Final para subir de nivel!`);
+        speakText(`¡SENSACIONAL! Completaste los 6 minijuegos del Nivel ${currentLevel}. Se ha desbloqueado la Batalla con el Jefe Final.`);
+        alert(`🎉 ¡JEFE FINAL DESBLOQUEADO!\n\nCompletaste los 6 minijuegos del Nivel ${currentLevel}.\n¡Ahora estás listo para enfrentarte al Jefe Final y subir de nivel!`);
     }
     renderApp();
 }
 
 // ==========================================
-// 8. MINIJUEGO MEMORICE
+// 8. MOTOR DE MINIJUEGOS INTERACTIVOS (6 JUEGOS)
 // ==========================================
-function openMemoriseModal() {
-    startMemoriseGame();
+function openMemoriseModal(minigameMeta) {
+    startMinigameExecution(minigameMeta);
     const modal = document.getElementById('memoriseGameModal');
     if (modal) modal.classList.remove('hidden');
 }
@@ -396,8 +441,24 @@ function closeMemoriseModal() {
     if (modal) modal.classList.add('hidden');
 }
 
-function startMemoriseGame() {
-    const userLevel = (APP_STATE.currentUser && APP_STATE.currentUser.level) || 1;
+function startMinigameExecution(minigameMeta) {
+    const levelNum = (minigameMeta && minigameMeta.level) || (APP_STATE.currentUser?.level) || 1;
+    const gameIdx = (minigameMeta && minigameMeta.gameIndex) || 1;
+
+    APP_STATE.memorise.activeMinigameMeta = { level: levelNum, gameIndex: gameIdx, title: minigameMeta ? minigameMeta.name : `Minijuego #${gameIdx}` };
+
+    if (minigameMeta && minigameMeta.type === 'memorise') {
+        startMemoriseGameEngine(levelNum);
+    } else if (minigameMeta && minigameMeta.type === 'sort') {
+        startSortCoinsGameEngine(levelNum);
+    } else if (minigameMeta && minigameMeta.type === 'math') {
+        startMathGameEngine(levelNum);
+    } else {
+        startChoiceGameEngine(levelNum, gameIdx);
+    }
+}
+
+function startMemoriseGameEngine(userLevel) {
     let totalPairsNeeded = 3;
     if (userLevel === 2) totalPairsNeeded = 4;
     if (userLevel >= 3) totalPairsNeeded = 6;
@@ -405,10 +466,10 @@ function startMemoriseGame() {
     let availableProducts = [...(APP_STATE.products || [])];
     if (availableProducts.length < totalPairsNeeded) {
         availableProducts = availableProducts.concat([
-            { id: 'fb1', name: 'Leche', photoUrl: '', iconEmoji: '🥛' },
-            { id: 'fb2', name: 'Pan', photoUrl: '', iconEmoji: '🍞' },
-            { id: 'fb3', name: 'Manzana', photoUrl: '', iconEmoji: '🍎' },
-            { id: 'fb4', name: 'Jugo', photoUrl: '', iconEmoji: '🧃' }
+            { id: 'fb1', name: 'Leche 1L', photoUrl: '', iconEmoji: '🥛' },
+            { id: 'fb2', name: 'Pan Hallulla', photoUrl: '', iconEmoji: '🍞' },
+            { id: 'fb3', name: 'Manzanas', photoUrl: '', iconEmoji: '🍎' },
+            { id: 'fb4', name: 'Jugo de Naranja', photoUrl: '', iconEmoji: '🧃' }
         ]);
     }
 
@@ -420,10 +481,10 @@ function startMemoriseGame() {
     });
     deck.sort(() => 0.5 - Math.random());
 
-    APP_STATE.memorise = { cards: deck, flippedCards: [], matchedPairsCount: 0, movesCount: 0, totalPairsNeeded: totalPairsNeeded, isBusy: false };
+    APP_STATE.memorise = { ...APP_STATE.memorise, cards: deck, flippedCards: [], matchedPairsCount: 0, movesCount: 0, totalPairsNeeded: totalPairsNeeded, isBusy: false };
 
     const speechBox = document.getElementById('memoriseAvatarSpeechBox');
-    if (speechBox) speechBox.innerHTML = getAvatarHtml('mascot', `¡Encuentra las <b>${totalPairsNeeded} parejas</b> iguales para ganar +15 Puntos!`);
+    if (speechBox) speechBox.innerHTML = getAvatarHtml('mascot', `<b>${APP_STATE.memorise.activeMinigameMeta.title}</b>: ¡Encuentra las <b>${totalPairsNeeded} parejas</b> correspondientes!`);
     speakText(`Minijuego de Memorice. Encuentra las ${totalPairsNeeded} parejas de productos.`);
     renderMemoriseBoard();
 }
@@ -493,8 +554,8 @@ function handleMemoriseCardClick(cardIndex) {
             if (mem.matchedPairsCount === mem.totalPairsNeeded) {
                 setTimeout(() => {
                     if (typeof confetti !== 'undefined') confetti();
-                    awardPointsAndXp(15, "Minijuego Memorice");
-                    registerMinigameCompletion("Memorice");
+                    awardPointsAndXp(15, "Minijuego Completado");
+                    registerMinigameCompletion(mem.activeMinigameMeta);
                     closeMemoriseModal();
                 }, 600);
             }
@@ -508,9 +569,152 @@ function handleMemoriseCardClick(cardIndex) {
     }
 }
 
+function startChoiceGameEngine(levelNum, gameIdx) {
+    const boardEl = document.getElementById('memoriseBoard');
+    const speechBox = document.getElementById('memoriseAvatarSpeechBox');
+    if (!boardEl) return;
+
+    let title = `Minijuego #${gameIdx} - Discriminación de Precios`;
+    let question = "¿Cuál de estos productos es el de MENOR valor?";
+    let options = [
+        { label: "Jugo de $500", isCorrect: true, emoji: "🧃" },
+        { label: "Aceite de $2.500", isCorrect: false, emoji: "🍾" },
+        { label: "Cereal de $1.800", isCorrect: false, emoji: "🥣" }
+    ];
+
+    if (levelNum === 1 && gameIdx === 5) {
+        question = "¿Cuál es el billete verde de $1.000 pesos?";
+        options = [
+            { label: "Billete $1.000 (Verde)", isCorrect: true, emoji: "💵" },
+            { label: "Billete $5.000 (Rojo)", isCorrect: false, emoji: "💶" },
+            { label: "Moneda $500", isCorrect: false, emoji: "🪙" }
+        ];
+    } else if (levelNum === 2) {
+        question = "Un yogurt cuesta $400 y un jugo cuesta $800. ¿Cuál es más económico?";
+        options = [
+            { label: "El Yogurt ($400)", isCorrect: true, emoji: "🥛" },
+            { label: "El Jugo ($800)", isCorrect: false, emoji: "🧃" }
+        ];
+    } else if (levelNum === 3) {
+        question = "Promoción 2x1: Llevas 2 paquetes de galletas por $1.000. ¿Cuánto cuesta cada uno?";
+        options = [
+            { label: "$500 pesos", isCorrect: true, emoji: "🍪" },
+            { label: "$1.000 pesos", isCorrect: false, emoji: "🍪" },
+            { label: "$2.000 pesos", isCorrect: false, emoji: "🍪" }
+        ];
+    }
+
+    if (speechBox) speechBox.innerHTML = getAvatarHtml('mascot', `<b>${title}</b>: ${question}`);
+    speakText(question);
+
+    boardEl.className = "grid grid-cols-1 sm:grid-cols-2 gap-4 p-2";
+    boardEl.innerHTML = options.map(opt => `
+        <button onclick="handleGenericChoiceAnswer(${opt.isCorrect})" class="p-5 bg-white border-4 border-indigo-300 hover:border-indigo-600 rounded-3xl shadow-lg flex items-center gap-4 active:scale-95 transition-all">
+            <span class="text-5xl">${opt.emoji}</span>
+            <span class="font-black text-slate-800 text-lg text-left">${opt.label}</span>
+        </button>
+    `).join('');
+}
+
+function handleGenericChoiceAnswer(isCorrect) {
+    if (isCorrect) {
+        playChimeSound(false);
+        if (typeof confetti !== 'undefined') confetti();
+        awardPointsAndXp(15, "Minijuego Ganado");
+        registerMinigameCompletion(APP_STATE.memorise.activeMinigameMeta);
+        closeMemoriseModal();
+    } else {
+        playChimeSound(true);
+        speakText("Sigue intentándolo. Toca la opción correcta.");
+        alert("❌ Inténtalo nuevamente. Revisa con atención el valor.");
+    }
+}
+
+function startSortCoinsGameEngine(levelNum) {
+    const boardEl = document.getElementById('memoriseBoard');
+    const speechBox = document.getElementById('memoriseAvatarSpeechBox');
+    if (!boardEl) return;
+
+    if (speechBox) speechBox.innerHTML = getAvatarHtml('mascot', `<b>Ordenamiento de Dinero</b>: Presiona los valores en orden de MENOR a MAYOR.`);
+    speakText("Ordena el dinero de menor a mayor valor.");
+
+    const items = [
+        { label: "$10 Moneda", val: 10, emoji: "🪙" },
+        { label: "$100 Moneda", val: 100, emoji: "🪙" },
+        { label: "$500 Moneda", val: 500, emoji: "🪙" },
+        { label: "$1.000 Billete", val: 1000, emoji: "💵" }
+    ].sort(() => 0.5 - Math.random());
+
+    let userOrder = [];
+
+    boardEl.className = "grid grid-cols-2 gap-3 p-2";
+    boardEl.innerHTML = items.map((item, idx) => `
+        <button onclick="handleSortCoinsClick(${item.val}, this)" class="sort-coin-btn p-4 bg-white border-4 border-purple-300 rounded-2xl font-black text-slate-800 flex flex-col items-center gap-2 active:scale-95">
+            <span class="text-4xl">${item.emoji}</span>
+            <span class="text-sm">${item.label}</span>
+        </button>
+    `).join('');
+
+    window.handleSortCoinsClick = function(val, btnEl) {
+        btnEl.disabled = true;
+        btnEl.classList.add('opacity-40', 'bg-emerald-100');
+        userOrder.push(val);
+        playChimeSound();
+
+        if (userOrder.length === 4) {
+            if (userOrder[0] === 10 && userOrder[1] === 100 && userOrder[2] === 500 && userOrder[3] === 1000) {
+                playChimeSound(false);
+                if (typeof confetti !== 'undefined') confetti();
+                awardPointsAndXp(15, "Ordenamiento Perfecto");
+                registerMinigameCompletion(APP_STATE.memorise.activeMinigameMeta);
+                closeMemoriseModal();
+            } else {
+                playChimeSound(true);
+                alert("❌ El orden no es correcto. Reiniciando el ejercicio...");
+                startSortCoinsGameEngine(levelNum);
+            }
+        }
+    };
+}
+
+function startMathGameEngine(levelNum) {
+    const boardEl = document.getElementById('memoriseBoard');
+    const speechBox = document.getElementById('memoriseAvatarSpeechBox');
+    if (!boardEl) return;
+
+    let qText = "Si compras un pan de $800 pesos y pagas con $1.000, ¿cuánto vuelto te dan?";
+    let answer = 200;
+    let opts = [200, 500, 100];
+
+    if (levelNum === 1) {
+        qText = "¿Cuántas monedas de $100 necesitas para sumar $500 pesos?";
+        answer = 5;
+        opts = [5, 3, 10];
+    } else if (levelNum === 3) {
+        qText = "Tienes $10.000 y gastas $6.500 en la compra. ¿Cuánto dinero te sobra?";
+        answer = 3500;
+        opts = [3500, 4000, 2500];
+    }
+
+    if (speechBox) speechBox.innerHTML = getAvatarHtml('mascot', `<b>Cálculo Matemático</b>: ${qText}`);
+    speakText(qText);
+
+    boardEl.className = "grid grid-cols-1 sm:grid-cols-3 gap-3 p-2";
+    boardEl.innerHTML = opts.map(val => `
+        <button onclick="handleGenericChoiceAnswer(${val === answer})" class="p-6 bg-white border-4 border-amber-300 hover:border-amber-500 rounded-3xl font-black text-2xl text-amber-950 shadow-lg active:scale-95">
+            $${val.toLocaleString('es-CL')}
+        </button>
+    `).join('');
+}
+
 // ==========================================
 // 9. MÓDULO DE MINIJUEGOS Y MAPA DE JEFES 🔒
 // ==========================================
+function setStudentTab(tabName) {
+    APP_STATE.currentStudentTab = tabName;
+    renderApp();
+}
+
 function openMinigamesModuleModal() {
     renderMinigamesMap();
     const modal = document.getElementById('minigamesModuleModal');
@@ -532,9 +736,9 @@ function renderMinigamesMap() {
         <div class="space-y-6">
             <div class="bg-indigo-900 text-white p-5 rounded-3xl border-4 border-indigo-400 shadow-xl flex justify-between items-center flex-wrap gap-4">
                 <div class="space-y-1">
-                    <span class="bg-amber-400 text-slate-900 font-black text-xs px-3 py-1 rounded-full uppercase">🎮 Módulo de Minijuegos</span>
-                    <h3 class="text-2xl font-black">Mapa de Desafíos y Jefes Finales</h3>
-                    <p class="text-xs text-indigo-200 font-bold">Completa 5 minijuegos en tu nivel para desbloquear la batalla con el Jefe Final.</p>
+                    <span class="bg-amber-400 text-slate-900 font-black text-xs px-3 py-1 rounded-full uppercase">🎮 MÓDULO PEDAGÓGICO DE MINIJUEGOS</span>
+                    <h3 class="text-2xl font-black">Mapa de Desafíos por Nivel (6 Juegos + Jefe Final)</h3>
+                    <p class="text-xs text-indigo-200 font-bold">Completa los 6 minijuegos de cada nivel para desbloquear la batalla con el Jefe Final.</p>
                 </div>
                 <button onclick="closeMinigamesModuleModal()" class="bg-rose-500 hover:bg-rose-600 text-white font-black text-xs px-4 py-2.5 rounded-2xl shadow active:scale-95">✕ Cerrar Mapa</button>
             </div>
@@ -557,7 +761,7 @@ function renderMinigamesMap() {
                     <div class="absolute inset-0 bg-slate-900/80 z-20 backdrop-blur-sm flex flex-col items-center justify-center text-white p-4 text-center space-y-2">
                         <span class="text-6xl animate-bounce">🔒</span>
                         <h4 class="text-lg font-black uppercase">Nivel ${levelNum} Bloqueado</h4>
-                        <p class="text-xs font-bold text-slate-200">Derrota al Jefe del Nivel ${levelNum - 1} para desbloquear este cubo.</p>
+                        <p class="text-xs font-bold text-slate-200">Derrota al Jefe del Nivel ${levelNum - 1} para desbloquear este nivel.</p>
                     </div>
                 ` : ''}
 
@@ -565,7 +769,7 @@ function renderMinigamesMap() {
                     <div class="flex justify-between items-center">
                         <span class="text-3xl">${lvl.icon}</span>
                         <span class="bg-black/40 text-amber-300 font-black text-[10px] px-2.5 py-1 rounded-full uppercase">
-                            ${isBossDefeated ? '✅ NIVEL SUPERADO' : `MINIJUEGOS: ${minigamesDone}/${lvl.minigamesRequired}`}
+                            ${isBossDefeated ? '✅ NIVEL SUPERADO' : `PROGRESO: ${minigamesDone}/6`}
                         </span>
                     </div>
                     <h4 class="text-lg font-black leading-tight">${lvl.title}</h4>
@@ -573,19 +777,22 @@ function renderMinigamesMap() {
 
                 <div class="p-4 space-y-4">
                     <div class="bg-amber-50 border-2 border-amber-200 p-2.5 rounded-2xl text-[11px] font-bold text-amber-950 flex items-start gap-2">
-                        <span>🎯</span> <div><b>Objetivo:</b> ${lvl.objectiveStudent}</div>
+                        <span>🎯</span> <div><b>Objetivo Estudiante:</b> ${lvl.objectiveStudent}</div>
                     </div>
 
-                    <div class="space-y-1.5">
-                        <span class="text-[10px] font-black text-slate-500 uppercase block">Minijuegos del Nivel (Completa 5):</span>
-                        <div class="grid grid-cols-5 gap-1.5">
-                            ${Array.from({ length: 5 }).map((_, idx) => {
+                    <div class="space-y-2">
+                        <span class="text-[11px] font-black text-slate-700 uppercase block">Lista de los 6 Minijuegos:</span>
+                        <div class="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                            ${lvl.minigamesList.map((game, idx) => {
                                 const gameNum = idx + 1;
                                 const isPlayed = minigamesDone >= gameNum;
                                 return `
-                                    <button onclick="launchMinigameForLevel(${levelNum}, ${gameNum})" ${!isLevelUnlocked ? 'disabled' : ''} class="h-12 rounded-xl font-black text-xs flex flex-col items-center justify-center border-2 transition-all active:scale-95 ${isPlayed ? 'bg-emerald-500 text-white border-emerald-700' : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-indigo-100'}">
-                                        <span>${isPlayed ? '✓' : `🎮`}</span>
-                                        <span class="text-[9px]">#${gameNum}</span>
+                                    <button onclick="launchSpecificMinigame(${levelNum}, ${gameNum})" ${!isLevelUnlocked ? 'disabled' : ''} class="w-full text-left p-2.5 rounded-xl font-bold text-xs border-2 transition-all flex items-center justify-between gap-2 active:scale-95 ${isPlayed ? 'bg-emerald-50 border-emerald-400 text-emerald-950' : 'bg-slate-50 border-slate-200 text-slate-800 hover:border-indigo-400'}">
+                                        <div class="truncate">
+                                            <span class="font-black block text-[11px]">${game.name}</span>
+                                            <span class="text-[10px] text-slate-500 font-semibold truncate block">${game.desc}</span>
+                                        </div>
+                                        <span class="px-2 py-1 rounded-lg text-[10px] font-black ${isPlayed ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}">${isPlayed ? '✓ Listo' : 'Jugar'}</span>
                                     </button>
                                 `;
                             }).join('')}
@@ -607,7 +814,7 @@ function renderMinigamesMap() {
                 </div>
 
                 <div class="bg-slate-50 border-t p-3 text-[10px] text-slate-600 font-bold">
-                    <span class="text-indigo-900 font-black block uppercase">👩‍🏫 Respaldo PIE / Mineduc:</span>
+                    <span class="text-indigo-900 font-black block uppercase">👩‍🏫 Respaldo Pedagógico Mineduc / PIE:</span>
                     <span>${lvl.objectivePedagogical}</span>
                 </div>
             </div>
@@ -618,9 +825,11 @@ function renderMinigamesMap() {
     container.innerHTML = html;
 }
 
-function launchMinigameForLevel(levelNum, gameNum) {
+function launchSpecificMinigame(levelNum, gameIndex) {
     closeMinigamesModuleModal();
-    openMemoriseModal();
+    const lvlMeta = LEVEL_CURRICULUM[levelNum];
+    const gameMeta = (lvlMeta && lvlMeta.minigamesList[gameIndex - 1]) || { name: `Minijuego #${gameIndex}`, type: 'choice' };
+    openMemoriseModal({ ...gameMeta, level: levelNum, gameIndex: gameIndex });
 }
 
 // ==========================================
@@ -636,11 +845,11 @@ function renderApp() {
 
     renderThemeOverlay();
 
-    const activeThemeKey = (APP_STATE.settings && APP_STATE.settings.activeTheme) || 'halloween';
+    const activeThemeKey = (APP_STATE.settings && APP_STATE.settings.activeTheme) || 'standard';
     const theme = SEASONAL_THEMES[activeThemeKey] || SEASONAL_THEMES.standard;
     if (appHeaderBar) appHeaderBar.className = `${theme.headerBg} text-white shadow-lg border-b-4 sticky top-0 z-30 transition-colors duration-500`;
 
-    const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
+    const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario PIE';
     if (headerSubTitle) headerSubTitle.textContent = teamLabel;
 
     if (APP_STATE.currentUser) {
@@ -678,7 +887,10 @@ function renderApp() {
         renderTeacherDashboard(container);
     } else {
         if (headerBasketBtn) headerBasketBtn.classList.remove('hidden');
-        if (APP_STATE.selectedSupermarketId) {
+        
+        if (APP_STATE.currentStudentTab === 'minigames') {
+            renderStudentMinigamesTab(container);
+        } else if (APP_STATE.selectedSupermarketId) {
             renderSupermarketView(container, APP_STATE.selectedSupermarketId);
         } else {
             renderHomeView(container);
@@ -745,15 +957,15 @@ function logout() {
 
 function goHome() {
     APP_STATE.selectedSupermarketId = null;
-    APP_STATE.selectedCategoryFilter = 'ALL';
+    APP_STATE.currentStudentTab = 'home';
     renderApp();
 }
 
 // ==========================================
-// 11. VISTA DEL ESTUDIANTE
+// 11. VISTA DEL ESTUDIANTE Y PESTAÑAS
 // ==========================================
 function renderHomeView(container) {
-    const activeThemeKey = APP_STATE.settings.activeTheme || 'halloween';
+    const activeThemeKey = APP_STATE.settings.activeTheme || 'standard';
     const theme = SEASONAL_THEMES[activeThemeKey] || SEASONAL_THEMES.standard;
 
     const userLevel = (APP_STATE.currentUser && APP_STATE.currentUser.level) || 1;
@@ -761,10 +973,20 @@ function renderHomeView(container) {
     const rewardTarget = (APP_STATE.settings && APP_STATE.settings.rewardPointsThreshold) || 250;
 
     const minigamesDone = (APP_STATE.currentUser?.minigamesCompleted?.[`level_${userLevel}`]) || 0;
-    const isBossUnlocked = minigamesDone >= 5;
+    const isBossUnlocked = minigamesDone >= 6;
 
     container.innerHTML = `
         <div class="space-y-6">
+            <!-- BARRA DE PESTAÑAS DEL ESTUDIANTE -->
+            <div class="flex gap-2 bg-white p-2 rounded-2xl border-2 border-slate-300 shadow-sm">
+                <button onclick="setStudentTab('home')" class="w-1/2 py-3 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${APP_STATE.currentStudentTab === 'home' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                    <span>🏪</span> <span>Supermercados y Sala</span>
+                </button>
+                <button onclick="setStudentTab('minigames')" class="w-1/2 py-3 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${APP_STATE.currentStudentTab === 'minigames' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                    <span>🎮</span> <span>Módulo de Minijuegos (${minigamesDone}/6)</span>
+                </button>
+            </div>
+
             <!-- CUADRO DESTACADO: MÓDULO DE MINIJUEGOS Y JEFES -->
             <div onclick="openMinigamesModuleModal()" class="bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-900 text-white p-6 rounded-3xl shadow-2xl border-4 border-purple-300 cursor-pointer hover:border-amber-400 transition-all hover:scale-[1.01] active:scale-95 space-y-3">
                 <div class="flex items-center justify-between flex-wrap gap-4">
@@ -775,11 +997,11 @@ function renderHomeView(container) {
                         <div>
                             <span class="bg-amber-400 text-slate-900 font-black px-3 py-0.5 rounded-full text-[10px] uppercase">MÓDULO DE MINIJUEGOS & JEFES</span>
                             <h3 class="text-2xl font-black text-white leading-tight">Mapa de Niveles y Desafíos 🎮</h3>
-                            <p class="text-xs font-bold text-purple-200">Completa 5 minijuegos por nivel para desbloquear la batalla con el Jefe Final.</p>
+                            <p class="text-xs font-bold text-purple-200">Completa los 6 minijuegos de tu nivel para desbloquear la batalla con el Jefe Final.</p>
                         </div>
                     </div>
                     <button class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black px-5 py-3 rounded-2xl text-xs shadow-lg border-b-4 border-amber-600 flex items-center gap-2">
-                        <span>🚀</span> <span>¡ABRIR MAPA DE NIVELES!</span>
+                        <span>🚀</span> <span>¡ABRIR MAPA DE MINIJUEGOS!</span>
                     </button>
                 </div>
             </div>
@@ -795,8 +1017,8 @@ function renderHomeView(container) {
                         </div>
                     </div>
                     <div class="flex gap-2 flex-wrap">
-                        <button onclick="openMemoriseModal()" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black px-4 py-3 rounded-2xl shadow-lg border-b-4 border-purple-900 text-xs active:scale-95 flex items-center gap-1.5">
-                            <span>🧠</span> <span>JUGAR MEMORICE (${minigamesDone}/5)</span>
+                        <button onclick="launchSpecificMinigame(${userLevel}, ${minigamesDone < 6 ? minigamesDone + 1 : 1})" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black px-4 py-3 rounded-2xl shadow-lg border-b-4 border-purple-900 text-xs active:scale-95 flex items-center gap-1.5">
+                            <span>🎮</span> <span>JUGAR MINIJUEGO (${minigamesDone}/6)</span>
                         </button>
                         <button onclick="startLevelExam(${userLevel})" class="${isBossUnlocked ? 'bg-gradient-to-r from-rose-600 to-amber-600 text-white border-rose-900' : 'bg-slate-300 text-slate-500 border-slate-400 cursor-not-allowed'} font-black px-4 py-3 rounded-2xl shadow-lg border-b-4 text-xs active:scale-95 flex items-center gap-1.5">
                             <span>${isBossUnlocked ? '⚔️' : '🔒'}</span> <span>JEFE FINAL NIVEL ${userLevel}</span>
@@ -806,11 +1028,11 @@ function renderHomeView(container) {
 
                 <div class="space-y-1">
                     <div class="flex justify-between text-[11px] font-black text-slate-600 uppercase">
-                        <span>🎮 Minijuegos requeridos para el Jefe:</span>
-                        <span>${minigamesDone} / 5 completados</span>
+                        <span>🎮 Progreso de Minijuegos para el Jefe:</span>
+                        <span>${minigamesDone} / 6 completados</span>
                     </div>
                     <div class="w-full bg-slate-200 h-3.5 rounded-full overflow-hidden border">
-                        <div class="bg-gradient-to-r from-purple-500 to-indigo-600 h-full transition-all duration-500" style="width: ${Math.min(100, (minigamesDone / 5) * 100)}%"></div>
+                        <div class="bg-gradient-to-r from-purple-500 to-indigo-600 h-full transition-all duration-500" style="width: ${Math.min(100, (minigamesDone / 6) * 100)}%"></div>
                     </div>
                 </div>
             </div>
@@ -837,6 +1059,56 @@ function renderHomeView(container) {
                             </button>
                         </div>
                     `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderStudentMinigamesTab(container) {
+    const userLevel = (APP_STATE.currentUser && APP_STATE.currentUser.level) || 1;
+    const lvl = LEVEL_CURRICULUM[userLevel] || LEVEL_CURRICULUM[1];
+    const minigamesDone = (APP_STATE.currentUser?.minigamesCompleted?.[`level_${userLevel}`]) || 0;
+
+    container.innerHTML = `
+        <div class="space-y-6">
+            <div class="flex gap-2 bg-white p-2 rounded-2xl border-2 border-slate-300 shadow-sm">
+                <button onclick="setStudentTab('home')" class="w-1/2 py-3 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 bg-slate-100 text-slate-700 hover:bg-slate-200">
+                    <span>🏪</span> <span>Supermercados y Sala</span>
+                </button>
+                <button onclick="setStudentTab('minigames')" class="w-1/2 py-3 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 bg-indigo-600 text-white shadow">
+                    <span>🎮</span> <span>Módulo de Minijuegos (${minigamesDone}/6)</span>
+                </button>
+            </div>
+
+            <div class="bg-gradient-to-r ${lvl.bgColor} text-white p-6 rounded-3xl shadow-xl space-y-3">
+                <span class="bg-amber-400 text-slate-900 font-black px-3 py-1 rounded-full text-xs uppercase">NIVEL ACTUAL DE DESAFÍOS</span>
+                <h2 class="text-3xl font-black">${lvl.title}</h2>
+                <p class="text-sm font-bold text-white/90">${lvl.objectiveGeneral}</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow-lg space-y-4">
+                <h3 class="text-xl font-black text-slate-800">🎮 Los 6 Minijuegos Evaluables del Nivel ${userLevel}:</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${lvl.minigamesList.map((game, idx) => {
+                        const gameNum = idx + 1;
+                        const isPlayed = minigamesDone >= gameNum;
+                        return `
+                            <div class="p-4 bg-slate-50 border-3 ${isPlayed ? 'border-emerald-400' : 'border-slate-300'} rounded-2xl flex flex-col justify-between space-y-3">
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="font-black text-indigo-900 text-sm">${game.name}</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${isPlayed ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}">${isPlayed ? '✓ Completado' : 'Pendiente'}</span>
+                                    </div>
+                                    <p class="text-xs font-bold text-slate-600">${game.desc}</p>
+                                </div>
+                                <button onclick="launchSpecificMinigame(${userLevel}, ${gameNum})" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow active:scale-95">
+                                    ▶️ Iniciar Minijuego #${gameNum}
+                                </button>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             </div>
         </div>
@@ -1015,11 +1287,11 @@ function startLevelExam(levelNumber) {
 
     const minigamesDone = (user.minigamesCompleted && user.minigamesCompleted[`level_${levelNumber}`]) || 0;
 
-    if (minigamesDone < 5 && user.role === 'student') {
+    if (minigamesDone < 6 && user.role === 'student') {
         playChimeSound(true);
-        const faltan = 5 - minigamesDone;
+        const faltan = 6 - minigamesDone;
         speakText(`Aún no puedes enfrentarte al Jefe Final. Te faltan ${faltan} minijuegos.`);
-        alert(`🔒 BATALLA DE JEFE BLOQUEADA\n\nPara enfrentarte al Jefe Final del Nivel ${levelNumber} debes jugar y completar 5 minijuegos en este nivel.\n\n🎮 Progreso: ${minigamesDone} / 5 minijuegos.\n👉 Te faltan ${faltan} minijuego(s).`);
+        alert(`🔒 BATALLA DE JEFE BLOQUEADA\n\nPara enfrentarte al Jefe Final del Nivel ${levelNumber} debes jugar y completar los 6 minijuegos en este nivel.\n\n🎮 Progreso: ${minigamesDone} / 6 minijuegos.\n👉 Te faltan ${faltan} minijuego(s).`);
         return;
     }
 
@@ -1113,7 +1385,7 @@ function finishExamEvaluation() {
         awardPointsAndXp(50, `Derrota de Jefe Nivel ${exam.level}`);
 
         speakText(`¡Extraordinario! Derrotaste al Jefe Final del Nivel ${exam.level}. ¡Has ascendido al Nivel ${nextLevel}!`);
-        alert(`🏆 ¡JEFE FINAL DERROTADO!\n\nCompletaste los 5 minijuegos + Examen Final del Nivel ${exam.level}.\n\n🎉 ¡Has ascendido al Nivel ${nextLevel}!`);
+        alert(`🏆 ¡JEFE FINAL DERROTADO!\n\nCompletaste los 6 minijuegos + Examen Final del Nivel ${exam.level}.\n\n🎉 ¡Has ascendido al Nivel ${nextLevel}!`);
 
         localStorage.setItem('nee_active_user', JSON.stringify(user));
         if (db && user.id) db.collection('users').doc(user.id).set({ level: user.level, examPassed: user.examPassed }, { merge: true });
@@ -1162,7 +1434,7 @@ function closeExamModal() {
 }
 
 // ==========================================
-// 14. PANEL DOCENTE Y MATRIZ MINEDUC
+// 14. PANEL DOCENTE Y MATRIZ MINEDUC / PIE
 // ==========================================
 function setTeacherTab(tabName) {
     APP_STATE.teacherActiveTab = tabName;
@@ -1171,13 +1443,13 @@ function setTeacherTab(tabName) {
 
 function renderTeacherDashboard(container) {
     const activeTab = APP_STATE.teacherActiveTab || 'home';
-    const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
+    const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario PIE';
 
     container.innerHTML = `
         <div class="space-y-6">
             <div class="bg-slate-900 text-white p-5 rounded-3xl shadow-xl space-y-4 border-b-4 border-indigo-600">
                 <div class="flex justify-between items-center flex-wrap gap-3">
-                    <h2 class="text-xl font-black text-white">🏫 Panel Docente (${teamLabel})</h2>
+                    <h2 class="text-xl font-black text-white">🏫 Panel Docente y Psicopedagógico (${teamLabel})</h2>
                     <button onclick="toggleStudentPreview(true)" class="bg-amber-400 text-slate-900 font-black text-xs px-4 py-2 rounded-xl">🕹️ Probar Juego</button>
                 </div>
 
@@ -1201,39 +1473,50 @@ function renderTeacherDashboard(container) {
 
 function renderTeacherCurriculumObjectivesTab() {
     return `
-        <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow-md space-y-6 max-w-4xl mx-auto">
+        <div class="bg-white p-6 rounded-3xl border-4 border-indigo-200 shadow-md space-y-6 max-w-5xl mx-auto">
             <div class="border-b pb-3">
                 <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                    <span>📘</span> <span>Matriz de Objetivos Pedagógicos y Minijuegos (Mineduc / PIE)</span>
+                    <span>📘</span> <span>Matriz Mineduc / PIE / Decreto 83 (6 Minijuegos + Jefe por Nivel)</span>
                 </h3>
-                <p class="text-xs font-bold text-slate-500">Respaldo técnico de habilidades por nivel para informes psicopedagógicos e IEP.</p>
+                <p class="text-xs font-bold text-slate-500">Respaldo técnico curricular completo para informes psicopedagógicos, PEI e IEP.</p>
             </div>
 
-            <div class="space-y-4">
+            <div class="space-y-6">
                 ${Object.keys(LEVEL_CURRICULUM).map(key => {
                     const lvl = LEVEL_CURRICULUM[key];
                     return `
-                        <div class="p-5 bg-slate-50 border-2 border-slate-300 rounded-3xl space-y-3">
+                        <div class="p-6 bg-slate-50 border-3 border-slate-300 rounded-3xl space-y-4">
                             <div class="flex justify-between items-center flex-wrap gap-2">
-                                <span class="bg-indigo-600 text-white font-black text-xs px-3 py-1 rounded-full uppercase">${lvl.title}</span>
-                                <span class="text-xs font-black text-amber-700">Requisito: ${lvl.minigamesRequired} Minijuegos + ${lvl.bossTitle}</span>
+                                <span class="bg-indigo-600 text-white font-black text-xs px-3.5 py-1 rounded-full uppercase">${lvl.title}</span>
+                                <span class="text-xs font-black text-amber-700">Requisito Curricular: ${lvl.minigamesRequired} Minijuegos + Batalla de Jefe</span>
                             </div>
 
-                            <div class="space-y-2 text-xs font-bold pt-2">
-                                <div class="bg-white p-3 rounded-2xl border">
-                                    <span class="text-slate-500 uppercase text-[10px] block font-black">Objetivo General del Nivel:</span>
-                                    <p class="text-slate-800">${lvl.objectiveGeneral}</p>
+                            <div class="space-y-3 text-xs font-bold">
+                                <div class="bg-white p-4 rounded-2xl border">
+                                    <span class="text-slate-500 uppercase text-[10px] block font-black">Objetivo General Mineduc:</span>
+                                    <p class="text-slate-800 text-sm leading-relaxed">${lvl.objectiveGeneral}</p>
                                 </div>
 
-                                <div class="bg-indigo-50 p-3 rounded-2xl border border-indigo-200">
+                                <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-200">
                                     <span class="text-indigo-900 uppercase text-[10px] font-black block">Objetivos Específicos Evaluados:</span>
-                                    <ul class="list-disc list-inside text-indigo-950 space-y-1 mt-1">
+                                    <ul class="list-disc list-inside text-indigo-950 space-y-1.5 mt-2">
                                         ${lvl.objectivesSpecific.map(obj => `<li>${obj}</li>`).join('')}
                                     </ul>
                                 </div>
 
-                                <div class="bg-amber-50 p-3 rounded-2xl border border-amber-200">
-                                    <span class="text-amber-900 uppercase text-[10px] font-black block">Alineación PIE / Mineduc:</span>
+                                <div class="bg-purple-50 p-4 rounded-2xl border border-purple-200">
+                                    <span class="text-purple-900 uppercase text-[10px] font-black block">Desglose de los 6 Minijuegos del Nivel:</span>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                                        ${lvl.minigamesList.map(g => `
+                                            <div class="p-2.5 bg-white border rounded-xl text-slate-800">
+                                                <b class="text-purple-900">${g.name}:</b> ${g.desc}
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+
+                                <div class="bg-amber-50 p-4 rounded-2xl border border-amber-200">
+                                    <span class="text-amber-900 uppercase text-[10px] font-black block">Alineación Asignatura y Programas PIE:</span>
                                     <p class="text-amber-950">${lvl.objectivePedagogical}</p>
                                 </div>
                             </div>
@@ -1246,7 +1529,7 @@ function renderTeacherCurriculumObjectivesTab() {
 }
 
 function renderTeacherHomeTab() {
-    return `<div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-md"><h3 class="font-black text-slate-800 text-base">📊 Histórico de Evaluaciones e Informes con IA</h3><p class="text-xs text-slate-500 font-bold mt-1">Aquí se registran los puntajes de compras y batallas con Jefes.</p></div>`;
+    return `<div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-md"><h3 class="font-black text-slate-800 text-base">📊 Histórico de Evaluaciones e Informes Cualitativos PIE</h3><p class="text-xs text-slate-500 font-bold mt-1">Aquí se registran los avances de los 6 minijuegos y vueltos de compras de los estudiantes.</p></div>`;
 }
 
 function renderTeacherSettingsTab() {
@@ -1260,7 +1543,7 @@ function renderTeacherSettingsTab() {
                     <input type="text" id="settingSchoolName" value="${st.schoolName}" class="w-full px-4 py-2 rounded-xl border-2 font-bold text-xs">
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-slate-700 uppercase mb-1">Equipo Profesional:</label>
+                    <label class="block text-xs font-black text-slate-700 uppercase mb-1">Equipo Profesional PIE:</label>
                     <input type="text" id="settingTeamName" value="${st.teamName}" class="w-full px-4 py-2 rounded-xl border-2 font-bold text-xs">
                 </div>
             </div>
