@@ -27,7 +27,7 @@ if (typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
-// 8 TEMÁTICAS ESTACIONALES CON AMBIENTACIÓN
+// TEMÁTICAS ESTACIONALES Y CONFIGURACIÓN
 // ==========================================
 const SEASONAL_THEMES = {
     standard: {
@@ -253,7 +253,19 @@ const APP_STATE = {
         movesCount: 0,
         totalPairsNeeded: 3,
         isBusy: false
-    }
+    },
+
+    videoCapsules: [
+        {
+            id: 'cap-1',
+            level: 1,
+            skill: 'Reconocimiento de Monedas',
+            title: '¿Cómo identificar las monedas de $500 y $100?',
+            url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+            description: 'Cápsula explicativa para reconocer los valores básicos de las monedas chilenas.'
+        }
+    ],
+    currentExam: null
 };
 
 let isPhotoProcessing = false;
@@ -310,12 +322,9 @@ function renderThemeOverlay() {
 
     if (activeKey === 'halloween') {
         container.innerHTML = `
-            <!-- Bruja Voladora cruzando el cielo -->
             <div class="absolute top-6 left-0 animate-witch z-50 text-5xl sm:text-6xl drop-shadow-xl pointer-events-none">
                 🧙‍♀️🧹
             </div>
-
-            <!-- Arañas Caminando bajando por hilos de seda -->
             <div class="absolute top-0 left-8 animate-spider-crawl text-3xl sm:text-4xl">
                 <div class="w-0.5 h-32 bg-slate-600/40 mx-auto"></div>
                 <div class="-mt-1">🕷️</div>
@@ -324,25 +333,18 @@ function renderThemeOverlay() {
                 <div class="w-0.5 h-44 bg-slate-600/40 mx-auto"></div>
                 <div class="-mt-1">🕷️</div>
             </div>
-
-            <!-- Zombie Caminante en la esquina inferior izquierda -->
             <div class="absolute bottom-3 left-4 animate-zombie z-40 flex items-center gap-2">
                 <div class="text-6xl sm:text-7xl">🧟‍♂️</div>
                 <div class="bg-purple-900 text-amber-300 border-2 border-purple-400 text-[10px] font-black px-2 py-1 rounded-xl shadow-lg">
                     ¡Cuidado en la góndola! 🎃
                 </div>
             </div>
-
-            <!-- OLLA Y CALDERO ANTIGUO NEGRO DE BRUJA CON POCIÓN HIRVIENDO -->
             <div class="absolute bottom-2 right-6 z-40 flex flex-col items-center">
-                <!-- Burbujas de poción efervescentes subiendo -->
                 <div class="flex gap-2 mb-[-10px] relative z-20">
                     <span class="bubble-1 text-emerald-400 font-bold text-sm">🟢</span>
                     <span class="bubble-2 text-purple-400 font-bold text-xs">🟣</span>
                     <span class="bubble-3 text-emerald-300 font-bold text-base">✨</span>
                 </div>
-
-                <!-- Caldero de Hierro Negro en SVG -->
                 <svg class="w-24 h-24 sm:w-28 sm:h-28 animate-cauldron" viewBox="0 0 100 100">
                     <path d="M22,78 L14,94 M78,78 L86,94 M50,82 L50,96" stroke="#0f172a" stroke-width="6" stroke-linecap="round"/>
                     <path d="M14,30 C10,68 25,84 50,84 C75,84 90,68 86,30 Z" fill="#1e293b" stroke="#0f172a" stroke-width="4"/>
@@ -355,8 +357,6 @@ function renderThemeOverlay() {
                     <path d="M22,40 C18,55 26,72 34,78" fill="none" stroke="#64748b" stroke-width="3" opacity="0.5" stroke-linecap="round"/>
                 </svg>
             </div>
-
-            <!-- Murciélagos y Fantasmas Flotantes -->
             <div class="absolute top-1/4 right-8 text-3xl animate-bounce">🦇</div>
             <div class="absolute top-1/2 left-6 text-3xl animate-pulse">👻</div>
         `;
@@ -913,9 +913,14 @@ function renderHomeView(container) {
                             <p class="text-xs font-bold text-slate-500">Puntos acumulados: <b class="text-amber-600">${userPoints} pts</b> de ${rewardTarget} pts para el premio</p>
                         </div>
                     </div>
-                    <button onclick="openMemoriseModal()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-5 py-3 rounded-2xl shadow-lg border-b-4 border-purple-900 text-xs active:scale-95 flex items-center gap-2">
-                        <span>🧠</span> <span>JUGAR MINIJUEGO MEMORICE (+15 PTS)</span>
-                    </button>
+                    <div class="flex gap-2 flex-wrap">
+                        <button onclick="startLevelExam(${userLevel || 1})" class="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-900 font-black px-4 py-3 rounded-2xl shadow-lg border-b-4 border-amber-800 text-xs active:scale-95 flex items-center gap-1.5">
+                            <span>📝</span> <span>EXAMEN DE NIVEL ${userLevel || 1}</span>
+                        </button>
+                        <button onclick="openMemoriseModal()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-4 py-3 rounded-2xl shadow-lg border-b-4 border-purple-900 text-xs active:scale-95 flex items-center gap-1.5">
+                            <span>🧠</span> <span>MEMORICE (+15 PTS)</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="w-full bg-slate-200 h-4 rounded-full overflow-hidden border">
@@ -2010,7 +2015,7 @@ function renderTeacherDashboard(container) {
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 pt-2 border-t border-slate-800">
+                <div class="grid grid-cols-2 sm:grid-cols-7 gap-2 pt-2 border-t border-slate-800">
                     <button onclick="setTeacherTab('home')" class="py-3 px-2 rounded-2xl font-black text-[11px] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'home' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
                         <span>📊</span><span>1. Evaluaciones IA</span>
                     </button>
@@ -2029,6 +2034,9 @@ function renderTeacherDashboard(container) {
                     <button onclick="setTeacherTab('settings')" class="py-3 px-2 rounded-2xl font-black text-[11px] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg border-2 border-indigo-400 scale-105' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
                         <span>⚙️</span><span>6. Personajes & Premios</span>
                     </button>
+                    <button onclick="setTeacherTab('videos')" class="py-3 px-2 rounded-2xl font-black text-[11px] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'videos' ? 'bg-purple-600 text-white shadow-lg border-2 border-purple-400 scale-105' : 'bg-slate-800 text-purple-300 hover:bg-slate-700'}">
+                        <span>🎥</span><span>7. Cápsulas Video</span>
+                    </button>
                 </div>
             </div>
 
@@ -2039,9 +2047,302 @@ function renderTeacherDashboard(container) {
                 ${activeTab === 'currency' ? renderTeacherCurrencyTab() : ''}
                 ${activeTab === 'users' ? renderTeacherUsersTab() : ''}
                 ${activeTab === 'settings' ? renderTeacherSettingsTab() : ''}
+                ${activeTab === 'videos' ? renderTeacherVideoTab() : ''}
             </div>
         </div>
     `;
+}
+
+// ==========================================
+// PESTAÑA 7: GESTOR DE CÁPSULAS DE VIDEO
+// ==========================================
+function renderTeacherVideoTab() {
+    const capsules = APP_STATE.videoCapsules || [];
+
+    return `
+        <div class="bg-white p-6 rounded-3xl border-4 border-purple-300 shadow-md space-y-6 max-w-4xl mx-auto">
+            <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
+                <div>
+                    <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
+                        <span>🎥</span> <span>Gestor de Cápsulas de Video Remediales</span>
+                    </h3>
+                    <p class="text-xs font-bold text-slate-500">Videos explicativos que se mostrarán cuando un alumno falle el 3.er intento en un examen.</p>
+                </div>
+                <button onclick="openCreateVideoCapsuleModal()" class="bg-purple-600 hover:bg-purple-700 text-white font-black text-xs px-4 py-2.5 rounded-2xl shadow active:scale-95 flex items-center gap-1">
+                    <span>+ Nueva Cápsula</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                ${capsules.length === 0 ? `
+                    <div class="col-span-full text-center py-12 bg-purple-50 rounded-3xl border-2 border-dashed border-purple-300">
+                        <span class="text-4xl">🎥</span>
+                        <p class="text-xs font-bold text-purple-900 mt-2">No hay cápsulas registradas. Crea una para enlazar a los exámenes de remediación.</p>
+                    </div>
+                ` : capsules.map(cap => `
+                    <div class="p-4 bg-slate-50 border-2 border-slate-200 rounded-3xl space-y-3 shadow-sm flex flex-col justify-between">
+                        <div class="space-y-1">
+                            <div class="flex justify-between items-start">
+                                <span class="bg-purple-600 text-white font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase">
+                                    Nivel ${cap.level} • ${cap.skill}
+                                </span>
+                                <button onclick="deleteVideoCapsule('${cap.id}')" class="text-rose-600 font-bold text-xs bg-rose-100 px-2 py-0.5 rounded-lg">✕</button>
+                            </div>
+                            <h4 class="font-black text-slate-800 text-sm">${cap.title}</h4>
+                            <p class="text-xs text-slate-500 font-bold">${cap.description || 'Sin descripción'}</p>
+                        </div>
+
+                        <div class="pt-2 border-t flex justify-between items-center">
+                            <span class="text-[10px] text-slate-400 font-black truncate max-w-[200px]">${cap.url}</span>
+                            <button onclick="previewVideoCapsule('${cap.id}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[11px] px-3 py-1.5 rounded-xl shadow active:scale-95">
+                                ▶️ Probar Video
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function openCreateVideoCapsuleModal() {
+    const title = prompt("Título de la cápsula de video:");
+    if (!title) return;
+
+    const level = parseInt(prompt("Nivel asignado (1, 2, 3 o 4):") || "1");
+    const skill = prompt("Habilidad evaluada (Ej: Discriminación de Monedas, Lectura de Precios):") || "General";
+    let url = prompt("Enlace del video (YouTube Embed / MP4 / Drive):") || "";
+
+    if (url.includes("watch?v=")) {
+        url = url.replace("watch?v=", "embed/");
+    }
+
+    const description = prompt("Descripción pedagógica breve:") || "";
+
+    const newCap = {
+        id: 'cap-' + Date.now(),
+        level,
+        skill,
+        title,
+        url,
+        description
+    };
+
+    if (!APP_STATE.videoCapsules) APP_STATE.videoCapsules = [];
+    APP_STATE.videoCapsules.push(newCap);
+
+    if (db) {
+        db.collection('video_capsules').doc(newCap.id).set(newCap);
+    }
+
+    alert("✅ Cápsula de video registrada exitosamente.");
+    renderApp();
+}
+
+function deleteVideoCapsule(id) {
+    if (confirm("¿Eliminar esta cápsula de video?")) {
+        APP_STATE.videoCapsules = APP_STATE.videoCapsules.filter(c => c.id !== id);
+        if (db) db.collection('video_capsules').doc(id).delete();
+        renderApp();
+    }
+}
+
+function previewVideoCapsule(id) {
+    const cap = (APP_STATE.videoCapsules || []).find(c => c.id === id);
+    if (!cap) return;
+
+    const titleEl = document.getElementById('videoCapsuleModalTitle');
+    const descEl = document.getElementById('videoCapsuleDescription');
+    const playerContainer = document.getElementById('videoCapsulePlayerContainer');
+
+    if (titleEl) titleEl.textContent = cap.title;
+    if (descEl) descEl.textContent = cap.description;
+
+    if (playerContainer) {
+        playerContainer.innerHTML = `
+            <iframe class="w-full h-full" src="${cap.url}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        `;
+    }
+
+    const modal = document.getElementById('videoCapsuleModal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeVideoCapsuleModal() {
+    const playerContainer = document.getElementById('videoCapsulePlayerContainer');
+    if (playerContainer) playerContainer.innerHTML = '';
+    const modal = document.getElementById('videoCapsuleModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+// ==========================================
+// MOTOR DE EXÁMENES DE NIVEL Y REMEDIACIÓN (3 INTENTOS)
+// ==========================================
+function startLevelExam(levelNumber) {
+    const user = APP_STATE.currentUser;
+    if (!user) return;
+
+    if (!user.examAttempts) user.examAttempts = {};
+    const currentAttempts = user.examAttempts[`level_${levelNumber}`] || 0;
+
+    if (currentAttempts >= 3) {
+        triggerAttemptThreeLockout(levelNumber);
+        return;
+    }
+
+    APP_STATE.currentExam = {
+        level: levelNumber,
+        currentQuestionIndex: 0,
+        attempts: currentAttempts + 1,
+        score: 0,
+        questions: [
+            {
+                q: "¿Cuál de estos billetes equivale a $1.000 pesos?",
+                options: ["b1k", "b5k", "c500"],
+                correct: "b1k"
+            },
+            {
+                q: "Si un producto cuesta $1.500 y pagas con $2.000, ¿cuál es tu vuelto?",
+                options: ["$500", "$1.000", "Sin vuelto"],
+                correct: "$500"
+            }
+        ]
+    };
+
+    renderExamQuestion();
+    const modal = document.getElementById('levelExamModal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function renderExamQuestion() {
+    const exam = APP_STATE.currentExam;
+    const container = document.getElementById('examModalContainer');
+    if (!container || !exam) return;
+
+    const q = exam.questions[exam.currentQuestionIndex];
+
+    container.innerHTML = `
+        <div class="flex justify-between items-center border-b pb-3">
+            <span class="bg-indigo-100 text-indigo-900 font-black px-3 py-1 rounded-full text-xs uppercase">
+                Examen de Nivel ${exam.level} • Intento ${exam.attempts} de 3
+            </span>
+            <button onclick="closeExamModal()" class="text-slate-400 font-black text-lg">✕</button>
+        </div>
+
+        <div class="space-y-4 my-4">
+            <h3 class="text-lg font-black text-slate-800 text-center">${q.q}</h3>
+            
+            <div class="grid grid-cols-1 gap-3">
+                ${q.options.map(opt => `
+                    <button onclick="submitExamAnswer('${opt}')" class="p-4 bg-slate-50 border-2 border-slate-300 hover:border-indigo-500 rounded-2xl font-black text-sm text-slate-800 shadow active:scale-95 transition-all">
+                        ${opt}
+                    </button>
+                `).join('')}
+            </div>
+        </div>
+
+        <div class="bg-indigo-50 p-3 rounded-2xl text-[11px] font-bold text-indigo-900 text-center">
+            Pregunta ${exam.currentQuestionIndex + 1} de ${exam.questions.length}
+        </div>
+    `;
+}
+
+function submitExamAnswer(selectedOpt) {
+    const exam = APP_STATE.currentExam;
+    const q = exam.questions[exam.currentQuestionIndex];
+
+    if (selectedOpt === q.correct) {
+        exam.score++;
+    }
+
+    exam.currentQuestionIndex++;
+
+    if (exam.currentQuestionIndex < exam.questions.length) {
+        renderExamQuestion();
+    } else {
+        finishExamEvaluation();
+    }
+}
+
+function finishExamEvaluation() {
+    const exam = APP_STATE.currentExam;
+    const user = APP_STATE.currentUser;
+    const isPassed = exam.score === exam.questions.length;
+
+    if (!user.examAttempts) user.examAttempts = {};
+    user.examAttempts[`level_${exam.level}`] = exam.attempts;
+
+    if (isPassed) {
+        playChimeSound(false);
+        if (typeof confetti !== 'undefined') confetti();
+        awardPointsAndXp(50, `Aprobación Examen Nivel ${exam.level}`);
+        alert(`🎉 ¡FELICITACIONES!\n\nAprobaste el Examen de Nivel ${exam.level} al 100%.\n\n⭐ Ganaste +50 Puntos.`);
+        closeExamModal();
+    } else {
+        playChimeSound(true);
+
+        if (exam.attempts < 3) {
+            const container = document.getElementById('examModalContainer');
+            container.innerHTML = `
+                <div class="text-center space-y-4 py-4">
+                    <div class="text-5xl">💪</div>
+                    <h3 class="text-2xl font-black text-slate-800">¡Casi lo logras!</h3>
+                    
+                    ${getAvatarHtml('mascot', `Te equivocaste en algunas respuestas. ¡No te preocupes! Tienes un intento más para repasar.`)}
+
+                    <div class="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl text-xs font-bold text-amber-950">
+                        Llevas ${exam.attempts} de 3 intentos utilizados.
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick="closeExamModal()" class="w-1/2 bg-slate-200 font-black py-3 rounded-2xl text-xs">Salir</button>
+                        <button onclick="startLevelExam(${exam.level})" class="w-1/2 bg-indigo-600 text-white font-black py-3 rounded-2xl shadow text-xs">
+                            🔄 Intentar de Nuevo
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else {
+            triggerAttemptThreeLockout(exam.level);
+        }
+    }
+}
+
+function triggerAttemptThreeLockout(levelNumber) {
+    const container = document.getElementById('examModalContainer');
+    const linkedCapsule = (APP_STATE.videoCapsules || []).find(c => c.level === levelNumber) || (APP_STATE.videoCapsules || [])[0];
+
+    container.innerHTML = `
+        <div class="text-center space-y-4 py-2">
+            <div class="text-6xl animate-pulse">🛑</div>
+            <h3 class="text-2xl font-black text-rose-700">¡HICISTE UN GRAN ESFUERZO!</h3>
+
+            ${getAvatarHtml('corporeo', `<b>Por favor acércate a tu profesor/a</b> para que te explique esta parte y mira su video de ayuda.`)}
+
+            <div class="p-4 bg-rose-50 border-2 border-rose-300 rounded-2xl text-xs font-bold text-rose-950 text-left space-y-1">
+                <div class="font-black text-rose-800">🚨 Bloqueo Pedagógico Activado (3.er Intento)</div>
+                <div>Has agotado los 3 intentos del examen. Muestra esta pantalla a tu educador para recibir apoyo personalizado.</div>
+            </div>
+
+            ${linkedCapsule ? `
+                <button onclick="previewVideoCapsule('${linkedCapsule.id}')" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black py-4 rounded-2xl shadow-xl border-b-4 border-purple-900 text-sm active:scale-95 flex items-center justify-center gap-2">
+                    <span>🎥</span> <span>VER VIDEO DE AYUDA DE TU PROFESOR</span>
+                </button>
+            ` : ''}
+
+            <button onclick="closeExamModal()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-black py-3 rounded-2xl text-xs">
+                Entendido
+            </button>
+        </div>
+    `;
+
+    const modal = document.getElementById('levelExamModal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeExamModal() {
+    const modal = document.getElementById('levelExamModal');
+    if (modal) modal.classList.add('hidden');
 }
 
 function renderTeacherSettingsTab() {
@@ -2268,9 +2569,6 @@ function saveInstitutionalSettings() {
     }
 }
 
-// ==========================================
-// MÓDULOS DE PROBADOR IA, CATÁLOGO Y USUARIOS
-// ==========================================
 function renderTeacherAiConfigTab() {
     const cfg = APP_STATE.aiConfig || DEFAULT_AI_CONFIG;
     const isSecure = window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -3309,6 +3607,7 @@ function initFirebaseListeners() {
     listenCol('supermarkets', data => { APP_STATE.supermarkets = data; });
     listenCol('products', data => { APP_STATE.products = data; });
     listenCol('evaluations', data => { APP_STATE.evaluations = data; });
+    listenCol('video_capsules', data => { APP_STATE.videoCapsules = data; });
 
     try {
         db.collection('settings').doc('activeMission').onSnapshot(
