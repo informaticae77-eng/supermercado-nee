@@ -275,40 +275,38 @@ function injectArcadeButtonIfStudentView() {
 // Revisa periódicamente cada 500ms para mostrar el botón cuando ingrese el estudiante
 setInterval(injectArcadeButtonIfStudentView, 500);
 /* ==========================================================================
-   INYECCIÓN AUTOMÁTICA DEL BOTÓN ARCADE EN EL PANEL DEL ESTUDIANTE
+   CONEXIÓN CON EL BOTÓN DEL PANEL DEL ESTUDIANTE
    ========================================================================== */
-function injectArcadeButtonIfStudentView() {
-    const container = document.getElementById('appContainer');
-    
-    // 1. Inyección en la cabecera superior (junto al botón de Memorice)
-    const memoriceBtn = document.querySelector('button[onclick*="Memorice"]');
-    if (memoriceBtn && !document.getElementById('arcadeHeaderBtn')) {
-        const headerBtnHTML = `
-            <button id="arcadeHeaderBtn" onclick="renderMinigamesArcadeView()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-4 py-2 rounded-2xl shadow-md border-2 border-purple-300 text-xs active:scale-95 transition-transform flex items-center gap-2">
-                <span>🎮</span>
-                <span>DESAFÍOS MINEDUC</span>
-            </button>
-        `;
-        memoriceBtn.insertAdjacentHTML('beforebegin', headerBtnHTML);
+function connectArcadeToStudentDashboard() {
+    // 1. Buscar el botón morado existente de "JUGAR MINIJUEGO MEMORICE"
+    const memoriceBtn = document.querySelector('button[onclick*="Memorice"]') || 
+                        Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('MEMORICE'));
+
+    if (memoriceBtn && !document.getElementById('arcadeMinigamesBtnNav')) {
+        // Cambiamos la función del botón existente o agregamos el del Arcade a su lado
+        memoriceBtn.setAttribute('onclick', 'renderMinigamesArcadeView()');
+        memoriceBtn.id = 'arcadeMinigamesBtnNav';
+        memoriceBtn.className = "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-5 py-3 rounded-2xl shadow-lg border-2 border-purple-300 text-xs active:scale-95 transition-transform flex items-center gap-2 animate-pulse";
+        memoriceBtn.innerHTML = `<span>🎮</span> <span>CENTRO DE DESAFÍOS MINEDUC (NIVEL 1)</span>`;
     }
 
-    // 2. Inyección como tarjeta destacada en el cuerpo de la página
-    if (container && container.innerText.includes('Supermercados Disponibles') && !document.getElementById('arcadeMinigamesBtn')) {
-        const buttonHTML = `
-        <div id="arcadeMinigamesBtn" class="mb-6 max-w-5xl mx-auto">
+    // 2. Por si acaso, colocar también una tarjeta grande en el cuerpo del dashboard
+    const container = document.getElementById('appContainer');
+    if (container && container.innerText.includes('Supermercados Disponibles') && !document.getElementById('arcadeBodyCard')) {
+        const cardHTML = `
+        <div id="arcadeBodyCard" class="mb-6 max-w-5xl mx-auto">
             <button onclick="renderMinigamesArcadeView()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black py-4 px-6 rounded-3xl shadow-lg border-b-4 border-purple-900 text-base active:scale-95 transition-transform flex items-center justify-center gap-3">
                 <span class="text-2xl">🎮</span>
-                <span>¡Entrar al Arcade de Minijuegos Mineduc!</span>
+                <span>¡Entrar al Centro de Desafíos Mineduc (5 Juegos + Jefe Final)!</span>
             </button>
         </div>
         `;
-        
-        const firstCard = container.firstElementChild;
-        if (firstCard) {
-            firstCard.insertAdjacentHTML('afterend', buttonHTML);
+        const welcomeBanner = container.querySelector('.bg-gradient-to-r') || container.firstChild;
+        if (welcomeBanner && welcomeBanner.id !== 'arcadeBodyCard') {
+            welcomeBanner.insertAdjacentHTML('afterend', cardHTML);
         }
     }
 }
 
-// Revisa el DOM constantemente para dibujar el botón en el panel
-setInterval(injectArcadeButtonIfStudentView, 400);
+// Ejecutar cada 300ms para asegurar la transformación constante del botón
+setInterval(connectArcadeToStudentDashboard, 300);
