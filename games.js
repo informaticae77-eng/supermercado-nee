@@ -253,3 +253,24 @@ function finishMinigame1() {
     alert(`🎉 ¡Excelente! Completaste "El Estante Correcto"\n⏱️ Tiempo: ${timeSpent}s | ❌ Errores: ${mj1State.errors}\n⭐ ¡Ganaste +20 Puntos!`);
     renderMinigamesArcadeView();
 }
+/* ==========================================================================
+   AUTO-INYECCIÓN DEL BOTÓN ARCADE EN EL PANEL DEL ESTUDIANTE
+   ========================================================================== */
+function injectArcadeButtonIfStudentView() {
+    // Si la pantalla del estudiante está visible y no tiene el botón aún
+    const container = document.getElementById('appContainer');
+    if (container && currentUser && currentUser.role === 'student' && !document.getElementById('arcadeMinigamesBtn')) {
+        const buttonHTML = `
+        <div id="arcadeMinigamesBtn" class="mb-6 max-w-5xl mx-auto">
+            <button onclick="renderMinigamesArcadeView()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black py-4 px-6 rounded-3xl shadow-lg border-b-4 border-purple-900 text-base active:scale-95 transition-transform flex items-center justify-center gap-3">
+                <span class="text-2xl">🎮</span>
+                <span>¡Entrar al Arcade de Minijuegos Mineduc!</span>
+            </button>
+        </div>
+        `;
+        container.insertAdjacentHTML('afterbegin', buttonHTML);
+    }
+}
+
+// Revisa periódicamente cada 500ms para mostrar el botón cuando ingrese el estudiante
+setInterval(injectArcadeButtonIfStudentView, 500);
