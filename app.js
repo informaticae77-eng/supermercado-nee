@@ -782,14 +782,7 @@ function renderLoginView(container) {
                 </div>
                 <p id="loginError" class="text-xs font-bold text-rose-600 hidden text-center">RUT o clave incorrecta.</p>
                 <button onclick="handleLogin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl border-b-4 border-indigo-900 shadow text-lg active:scale-95">Ingresar</button>
-            </div>
-            <div class="bg-indigo-50 border p-3 rounded-2xl text-[11px] font-bold text-indigo-900 space-y-1">
-                <div class="font-black uppercase">💡 Accesos Rápidos de Prueba:</div>
-                <div>• Docente / Educador: RUT <code>12345678-9</code> | PIN <code>1234</code></div>
-                <div>• Estudiante Alumno: RUT <code>98765432-1</code> | PIN <code>1234</code></div>
-            </div>
-        </div>
-    `;
+           
 }
 
 function handleLogin() {
