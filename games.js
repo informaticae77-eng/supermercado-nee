@@ -274,3 +274,41 @@ function injectArcadeButtonIfStudentView() {
 
 // Revisa periódicamente cada 500ms para mostrar el botón cuando ingrese el estudiante
 setInterval(injectArcadeButtonIfStudentView, 500);
+/* ==========================================================================
+   INYECCIÓN AUTOMÁTICA DEL BOTÓN ARCADE EN EL PANEL DEL ESTUDIANTE
+   ========================================================================== */
+function injectArcadeButtonIfStudentView() {
+    const container = document.getElementById('appContainer');
+    
+    // 1. Inyección en la cabecera superior (junto al botón de Memorice)
+    const memoriceBtn = document.querySelector('button[onclick*="Memorice"]');
+    if (memoriceBtn && !document.getElementById('arcadeHeaderBtn')) {
+        const headerBtnHTML = `
+            <button id="arcadeHeaderBtn" onclick="renderMinigamesArcadeView()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-4 py-2 rounded-2xl shadow-md border-2 border-purple-300 text-xs active:scale-95 transition-transform flex items-center gap-2">
+                <span>🎮</span>
+                <span>DESAFÍOS MINEDUC</span>
+            </button>
+        `;
+        memoriceBtn.insertAdjacentHTML('beforebegin', headerBtnHTML);
+    }
+
+    // 2. Inyección como tarjeta destacada en el cuerpo de la página
+    if (container && container.innerText.includes('Supermercados Disponibles') && !document.getElementById('arcadeMinigamesBtn')) {
+        const buttonHTML = `
+        <div id="arcadeMinigamesBtn" class="mb-6 max-w-5xl mx-auto">
+            <button onclick="renderMinigamesArcadeView()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black py-4 px-6 rounded-3xl shadow-lg border-b-4 border-purple-900 text-base active:scale-95 transition-transform flex items-center justify-center gap-3">
+                <span class="text-2xl">🎮</span>
+                <span>¡Entrar al Arcade de Minijuegos Mineduc!</span>
+            </button>
+        </div>
+        `;
+        
+        const firstCard = container.firstElementChild;
+        if (firstCard) {
+            firstCard.insertAdjacentHTML('afterend', buttonHTML);
+        }
+    }
+}
+
+// Revisa el DOM constantemente para dibujar el botón en el panel
+setInterval(injectArcadeButtonIfStudentView, 400);
