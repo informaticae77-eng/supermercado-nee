@@ -149,14 +149,14 @@ function updateHeaderUser() {
 }
 
 /* ==========================================================================
-   PANEL DEL ESTUDIANTE (RESTRUCTURADO: SIN EL BOTÓN DE MEMORICE)
+   PANEL DEL ESTUDIANTE (BOTÓN DE MEMORICE ELIMINADO DEFINITIVAMENTE)
    ========================================================================== */
 function renderStudentDashboard() {
     const student = currentUser;
     const mission = activeMission;
     
     // Puntos y gamificación
-    const points = student.points || 0;
+    const points = student ? (student.points || 0) : 0;
     const targetPoints = 250;
     const progressPercent = Math.min(100, Math.round((points / targetPoints) * 100));
     
@@ -179,7 +179,7 @@ function renderStudentDashboard() {
         </div>
         ` : ''}
 
-        <!-- 2. BARRA DE NIVEL Y PROGRESO (BOTÓN MEMORICE REMOVIDO) -->
+        <!-- 2. BARRA DE NIVEL Y PROGRESO (SIN BOTÓN DE MEMORICE A LA DERECHA) -->
         <div class="bg-white rounded-3xl p-5 border-2 border-slate-200 shadow-sm space-y-3">
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-2">
@@ -203,7 +203,7 @@ function renderStudentDashboard() {
                 <p class="text-xs font-bold text-indigo-100">Selecciona una tienda para comenzar tu misión.</p>
                 
                 <div class="bg-white text-slate-900 p-3 rounded-2xl font-black text-xs shadow-md border-2 border-indigo-300 inline-block">
-                    ¡Hola ${student.name}! Selecciona una tienda para comenzar tu misión.
+                    ¡Hola ${student ? student.name : ''}! Selecciona una tienda para comenzar tu misión.
                 </div>
             </div>
 
