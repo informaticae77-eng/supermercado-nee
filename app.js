@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SUPERMERCADO ADAPTATIVO NEE - CÓDIGO PRINCIPAL (app.js)
+   SUPERMERCADO ADAPTATIVO NEE - CÓDIGO PRINCIPAL COMPLETO (app.js)
    ========================================================================== */
 
 // STATE MANAGEMENT
@@ -13,15 +13,16 @@ let currentOCRProduct = null; // Producto siendo escaneado
 
 // BASE DE DATOS LOCAL EN MEMORIA (Estado Inicial / Fallback)
 let dbStores = [
-    { id: 'sup1', name: 'Supermercado Central', logo: '🛒' },
-    { id: 'sup2', name: 'Donde Juanito', logo: '🏪' }
+    { id: 'sup1', name: 'Lider', logo: '🛒' },
+    { id: 'sup2', name: 'Jumbo', logo: '🐘' },
+    { id: 'sup3', name: 'Unimarc', logo: '🍎' }
 ];
 
 let dbCategories = [
     { id: 'cat1', name: 'Lácteos y Quesos', icon: '🥛' },
     { id: 'cat2', name: 'Frutas y Verduras', icon: '🍎' },
     { id: 'cat3', name: 'Panadería y Pastelería', icon: '🍞' },
-    { id: 'cat4', name: 'Abarrotes y Despensa', icon: 'Rice' },
+    { id: 'cat4', name: 'Abarrotes y Despensa', icon: '🌾' },
     { id: 'cat5', name: 'Aseo y Limpieza', icon: '🧹' }
 ];
 
@@ -35,7 +36,7 @@ let dbProducts = [
 
 let dbUsers = [
     { id: 'u1', name: 'Profesor Guía', rut: 'docente', role: 'teacher', points: 0 },
-    { id: 'u2', name: 'Estudiante Demo', rut: '1234', role: 'student', points: 475 }
+    { id: 'u2', name: 'Juanito Pérez', rut: '1234', role: 'student', points: 475 }
 ];
 
 // INICIALIZACIÓN
@@ -45,7 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initApp() {
     loadLocalData();
-    renderLoginView();
+    // Cargar automáticamente sesión demo si existe
+    if (!currentUser && dbUsers.length > 1) {
+        currentUser = dbUsers[1]; // Inicia como Juanito Pérez por defecto
+    }
+    updateHeaderUser();
+    goHome();
 }
 
 function loadLocalData() {
@@ -59,7 +65,15 @@ function loadLocalData() {
     if (localStores) dbStores = JSON.parse(localStores);
 
     const localMission = localStorage.getItem('nee_active_mission');
-    if (localMission) activeMission = JSON.parse(localMission);
+    if (localMission) {
+        activeMission = JSON.parse(localMission);
+    } else {
+        // Misión demo por defecto
+        activeMission = {
+            title: 'Misión de Autonomía en Sala',
+            products: [{ id: 'p1', name: 'Leche Entera 1L', price: 1050 }]
+        };
+    }
 }
 
 function saveLocalData() {
@@ -133,13 +147,12 @@ function updateHeaderUser() {
     if (!currentUser) return;
     const infoContainer = document.getElementById('userInfoHeader');
     infoContainer.innerHTML = `
-        <div class="text-right hidden sm:block">
-            <p class="text-xs font-black leading-none">${currentUser.name}</p>
-            <p class="text-[10px] text-indigo-200 font-bold">${currentUser.role === 'teacher' ? 'Docente' : 'Estudiante'}</p>
+        <div class="flex items-center gap-2">
+            <span class="bg-indigo-700 text-white font-black text-xs px-3 py-1.5 rounded-xl border border-indigo-500">${currentUser.name}</span>
+            <span class="bg-indigo-800 text-amber-300 font-black text-xs px-3 py-1.5 rounded-xl border border-indigo-500">🚩 Nivel 1: Comprador Principiante</span>
+            <span class="bg-amber-400 text-slate-900 font-black text-xs px-3 py-1.5 rounded-xl border border-amber-500">${currentUser.points || 475} pts</span>
+            <button onclick="logout()" class="bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 rounded-xl text-xs font-black border border-rose-700 active:scale-95">Salir</button>
         </div>
-        <button onclick="logout()" class="bg-indigo-800 hover:bg-indigo-900 text-white p-2 rounded-xl text-xs font-black" title="Cerrar Sesión">
-            🚪
-        </button>
     `;
     if (currentUser.role === 'student') {
         document.getElementById('headerBasketBtn').classList.remove('hidden');
@@ -149,64 +162,78 @@ function updateHeaderUser() {
 }
 
 /* ==========================================================================
-   PANEL DEL ESTUDIANTE (MODIFICADO SIN MINIJUEGO DE MEMORICE)
+   PANEL DEL ESTUDIANTE (TOTALMENTE LIMPIO DE MINIJUEGO MEMORICE)
    ========================================================================== */
 function renderStudentDashboard() {
     const student = currentUser;
     const mission = activeMission;
     
     // Puntos y gamificación
-    const points = student.points || 0;
+    const points = student.points || 475;
     const targetPoints = 250;
     const progressPercent = Math.min(100, Math.round((points / targetPoints) * 100));
     
     let html = `
-    <div class="space-y-6 max-w-5xl mx-auto">
-        <!-- HEADER ESTUDIANTE Y PROGRESO DE GAMIFICACIÓN -->
-        <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
-                <div>
-                    <span class="bg-white/20 text-white font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur-sm inline-block mb-2">
-                        🌟 Panel de Aprendizaje
-                    </span>
-                    <h2 class="text-2xl sm:text-3xl font-black">¡Hola, ${student.name}!</h2>
-                    <p class="text-xs sm:text-sm font-bold text-indigo-100 mt-1">Nivel 1: Comprador Principiante 🛒</p>
+    <div class="space-y-5 max-w-6xl mx-auto">
+        <!-- 1. BLOQUE DE MISIÓN EN AULA ACTIVA -->
+        ${mission ? `
+        <div class="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-3xl p-6 text-white shadow-md flex justify-between items-center border-4 border-amber-300">
+            <div>
+                <span class="bg-black/30 text-white font-black text-[11px] px-3 py-1 rounded-full uppercase tracking-wider inline-block mb-1">
+                    🔴 ¡MISIÓN EN AULA ACTIVA!
+                </span>
+                <h2 class="text-2xl sm:text-3xl font-black">${mission.title}</h2>
+                <p class="text-xs font-bold text-amber-100 mt-1">Asignada por tu Fonoaudiología • ${mission.products.length} productos en tu hoja impresa</p>
+            </div>
+            <div class="bg-slate-900/90 p-4 rounded-2xl text-center border-2 border-amber-400/50 min-w-[140px]">
+                <span class="text-[10px] font-black text-amber-300 block uppercase tracking-wider">PUNTUACIÓN MISIÓN:</span>
+                <span class="text-2xl font-black text-white">100%</span>
+            </div>
+        </div>
+        ` : ''}
+
+        <!-- 2. BARRA DE NIVEL Y PROGRESO (SIN BOTÓN DE MEMORICE) -->
+        <div class="bg-white rounded-3xl p-5 border-2 border-slate-200 shadow-sm space-y-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🏆</span>
+                    <div>
+                        <h3 class="font-black text-slate-800 text-sm sm:text-base">Nivel 1: Comprador Principiante 🛒</h3>
+                        <p class="text-xs font-bold text-slate-500">Puntos acumulados: <b class="text-amber-600">${points} pts</b> de ${targetPoints} pts para el premio</p>
+                    </div>
                 </div>
+            </div>
+            
+            <div class="w-full bg-slate-100 rounded-full h-4 overflow-hidden border p-0.5">
+                <div class="bg-emerald-500 h-full rounded-full transition-all duration-1000" style="width: ${progressPercent}%"></div>
+            </div>
+        </div>
+
+        <!-- 3. SECCIÓN DE BIENVENIDA CON CORPÓREO -->
+        <div class="bg-indigo-600 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden flex justify-between items-center min-h-[140px]">
+            <div class="space-y-3 max-w-xl z-10">
+                <h2 class="text-3xl font-black tracking-tight">¡Bienvenido a Comprar! 🛍️</h2>
+                <p class="text-xs font-bold text-indigo-100">Selecciona una tienda para comenzar tu misión.</p>
                 
-                <!-- BARRA DE PREMIO Y PUNTOS -->
-                <div class="bg-white/15 backdrop-blur-md p-4 rounded-2xl border border-white/20 w-full md:w-72 space-y-2">
-                    <div class="flex justify-between items-center text-xs font-black">
-                        <span>PUNTOS ACUMULADOS</span>
-                        <span class="text-amber-300 text-sm">${points} / ${targetPoints} PTS</span>
-                    </div>
-                    <div class="w-full bg-black/30 rounded-full h-3.5 overflow-hidden p-0.5 border border-white/10">
-                        <div class="bg-gradient-to-r from-amber-400 to-yellow-300 h-full rounded-full transition-all duration-1000" style="width: ${progressPercent}%"></div>
-                    </div>
-                    ${points >= targetPoints ? `
-                        <button onclick="openPhysicalRewardModal()" class="w-full mt-2 bg-amber-400 hover:bg-amber-300 text-slate-900 font-black py-2 rounded-xl text-xs shadow-lg animate-pulse flex items-center justify-center gap-1.5">
-                            🎁 ¡RECLAMAR PREMIO FÍSICO!
-                        </button>
-                    ` : `
-                        <p class="text-[10px] text-center font-bold text-indigo-200">Completa compras para ganar tu premio 🎁</p>
-                    `}
+                <div class="bg-white text-slate-900 p-3 rounded-2xl font-black text-xs shadow-md border-2 border-indigo-300 inline-block">
+                    ¡Hola ${student.name}! Selecciona una tienda para comenzar tu misión.
+                </div>
+            </div>
+
+            <!-- Corpóreo de Oso -->
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="bg-white/20 backdrop-blur-md p-3 rounded-3xl border-2 border-white/40 text-center shadow-lg">
+                    <span class="text-[9px] bg-purple-900 text-purple-200 font-black px-2 py-0.5 rounded-full block mb-1 uppercase">Corpóreo</span>
+                    <div class="text-5xl animate-bounce">🐻</div>
                 </div>
             </div>
         </div>
 
-        <!-- VISTA DE SUPERMERCADOS Y MISIÓN ACTIVA -->
-        <div class="space-y-4">
-            <div class="flex justify-between items-center">
-                <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                    <span>🏪</span> <span>Selecciona un Supermercado</span>
-                </h3>
-                ${mission ? `
-                    <button onclick="openViewMissionModal()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-black px-3.5 py-1.5 rounded-2xl text-xs flex items-center gap-1.5 border border-indigo-300 transition-colors">
-                        📋 Ver Misión Activa
-                    </button>
-                ` : ''}
-            </div>
-
-            <!-- GRILLA DE SUPERMERCADOS -->
+        <!-- 4. GRILLA DE SUPERMERCADOS DISPONIBLES -->
+        <div class="space-y-3">
+            <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                <span>🏪</span> <span>Supermercados Disponibles (Toca uno para entrar):</span>
+            </h3>
             <div id="studentSupermarketsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <!-- Se puebla dinámicamente -->
             </div>
@@ -314,7 +341,7 @@ function addToBasket(prodId, customPrice = null) {
     }
 
     updateBasketBadge();
-    renderSupermarketProductsView();
+    if (currentSupermarket) renderSupermarketProductsView();
 }
 
 function updateBasketBadge() {
@@ -426,7 +453,6 @@ function verifyAndCheckout() {
 
     const vuelto = userPaidAmount - total;
     
-    // Otorgar puntos al estudiante
     if (currentUser) {
         currentUser.points = (currentUser.points || 0) + 100;
         saveLocalData();
@@ -441,7 +467,9 @@ function openCheckoutSuccessModal(total, paid, vuelto) {
     document.getElementById('successModalPaid').innerText = `$${paid.toLocaleString('es-CL')}`;
     document.getElementById('successModalVueltoAmount').innerText = `$${vuelto.toLocaleString('es-CL')}`;
 
-    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    if (typeof confetti === 'function') {
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    }
     document.getElementById('checkoutSuccessModal').classList.remove('hidden');
 }
 
@@ -492,16 +520,21 @@ function captureAndAnalyzeImageWithAI() {
 
     statusBox.innerText = "🔍 Analizando imagen con Tesseract OCR...";
 
-    Tesseract.recognize(canvas, 'spa', { logger: m => console.log(m) })
-        .then(({ data: { text } }) => {
-            closeScannerModal();
-            openShelfPriceModal(text);
-        })
-        .catch(err => {
-            console.error(err);
-            closeScannerModal();
-            openShelfPriceModal("");
-        });
+    if (typeof Tesseract !== 'undefined') {
+        Tesseract.recognize(canvas, 'spa', { logger: m => console.log(m) })
+            .then(({ data: { text } }) => {
+                closeScannerModal();
+                openShelfPriceModal(text);
+            })
+            .catch(err => {
+                console.error(err);
+                closeScannerModal();
+                openShelfPriceModal("");
+            });
+    } else {
+        closeScannerModal();
+        openShelfPriceModal("");
+    }
 }
 
 function openShelfPriceModal(ocrText) {
@@ -592,7 +625,6 @@ function renderTeacherDashboard() {
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- LISTA DE ESTUDIANTES Y PROGRESO -->
             <div class="bg-white p-5 rounded-3xl border-2 border-slate-200 space-y-3">
                 <h3 class="font-black text-slate-800 text-base flex items-center gap-2"><span>👧👦</span> <span>Alumnos y Puntos</span></h3>
                 <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
@@ -610,7 +642,6 @@ function renderTeacherDashboard() {
                 </div>
             </div>
 
-            <!-- GESTIÓN RÁPIDA -->
             <div class="bg-white p-5 rounded-3xl border-2 border-slate-200 space-y-3">
                 <h3 class="font-black text-slate-800 text-base flex items-center gap-2"><span>⚙️</span> <span>Administración</span></h3>
                 <div class="grid grid-cols-2 gap-2">
