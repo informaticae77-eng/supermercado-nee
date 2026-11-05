@@ -33,7 +33,7 @@
         /* ANIMACIONES AVANZADAS: HALLOWEEN, NIEVE Y PERSONAJES */
         /* =================================================== */
 
-        /* 1. Caída de nieve continua por toda la pantalla */
+        /* 1. Caída de nieve continua */
         @keyframes snowFall {
             0% { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 1; }
             50% { transform: translateY(50vh) translateX(25px) rotate(180deg); opacity: 0.8; }
@@ -48,7 +48,7 @@
             animation: snowFall linear infinite;
         }
 
-        /* 2. Arañas bajando y subiendo por hilo de seda */
+        /* 2. Arañas subiendo y bajando */
         @keyframes spiderSilkCrawl {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(180px); }
@@ -61,7 +61,7 @@
         }
         .animate-spider-crawl-fast { animation: spiderSilkCrawlFast 4.5s ease-in-out infinite 1.5s; }
 
-        /* 3. Bruja volando cruzando la pantalla */
+        /* 3. Bruja volando */
         @keyframes witchFlying {
             0% { transform: translateX(-120px) translateY(20px) rotate(5deg) scale(0.9); }
             50% { transform: translateX(50vw) translateY(-10px) rotate(-3deg) scale(1.1); }
@@ -69,7 +69,7 @@
         }
         .animate-witch { animation: witchFlying 12s linear infinite; }
 
-        /* 4. Zombie tambaleante caminante */
+        /* 4. Zombie caminante */
         @keyframes zombieGroan {
             0%, 100% { transform: translateX(0) rotate(-4deg) scale(1); }
             25% { transform: translateX(10px) rotate(3deg) scale(1.03); }
@@ -78,7 +78,7 @@
         }
         .animate-zombie { animation: zombieGroan 3.5s ease-in-out infinite; }
 
-        /* 5. Caldero de bruja y burbujas de poción hirviendo */
+        /* 5. Caldero de bruja y burbujas */
         @keyframes cauldronGlow {
             0%, 100% { filter: drop-shadow(0 0 15px rgba(34, 197, 94, 0.9)) drop-shadow(0 0 25px rgba(168, 85, 247, 0.6)); }
             50% { filter: drop-shadow(0 0 25px rgba(168, 85, 247, 0.9)) drop-shadow(0 0 35px rgba(34, 197, 94, 0.8)); }
@@ -94,7 +94,7 @@
         .bubble-2 { animation: potionBubbleRise 2.4s infinite ease-out 0.6s; }
         .bubble-3 { animation: potionBubbleRise 1.8s infinite ease-out 1.2s; }
 
-        /* 6. Flote suave de personaje avatar */
+        /* 6. Flote de avatar */
         @keyframes floatBounce {
             0%, 100% { transform: translateY(0) scale(1); }
             50% { transform: translateY(-10px) scale(1.03); }
@@ -468,6 +468,7 @@
         </div>
     </div>
 
+    <!-- Carga del JavaScript Principal -->
     <script src="app.js"></script>
 </body>
 </html>
