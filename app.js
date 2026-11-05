@@ -13,9 +13,8 @@ let currentOCRProduct = null; // Producto siendo escaneado
 
 // BASE DE DATOS LOCAL EN MEMORIA (Estado Inicial / Fallback)
 let dbStores = [
-    { id: 'sup1', name: 'Lider', logo: '🛒' },
-    { id: 'sup2', name: 'Jumbo', logo: '🐘' },
-    { id: 'sup3', name: 'Unimarc', logo: '🍎' }
+    { id: 'sup1', name: 'Supermercado Central', logo: '🛒' },
+    { id: 'sup2', name: 'Donde Juanito', logo: '🏪' }
 ];
 
 let dbCategories = [
@@ -36,7 +35,7 @@ let dbProducts = [
 
 let dbUsers = [
     { id: 'u1', name: 'Profesor Guía', rut: 'docente', role: 'teacher', points: 0 },
-    { id: 'u2', name: 'Juanito Pérez', rut: '1234', role: 'student', points: 475 }
+    { id: 'u2', name: 'Estudiante Demo', rut: '1234', role: 'student', points: 475 }
 ];
 
 // INICIALIZACIÓN
@@ -46,12 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initApp() {
     loadLocalData();
-    // Cargar automáticamente sesión demo si existe
-    if (!currentUser && dbUsers.length > 1) {
-        currentUser = dbUsers[1]; // Inicia como Juanito Pérez por defecto
-    }
-    updateHeaderUser();
-    goHome();
+    renderLoginView();
 }
 
 function loadLocalData() {
@@ -65,15 +59,7 @@ function loadLocalData() {
     if (localStores) dbStores = JSON.parse(localStores);
 
     const localMission = localStorage.getItem('nee_active_mission');
-    if (localMission) {
-        activeMission = JSON.parse(localMission);
-    } else {
-        // Misión demo por defecto
-        activeMission = {
-            title: 'Misión de Autonomía en Sala',
-            products: [{ id: 'p1', name: 'Leche Entera 1L', price: 1050 }]
-        };
-    }
+    if (localMission) activeMission = JSON.parse(localMission);
 }
 
 function saveLocalData() {
@@ -133,7 +119,7 @@ function handleLogin() {
         updateHeaderUser();
         goHome();
     } else {
-        alert('Usuario no encontrado. Intenta con "1234" (Alumno) o "docente" (Profesor).');
+        alert('Usuario no encontrado. Revisa el RUT ingresado.');
     }
 }
 
@@ -147,12 +133,13 @@ function updateHeaderUser() {
     if (!currentUser) return;
     const infoContainer = document.getElementById('userInfoHeader');
     infoContainer.innerHTML = `
-        <div class="flex items-center gap-2">
-            <span class="bg-indigo-700 text-white font-black text-xs px-3 py-1.5 rounded-xl border border-indigo-500">${currentUser.name}</span>
-            <span class="bg-indigo-800 text-amber-300 font-black text-xs px-3 py-1.5 rounded-xl border border-indigo-500">🚩 Nivel 1: Comprador Principiante</span>
-            <span class="bg-amber-400 text-slate-900 font-black text-xs px-3 py-1.5 rounded-xl border border-amber-500">${currentUser.points || 475} pts</span>
-            <button onclick="logout()" class="bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 rounded-xl text-xs font-black border border-rose-700 active:scale-95">Salir</button>
+        <div class="text-right hidden sm:block">
+            <p class="text-xs font-black leading-none">${currentUser.name}</p>
+            <p class="text-[10px] text-indigo-200 font-bold">${currentUser.role === 'teacher' ? 'Docente' : 'Estudiante'}</p>
         </div>
+        <button onclick="logout()" class="bg-indigo-800 hover:bg-indigo-900 text-white p-2 rounded-xl text-xs font-black" title="Cerrar Sesión">
+            🚪 Salir
+        </button>
     `;
     if (currentUser.role === 'student') {
         document.getElementById('headerBasketBtn').classList.remove('hidden');
@@ -162,14 +149,14 @@ function updateHeaderUser() {
 }
 
 /* ==========================================================================
-   PANEL DEL ESTUDIANTE (TOTALMENTE LIMPIO DE MINIJUEGO MEMORICE)
+   PANEL DEL ESTUDIANTE (RESTRUCTURADO: SIN EL BOTÓN DE MEMORICE)
    ========================================================================== */
 function renderStudentDashboard() {
     const student = currentUser;
     const mission = activeMission;
     
     // Puntos y gamificación
-    const points = student.points || 475;
+    const points = student.points || 0;
     const targetPoints = 250;
     const progressPercent = Math.min(100, Math.round((points / targetPoints) * 100));
     
@@ -183,7 +170,7 @@ function renderStudentDashboard() {
                     🔴 ¡MISIÓN EN AULA ACTIVA!
                 </span>
                 <h2 class="text-2xl sm:text-3xl font-black">${mission.title}</h2>
-                <p class="text-xs font-bold text-amber-100 mt-1">Asignada por tu Fonoaudiología • ${mission.products.length} productos en tu hoja impresa</p>
+                <p class="text-xs font-bold text-amber-100 mt-1">Asignada por tu Fonoaudiología • ${mission.products ? mission.products.length : 1} productos en tu hoja impresa</p>
             </div>
             <div class="bg-slate-900/90 p-4 rounded-2xl text-center border-2 border-amber-400/50 min-w-[140px]">
                 <span class="text-[10px] font-black text-amber-300 block uppercase tracking-wider">PUNTUACIÓN MISIÓN:</span>
@@ -192,7 +179,7 @@ function renderStudentDashboard() {
         </div>
         ` : ''}
 
-        <!-- 2. BARRA DE NIVEL Y PROGRESO (SIN BOTÓN DE MEMORICE) -->
+        <!-- 2. BARRA DE NIVEL Y PROGRESO (BOTÓN MEMORICE REMOVIDO) -->
         <div class="bg-white rounded-3xl p-5 border-2 border-slate-200 shadow-sm space-y-3">
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-2">
@@ -596,7 +583,7 @@ function openViewMissionModal() {
                 <h4 class="font-black text-indigo-900 text-base">${activeMission.title}</h4>
                 <p class="text-xs font-bold text-indigo-700">Productos requeridos:</p>
                 <ul class="list-disc list-inside text-xs font-bold text-slate-700 space-y-1">
-                    ${activeMission.products.map(p => `<li>${p.name} ($${p.price.toLocaleString('es-CL')})</li>`).join('')}
+                    ${activeMission.products ? activeMission.products.map(p => `<li>${p.name} ($${p.price.toLocaleString('es-CL')})</li>`).join('') : '<li>Producto de Misión</li>'}
                 </ul>
             </div>
         `;
