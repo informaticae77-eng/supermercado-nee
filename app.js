@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SUPERMERCADO ADAPTATIVO NEE - CÓDIGO PRINCIPAL COMPLETO (app.js)
+   SUPERMERCADO ADAPTATIVO NEE - CÓDIGO PRINCIPAL COMPLETO (v2.0 - AntiCaché)
    ========================================================================== */
 
 // STATE MANAGEMENT
@@ -149,7 +149,7 @@ function updateHeaderUser() {
 }
 
 /* ==========================================================================
-   PANEL DEL ESTUDIANTE (BOTÓN DE MEMORICE ELIMINADO DEFINITIVAMENTE)
+   PANEL DEL ESTUDIANTE (SIN BOTÓN MEMORICE)
    ========================================================================== */
 function renderStudentDashboard() {
     const student = currentUser;
