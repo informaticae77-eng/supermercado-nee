@@ -5,9 +5,9 @@
 // Estado del progreso de minijuegos del estudiante
 let studentMinigamesProgress = {
     currentLevel: 1,
-    completedGames: [], // Ejemplo: ['mj1', 'mj2']
+    completedGames: [],
     bossUnlocked: false,
-    gameMetrics: [] // Guarda cada intento con tiempos y errores
+    gameMetrics: []
 };
 
 // Cargar progreso desde localStorage
@@ -24,7 +24,7 @@ function saveMinigamesProgress() {
 }
 
 /* --------------------------------------------------------------------------
-   1. VISTA: PESTAÑA ARCADE DE MINIJUEGOS (PANEL ESTUDIANTE)
+   1. VISTA: ARCADE DE MINIJUEGOS (PANEL ESTUDIANTE)
    -------------------------------------------------------------------------- */
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -33,8 +33,16 @@ function renderMinigamesArcadeView() {
     const isBossUnlocked = completed.length >= 5;
 
     const html = `
-    <div class="space-y-6 max-w-5xl mx-auto">
-        <!-- Encabezado del Nivel -->
+    <div class="space-y-6 max-w-5xl mx-auto p-4">
+        <!-- Navegación superior -->
+        <div class="flex justify-between items-center bg-white p-4 rounded-3xl border-2 border-slate-200 shadow-sm">
+            <button onclick="goHome()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-black px-4 py-2 rounded-2xl text-xs active:scale-95">
+                ⬅ Volver al Panel
+            </button>
+            <span class="font-black text-slate-800 text-sm">🎮 Centro de Desafíos Mineduc</span>
+        </div>
+
+        <!-- Header del Nivel -->
         <div class="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-3xl p-6 text-white shadow-lg flex justify-between items-center border-4 border-purple-300">
             <div>
                 <span class="bg-black/30 text-white font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-wider inline-block mb-1">
@@ -49,7 +57,7 @@ function renderMinigamesArcadeView() {
             </div>
         </div>
 
-        <!-- Grid de los 5 Minijuegos + Boss -->
+        <!-- Grid de Minijuegos -->
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             
             <!-- Minijuego 1 -->
@@ -162,34 +170,53 @@ function renderMinigamesArcadeView() {
 }
 
 /* --------------------------------------------------------------------------
-   2. MINIJUEGO 1: "EL ESTANTE CORRECTO" (Categorización Mineduc)
+   2. MINIJUEGO 1: EL ESTANTE CORRECTO (Con Imágenes del Catálogo Real)
    -------------------------------------------------------------------------- */
 let mj1State = {
     startTime: null,
     errors: 0,
     currentQuestion: 0,
-    questions: [
-        { item: '🥛 Leche Entera', correctCategory: 'Lácteos' },
-        { item: '🍎 Manzana Roja', correctCategory: 'Frutas y Verduras' },
-        { item: '🧹 Detergente Líquido', correctCategory: 'Aseo' },
-        { item: '🍞 Pan Hallulla', correctCategory: 'Panadería' }
-    ]
+    questions: []
 };
+
+// Función para obtener productos reales del catálogo global de la aplicación
+function getCatalogProducts() {
+    if (typeof productsCatalog !== 'undefined' && productsCatalog.length > 0) {
+        return productsCatalog;
+    } else if (typeof APP_DATA !== 'undefined' && APP_DATA.products) {
+        return APP_DATA.products;
+    }
+    
+    // Lista de respaldo con imágenes si no detecta el objeto global inmediatamente
+    return [
+        { name: 'Leche Entera', category: 'Lácteos', image: 'https://cdn-icons-png.flaticon.com/512/2674/2674486.png' },
+        { name: 'Yogurt Frutilla', category: 'Lácteos', image: 'https://cdn-icons-png.flaticon.com/512/2553/2553691.png' },
+        { name: 'Manzana Roja', category: 'Frutas y Verduras', image: 'https://cdn-icons-png.flaticon.com/512/415/415733.png' },
+        { name: 'Plátano', category: 'Frutas y Verduras', image: 'https://cdn-icons-png.flaticon.com/512/2909/2909761.png' },
+        { name: 'Detergente Líquido', category: 'Aseo', image: 'https://cdn-icons-png.flaticon.com/512/2553/2553642.png' },
+        { name: 'Jabón de Manos', category: 'Aseo', image: 'https://cdn-icons-png.flaticon.com/512/2553/2553659.png' },
+        { name: 'Pan Hallulla', category: 'Panadería', image: 'https://cdn-icons-png.flaticon.com/512/3014/3014535.png' }
+    ];
+}
 
 function startMinigame1() {
     mj1State.startTime = Date.now();
     mj1State.errors = 0;
     mj1State.currentQuestion = 0;
+    
+    const catalog = getCatalogProducts();
+    // Seleccionar 4 productos al azar
+    mj1State.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 4);
+    
     renderMinigame1Question();
 }
 
 function renderMinigame1Question() {
     const q = mj1State.questions[mj1State.currentQuestion];
-    if (!q) {
-        return finishMinigame1();
-    }
+    if (!q) return finishMinigame1();
 
     const categories = ['Lácteos', 'Frutas y Verduras', 'Panadería', 'Aseo'];
+    const imgSrc = q.image || q.img || 'https://cdn-icons-png.flaticon.com/512/1170/1170576.png';
 
     const html = `
     <div class="max-w-xl mx-auto bg-white rounded-3xl p-6 border-4 border-indigo-200 shadow-xl space-y-6 text-center">
@@ -198,15 +225,21 @@ function renderMinigame1Question() {
             <span>Pregunta ${mj1State.currentQuestion + 1} de ${mj1State.questions.length}</span>
         </div>
 
-        <div class="py-6 bg-slate-50 rounded-2xl border">
-            <span class="text-2xl font-black text-slate-400 block mb-2 font-mono">¿EN QUÉ ESTANTE VA?</span>
-            <span class="text-4xl font-black text-slate-800">${q.item}</span>
+        <div class="py-6 bg-slate-50 rounded-2xl border flex flex-col items-center justify-center space-y-3">
+            <span class="text-xs font-black text-slate-400 uppercase tracking-wider">¿EN QUÉ ESTANTE VA ESTE PRODUCTO?</span>
+            
+            <!-- Imagen real del catálogo -->
+            <div class="w-32 h-32 bg-white p-3 rounded-2xl border-2 border-indigo-100 shadow-sm flex items-center justify-center">
+                <img src="${imgSrc}" alt="${q.name}" class="max-h-full max-w-full object-contain" onerror="this.src='https://cdn-icons-png.flaticon.com/512/1170/1170576.png'"/>
+            </div>
+
+            <span class="text-2xl font-black text-slate-800">${q.name}</span>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
             ${categories.map(cat => `
                 <button onclick="checkMinigame1Answer('${cat}')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border-2 border-indigo-200 font-black py-4 rounded-2xl text-sm active:scale-95 transition-all">
-                    ${cat}
+                    📂 ${cat}
                 </button>
             `).join('')}
         </div>
@@ -218,19 +251,20 @@ function renderMinigame1Question() {
 
 function checkMinigame1Answer(selectedCat) {
     const q = mj1State.questions[mj1State.currentQuestion];
-    if (selectedCat === q.correctCategory) {
+    const correctCat = q.category || q.correctCategory || 'Lácteos';
+
+    if (selectedCat === correctCat) {
         mj1State.currentQuestion++;
         renderMinigame1Question();
     } else {
         mj1State.errors++;
-        alert('❌ ¡Ups! Ese producto no va en ese estante. ¡Inténtalo de nuevo!');
+        alert(`❌ ¡Ups! ${q.name} no pertenece al estante de ${selectedCat}. ¡Inténtalo de nuevo!`);
     }
 }
 
 function finishMinigame1() {
     const timeSpent = Math.round((Date.now() - mj1State.startTime) / 1000);
-    
-    // Registrar métrica
+
     studentMinigamesProgress.gameMetrics.push({
         gameId: 'mj1',
         date: new Date().toISOString(),
@@ -242,55 +276,32 @@ function finishMinigame1() {
         studentMinigamesProgress.completedGames.push('mj1');
     }
 
-    // Otorgar puntos existentes en currentUser si existe
     if (typeof currentUser !== 'undefined' && currentUser) {
         currentUser.points = (currentUser.points || 0) + 20;
         if (typeof saveLocalData === 'function') saveLocalData();
     }
 
     saveMinigamesProgress();
-
     alert(`🎉 ¡Excelente! Completaste "El Estante Correcto"\n⏱️ Tiempo: ${timeSpent}s | ❌ Errores: ${mj1State.errors}\n⭐ ¡Ganaste +20 Puntos!`);
     renderMinigamesArcadeView();
 }
-/* ==========================================================================
-   AUTO-INYECCIÓN DEL BOTÓN ARCADE EN EL PANEL DEL ESTUDIANTE
-   ========================================================================== */
-function injectArcadeButtonIfStudentView() {
-    // Si la pantalla del estudiante está visible y no tiene el botón aún
-    const container = document.getElementById('appContainer');
-    if (container && currentUser && currentUser.role === 'student' && !document.getElementById('arcadeMinigamesBtn')) {
-        const buttonHTML = `
-        <div id="arcadeMinigamesBtn" class="mb-6 max-w-5xl mx-auto">
-            <button onclick="renderMinigamesArcadeView()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black py-4 px-6 rounded-3xl shadow-lg border-b-4 border-purple-900 text-base active:scale-95 transition-transform flex items-center justify-center gap-3">
-                <span class="text-2xl">🎮</span>
-                <span>¡Entrar al Arcade de Minijuegos Mineduc!</span>
-            </button>
-        </div>
-        `;
-        container.insertAdjacentHTML('afterbegin', buttonHTML);
-    }
-}
 
-// Revisa periódicamente cada 500ms para mostrar el botón cuando ingrese el estudiante
-setInterval(injectArcadeButtonIfStudentView, 500);
-/* ==========================================================================
-   CONEXIÓN CON EL BOTÓN DEL PANEL DEL ESTUDIANTE
-   ========================================================================== */
+/* --------------------------------------------------------------------------
+   3. CONEXIÓN Y AUTO-INYECCIÓN DEL BOTÓN EN EL PANEL DEL ESTUDIANTE
+   -------------------------------------------------------------------------- */
 function connectArcadeToStudentDashboard() {
-    // 1. Buscar el botón morado existente de "JUGAR MINIJUEGO MEMORICE"
+    // Transformar el botón del memorice existente
     const memoriceBtn = document.querySelector('button[onclick*="Memorice"]') || 
-                        Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('MEMORICE'));
+                        Array.from(document.querySelectorAll('button')).find(b => b.innerText && b.innerText.includes('MEMORICE'));
 
     if (memoriceBtn && !document.getElementById('arcadeMinigamesBtnNav')) {
-        // Cambiamos la función del botón existente o agregamos el del Arcade a su lado
         memoriceBtn.setAttribute('onclick', 'renderMinigamesArcadeView()');
         memoriceBtn.id = 'arcadeMinigamesBtnNav';
         memoriceBtn.className = "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-5 py-3 rounded-2xl shadow-lg border-2 border-purple-300 text-xs active:scale-95 transition-transform flex items-center gap-2 animate-pulse";
         memoriceBtn.innerHTML = `<span>🎮</span> <span>CENTRO DE DESAFÍOS MINEDUC (NIVEL 1)</span>`;
     }
 
-    // 2. Por si acaso, colocar también una tarjeta grande en el cuerpo del dashboard
+    // Inyectar tarjeta prominente si estamos en la vista de supermercados
     const container = document.getElementById('appContainer');
     if (container && container.innerText.includes('Supermercados Disponibles') && !document.getElementById('arcadeBodyCard')) {
         const cardHTML = `
@@ -308,5 +319,5 @@ function connectArcadeToStudentDashboard() {
     }
 }
 
-// Ejecutar cada 300ms para asegurar la transformación constante del botón
+// Escaneo periódico para asegurar disponibilidad del botón
 setInterval(connectArcadeToStudentDashboard, 300);
