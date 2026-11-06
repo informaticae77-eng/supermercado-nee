@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MINIJUEGOS CURRICULARES MINEDUC - FIX IMÁGENES REALES CATÁLOGO (games.js)
+   MINIJUEGOS CURRICULARES MINEDUC - CONEXIÓN CON CATÁLOGO REAL (27 PRODUCTOS)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -21,7 +21,7 @@ function saveMinigamesProgress() {
 }
 
 /* --------------------------------------------------------------------------
-   1. VISTA: ARCADE DE MINIJUEGOS
+   1. VISTA: ARCADE DE MINIJUEGOS (TABLET FRIENDLY)
    -------------------------------------------------------------------------- */
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -53,7 +53,7 @@ function renderMinigamesArcadeView() {
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            
+            <!-- MJ1 -->
             <div class="bg-white rounded-3xl p-6 border-4 ${completed.includes('mj1') ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4">
                 <div class="flex justify-between items-start">
                     <span class="text-5xl">🍎</span>
@@ -63,13 +63,14 @@ function renderMinigamesArcadeView() {
                 </div>
                 <div>
                     <h4 class="font-black text-slate-800 text-lg">1. El Estante Correcto</h4>
-                    <p class="text-xs text-slate-500 font-bold mt-1">OA Mineduc: Categorización semántica con productos del catálogo real.</p>
+                    <p class="text-xs text-slate-500 font-bold mt-1">OA Mineduc: Categorización semántica con las fotos del catálogo real.</p>
                 </div>
                 <button onclick="startMinigame1()" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black py-4 rounded-2xl shadow-md text-sm transition-all">
                     ${completed.includes('mj1') ? '🔄 Jugar de nuevo' : '▶ ¡Iniciar Desafío!'}
                 </button>
             </div>
 
+            <!-- MJ2 -->
             <div class="bg-white rounded-3xl p-6 border-4 ${completed.includes('mj2') ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4">
                 <div class="flex justify-between items-start">
                     <span class="text-5xl">💵</span>
@@ -86,6 +87,7 @@ function renderMinigamesArcadeView() {
                 </button>
             </div>
 
+            <!-- MJ3 -->
             <div class="bg-white rounded-3xl p-6 border-4 ${completed.includes('mj3') ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4">
                 <div class="flex justify-between items-start">
                     <span class="text-5xl">🔤</span>
@@ -102,6 +104,7 @@ function renderMinigamesArcadeView() {
                 </button>
             </div>
 
+            <!-- MJ4 -->
             <div class="bg-white rounded-3xl p-6 border-4 ${completed.includes('mj4') ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4">
                 <div class="flex justify-between items-start">
                     <span class="text-5xl">🧮</span>
@@ -118,6 +121,7 @@ function renderMinigamesArcadeView() {
                 </button>
             </div>
 
+            <!-- MJ5 -->
             <div class="bg-white rounded-3xl p-6 border-4 ${completed.includes('mj5') ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4">
                 <div class="flex justify-between items-start">
                     <span class="text-5xl">📋</span>
@@ -134,6 +138,7 @@ function renderMinigamesArcadeView() {
                 </button>
             </div>
 
+            <!-- JEFE FINAL -->
             <div class="bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 rounded-3xl p-6 border-4 border-amber-300 text-white shadow-xl flex flex-col justify-between space-y-4 relative overflow-hidden">
                 <div class="flex justify-between items-start z-10">
                     <span class="text-5xl animate-bounce">👑</span>
@@ -158,7 +163,7 @@ function renderMinigamesArcadeView() {
 }
 
 /* --------------------------------------------------------------------------
-   2. MINIJUEGO 1: EL ESTANTE CORRECTO (DETECTOR DE IMÁGENES REALES)
+   2. MINIJUEGO 1: CONEXIÓN REAL CON LOS 27 PRODUCTOS DE TU CATÁLOGO
    -------------------------------------------------------------------------- */
 let mj1State = {
     startTime: null,
@@ -167,85 +172,68 @@ let mj1State = {
     questions: []
 };
 
-const APP_CATEGORIES_CONFIG = [
-    { id: 'Lácteos', name: 'Lácteos', icon: '🥛', color: 'from-blue-500 to-indigo-600' },
-    { id: 'Frutas y Verduras', name: 'Frutas y Verduras', icon: '🍎', color: 'from-emerald-500 to-green-600' },
-    { id: 'Panadería', name: 'Panadería', icon: '🍞', color: 'from-amber-500 to-orange-600' },
-    { id: 'Aseo', name: 'Aseo', icon: '🧹', color: 'from-cyan-500 to-teal-600' }
-];
+// Obtiene los 27 productos guardados en tu base de datos / localStorage
+function getRealAppProducts() {
+    let items = [];
 
-// Mapeo universal de imágenes PNG/SVG reales de respaldo de alta fidelidad
-const FALLBACK_PRODUCT_IMAGES = {
-    'leche': 'https://cdn-icons-png.flaticon.com/512/2674/2674486.png',
-    'yogurt': 'https://cdn-icons-png.flaticon.com/512/2553/2553691.png',
-    'manzana': 'https://cdn-icons-png.flaticon.com/512/415/415733.png',
-    'platano': 'https://cdn-icons-png.flaticon.com/512/2909/2909761.png',
-    'detergente': 'https://cdn-icons-png.flaticon.com/512/2553/2553642.png',
-    'pan': 'https://cdn-icons-png.flaticon.com/512/3014/3014535.png',
-    'jabon': 'https://cdn-icons-png.flaticon.com/512/2553/2553659.png'
-};
-
-function getCatalogProducts() {
-    let rawList = [];
-
-    // Busca productos en todas las variables o arreglos donde app.js almacene datos
-    if (window.APP_DATA && window.APP_DATA.products) {
-        rawList = window.APP_DATA.products;
-    } else if (window.productsCatalog && Array.isArray(window.productsCatalog)) {
-        rawList = window.productsCatalog;
-    } else if (window.products && Array.isArray(window.products)) {
-        rawList = window.products;
-    } else if (window.currentProducts && Array.isArray(window.currentProducts)) {
-        rawList = window.currentProducts;
+    // Intenta leer de todas las variables posibles donde app.js almacena los 27 productos
+    if (typeof products !== 'undefined' && Array.isArray(products) && products.length > 0) {
+        items = products;
+    } else if (typeof APP_DATA !== 'undefined' && APP_DATA.products && APP_DATA.products.length > 0) {
+        items = APP_DATA.products;
+    } else {
+        // Intenta recuperar desde el almacenamiento local del navegador
+        const localData = localStorage.getItem('nee_products') || localStorage.getItem('supermercado_products') || localStorage.getItem('products');
+        if (localData) {
+            try { items = JSON.parse(localData); } catch(e){}
+        }
     }
 
-    if (rawList && rawList.length > 0) {
-        return rawList.map(item => {
-            // Nombre limpio sin emojis
-            let rawName = item.name || item.nombre || 'Producto';
-            let cleanName = rawName.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
-
-            // Detectar la propiedad de imagen real usada en app.js
-            let realImage = item.image || item.img || item.imagen || item.foto || item.icon || item.url || item.src;
-            
-            // Si la imagen no es una URL o no existe, asociar con imagen de respaldo
-            if (!realImage || typeof realImage !== 'string' || (!realImage.startsWith('http') && !realImage.startsWith('data:') && !realImage.endsWith('.png') && !realImage.endsWith('.jpg') && !realImage.endsWith('.webp') && !realImage.endsWith('.svg'))) {
-                const searchKey = cleanName.toLowerCase();
-                for (let key in FALLBACK_PRODUCT_IMAGES) {
-                    if (searchKey.includes(key)) {
-                        realImage = FALLBACK_PRODUCT_IMAGES[key];
-                        break;
-                    }
-                }
-            }
-
-            if (!realImage) realImage = 'https://cdn-icons-png.flaticon.com/512/2674/2674486.png';
-
-            return {
-                name: cleanName || rawName,
-                category: item.category || item.categoria || item.type || 'Lácteos',
-                image: realImage
-            };
-        });
+    // Normalizar la estructura de los productos
+    if (items && items.length > 0) {
+        return items.map(p => ({
+            name: p.name || p.nombre || 'Producto',
+            category: p.category || p.categoria || 'Lácteos',
+            image: p.image || p.img || p.imagen || p.foto || p.icon || 'https://cdn-icons-png.flaticon.com/512/2674/2674486.png'
+        }));
     }
 
-    // Lista por defecto con imágenes PNG directas renderizables
-    return [
-        { name: 'Leche Entera', category: 'Lácteos', image: 'https://cdn-icons-png.flaticon.com/512/2674/2674486.png' },
-        { name: 'Yogurt Frutilla', category: 'Lácteos', image: 'https://cdn-icons-png.flaticon.com/512/2553/2553691.png' },
-        { name: 'Manzana Roja', category: 'Frutas y Verduras', image: 'https://cdn-icons-png.flaticon.com/512/415/415733.png' },
-        { name: 'Plátano', category: 'Frutas y Verduras', image: 'https://cdn-icons-png.flaticon.com/512/2909/2909761.png' },
-        { name: 'Detergente Líquido', category: 'Aseo', image: 'https://cdn-icons-png.flaticon.com/512/2553/2553642.png' },
-        { name: 'Pan Hallulla', category: 'Panadería', image: 'https://cdn-icons-png.flaticon.com/512/3014/3014535.png' }
-    ];
+    return [];
 }
+
+// Configuración visual de las categorías con íconos para tablet
+const CATEGORY_BUTTON_THEMES = {
+    'Lácteos': { icon: '🥛', color: 'from-blue-500 to-indigo-600' },
+    'Frutas y Verduras': { icon: '🍎', color: 'from-emerald-500 to-green-600' },
+    'Panadería': { icon: '🍞', color: 'from-amber-500 to-orange-600' },
+    'Aseo': { icon: '🧹', color: 'from-cyan-500 to-teal-600' },
+    'Limpieza del Hogar': { icon: '🧹', color: 'from-cyan-500 to-teal-600' },
+    'Vestuario': { icon: '👕', color: 'from-purple-500 to-indigo-600' },
+    'Menaje Hogar': { icon: '🍽️', color: 'from-rose-500 to-pink-600' },
+    'Electrodomésticos': { icon: '🔌', color: 'from-slate-600 to-slate-800' },
+    'Juguetes y Juegos': { icon: '🧸', color: 'from-yellow-400 to-amber-600' },
+    'Bebé y Niño': { icon: '👶', color: 'from-sky-400 to-blue-500' },
+    'Mascotas': { icon: '🐶', color: 'from-amber-600 to-yellow-700' }
+};
 
 function startMinigame1() {
     mj1State.startTime = Date.now();
     mj1State.errors = 0;
     mj1State.currentQuestion = 0;
     
-    const catalog = getCatalogProducts();
+    let catalog = getRealAppProducts();
+
+    if (catalog.length === 0) {
+        // Fallback por si la variable no ha cargado
+        catalog = [
+            { name: 'LECHE ENTERA SOPROLE LIQUIDA 1 LITRO', category: 'Lácteos', image: 'https://cdn-icons-png.flaticon.com/512/2674/2674486.png' },
+            { name: 'JALEA COLUN FRAMBUESA 100 GRAMOS', category: 'Lácteos', image: 'https://cdn-icons-png.flaticon.com/512/2553/2553691.png' },
+            { name: 'TOALLA DE PAPEL NOVA GIGANTE 100 METROS', category: 'Limpieza del Hogar', image: 'https://cdn-icons-png.flaticon.com/512/2553/2553642.png' },
+            { name: 'NÉCTAR DEL VALLE NARANJA 1.5 LITROS', category: 'Frutas y Verduras', image: 'https://cdn-icons-png.flaticon.com/512/2909/2909761.png' }
+        ];
+    }
+    
+    // Selecciona 4 productos al azar de los 27 disponibles
     mj1State.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 4);
     
     renderMinigame1Question();
@@ -254,6 +242,9 @@ function startMinigame1() {
 function renderMinigame1Question() {
     const q = mj1State.questions[mj1State.currentQuestion];
     if (!q) return finishMinigame1();
+
+    // Categorías principales para la respuesta
+    const defaultCategories = ['Lácteos', 'Frutas y Verduras', 'Panadería', 'Limpieza del Hogar'];
 
     const html = `
     <div class="max-w-2xl mx-auto bg-white rounded-3xl p-6 sm:p-8 border-4 border-indigo-200 shadow-2xl space-y-6 text-center select-none">
@@ -270,26 +261,30 @@ function renderMinigame1Question() {
         <div class="py-6 bg-slate-50 rounded-3xl border-2 border-slate-100 flex flex-col items-center justify-center space-y-4 shadow-inner">
             <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">¿EN QUÉ ESTANTE VA ESTE PRODUCTO?</h3>
             
-            <!-- MARCO DE FOTO DEL PRODUCTO REAL -->
-            <div class="w-48 h-48 bg-white p-4 rounded-3xl border-4 border-indigo-200 shadow-lg flex items-center justify-center overflow-hidden">
+            <!-- MARCO DE LA FOTO REAL DEL PRODUCTO (SOPROLE, NOVA, COLUN, ETC.) -->
+            <div class="w-48 h-48 sm:w-56 sm:h-56 bg-white p-4 rounded-3xl border-4 border-indigo-200 shadow-lg flex items-center justify-center overflow-hidden">
                 <img src="${q.image}" 
                      alt="${q.name}" 
-                     class="max-h-full max-w-full object-contain transition-all"
-                     onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/2674/2674486.png';" />
+                     class="max-h-full max-w-full object-contain" 
+                     onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/2674/2674486.png';"/>
             </div>
 
-            <span class="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight">${q.name}</span>
+            <!-- NOMBRE OFICIAL DEL PRODUCTO DEL CATÁLOGO DE TU APP -->
+            <span class="text-xl sm:text-2xl font-black text-slate-800 uppercase px-4 leading-snug">${q.name}</span>
         </div>
 
-        <!-- BOTONES DE CATEGORÍA INTERACTIVOS -->
+        <!-- BOTONES DE OPCIONES DE RESPUESTA CON ÍCONOS -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            ${APP_CATEGORIES_CONFIG.map(cat => `
-                <button onclick="checkMinigame1Answer('${cat.name}')" 
-                        class="w-full h-20 bg-gradient-to-r ${cat.color} hover:brightness-110 active:scale-95 text-white font-black rounded-2xl shadow-lg border-b-4 border-black/20 flex items-center justify-start px-6 gap-4 text-left transition-transform">
-                    <span class="text-4xl drop-shadow">${cat.icon}</span>
-                    <span class="text-lg sm:text-xl font-black tracking-wide">${cat.name}</span>
+            ${defaultCategories.map(catName => {
+                const theme = CATEGORY_BUTTON_THEMES[catName] || { icon: '📦', color: 'from-indigo-500 to-purple-600' };
+                return `
+                <button onclick="checkMinigame1Answer('${catName}')" 
+                        class="w-full h-20 bg-gradient-to-r ${theme.color} hover:brightness-110 active:scale-95 text-white font-black rounded-2xl shadow-lg border-b-4 border-black/20 flex items-center justify-start px-6 gap-4 text-left transition-transform">
+                    <span class="text-3xl sm:text-4xl drop-shadow">${theme.icon}</span>
+                    <span class="text-base sm:text-lg font-black tracking-wide">${catName}</span>
                 </button>
-            `).join('')}
+                `;
+            }).join('')}
         </div>
     </div>
     `;
@@ -301,12 +296,12 @@ function checkMinigame1Answer(selectedCat) {
     const q = mj1State.questions[mj1State.currentQuestion];
     const correctCat = q.category;
 
-    if (selectedCat.toLowerCase() === correctCat.toLowerCase() || selectedCat.includes(correctCat)) {
+    if (selectedCat.toLowerCase() === correctCat.toLowerCase() || selectedCat.includes(correctCat) || correctCat.includes(selectedCat)) {
         mj1State.currentQuestion++;
         renderMinigame1Question();
     } else {
         mj1State.errors++;
-        alert(`❌ ¡Ups! "${q.name}" no pertenece al estante de ${selectedCat}. ¡Inténtalo de nuevo!`);
+        alert(`❌ ¡Ups! "${q.name}" no va en ${selectedCat}. ¡Inténtalo de nuevo!`);
     }
 }
 
