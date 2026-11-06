@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MINIJUEGOS CURRICULARES MINEDUC - SUITE COMPLETA (games.js)
+   MINIJUEGOS CURRICULARES MINEDUC - SUITE COMPLETA CON FOTOS REALES (games.js)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -66,7 +66,7 @@ function renderMinigamesArcadeView() {
                 </div>
                 <div>
                     <h4 class="font-black text-slate-800 text-lg">1. El Estante Correcto</h4>
-                    <p class="text-xs text-slate-500 font-bold mt-1">OA Mineduc: Categorización semántica con productos del catálogo real.</p>
+                    <p class="text-xs text-slate-500 font-bold mt-1">OA Mineduc: Categorización semántica con las imágenes reales del catálogo.</p>
                 </div>
                 <button onclick="startMinigame1()" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black py-4 rounded-2xl shadow-md text-sm transition-all">
                     ${completed.includes('mj1') ? '🔄 Jugar de nuevo' : '▶ ¡Iniciar Desafío!'}
@@ -165,7 +165,7 @@ function renderMinigamesArcadeView() {
 }
 
 /* --------------------------------------------------------------------------
-   2. MINIJUEGO 1: EL ESTANTE CORRECTO
+   2. MINIJUEGO 1: PARSER DIRECTO DE FOTOS DEL CATÁLOGO REAL
    -------------------------------------------------------------------------- */
 let mj1State = {
     startTime: null,
@@ -188,52 +188,60 @@ const CATEGORY_THEMES = {
     'Mascotas': { icon: '🐶', color: 'from-amber-600 to-yellow-700' }
 };
 
+// Extrae estrictamente la propiedad de imagen cargada en la base de datos de tu app
 function getAppCatalogProducts() {
-    let rawProducts = [];
+    let rawList = [];
 
+    // 1. Extraer desde el objeto global principal
     if (window.APP_DATA) {
-        if (Array.isArray(window.APP_DATA.products)) rawProducts = window.APP_DATA.products;
-        else if (Array.isArray(window.APP_DATA.productos)) rawProducts = window.APP_DATA.productos;
+        if (Array.isArray(window.APP_DATA.products)) rawList = window.APP_DATA.products;
+        else if (Array.isArray(window.APP_DATA.productos)) rawList = window.APP_DATA.productos;
         else if (window.APP_DATA.supermarkets) {
             window.APP_DATA.supermarkets.forEach(s => {
-                if (s.products) rawProducts.push(...s.products);
-                if (s.productos) rawProducts.push(...s.productos);
+                if (s.products) rawList.push(...s.products);
+                if (s.productos) rawList.push(...s.productos);
             });
         }
     }
 
-    if (rawProducts.length === 0 && window.supermarkets && Array.isArray(window.supermarkets)) {
+    if (rawList.length === 0 && window.supermarkets && Array.isArray(window.supermarkets)) {
         window.supermarkets.forEach(s => {
-            if (s.products && Array.isArray(s.products)) rawProducts.push(...s.products);
+            if (s.products && Array.isArray(s.products)) rawList.push(...s.products);
+            if (s.productos && Array.isArray(s.productos)) rawList.push(...s.productos);
         });
     }
 
-    if (rawProducts.length === 0 && window.productsCatalog) rawProducts = window.productsCatalog;
-    if (rawProducts.length === 0 && window.products) rawProducts = window.products;
+    if (rawList.length === 0 && window.productsCatalog) rawList = window.productsCatalog;
+    if (rawList.length === 0 && window.products) rawList = window.products;
 
-    if (rawProducts.length === 0) {
+    // 2. Extraer desde localStorage si la app guarda ahí el catálogo activo
+    if (rawList.length === 0) {
         for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
+            const k = localStorage.key(i);
             try {
-                const data = JSON.parse(localStorage.getItem(key));
-                if (Array.isArray(data) && data[0] && (data[0].nombre || data[0].name)) {
-                    rawProducts = data;
+                const parsed = JSON.parse(localStorage.getItem(k));
+                if (Array.isArray(parsed) && parsed.length > 0 && (parsed[0].nombre || parsed[0].name)) {
+                    rawList = parsed;
                     break;
-                } else if (data && data.products) {
-                    rawProducts = data.products;
+                } else if (parsed && parsed.products) {
+                    rawList = parsed.products;
                     break;
                 }
             } catch(e){}
         }
     }
 
+    // 3. Procesar sin sobrescribir la foto real con nada genérico
     const catalog = [];
-    if (rawProducts && rawProducts.length > 0) {
-        rawProducts.forEach(item => {
+    if (rawList && rawList.length > 0) {
+        rawList.forEach(item => {
             if (!item) return;
+
             let name = item.name || item.nombre || item.titulo;
             let category = item.category || item.categoria || item.type || 'Lácteos';
-            let image = item.image || item.img || item.imagen || item.foto || item.icon;
+            
+            // PRIORIDAD ESTRICTA A LA FOTO REAL CARGADA (no iconos flaticon)
+            let image = item.image || item.img || item.imagen || item.foto || item.url || item.src || item.icon;
 
             if (name && image) {
                 let cleanName = name.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
@@ -256,16 +264,18 @@ function startMinigame1() {
     
     let catalog = getAppCatalogProducts();
 
+    // Si aún no detecta el catálogo cargado, obtiene las 4 preguntas de la base
     if (catalog.length === 0) {
-        catalog = [
+        mj1State.questions = [
+            { name: 'JALEA COLUN FRAMBUESA 100 GRAMOS', category: 'Lácteos', image: 'https://cdn-icons-png.flaticon.com/512/2553/2553691.png' },
             { name: 'LECHE ENTERA SOPROLE LIQUIDA 1 LITRO', category: 'Lácteos', image: 'https://cdn-icons-png.flaticon.com/512/2674/2674486.png' },
             { name: 'TOALLA DE PAPEL NOVA GIGANTE 100 METROS', category: 'Limpieza del Hogar', image: 'https://cdn-icons-png.flaticon.com/512/2553/2553642.png' },
-            { name: 'JALEA COLUN FRAMBUESA 100 GRAMOS', category: 'Lácteos', image: 'https://cdn-icons-png.flaticon.com/512/2553/2553691.png' },
             { name: 'NÉCTAR DEL VALLE NARANJA 1.5 LITROS', category: 'Frutas y Verduras', image: 'https://cdn-icons-png.flaticon.com/512/2909/2909761.png' }
         ];
+    } else {
+        mj1State.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 4);
     }
-
-    mj1State.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 4);
+    
     renderMinigame1Question();
 }
 
@@ -301,16 +311,18 @@ function renderMinigame1Question() {
         <div class="py-6 bg-slate-50 rounded-3xl border-2 border-slate-100 flex flex-col items-center justify-center space-y-4 shadow-inner">
             <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">¿EN QUÉ ESTANTE VA ESTE PRODUCTO?</h3>
             
-            <div class="w-52 h-52 sm:w-60 sm:h-60 bg-white p-4 rounded-3xl border-4 border-indigo-200 shadow-lg flex items-center justify-center overflow-hidden">
+            <!-- CONTENEDOR DE LA FOTO REAL DE SOPROLE, NOVA, COLUN, ETC. -->
+            <div class="w-56 h-56 sm:w-64 sm:h-64 bg-white p-4 rounded-3xl border-4 border-indigo-200 shadow-lg flex items-center justify-center overflow-hidden">
                 <img src="${q.image}" 
                      alt="${q.name}" 
-                     class="max-h-full max-w-full object-contain transition-all duration-300 transform hover:scale-105" 
-                     onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/2674/2674486.png';" />
+                     class="max-h-full max-w-full object-contain transition-all duration-300 transform hover:scale-105" />
             </div>
 
+            <!-- TÍTULO REAL DEL PRODUCTO DEL CATÁLOGO DE TU APP -->
             <span class="text-xl sm:text-2xl font-black text-slate-800 uppercase px-4 leading-snug">${q.name}</span>
         </div>
 
+        <!-- BOTONES DE CATEGORÍA CON ÍCONOS -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             ${options.map(catName => {
                 const theme = CATEGORY_THEMES[catName] || { icon: '📦', color: 'from-indigo-500 to-purple-600' };
@@ -366,10 +378,9 @@ function finishMinigame1() {
 }
 
 /* --------------------------------------------------------------------------
-   3. AUTO-INYECCIÓN MULTI-UBICACIÓN DEL BOTÓN DE ACCESO AL ARCADE
+   3. AUTO-INYECCIÓN DEL BOTÓN DE ACCESO AL ARCADE
    -------------------------------------------------------------------------- */
 function connectArcadeToStudentDashboard() {
-    // 1. Inyectar botón en la barra superior junto al usuario / canasto si no existe
     const topBarRight = document.querySelector('header .flex.items-center') || document.querySelector('.bg-indigo-600 .flex, .bg-purple-600 .flex');
     if (topBarRight && !document.getElementById('topBarArcadeBtn')) {
         const btnHtml = `
@@ -380,7 +391,6 @@ function connectArcadeToStudentDashboard() {
         topBarRight.insertAdjacentHTML('beforeend', btnHtml);
     }
 
-    // 2. Transformar el botón del memorice o botones de juegos existentes
     const gameButtons = Array.from(document.querySelectorAll('button'));
     const targetBtn = gameButtons.find(b => b.innerText && (b.innerText.includes('MEMORICE') || b.innerText.includes('JUEGO') || b.innerText.includes('DESAFÍO')));
 
@@ -391,7 +401,6 @@ function connectArcadeToStudentDashboard() {
         targetBtn.innerHTML = `<span>🎮</span> <span>CENTRO DE DESAFÍOS MINEDUC</span>`;
     }
 
-    // 3. Inyectar tarjeta prominente en la pantalla principal si estamos en la vista de supermercados/panel
     const container = document.getElementById('appContainer');
     if (container && !document.getElementById('arcadeBodyCard') && !container.innerText.includes('Centro de Desafíos Mineduc')) {
         const cardHTML = `
@@ -408,5 +417,4 @@ function connectArcadeToStudentDashboard() {
     }
 }
 
-// Ejecución periódica para asegurar que los botones estén presentes siempre
 setInterval(connectArcadeToStudentDashboard, 400);
