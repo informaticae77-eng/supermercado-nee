@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MINIJUEGOS CURRICULARES MINEDUC - SUITE OFICIAL (games.js)
+   MINIJUEGOS CURRICULARES MINEDUC (games.js)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -21,18 +21,7 @@ function saveMinigamesProgress() {
 }
 
 /* --------------------------------------------------------------------------
-   REEMPLAZO DIRECTO DE LA FUNCIÓN DEL MEMORICE ANTIGUO DE APP.JS
-   -------------------------------------------------------------------------- */
-window.openMemoriseModal = function() {
-    renderMinigamesArcadeView();
-};
-
-window.openMemorisModal = function() {
-    renderMinigamesArcadeView();
-};
-
-/* --------------------------------------------------------------------------
-   1. VISTA: ARCADE DE MINIJUEGOS (OPTIMIZADO PARA TABLET)
+   1. VISTA: ARCADE DE MINIJUEGOS (DISEÑO ORIGINAL RESTAURADO)
    -------------------------------------------------------------------------- */
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -42,7 +31,6 @@ function renderMinigamesArcadeView() {
 
     const html = `
     <div class="space-y-6 max-w-5xl mx-auto p-4 sm:p-6 select-none">
-        <!-- Navegación -->
         <div class="flex justify-between items-center bg-white p-4 rounded-3xl border-2 border-slate-200 shadow-sm">
             <button onclick="goHome()" class="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 font-black px-6 py-3 rounded-2xl text-sm transition-transform flex items-center gap-2">
                 <span class="text-xl">⬅</span> Volver al Panel
@@ -50,7 +38,6 @@ function renderMinigamesArcadeView() {
             <span class="font-black text-slate-800 text-base sm:text-lg">🎮 Centro de Desafíos Mineduc</span>
         </div>
 
-        <!-- Banner Principal -->
         <div class="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 rounded-3xl p-6 text-white shadow-xl flex flex-col sm:flex-row justify-between items-center gap-4 border-4 border-purple-300">
             <div>
                 <span class="bg-black/30 text-amber-300 font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider inline-block mb-2">
@@ -65,9 +52,7 @@ function renderMinigamesArcadeView() {
             </div>
         </div>
 
-        <!-- Grid de Minijuegos -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            <!-- MJ1 -->
             <div class="bg-white rounded-3xl p-6 border-4 ${completed.includes('mj1') ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4">
                 <div class="flex justify-between items-start">
                     <span class="text-5xl">🍎</span>
@@ -84,7 +69,6 @@ function renderMinigamesArcadeView() {
                 </button>
             </div>
 
-            <!-- MJ2 -->
             <div class="bg-white rounded-3xl p-6 border-4 ${completed.includes('mj2') ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4">
                 <div class="flex justify-between items-start">
                     <span class="text-5xl">💵</span>
@@ -101,7 +85,6 @@ function renderMinigamesArcadeView() {
                 </button>
             </div>
 
-            <!-- MJ3 -->
             <div class="bg-white rounded-3xl p-6 border-4 ${completed.includes('mj3') ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4">
                 <div class="flex justify-between items-start">
                     <span class="text-5xl">🔤</span>
@@ -118,7 +101,6 @@ function renderMinigamesArcadeView() {
                 </button>
             </div>
 
-            <!-- MJ4 -->
             <div class="bg-white rounded-3xl p-6 border-4 ${completed.includes('mj4') ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4">
                 <div class="flex justify-between items-start">
                     <span class="text-5xl">🧮</span>
@@ -135,7 +117,6 @@ function renderMinigamesArcadeView() {
                 </button>
             </div>
 
-            <!-- MJ5 -->
             <div class="bg-white rounded-3xl p-6 border-4 ${completed.includes('mj5') ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4">
                 <div class="flex justify-between items-start">
                     <span class="text-5xl">📋</span>
@@ -152,7 +133,6 @@ function renderMinigamesArcadeView() {
                 </button>
             </div>
 
-            <!-- JEFE FINAL -->
             <div class="bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 rounded-3xl p-6 border-4 border-amber-300 text-white shadow-xl flex flex-col justify-between space-y-4 relative overflow-hidden">
                 <div class="flex justify-between items-start z-10">
                     <span class="text-5xl animate-bounce">👑</span>
@@ -176,7 +156,7 @@ function renderMinigamesArcadeView() {
 }
 
 /* --------------------------------------------------------------------------
-   2. EXTRACCIÓN DIRECTA DESDE APP_STATE.products (ESTRUCTURA DE TU APP.JS)
+   2. EXTRACCIÓN DIRECTA USANDO ESTRUCTURA REAL (photoUrl / name / category)
    -------------------------------------------------------------------------- */
 let mj1State = {
     startTime: null,
@@ -185,57 +165,43 @@ let mj1State = {
     questions: []
 };
 
-const CATEGORY_THEMES = {
-    'Lácteos': { icon: '🥛', color: 'from-blue-500 to-indigo-600' },
-    'Frutas y Verduras': { icon: '🍎', color: 'from-emerald-500 to-green-600' },
-    'Panadería': { icon: '🍞', color: 'from-amber-500 to-orange-600' },
-    'Aseo': { icon: '🧹', color: 'from-cyan-500 to-teal-600' },
-    'Limpieza del Hogar': { icon: '🧹', color: 'from-cyan-500 to-teal-600' },
-    'Vestuario': { icon: '👕', color: 'from-purple-500 to-indigo-600' },
-    'Menaje Hogar': { icon: '🍽️', color: 'from-rose-500 to-pink-600' },
-    'Electrodomésticos': { icon: '🔌', color: 'from-slate-600 to-slate-800' },
-    'Juguetes y Juegos': { icon: '🧸', color: 'from-yellow-400 to-amber-600' },
-    'Bebé y Niño': { icon: '👶', color: 'from-sky-400 to-blue-500' },
-    'Mascotas': { icon: '🐶', color: 'from-amber-600 to-yellow-700' }
-};
-
 function getAppCatalogProducts() {
-    let rawProducts = [];
+    let rawList = [];
 
-    // Lee directamente desde la estructura oficial de tu app: APP_STATE.products
+    // 1. Extraer del arreglo principal APP_STATE.products proveniente de tu app.js
     if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
-        rawProducts = window.APP_STATE.products;
+        rawList = window.APP_STATE.products;
     } else if (window.APP_DATA && Array.isArray(window.APP_DATA.products)) {
-        rawProducts = window.APP_DATA.products;
+        rawList = window.APP_DATA.products;
     }
 
-    // Si la memoria global no se ha iniciado, escanea el localStorage de la app
-    if (rawProducts.length === 0) {
+    // 2. Extraer del localStorage si no se ha cargado en window
+    if (rawList.length === 0) {
         for (let i = 0; i < localStorage.length; i++) {
             const k = localStorage.key(i);
             try {
                 const parsed = JSON.parse(localStorage.getItem(k));
                 if (parsed && parsed.products && Array.isArray(parsed.products)) {
-                    rawProducts = parsed.products;
+                    rawList = parsed.products;
                     break;
                 } else if (Array.isArray(parsed) && parsed[0] && (parsed[0].name || parsed[0].nombre)) {
-                    rawProducts = parsed;
+                    rawList = parsed;
                     break;
                 }
             } catch(e){}
         }
     }
 
-    // Mapeo exacto basado en la estructura de tu app (name, category, photoUrl)
+    // 3. Mapear respetando exactamente la clave photoUrl de app.js
     const catalog = [];
-    if (rawProducts && rawProducts.length > 0) {
-        rawProducts.forEach(item => {
+    if (rawList && rawList.length > 0) {
+        rawList.forEach(item => {
             if (!item) return;
 
             let name = item.name || item.nombre;
             let category = item.category || item.categoria || 'Lácteos';
             
-            // Extracción exacta según tu app: photoUrl || photo || image
+            // CLAVE EXACTA DE TU APP.JS: photoUrl
             let image = item.photoUrl || item.photo || item.image || item.img || item.imagen;
 
             if (name && image) {
@@ -260,13 +226,11 @@ function startMinigame1() {
     let catalog = getAppCatalogProducts();
 
     if (catalog.length === 0) {
-        alert("⚠️ No se han encontrado productos. Abre una tienda o refresca la página.");
+        alert("⚠️ No se han encontrado productos. Abre una tienda o inicia sesión en la aplicación.");
         return;
     }
 
-    // Baraja los 27 productos reales cargados en tu app
     mj1State.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 4);
-    
     renderMinigame1Question();
 }
 
@@ -274,18 +238,8 @@ function renderMinigame1Question() {
     const q = mj1State.questions[mj1State.currentQuestion];
     if (!q) return finishMinigame1();
 
-    const catalog = getAppCatalogProducts();
-    const availableCategories = Array.from(new Set(catalog.map(item => item.category)));
-
-    if (!availableCategories.includes('Lácteos')) availableCategories.push('Lácteos');
-    if (!availableCategories.includes('Frutas y Verduras')) availableCategories.push('Frutas y Verduras');
-    if (!availableCategories.includes('Panadería')) availableCategories.push('Panadería');
-    if (!availableCategories.includes('Limpieza del Hogar')) availableCategories.push('Limpieza del Hogar');
-
-    let options = [q.category];
-    const otherCats = availableCategories.filter(c => c !== q.category).sort(() => 0.5 - Math.random());
-    options.push(...otherCats.slice(0, 3));
-    options.sort(() => 0.5 - Math.random());
+    // Categorías por defecto del minijuego 1
+    const defaultCategories = ['Lácteos', 'Frutas y Verduras', 'Panadería', 'Aseo'];
 
     const html = `
     <div class="max-w-2xl mx-auto bg-white rounded-3xl p-6 sm:p-8 border-4 border-indigo-200 shadow-2xl space-y-6 text-center select-none">
@@ -302,28 +256,29 @@ function renderMinigame1Question() {
         <div class="py-6 bg-slate-50 rounded-3xl border-2 border-slate-100 flex flex-col items-center justify-center space-y-4 shadow-inner">
             <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">¿EN QUÉ ESTANTE VA ESTE PRODUCTO?</h3>
             
-            <!-- FOTO REAL EXTRAÍDA DE APP_STATE.products.photoUrl -->
-            <div class="w-56 h-56 sm:w-64 sm:h-64 bg-white p-4 rounded-3xl border-4 border-indigo-200 shadow-lg flex items-center justify-center overflow-hidden">
+            <!-- MARCO DE FOTO REAL EXTRAÍDA DE photoUrl -->
+            <div class="w-52 h-52 sm:w-60 sm:h-60 bg-white p-4 rounded-3xl border-4 border-indigo-200 shadow-lg flex items-center justify-center overflow-hidden">
                 <img src="${q.image}" 
                      alt="${q.name}" 
-                     class="max-h-full max-w-full object-contain transition-all duration-300 transform hover:scale-105" />
+                     class="max-h-full max-w-full object-contain" />
             </div>
 
-            <!-- TÍTULO REAL DEL PRODUCTO -->
-            <span class="text-xl sm:text-2xl font-black text-slate-800 uppercase px-4 leading-snug">${q.name}</span>
+            <span class="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">${q.name}</span>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            ${options.map(catName => {
-                const theme = CATEGORY_THEMES[catName] || { icon: '📦', color: 'from-indigo-500 to-purple-600' };
-                return `
-                <button onclick="checkMinigame1Answer('${catName.replace(/'/g, "\\'")}')" 
-                        class="w-full h-20 bg-gradient-to-r ${theme.color} hover:brightness-110 active:scale-95 text-white font-black rounded-2xl shadow-lg border-b-4 border-black/20 flex items-center justify-start px-6 gap-4 text-left transition-transform">
-                    <span class="text-3xl sm:text-4xl drop-shadow">${theme.icon}</span>
-                    <span class="text-base sm:text-lg font-black tracking-wide">${catName}</span>
-                </button>
-                `;
-            }).join('')}
+            <button onclick="checkMinigame1Answer('Lácteos')" class="w-full h-16 bg-blue-500 hover:bg-blue-600 text-white font-black rounded-2xl shadow-md flex items-center justify-center gap-3 text-lg">
+                <span>🥛</span> <span>Lácteos</span>
+            </button>
+            <button onclick="checkMinigame1Answer('Frutas y Verduras')" class="w-full h-16 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl shadow-md flex items-center justify-center gap-3 text-lg">
+                <span>🍎</span> <span>Frutas y Verduras</span>
+            </button>
+            <button onclick="checkMinigame1Answer('Panadería')" class="w-full h-16 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-2xl shadow-md flex items-center justify-center gap-3 text-lg">
+                <span>🍞</span> <span>Panadería</span>
+            </button>
+            <button onclick="checkMinigame1Answer('Aseo')" class="w-full h-16 bg-teal-500 hover:bg-teal-600 text-white font-black rounded-2xl shadow-md flex items-center justify-center gap-3 text-lg">
+                <span>🧹</span> <span>Aseo</span>
+            </button>
         </div>
     </div>
     `;
@@ -334,7 +289,7 @@ function renderMinigame1Question() {
 function checkMinigame1Answer(selectedCat) {
     const q = mj1State.questions[mj1State.currentQuestion];
 
-    if (selectedCat.toLowerCase() === q.category.toLowerCase()) {
+    if (selectedCat.toLowerCase() === q.category.toLowerCase() || q.category.toLowerCase().includes(selectedCat.toLowerCase())) {
         mj1State.currentQuestion++;
         renderMinigame1Question();
     } else {
@@ -368,28 +323,12 @@ function finishMinigame1() {
 }
 
 /* --------------------------------------------------------------------------
-   3. AUTO-REINYECCIÓN CONTINUA DE BOTONES Y TRANSFORMACIÓN DEL MEMORICE
+   3. VINCULACIÓN DIRECTA AL BOTÓN "MEMORICE" ORIGINAL DE TU APP
    -------------------------------------------------------------------------- */
-function connectArcadeToStudentDashboard() {
-    // 1. Reemplaza el texto del botón Memorice si app.js lo vuelve a dibujar
-    const memoriceButtons = Array.from(document.querySelectorAll('button')).filter(b => b.innerText && (b.innerText.includes('MEMORICE') || b.innerText.includes('Memorise')));
-    
-    memoriceButtons.forEach(btn => {
-        btn.setAttribute('onclick', 'renderMinigamesArcadeView()');
-        btn.className = "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-6 py-3 rounded-2xl shadow-lg border-2 border-purple-300 text-sm active:scale-95 transition-transform flex items-center gap-2 animate-pulse";
-        btn.innerHTML = `<span>🎮</span> <span>DESAFÍOS MINEDUC</span>`;
-    });
+window.openMemoriseModal = function() {
+    renderMinigamesArcadeView();
+};
 
-    // 2. Inyectar botón en la barra navegadora superior
-    const topBar = document.querySelector('header .flex.items-center') || document.querySelector('.bg-indigo-600 .flex');
-    if (topBar && !document.getElementById('topBarArcadeBtn')) {
-        const btnHtml = `
-            <button id="topBarArcadeBtn" onclick="renderMinigamesArcadeView()" class="bg-amber-400 hover:bg-amber-300 text-slate-900 font-black px-4 py-2 rounded-2xl shadow border-2 border-amber-200 text-xs active:scale-95 transition-transform flex items-center gap-1.5 ml-2">
-                <span>🎮</span> <span>DESAFÍOS</span>
-            </button>
-        `;
-        topBar.insertAdjacentHTML('beforeend', btnHtml);
-    }
-}
-
-setInterval(connectArcadeToStudentDashboard, 300);
+window.openMemorisModal = function() {
+    renderMinigamesArcadeView();
+};
