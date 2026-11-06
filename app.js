@@ -729,8 +729,8 @@ function renderHomeView(container) {
                         </div>
                     </div>
                 <div>
-                    <button onclick="openMinigamesModal()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-5 py-3 rounded-2xl shadow-lg border-b-4 border-purple-900 text-xs active:scale-95 flex items-center gap-2">
-                        <span>🧠</span> <span>JUGAR MINIJUEGOS (+15 PTS)</span>
+                    <button onclick="renderMinigamesArcadeView()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-5 py-3 rounded-2xl shadow-lg border-b-4 border-purple-900 text-xs active:scale-95 flex items-center gap-2">
+                        <span>🎮</span> <span>JUGAR MINIJUEGOS (+15 PTS)</span>
                     </button>
                 </div>
 
