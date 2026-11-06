@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MINIJUEGOS CURRICULARES MINEDUC - ARCADE (games.js)
+   MINIJUEGOS CURRICULARES MINEDUC - ARCADE COMPLETO (games.js)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -21,7 +21,7 @@ function saveMinigamesProgress() {
 }
 
 /* --------------------------------------------------------------------------
-   GESTIÓN Y APERTURA DEL MODAL 1
+   GESTIÓN Y APERTURA DEL MODAL ARCADE
    -------------------------------------------------------------------------- */
 function openMinigamesModal() {
     renderMinigamesArcadeView();
@@ -38,7 +38,7 @@ function closeMinigamesModal() {
     }
 }
 
-/* Puentes globales de compatibilidad */
+/* Exposición explícita de funciones globales */
 window.renderMinigamesArcadeView = renderMinigamesArcadeView;
 window.openMinigamesModal = openMinigamesModal;
 window.closeMinigamesModal = closeMinigamesModal;
@@ -51,7 +51,7 @@ window.openMemorisModal = openMinigamesModal;
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
     const level = studentMinigamesProgress.currentLevel;
-    const completed = studentMinigamesProgress.completedGames;
+    const completed = studentMinigamesProgress.completedGames || [];
     const isBossUnlocked = completed.length >= 5;
 
     const html = `
@@ -186,14 +186,9 @@ function renderMinigamesArcadeView() {
 }
 
 /* --------------------------------------------------------------------------
-   2. EXTRACCIÓN DE PRODUCTOS DESDE APP_STATE.products (photoUrl)
+   2. EXTRACCIÓN Y LECTURA DE CATALOGO PRODUCTOS (APP_STATE.products)
    -------------------------------------------------------------------------- */
-let mj1State = {
-    startTime: null,
-    errors: 0,
-    currentQuestion: 0,
-    questions: []
-};
+let mj1State = { startTime: null, errors: 0, currentQuestion: 0, questions: [] };
 
 function getDatabaseProducts() {
     let rawList = [];
@@ -211,8 +206,6 @@ function getDatabaseProducts() {
 
             let name = item.name || item.nombre;
             let category = item.category || item.categoria || 'Lácteos';
-            
-            // Extracción nativa desde la propiedad real: photoUrl
             let photo = item.photoUrl || item.photo || item.image || item.img || item.imagen;
 
             if (name && photo) {
