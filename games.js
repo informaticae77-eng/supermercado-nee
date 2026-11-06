@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MINIJUEGOS CURRICULARES MINEDUC - CONEXIÓN CON CATÁLOGO REAL (27 PRODUCTOS)
+   MINIJUEGOS CURRICULARES MINEDUC - EXTRACTOR DIRECTO DE CATÁLOGO (games.js)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -21,7 +21,7 @@ function saveMinigamesProgress() {
 }
 
 /* --------------------------------------------------------------------------
-   1. VISTA: ARCADE DE MINIJUEGOS (TABLET FRIENDLY)
+   1. VISTA: ARCADE DE MINIJUEGOS (OPTIMIZADO PARA TABLET)
    -------------------------------------------------------------------------- */
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -53,7 +53,6 @@ function renderMinigamesArcadeView() {
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            <!-- MJ1 -->
             <div class="bg-white rounded-3xl p-6 border-4 ${completed.includes('mj1') ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4">
                 <div class="flex justify-between items-start">
                     <span class="text-5xl">🍎</span>
@@ -63,14 +62,13 @@ function renderMinigamesArcadeView() {
                 </div>
                 <div>
                     <h4 class="font-black text-slate-800 text-lg">1. El Estante Correcto</h4>
-                    <p class="text-xs text-slate-500 font-bold mt-1">OA Mineduc: Categorización semántica con las fotos del catálogo real.</p>
+                    <p class="text-xs text-slate-500 font-bold mt-1">OA Mineduc: Categorización semántica con productos del catálogo real.</p>
                 </div>
                 <button onclick="startMinigame1()" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black py-4 rounded-2xl shadow-md text-sm transition-all">
                     ${completed.includes('mj1') ? '🔄 Jugar de nuevo' : '▶ ¡Iniciar Desafío!'}
                 </button>
             </div>
 
-            <!-- MJ2 -->
             <div class="bg-white rounded-3xl p-6 border-4 ${completed.includes('mj2') ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4">
                 <div class="flex justify-between items-start">
                     <span class="text-5xl">💵</span>
@@ -87,7 +85,6 @@ function renderMinigamesArcadeView() {
                 </button>
             </div>
 
-            <!-- MJ3 -->
             <div class="bg-white rounded-3xl p-6 border-4 ${completed.includes('mj3') ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4">
                 <div class="flex justify-between items-start">
                     <span class="text-5xl">🔤</span>
@@ -104,7 +101,6 @@ function renderMinigamesArcadeView() {
                 </button>
             </div>
 
-            <!-- MJ4 -->
             <div class="bg-white rounded-3xl p-6 border-4 ${completed.includes('mj4') ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4">
                 <div class="flex justify-between items-start">
                     <span class="text-5xl">🧮</span>
@@ -121,7 +117,6 @@ function renderMinigamesArcadeView() {
                 </button>
             </div>
 
-            <!-- MJ5 -->
             <div class="bg-white rounded-3xl p-6 border-4 ${completed.includes('mj5') ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200'} shadow-lg flex flex-col justify-between space-y-4">
                 <div class="flex justify-between items-start">
                     <span class="text-5xl">📋</span>
@@ -138,7 +133,6 @@ function renderMinigamesArcadeView() {
                 </button>
             </div>
 
-            <!-- JEFE FINAL -->
             <div class="bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 rounded-3xl p-6 border-4 border-amber-300 text-white shadow-xl flex flex-col justify-between space-y-4 relative overflow-hidden">
                 <div class="flex justify-between items-start z-10">
                     <span class="text-5xl animate-bounce">👑</span>
@@ -163,7 +157,7 @@ function renderMinigamesArcadeView() {
 }
 
 /* --------------------------------------------------------------------------
-   2. MINIJUEGO 1: CONEXIÓN REAL CON LOS 27 PRODUCTOS DE TU CATÁLOGO
+   2. MINIJUEGO 1: EXTRACCIÓN DIRECTA DE PRODUCTOS Y CATEGORÍAS REALES
    -------------------------------------------------------------------------- */
 let mj1State = {
     startTime: null,
@@ -172,37 +166,8 @@ let mj1State = {
     questions: []
 };
 
-// Obtiene los 27 productos guardados en tu base de datos / localStorage
-function getRealAppProducts() {
-    let items = [];
-
-    // Intenta leer de todas las variables posibles donde app.js almacena los 27 productos
-    if (typeof products !== 'undefined' && Array.isArray(products) && products.length > 0) {
-        items = products;
-    } else if (typeof APP_DATA !== 'undefined' && APP_DATA.products && APP_DATA.products.length > 0) {
-        items = APP_DATA.products;
-    } else {
-        // Intenta recuperar desde el almacenamiento local del navegador
-        const localData = localStorage.getItem('nee_products') || localStorage.getItem('supermercado_products') || localStorage.getItem('products');
-        if (localData) {
-            try { items = JSON.parse(localData); } catch(e){}
-        }
-    }
-
-    // Normalizar la estructura de los productos
-    if (items && items.length > 0) {
-        return items.map(p => ({
-            name: p.name || p.nombre || 'Producto',
-            category: p.category || p.categoria || 'Lácteos',
-            image: p.image || p.img || p.imagen || p.foto || p.icon || 'https://cdn-icons-png.flaticon.com/512/2674/2674486.png'
-        }));
-    }
-
-    return [];
-}
-
-// Configuración visual de las categorías con íconos para tablet
-const CATEGORY_BUTTON_THEMES = {
+// Íconos y colores por defecto para las categorías dinámicas que tenga la app
+const CATEGORY_THEMES = {
     'Lácteos': { icon: '🥛', color: 'from-blue-500 to-indigo-600' },
     'Frutas y Verduras': { icon: '🍎', color: 'from-emerald-500 to-green-600' },
     'Panadería': { icon: '🍞', color: 'from-amber-500 to-orange-600' },
@@ -216,24 +181,75 @@ const CATEGORY_BUTTON_THEMES = {
     'Mascotas': { icon: '🐶', color: 'from-amber-600 to-yellow-700' }
 };
 
+function getAppCatalogProducts() {
+    let allProducts = [];
+
+    // Recorrer el objeto o arreglo global donde app.js almacena las tiendas y productos
+    if (window.supermarkets && Array.isArray(window.supermarkets)) {
+        window.supermarkets.forEach(s => {
+            if (s.products && Array.isArray(s.products)) {
+                allProducts.push(...s.products);
+            }
+        });
+    }
+
+    if (allProducts.length === 0 && window.APP_DATA) {
+        if (window.APP_DATA.products) allProducts = window.APP_DATA.products;
+        else if (window.APP_DATA.supermarkets) {
+            window.APP_DATA.supermarkets.forEach(s => {
+                if (s.products) allProducts.push(...s.products);
+            });
+        }
+    }
+
+    if (allProducts.length === 0 && window.productsCatalog) allProducts = window.productsCatalog;
+    if (allProducts.length === 0 && window.products) allProducts = window.products;
+
+    // Si aún no encuentra productos globales, los extrae del localStorage de la aplicación
+    if (allProducts.length === 0) {
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.includes('supermercado') || key.includes('product') || key.includes('app_data')) {
+                try {
+                    const parsed = JSON.parse(localStorage.getItem(key));
+                    if (Array.isArray(parsed)) allProducts.push(...parsed);
+                    else if (parsed.products) allProducts.push(...parsed.products);
+                } catch(e){}
+            }
+        }
+    }
+
+    // Filtrar y estructurar la lista
+    const cleanedList = [];
+    allProducts.forEach(p => {
+        if (p && (p.name || p.nombre)) {
+            let img = p.image || p.img || p.imagen || p.foto || p.icon;
+            let cat = p.category || p.categoria || p.type || 'Lácteos';
+            let name = (p.name || p.nombre).replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+
+            if (img) {
+                cleanedList.push({ name, category: cat, image: img });
+            }
+        }
+    });
+
+    return cleanedList;
+}
+
 function startMinigame1() {
     mj1State.startTime = Date.now();
     mj1State.errors = 0;
     mj1State.currentQuestion = 0;
     
-    let catalog = getRealAppProducts();
+    let catalog = getAppCatalogProducts();
 
+    // Si la app aún no ha instanciado las variables globales en esta pestaña
     if (catalog.length === 0) {
-        // Fallback por si la variable no ha cargado
-        catalog = [
-            { name: 'LECHE ENTERA SOPROLE LIQUIDA 1 LITRO', category: 'Lácteos', image: 'https://cdn-icons-png.flaticon.com/512/2674/2674486.png' },
-            { name: 'JALEA COLUN FRAMBUESA 100 GRAMOS', category: 'Lácteos', image: 'https://cdn-icons-png.flaticon.com/512/2553/2553691.png' },
-            { name: 'TOALLA DE PAPEL NOVA GIGANTE 100 METROS', category: 'Limpieza del Hogar', image: 'https://cdn-icons-png.flaticon.com/512/2553/2553642.png' },
-            { name: 'NÉCTAR DEL VALLE NARANJA 1.5 LITROS', category: 'Frutas y Verduras', image: 'https://cdn-icons-png.flaticon.com/512/2909/2909761.png' }
-        ];
+        alert("⚠️ Inicia sesión o selecciona una tienda en la app para sincronizar el catálogo de productos.");
+        return;
     }
-    
-    // Selecciona 4 productos al azar de los 27 disponibles
+
+    // Seleccionar 4 productos aleatorios de la base real de 27 productos
     mj1State.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 4);
     
     renderMinigame1Question();
@@ -243,8 +259,20 @@ function renderMinigame1Question() {
     const q = mj1State.questions[mj1State.currentQuestion];
     if (!q) return finishMinigame1();
 
-    // Categorías principales para la respuesta
-    const defaultCategories = ['Lácteos', 'Frutas y Verduras', 'Panadería', 'Limpieza del Hogar'];
+    // Obtener la categoría correcta y 3 opciones aleatorias para armar las 4 alternativas
+    const allCatalog = getAppCatalogProducts();
+    const availableCategories = Array.from(new Set(allCatalog.map(item => item.category)));
+
+    if (!availableCategories.includes('Lácteos')) availableCategories.push('Lácteos');
+    if (!availableCategories.includes('Frutas y Verduras')) availableCategories.push('Frutas y Verduras');
+    if (!availableCategories.includes('Panadería')) availableCategories.push('Panadería');
+    if (!availableCategories.includes('Limpieza del Hogar')) availableCategories.push('Limpieza del Hogar');
+
+    // Garantizar que la categoría correcta esté en las opciones
+    let options = [q.category];
+    const otherCats = availableCategories.filter(c => c !== q.category).sort(() => 0.5 - Math.random());
+    options.push(...otherCats.slice(0, 3));
+    options.sort(() => 0.5 - Math.random());
 
     const html = `
     <div class="max-w-2xl mx-auto bg-white rounded-3xl p-6 sm:p-8 border-4 border-indigo-200 shadow-2xl space-y-6 text-center select-none">
@@ -261,22 +289,20 @@ function renderMinigame1Question() {
         <div class="py-6 bg-slate-50 rounded-3xl border-2 border-slate-100 flex flex-col items-center justify-center space-y-4 shadow-inner">
             <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">¿EN QUÉ ESTANTE VA ESTE PRODUCTO?</h3>
             
-            <!-- MARCO DE LA FOTO REAL DEL PRODUCTO (SOPROLE, NOVA, COLUN, ETC.) -->
-            <div class="w-48 h-48 sm:w-56 sm:h-56 bg-white p-4 rounded-3xl border-4 border-indigo-200 shadow-lg flex items-center justify-center overflow-hidden">
+            <!-- CONTENEDOR DE LA FOTO REAL DE SOPROLE, NOVA, COLUN, ETC. -->
+            <div class="w-52 h-52 bg-white p-4 rounded-3xl border-4 border-indigo-200 shadow-lg flex items-center justify-center overflow-hidden">
                 <img src="${q.image}" 
                      alt="${q.name}" 
-                     class="max-h-full max-w-full object-contain" 
-                     onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/2674/2674486.png';"/>
+                     class="max-h-full max-w-full object-contain" />
             </div>
 
-            <!-- NOMBRE OFICIAL DEL PRODUCTO DEL CATÁLOGO DE TU APP -->
             <span class="text-xl sm:text-2xl font-black text-slate-800 uppercase px-4 leading-snug">${q.name}</span>
         </div>
 
-        <!-- BOTONES DE OPCIONES DE RESPUESTA CON ÍCONOS -->
+        <!-- OPCIONES DE CATEGORÍAS EN FORMATO TABLET -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            ${defaultCategories.map(catName => {
-                const theme = CATEGORY_BUTTON_THEMES[catName] || { icon: '📦', color: 'from-indigo-500 to-purple-600' };
+            ${options.map(catName => {
+                const theme = CATEGORY_THEMES[catName] || { icon: '📦', color: 'from-indigo-500 to-purple-600' };
                 return `
                 <button onclick="checkMinigame1Answer('${catName}')" 
                         class="w-full h-20 bg-gradient-to-r ${theme.color} hover:brightness-110 active:scale-95 text-white font-black rounded-2xl shadow-lg border-b-4 border-black/20 flex items-center justify-start px-6 gap-4 text-left transition-transform">
@@ -294,9 +320,8 @@ function renderMinigame1Question() {
 
 function checkMinigame1Answer(selectedCat) {
     const q = mj1State.questions[mj1State.currentQuestion];
-    const correctCat = q.category;
 
-    if (selectedCat.toLowerCase() === correctCat.toLowerCase() || selectedCat.includes(correctCat) || correctCat.includes(selectedCat)) {
+    if (selectedCat.toLowerCase() === q.category.toLowerCase()) {
         mj1State.currentQuestion++;
         renderMinigame1Question();
     } else {
