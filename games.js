@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MINIJUEGOS CURRICULARES MINEDUC - SUITE COMPLETA CON FOTOS REALES (games.js)
+   MINIJUEGOS CURRICULARES MINEDUC - SUITE OFICIAL (games.js)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -21,7 +21,18 @@ function saveMinigamesProgress() {
 }
 
 /* --------------------------------------------------------------------------
-   1. VISTA: ARCADE DE MINIJUEGOS (OPTIMIZADO PARA TABLETS)
+   REEMPLAZO DIRECTO DE LA FUNCIÓN DEL MEMORICE ANTIGUO DE APP.JS
+   -------------------------------------------------------------------------- */
+window.openMemoriseModal = function() {
+    renderMinigamesArcadeView();
+};
+
+window.openMemorisModal = function() {
+    renderMinigamesArcadeView();
+};
+
+/* --------------------------------------------------------------------------
+   1. VISTA: ARCADE DE MINIJUEGOS (OPTIMIZADO PARA TABLET)
    -------------------------------------------------------------------------- */
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -66,7 +77,7 @@ function renderMinigamesArcadeView() {
                 </div>
                 <div>
                     <h4 class="font-black text-slate-800 text-lg">1. El Estante Correcto</h4>
-                    <p class="text-xs text-slate-500 font-bold mt-1">OA Mineduc: Categorización semántica con las imágenes reales del catálogo.</p>
+                    <p class="text-xs text-slate-500 font-bold mt-1">OA Mineduc: Categorización semántica con productos del catálogo real.</p>
                 </div>
                 <button onclick="startMinigame1()" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black py-4 rounded-2xl shadow-md text-sm transition-all">
                     ${completed.includes('mj1') ? '🔄 Jugar de nuevo' : '▶ ¡Iniciar Desafío!'}
@@ -165,7 +176,7 @@ function renderMinigamesArcadeView() {
 }
 
 /* --------------------------------------------------------------------------
-   2. MINIJUEGO 1: PARSER DIRECTO DE FOTOS DEL CATÁLOGO REAL
+   2. EXTRACCIÓN DIRECTA DESDE APP_STATE.products (ESTRUCTURA DE TU APP.JS)
    -------------------------------------------------------------------------- */
 let mj1State = {
     startTime: null,
@@ -188,60 +199,44 @@ const CATEGORY_THEMES = {
     'Mascotas': { icon: '🐶', color: 'from-amber-600 to-yellow-700' }
 };
 
-// Extrae estrictamente la propiedad de imagen cargada en la base de datos de tu app
 function getAppCatalogProducts() {
-    let rawList = [];
+    let rawProducts = [];
 
-    // 1. Extraer desde el objeto global principal
-    if (window.APP_DATA) {
-        if (Array.isArray(window.APP_DATA.products)) rawList = window.APP_DATA.products;
-        else if (Array.isArray(window.APP_DATA.productos)) rawList = window.APP_DATA.productos;
-        else if (window.APP_DATA.supermarkets) {
-            window.APP_DATA.supermarkets.forEach(s => {
-                if (s.products) rawList.push(...s.products);
-                if (s.productos) rawList.push(...s.productos);
-            });
-        }
+    // Lee directamente desde la estructura oficial de tu app: APP_STATE.products
+    if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
+        rawProducts = window.APP_STATE.products;
+    } else if (window.APP_DATA && Array.isArray(window.APP_DATA.products)) {
+        rawProducts = window.APP_DATA.products;
     }
 
-    if (rawList.length === 0 && window.supermarkets && Array.isArray(window.supermarkets)) {
-        window.supermarkets.forEach(s => {
-            if (s.products && Array.isArray(s.products)) rawList.push(...s.products);
-            if (s.productos && Array.isArray(s.productos)) rawList.push(...s.productos);
-        });
-    }
-
-    if (rawList.length === 0 && window.productsCatalog) rawList = window.productsCatalog;
-    if (rawList.length === 0 && window.products) rawList = window.products;
-
-    // 2. Extraer desde localStorage si la app guarda ahí el catálogo activo
-    if (rawList.length === 0) {
+    // Si la memoria global no se ha iniciado, escanea el localStorage de la app
+    if (rawProducts.length === 0) {
         for (let i = 0; i < localStorage.length; i++) {
             const k = localStorage.key(i);
             try {
                 const parsed = JSON.parse(localStorage.getItem(k));
-                if (Array.isArray(parsed) && parsed.length > 0 && (parsed[0].nombre || parsed[0].name)) {
-                    rawList = parsed;
+                if (parsed && parsed.products && Array.isArray(parsed.products)) {
+                    rawProducts = parsed.products;
                     break;
-                } else if (parsed && parsed.products) {
-                    rawList = parsed.products;
+                } else if (Array.isArray(parsed) && parsed[0] && (parsed[0].name || parsed[0].nombre)) {
+                    rawProducts = parsed;
                     break;
                 }
             } catch(e){}
         }
     }
 
-    // 3. Procesar sin sobrescribir la foto real con nada genérico
+    // Mapeo exacto basado en la estructura de tu app (name, category, photoUrl)
     const catalog = [];
-    if (rawList && rawList.length > 0) {
-        rawList.forEach(item => {
+    if (rawProducts && rawProducts.length > 0) {
+        rawProducts.forEach(item => {
             if (!item) return;
 
-            let name = item.name || item.nombre || item.titulo;
-            let category = item.category || item.categoria || item.type || 'Lácteos';
+            let name = item.name || item.nombre;
+            let category = item.category || item.categoria || 'Lácteos';
             
-            // PRIORIDAD ESTRICTA A LA FOTO REAL CARGADA (no iconos flaticon)
-            let image = item.image || item.img || item.imagen || item.foto || item.url || item.src || item.icon;
+            // Extracción exacta según tu app: photoUrl || photo || image
+            let image = item.photoUrl || item.photo || item.image || item.img || item.imagen;
 
             if (name && image) {
                 let cleanName = name.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
@@ -264,17 +259,13 @@ function startMinigame1() {
     
     let catalog = getAppCatalogProducts();
 
-    // Si aún no detecta el catálogo cargado, obtiene las 4 preguntas de la base
     if (catalog.length === 0) {
-        mj1State.questions = [
-            { name: 'JALEA COLUN FRAMBUESA 100 GRAMOS', category: 'Lácteos', image: 'https://cdn-icons-png.flaticon.com/512/2553/2553691.png' },
-            { name: 'LECHE ENTERA SOPROLE LIQUIDA 1 LITRO', category: 'Lácteos', image: 'https://cdn-icons-png.flaticon.com/512/2674/2674486.png' },
-            { name: 'TOALLA DE PAPEL NOVA GIGANTE 100 METROS', category: 'Limpieza del Hogar', image: 'https://cdn-icons-png.flaticon.com/512/2553/2553642.png' },
-            { name: 'NÉCTAR DEL VALLE NARANJA 1.5 LITROS', category: 'Frutas y Verduras', image: 'https://cdn-icons-png.flaticon.com/512/2909/2909761.png' }
-        ];
-    } else {
-        mj1State.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 4);
+        alert("⚠️ No se han encontrado productos. Abre una tienda o refresca la página.");
+        return;
     }
+
+    // Baraja los 27 productos reales cargados en tu app
+    mj1State.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 4);
     
     renderMinigame1Question();
 }
@@ -311,18 +302,17 @@ function renderMinigame1Question() {
         <div class="py-6 bg-slate-50 rounded-3xl border-2 border-slate-100 flex flex-col items-center justify-center space-y-4 shadow-inner">
             <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">¿EN QUÉ ESTANTE VA ESTE PRODUCTO?</h3>
             
-            <!-- CONTENEDOR DE LA FOTO REAL DE SOPROLE, NOVA, COLUN, ETC. -->
+            <!-- FOTO REAL EXTRAÍDA DE APP_STATE.products.photoUrl -->
             <div class="w-56 h-56 sm:w-64 sm:h-64 bg-white p-4 rounded-3xl border-4 border-indigo-200 shadow-lg flex items-center justify-center overflow-hidden">
                 <img src="${q.image}" 
                      alt="${q.name}" 
                      class="max-h-full max-w-full object-contain transition-all duration-300 transform hover:scale-105" />
             </div>
 
-            <!-- TÍTULO REAL DEL PRODUCTO DEL CATÁLOGO DE TU APP -->
+            <!-- TÍTULO REAL DEL PRODUCTO -->
             <span class="text-xl sm:text-2xl font-black text-slate-800 uppercase px-4 leading-snug">${q.name}</span>
         </div>
 
-        <!-- BOTONES DE CATEGORÍA CON ÍCONOS -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             ${options.map(catName => {
                 const theme = CATEGORY_THEMES[catName] || { icon: '📦', color: 'from-indigo-500 to-purple-600' };
@@ -378,43 +368,28 @@ function finishMinigame1() {
 }
 
 /* --------------------------------------------------------------------------
-   3. AUTO-INYECCIÓN DEL BOTÓN DE ACCESO AL ARCADE
+   3. AUTO-REINYECCIÓN CONTINUA DE BOTONES Y TRANSFORMACIÓN DEL MEMORICE
    -------------------------------------------------------------------------- */
 function connectArcadeToStudentDashboard() {
-    const topBarRight = document.querySelector('header .flex.items-center') || document.querySelector('.bg-indigo-600 .flex, .bg-purple-600 .flex');
-    if (topBarRight && !document.getElementById('topBarArcadeBtn')) {
+    // 1. Reemplaza el texto del botón Memorice si app.js lo vuelve a dibujar
+    const memoriceButtons = Array.from(document.querySelectorAll('button')).filter(b => b.innerText && (b.innerText.includes('MEMORICE') || b.innerText.includes('Memorise')));
+    
+    memoriceButtons.forEach(btn => {
+        btn.setAttribute('onclick', 'renderMinigamesArcadeView()');
+        btn.className = "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-6 py-3 rounded-2xl shadow-lg border-2 border-purple-300 text-sm active:scale-95 transition-transform flex items-center gap-2 animate-pulse";
+        btn.innerHTML = `<span>🎮</span> <span>DESAFÍOS MINEDUC</span>`;
+    });
+
+    // 2. Inyectar botón en la barra navegadora superior
+    const topBar = document.querySelector('header .flex.items-center') || document.querySelector('.bg-indigo-600 .flex');
+    if (topBar && !document.getElementById('topBarArcadeBtn')) {
         const btnHtml = `
             <button id="topBarArcadeBtn" onclick="renderMinigamesArcadeView()" class="bg-amber-400 hover:bg-amber-300 text-slate-900 font-black px-4 py-2 rounded-2xl shadow border-2 border-amber-200 text-xs active:scale-95 transition-transform flex items-center gap-1.5 ml-2">
                 <span>🎮</span> <span>DESAFÍOS</span>
             </button>
         `;
-        topBarRight.insertAdjacentHTML('beforeend', btnHtml);
-    }
-
-    const gameButtons = Array.from(document.querySelectorAll('button'));
-    const targetBtn = gameButtons.find(b => b.innerText && (b.innerText.includes('MEMORICE') || b.innerText.includes('JUEGO') || b.innerText.includes('DESAFÍO')));
-
-    if (targetBtn && !document.getElementById('arcadeMinigamesBtnNav')) {
-        targetBtn.setAttribute('onclick', 'renderMinigamesArcadeView()');
-        targetBtn.id = 'arcadeMinigamesBtnNav';
-        targetBtn.className = "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-6 py-3 rounded-2xl shadow-lg border-2 border-purple-300 text-sm active:scale-95 transition-transform flex items-center gap-2 animate-pulse";
-        targetBtn.innerHTML = `<span>🎮</span> <span>CENTRO DE DESAFÍOS MINEDUC</span>`;
-    }
-
-    const container = document.getElementById('appContainer');
-    if (container && !document.getElementById('arcadeBodyCard') && !container.innerText.includes('Centro de Desafíos Mineduc')) {
-        const cardHTML = `
-        <div id="arcadeBodyCard" class="mb-6 max-w-5xl mx-auto p-4">
-            <button onclick="renderMinigamesArcadeView()" class="w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-black py-5 px-6 rounded-3xl shadow-xl border-b-4 border-purple-900 text-lg active:scale-95 transition-transform flex items-center justify-center gap-3">
-                <span class="text-3xl animate-bounce">🎮</span>
-                <span>¡Entrar al Centro de Desafíos Mineduc (5 Juegos + Jefe Final)!</span>
-            </button>
-        </div>
-        `;
-        if (container.firstChild) {
-            container.insertBefore(document.createRange().createContextualFragment(cardHTML), container.firstChild);
-        }
+        topBar.insertAdjacentHTML('beforeend', btnHtml);
     }
 }
 
-setInterval(connectArcadeToStudentDashboard, 400);
+setInterval(connectArcadeToStudentDashboard, 300);
