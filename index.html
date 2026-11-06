@@ -145,35 +145,34 @@
             </div>
         </div>
     </main>
-
-    <!-- MODAL 1: MEMORICE -->
-    <div id="memoriseGameModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border-4 border-purple-500 space-y-4 max-h-[92vh] flex flex-col justify-between">
+    
+<!-- MODAL 1: CENTRO DE DESAFÍOS MINEDUC -->
+    <div id="minigamesArcadeModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border-4 border-indigo-500 space-y-4 max-h-[92vh] flex flex-col justify-between overflow-y-auto">
+            
+            <!-- Header del Modal -->
             <div class="flex justify-between items-center border-b pb-3">
                 <div>
-                    <span class="bg-purple-100 text-purple-900 font-black px-3 py-1 rounded-full text-xs uppercase tracking-wider inline-block">
-                        🧠 Minijuego Cognitivo
+                    <span class="bg-indigo-100 text-indigo-900 font-black px-3 py-1 rounded-full text-xs uppercase tracking-wider inline-block">
+                        🎮 Arcade de Aprendizaje
                     </span>
-                    <h3 class="font-black text-slate-800 text-xl mt-1">Memorice del Supermercado</h3>
+                    <h3 class="font-black text-slate-800 text-xl mt-1">Centro de Desafíos Mineduc</h3>
                 </div>
-                <button onclick="closeMemoriseModal()" class="text-slate-400 hover:text-slate-700 font-black text-xl p-1">✕</button>
+                <button onclick="closeMinigamesModal()" class="text-slate-400 hover:text-slate-700 font-black text-xl p-1">✕</button>
             </div>
 
-            <div id="memoriseAvatarSpeechBox" class="flex items-center gap-3 bg-purple-50 p-3 rounded-2xl border border-purple-200"></div>
-
-            <div class="bg-slate-100 p-2.5 rounded-2xl border flex justify-between items-center text-xs font-black">
-                <span id="memoriseLevelTag" class="text-purple-900">Nivel 0: Encuentra las parejas</span>
-                <span id="memoriseMovesTag" class="text-slate-600">Movimientos: 0</span>
+            <!-- Contenedor donde se cargan los minijuegos -->
+            <div id="arcadeModalBody">
+                <!-- Aquí se renderiza automáticamente renderMinigamesArcadeView() -->
             </div>
 
-            <div id="memoriseBoard" class="grid grid-cols-3 sm:grid-cols-4 gap-3 overflow-y-auto p-1 max-h-[50vh]"></div>
-
-            <div class="flex gap-3 pt-2 border-t">
-                <button onclick="closeMemoriseModal()" class="w-1/3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-black py-3 rounded-2xl text-xs active:scale-95">Salir</button>
-                <button onclick="startMemoriseGame()" class="w-2/3 bg-purple-600 hover:bg-purple-700 text-white font-black py-3 rounded-2xl shadow-lg border-b-4 border-purple-900 text-xs active:scale-95 flex items-center justify-center gap-2">
-                    <span>🔄</span> <span>Reiniciar Juego</span>
+            <!-- Footer del Modal -->
+            <div class="flex justify-end pt-2 border-t">
+                <button onclick="closeMinigamesModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-black px-6 py-2.5 rounded-2xl text-xs active:scale-95">
+                    Cerrar
                 </button>
             </div>
+
         </div>
     </div>
 
