@@ -165,7 +165,7 @@ function renderMinigamesArcadeView() {
 }
 
 /* --------------------------------------------------------------------------
-   2. MINIJUEGO 1: EL ESTANTE CORRECTO (SIN ALERTAS DE ERROR)
+   2. MINIJUEGO 1: EL ESTANTE CORRECTO
    -------------------------------------------------------------------------- */
 let mj1State = {
     startTime: null,
@@ -191,7 +191,6 @@ const CATEGORY_THEMES = {
 function getAppCatalogProducts() {
     let rawProducts = [];
 
-    // Búsqueda profunda en variables de app.js
     if (window.APP_DATA) {
         if (Array.isArray(window.APP_DATA.products)) rawProducts = window.APP_DATA.products;
         else if (Array.isArray(window.APP_DATA.productos)) rawProducts = window.APP_DATA.productos;
@@ -212,7 +211,6 @@ function getAppCatalogProducts() {
     if (rawProducts.length === 0 && window.productsCatalog) rawProducts = window.productsCatalog;
     if (rawProducts.length === 0 && window.products) rawProducts = window.products;
 
-    // Búsqueda en localStorage
     if (rawProducts.length === 0) {
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -258,7 +256,6 @@ function startMinigame1() {
     
     let catalog = getAppCatalogProducts();
 
-    // Fallback garantizado sin enviar alertas si las variables globales no están cargadas
     if (catalog.length === 0) {
         catalog = [
             { name: 'LECHE ENTERA SOPROLE LIQUIDA 1 LITRO', category: 'Lácteos', image: 'https://cdn-icons-png.flaticon.com/512/2674/2674486.png' },
@@ -369,34 +366,47 @@ function finishMinigame1() {
 }
 
 /* --------------------------------------------------------------------------
-   3. AUTO-INYECCIÓN EN EL DASHBOARD DEL ESTUDIANTE
+   3. AUTO-INYECCIÓN MULTI-UBICACIÓN DEL BOTÓN DE ACCESO AL ARCADE
    -------------------------------------------------------------------------- */
 function connectArcadeToStudentDashboard() {
-    const memoriceBtn = document.querySelector('button[onclick*="Memorice"]') || 
-                        Array.from(document.querySelectorAll('button')).find(b => b.innerText && b.innerText.includes('MEMORICE'));
-
-    if (memoriceBtn && !document.getElementById('arcadeMinigamesBtnNav')) {
-        memoriceBtn.setAttribute('onclick', 'renderMinigamesArcadeView()');
-        memoriceBtn.id = 'arcadeMinigamesBtnNav';
-        memoriceBtn.className = "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-6 py-3 rounded-2xl shadow-lg border-2 border-purple-300 text-sm active:scale-95 transition-transform flex items-center gap-2 animate-pulse";
-        memoriceBtn.innerHTML = `<span>🎮</span> <span>DESAFÍOS MINEDUC (NIVEL 1)</span>`;
+    // 1. Inyectar botón en la barra superior junto al usuario / canasto si no existe
+    const topBarRight = document.querySelector('header .flex.items-center') || document.querySelector('.bg-indigo-600 .flex, .bg-purple-600 .flex');
+    if (topBarRight && !document.getElementById('topBarArcadeBtn')) {
+        const btnHtml = `
+            <button id="topBarArcadeBtn" onclick="renderMinigamesArcadeView()" class="bg-amber-400 hover:bg-amber-300 text-slate-900 font-black px-4 py-2 rounded-2xl shadow border-2 border-amber-200 text-xs active:scale-95 transition-transform flex items-center gap-1.5 ml-2">
+                <span>🎮</span> <span>DESAFÍOS</span>
+            </button>
+        `;
+        topBarRight.insertAdjacentHTML('beforeend', btnHtml);
     }
 
+    // 2. Transformar el botón del memorice o botones de juegos existentes
+    const gameButtons = Array.from(document.querySelectorAll('button'));
+    const targetBtn = gameButtons.find(b => b.innerText && (b.innerText.includes('MEMORICE') || b.innerText.includes('JUEGO') || b.innerText.includes('DESAFÍO')));
+
+    if (targetBtn && !document.getElementById('arcadeMinigamesBtnNav')) {
+        targetBtn.setAttribute('onclick', 'renderMinigamesArcadeView()');
+        targetBtn.id = 'arcadeMinigamesBtnNav';
+        targetBtn.className = "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-6 py-3 rounded-2xl shadow-lg border-2 border-purple-300 text-sm active:scale-95 transition-transform flex items-center gap-2 animate-pulse";
+        targetBtn.innerHTML = `<span>🎮</span> <span>CENTRO DE DESAFÍOS MINEDUC</span>`;
+    }
+
+    // 3. Inyectar tarjeta prominente en la pantalla principal si estamos en la vista de supermercados/panel
     const container = document.getElementById('appContainer');
-    if (container && container.innerText.includes('Supermercados Disponibles') && !document.getElementById('arcadeBodyCard')) {
+    if (container && !document.getElementById('arcadeBodyCard') && !container.innerText.includes('Centro de Desafíos Mineduc')) {
         const cardHTML = `
-        <div id="arcadeBodyCard" class="mb-6 max-w-5xl mx-auto">
-            <button onclick="renderMinigamesArcadeView()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black py-5 px-6 rounded-3xl shadow-xl border-b-4 border-purple-900 text-lg active:scale-95 transition-transform flex items-center justify-center gap-3">
-                <span class="text-3xl">🎮</span>
+        <div id="arcadeBodyCard" class="mb-6 max-w-5xl mx-auto p-4">
+            <button onclick="renderMinigamesArcadeView()" class="w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-black py-5 px-6 rounded-3xl shadow-xl border-b-4 border-purple-900 text-lg active:scale-95 transition-transform flex items-center justify-center gap-3">
+                <span class="text-3xl animate-bounce">🎮</span>
                 <span>¡Entrar al Centro de Desafíos Mineduc (5 Juegos + Jefe Final)!</span>
             </button>
         </div>
         `;
-        const welcomeBanner = container.querySelector('.bg-gradient-to-r') || container.firstChild;
-        if (welcomeBanner && welcomeBanner.id !== 'arcadeBodyCard') {
-            welcomeBanner.insertAdjacentHTML('afterend', cardHTML);
+        if (container.firstChild) {
+            container.insertBefore(document.createRange().createContextualFragment(cardHTML), container.firstChild);
         }
     }
 }
 
-setInterval(connectArcadeToStudentDashboard, 300);
+// Ejecución periódica para asegurar que los botones estén presentes siempre
+setInterval(connectArcadeToStudentDashboard, 400);
