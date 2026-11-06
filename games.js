@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MINIJUEGOS CURRICULARES MINEDUC - ARCADE COMPLETO (games.js)
+   MINIJUEGOS CURRICULARES MINEDUC - ARCADE DIRECTO (games.js)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -21,42 +21,25 @@ function saveMinigamesProgress() {
 }
 
 /* --------------------------------------------------------------------------
-   GESTIÓN Y APERTURA DEL MODAL ARCADE
-   -------------------------------------------------------------------------- */
-function openMinigamesModal() {
-    renderMinigamesArcadeView();
-    const modal = document.getElementById('minigamesArcadeModal');
-    if (modal) {
-        modal.classList.remove('hidden');
-    }
-}
-
-function closeMinigamesModal() {
-    const modal = document.getElementById('minigamesArcadeModal');
-    if (modal) {
-        modal.classList.add('hidden');
-    }
-}
-
-/* Exposición explícita de funciones globales */
-window.renderMinigamesArcadeView = renderMinigamesArcadeView;
-window.openMinigamesModal = openMinigamesModal;
-window.closeMinigamesModal = closeMinigamesModal;
-window.openMemoriseModal = openMinigamesModal;
-window.openMemorisModal = openMinigamesModal;
-
-/* --------------------------------------------------------------------------
-   1. VISTA PRINCIPAL DEL ARCADE
+   1. VISTA PRINCIPAL DEL ARCADE (EXPORTE GLOBAL)
    -------------------------------------------------------------------------- */
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
     const level = studentMinigamesProgress.currentLevel;
-    const completed = studentMinigamesProgress.completedGames || [];
+    const completed = studentMinigamesProgress.completedGames;
     const isBossUnlocked = completed.length >= 5;
 
     const html = `
-    <div class="space-y-6 max-w-5xl mx-auto p-2 sm:p-4 select-none">
-        <!-- Banner de Nivel -->
+    <div class="space-y-6 max-w-5xl mx-auto p-4 sm:p-6 select-none animate-fade-in">
+        <!-- Navegación -->
+        <div class="flex justify-between items-center bg-white p-4 rounded-3xl border-2 border-slate-200 shadow-sm">
+            <button onclick="goHome()" class="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 font-black px-6 py-3 rounded-2xl text-sm transition-transform flex items-center gap-2">
+                <span class="text-xl">⬅</span> Volver al Panel
+            </button>
+            <span class="font-black text-slate-800 text-base sm:text-lg">🎮 Centro de Desafíos Mineduc</span>
+        </div>
+
+        <!-- Banner del Nivel -->
         <div class="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 rounded-3xl p-6 text-white shadow-xl flex flex-col sm:flex-row justify-between items-center gap-4 border-4 border-purple-300">
             <div>
                 <span class="bg-black/30 text-amber-300 font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider inline-block mb-2">
@@ -83,7 +66,7 @@ function renderMinigamesArcadeView() {
                 </div>
                 <div>
                     <h4 class="font-black text-slate-800 text-lg">1. El Estante Correcto</h4>
-                    <p class="text-xs text-slate-500 font-bold mt-1">OA Mineduc: Categorización semántica con productos reales del catálogo.</p>
+                    <p class="text-xs text-slate-500 font-bold mt-1">OA Mineduc: Categorización semántica con productos del catálogo real.</p>
                 </div>
                 <button onclick="startMinigame1()" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black py-4 rounded-2xl shadow-md text-sm transition-all">
                     ${completed.includes('mj1') ? '🔄 Jugar de nuevo' : '▶ ¡Iniciar Desafío!'}
@@ -178,17 +161,27 @@ function renderMinigamesArcadeView() {
     </div>
     `;
 
-    const modalBody = document.getElementById('arcadeModalBody');
-    const mainContainer = document.getElementById('appContainer');
-
-    if (modalBody) modalBody.innerHTML = html;
-    else if (mainContainer) mainContainer.innerHTML = html;
+    // Renderizado en el contenedor disponible
+    const container = document.getElementById('arcadeModalBody') || document.getElementById('appContainer');
+    if (container) {
+        container.innerHTML = html;
+    }
 }
 
+// Asignación explícita al objeto global window
+window.renderMinigamesArcadeView = renderMinigamesArcadeView;
+window.openMinigamesModal = renderMinigamesArcadeView;
+window.openMemoriseModal = renderMinigamesArcadeView;
+
 /* --------------------------------------------------------------------------
-   2. EXTRACCIÓN Y LECTURA DE CATALOGO PRODUCTOS (APP_STATE.products)
+   2. EXTRACCIÓN Y LECTURA REAL DE BASE DE DATOS (APP_STATE.products)
    -------------------------------------------------------------------------- */
-let mj1State = { startTime: null, errors: 0, currentQuestion: 0, questions: [] };
+let mj1State = {
+    startTime: null,
+    errors: 0,
+    currentQuestion: 0,
+    questions: []
+};
 
 function getDatabaseProducts() {
     let rawList = [];
