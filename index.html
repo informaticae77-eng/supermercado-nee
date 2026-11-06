@@ -147,34 +147,35 @@
     </main>
     
 <!-- MODAL 1: CENTRO DE DESAFÍOS MINEDUC -->
-    <div id="minigamesArcadeModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border-4 border-indigo-500 space-y-4 max-h-[92vh] flex flex-col justify-between overflow-y-auto">
-            
-            <!-- Header del Modal -->
-            <div class="flex justify-between items-center border-b pb-3">
-                <div>
-                    <span class="bg-indigo-100 text-indigo-900 font-black px-3 py-1 rounded-full text-xs uppercase tracking-wider inline-block">
-                        🎮 Arcade de Aprendizaje
-                    </span>
-                    <h3 class="font-black text-slate-800 text-xl mt-1">Centro de Desafíos Mineduc</h3>
-                </div>
-                <button onclick="closeMinigamesModal()" class="text-slate-400 hover:text-slate-700 font-black text-xl p-1">✕</button>
+    <!-- MODAL 1: CENTRO DE DESAFÍOS MINEDUC -->
+<div id="minigamesArcadeModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border-4 border-indigo-500 space-y-4 max-h-[92vh] flex flex-col justify-between overflow-y-auto">
+        
+        <!-- Header del Modal -->
+        <div class="flex justify-between items-center border-b pb-3">
+            <div>
+                <span class="bg-indigo-100 text-indigo-900 font-black px-3 py-1 rounded-full text-xs uppercase tracking-wider inline-block">
+                    🎮 Arcade de Aprendizaje
+                </span>
+                <h3 class="font-black text-slate-800 text-xl mt-1">Centro de Desafíos Mineduc</h3>
             </div>
-
-            <!-- Contenedor donde se cargan los minijuegos -->
-            <div id="arcadeModalBody">
-                <!-- Aquí se renderiza automáticamente renderMinigamesArcadeView() -->
-            </div>
-
-            <!-- Footer del Modal -->
-            <div class="flex justify-end pt-2 border-t">
-                <button onclick="closeMinigamesModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-black px-6 py-2.5 rounded-2xl text-xs active:scale-95">
-                    Cerrar
-                </button>
-            </div>
-
+            <button onclick="closeMinigamesModal()" class="text-slate-400 hover:text-slate-700 font-black text-xl p-1">✕</button>
         </div>
+
+        <!-- Contenedor donde se cargan los minijuegos -->
+        <div id="arcadeModalBody">
+            <!-- Renderizado dinámico desde games.js -->
+        </div>
+
+        <!-- Footer del Modal -->
+        <div class="flex justify-end pt-2 border-t">
+            <button onclick="closeMinigamesModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-black px-6 py-2.5 rounded-2xl text-xs active:scale-95">
+                Cerrar
+            </button>
+        </div>
+
     </div>
+</div>
 
     <!-- MODAL 2: PREMIO FÍSICO -->
     <div id="physicalRewardModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
