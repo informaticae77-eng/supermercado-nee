@@ -878,8 +878,8 @@ function renderHomeView(container) {
                             <p class="text-xs font-bold text-slate-500">Puntos acumulados: <b class="text-amber-600">${userPoints} pts</b> de ${rewardTarget} pts para el premio</p>
                         </div>
                     </div>
-                    <button onclick="openMemoriseModal()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-5 py-3 rounded-2xl shadow-lg border-b-4 border-purple-900 text-xs active:scale-95 flex items-center gap-2">
-                        <span>🧠</span> <span>JUGAR MINIJUEGO MEMORICE (+15 PTS)</span>
+                    <button onclick="renderMinigamesArcadeView()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-5 py-3 rounded-2xl shadow-lg border-b-4 border-purple-900 text-xs active:scale-95 flex items-center gap-2">
+                        <span>🎮</span> <span>CENTRO DE DESAFÍOS (+15 PTS)</span>
                     </button>
                 </div>
 
