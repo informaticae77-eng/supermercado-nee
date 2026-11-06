@@ -18,289 +18,431 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
+    <!-- EmailJS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
     <style>
-        .high-contrast {
-            filter: contrast(140%) brightness(95%);
+        .scrollbar-thin::-webkit-scrollbar { height: 6px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+
+        /* =================================================== */
+        /* ANIMACIONES AVANZADAS: HALLOWEEN, NIEVE Y PERSONAJES */
+        /* =================================================== */
+
+        /* 1. Caída de nieve continua por toda la pantalla */
+        @keyframes snowFall {
+            0% { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 1; }
+            50% { transform: translateY(50vh) translateX(25px) rotate(180deg); opacity: 0.8; }
+            100% { transform: translateY(105vh) translateX(-15px) rotate(360deg); opacity: 0.2; }
         }
-        .text-spacing-wide {
-            letter-spacing: 0.08em;
-            line-height: 1.8;
+        .animate-snowflake {
+            position: absolute;
+            top: -5vh;
+            color: #ffffff;
+            user-select: none;
+            pointer-events: none;
+            animation: snowFall linear infinite;
         }
-        @keyframes pulse-slow {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.03); }
+
+        /* 2. Arañas bajando y subiendo por hilo de seda */
+        @keyframes spiderSilkCrawl {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(180px); }
         }
-        .animate-pulse-slow {
-            animation: pulse-slow 3s infinite ease-in-out;
+        .animate-spider-crawl { animation: spiderSilkCrawl 6s ease-in-out infinite; }
+
+        @keyframes spiderSilkCrawlFast {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(260px); }
         }
+        .animate-spider-crawl-fast { animation: spiderSilkCrawlFast 4.5s ease-in-out infinite 1.5s; }
+
+        /* 3. Bruja volando cruzando la pantalla */
+        @keyframes witchFlying {
+            0% { transform: translateX(-120px) translateY(20px) rotate(5deg) scale(0.9); }
+            50% { transform: translateX(50vw) translateY(-10px) rotate(-3deg) scale(1.1); }
+            100% { transform: translateX(105vw) translateY(30px) rotate(5deg) scale(0.9); }
+        }
+        .animate-witch { animation: witchFlying 12s linear infinite; }
+
+        /* 4. Zombie tambaleante caminante */
+        @keyframes zombieGroan {
+            0%, 100% { transform: translateX(0) rotate(-4deg) scale(1); }
+            25% { transform: translateX(10px) rotate(3deg) scale(1.03); }
+            50% { transform: translateX(-5px) rotate(-2deg) scale(0.98); }
+            75% { transform: translateX(12px) rotate(4deg) scale(1.02); }
+        }
+        .animate-zombie { animation: zombieGroan 3.5s ease-in-out infinite; }
+
+        /* 5. Caldero de bruja y burbujas de poción hirviendo */
+        @keyframes cauldronGlow {
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(34, 197, 94, 0.9)) drop-shadow(0 0 25px rgba(168, 85, 247, 0.6)); }
+            50% { filter: drop-shadow(0 0 25px rgba(168, 85, 247, 0.9)) drop-shadow(0 0 35px rgba(34, 197, 94, 0.8)); }
+        }
+        .animate-cauldron { animation: cauldronGlow 2.5s ease-in-out infinite; }
+
+        @keyframes potionBubbleRise {
+            0% { transform: translateY(0) scale(0.4); opacity: 0; }
+            40% { opacity: 1; }
+            100% { transform: translateY(-60px) scale(1.5); opacity: 0; }
+        }
+        .bubble-1 { animation: potionBubbleRise 2s infinite ease-out; }
+        .bubble-2 { animation: potionBubbleRise 2.4s infinite ease-out 0.6s; }
+        .bubble-3 { animation: potionBubbleRise 1.8s infinite ease-out 1.2s; }
+
+        /* 6. Flote suave de personaje avatar */
+        @keyframes floatBounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-10px) scale(1.03); }
+        }
+        .animate-avatar-float { animation: floatBounce 2.5s ease-in-out infinite; }
+
+        @keyframes waveHand {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(15deg); }
+            75% { transform: rotate(-10deg); }
+        }
+        .animate-wave { animation: waveHand 1.8s ease-in-out infinite; transform-origin: bottom center; }
     </style>
 </head>
-<body class="bg-slate-100 font-sans antialiased text-slate-800 min-h-screen">
+<body class="bg-slate-100 font-sans min-h-screen text-slate-900 pb-16 relative overflow-x-hidden">
 
-    <!-- CONTENEDOR PRINCIPAL DYNAMIC DENTRO DE APP.JS -->
-    <div id="appContainer" class="min-h-screen pb-12">
-        <!-- Renderizado dinámico desde app.js -->
-    </div>
+    <!-- CONTENEDOR PARA CAPAS Y DECORACIONES TEMÁTICAS ESTACIONALES ANIMADAS -->
+    <div id="themeOverlayContainer" class="pointer-events-none fixed inset-0 z-40 overflow-hidden"></div>
 
-    <!-- MODAL 1: CENTRO DE DESAFÍOS MINEDUC -->
-    <div id="minigamesArcadeModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border-4 border-indigo-500 space-y-4 max-h-[92vh] flex flex-col justify-between overflow-y-auto">
-            
-            <!-- Header del Modal -->
-            <div class="flex justify-between items-center border-b pb-3">
+    <!-- ENCABEZADO PRINCIPAL -->
+    <header id="appHeaderBar" class="bg-indigo-600 text-white shadow-lg border-b-4 border-indigo-900 sticky top-0 z-30 transition-colors duration-500">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="goHome()">
+                <div class="bg-white p-2 rounded-2xl shadow-md text-2xl" id="headerIconEmoji">🛒</div>
                 <div>
-                    <span class="bg-indigo-100 text-indigo-900 font-black px-3 py-1 rounded-full text-xs uppercase tracking-wider inline-block">
-                        🎮 Arcade de Aprendizaje
-                    </span>
-                    <h3 class="font-black text-slate-800 text-xl mt-1">Centro de Desafíos Mineduc</h3>
+                    <h1 class="text-lg sm:text-xl font-black tracking-tight leading-none text-white" id="headerMainTitle">SUPERMERCADO ADAPTATIVO</h1>
+                    <p id="headerSubTitle" class="text-[11px] font-bold text-indigo-200 mt-0.5">Unidad de Autonomía Funcional</p>
                 </div>
-                <button onclick="closeMinigamesModal()" class="text-slate-400 hover:text-slate-700 font-black text-xl p-1">✕</button>
             </div>
 
-            <!-- Contenedor dinámico donde games.js renderiza los 5 juegos -->
-            <div id="arcadeModalBody">
-                <!-- Se inyecta dinámicamente mediante renderMinigamesArcadeView() -->
-            </div>
-
-            <!-- Footer del Modal -->
-            <div class="flex justify-end pt-2 border-t">
-                <button onclick="closeMinigamesModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-black px-6 py-2.5 rounded-2xl text-xs active:scale-95">
-                    Cerrar
+            <div class="flex items-center gap-3">
+                <div id="userInfoHeader" class="flex items-center gap-2"></div>
+                <button id="headerBasketBtn" onclick="openBasketModal()" class="relative bg-amber-400 hover:bg-amber-500 text-slate-900 font-black px-4 py-2 rounded-2xl shadow-lg border-b-4 border-amber-600 active:scale-95 flex items-center gap-2">
+                    <span class="text-xl">🧺</span>
+                    <span class="hidden sm:inline text-xs font-black">Mi Canasto</span>
+                    <span id="basketBadge" class="bg-slate-900 text-amber-300 font-black text-xs px-2 py-0.5 rounded-full border border-amber-400">0</span>
                 </button>
             </div>
-
         </div>
-    </div>
+    </header>
 
-    <!-- MODAL 2: ESCÁNER OCR BOLETA -->
-    <div id="ocrModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-emerald-500 space-y-4 text-center">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="font-black text-slate-800 text-base">📷 Escanear Boleta con IA</h3>
-                <button onclick="closeOCRModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
+    <!-- CONTENEDOR PRINCIPAL DINÁMICO -->
+    <main class="max-w-7xl mx-auto px-4 py-6 relative z-10">
+        <div id="appContainer">
+            <div class="text-center py-20">
+                <div class="text-5xl animate-bounce mb-3">🛒</div>
+                <p class="font-bold text-slate-500 text-sm">Cargando aplicación adaptativa...</p>
             </div>
-            <p class="text-xs text-slate-600 font-bold">Sube o toma una foto clara de tu boleta de supermercado para verificar tus compras.</p>
-            <input type="file" id="ocrInput" accept="image/*" class="hidden" onchange="processOCRImage(event)">
-            <button onclick="document.getElementById('ocrInput').click()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-2xl shadow border-b-4 border-emerald-900 active:scale-95 text-xs flex items-center justify-center gap-2">
-                <span>📷</span> <span>Seleccionar Imagen</span>
+        </div>
+    </main>
+    
+<!-- MODAL 1: CENTRO DE DESAFÍOS MINEDUC -->
+    <!-- MODAL 1: CENTRO DE DESAFÍOS MINEDUC -->
+<div id="minigamesArcadeModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border-4 border-indigo-500 space-y-4 max-h-[92vh] flex flex-col justify-between overflow-y-auto">
+        
+        <!-- Header del Modal -->
+        <div class="flex justify-between items-center border-b pb-3">
+            <div>
+                <span class="bg-indigo-100 text-indigo-900 font-black px-3 py-1 rounded-full text-xs uppercase tracking-wider inline-block">
+                    🎮 Arcade de Aprendizaje
+                </span>
+                <h3 class="font-black text-slate-800 text-xl mt-1">Centro de Desafíos Mineduc</h3>
+            </div>
+            <button onclick="closeMinigamesModal()" class="text-slate-400 hover:text-slate-700 font-black text-xl p-1">✕</button>
+        </div>
+
+        <!-- Contenedor donde se cargan los minijuegos -->
+        <div id="arcadeModalBody">
+            <!-- Renderizado dinámico desde games.js -->
+        </div>
+
+        <!-- Footer del Modal -->
+        <div class="flex justify-end pt-2 border-t">
+            <button onclick="closeMinigamesModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-black px-6 py-2.5 rounded-2xl text-xs active:scale-95">
+                Cerrar
             </button>
-            <div id="ocrStatus" class="text-xs font-black text-indigo-600 min-h-[20px]"></div>
+        </div>
+
+    </div>
+</div>
+
+    <!-- MODAL 2: PREMIO FÍSICO -->
+    <div id="physicalRewardModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 text-center space-y-5 border-8 border-amber-400 shadow-2xl animate-bounce">
+            <div class="text-6xl">🎁🏆</div>
+            <h2 class="text-3xl font-black text-slate-900">¡META LOGRADA!</h2>
+            <div id="rewardScoreDisplay" class="bg-amber-100 text-amber-900 font-black text-2xl py-2 rounded-2xl border-2 border-amber-300">250 / 250 PTS</div>
+            <p id="rewardMessageDisplay" class="text-sm font-bold text-slate-700 bg-slate-50 p-4 rounded-2xl border">
+                ¡Muestra esta pantalla a tu profesor para recibir tu premio físico!
+            </p>
+            <button onclick="confirmPhysicalRewardClaim()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl shadow-xl border-b-4 border-emerald-950 text-base active:scale-95">
+                ✓ CANJEAR PREMIO Y CONTINUAR
+            </button>
         </div>
     </div>
 
-    <!-- MODAL 3: ADMINISTRAR TIENDAS -->
-    <div id="manageStoresModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border-4 border-purple-500 space-y-4 max-h-[90vh] flex flex-col justify-between">
+    <!-- MODAL 3: CÁMARA OCR -->
+    <div id="scannerModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border-4 border-indigo-400 space-y-4">
             <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="font-black text-slate-800 text-base">🏪 Administrar Tiendas y Productos</h3>
-                <button onclick="closeManageStoresModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
+                <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                    <span>🤖📷</span> <span>Escanear Producto: <b id="aiScannerTargetTitle" class="text-indigo-600">--</b></span>
+                </h3>
+                <button onclick="closeScannerModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
             </div>
-            <div id="storesAdminList" class="overflow-y-auto space-y-3 pr-1 max-h-[60vh]"></div>
-            <div class="flex justify-between border-t pt-3">
-                <button onclick="openCreateStoreModal()" class="bg-purple-600 text-white font-black px-4 py-2.5 rounded-xl text-xs shadow">+ Nueva Tienda</button>
-                <button onclick="closeManageStoresModal()" class="bg-slate-200 text-slate-800 font-black px-4 py-2.5 rounded-xl text-xs">Cerrar</button>
+
+            <div class="relative bg-black rounded-2xl overflow-hidden h-64 border-2 border-slate-700 flex items-center justify-center">
+                <video id="aiCameraVideo" playsinline webkit-playsinline muted autoplay class="w-full h-full object-cover"></video>
+                <canvas id="aiCameraCanvas" class="hidden"></canvas>
+                <div class="absolute inset-0 border-2 border-amber-400/60 rounded-2xl pointer-events-none flex items-center justify-center">
+                    <span class="text-[10px] bg-black/60 text-amber-300 font-bold px-3 py-1 rounded-full uppercase">Enfoca el nombre o etiqueta</span>
+                </div>
+            </div>
+
+            <div id="aiScanStatusBox" class="p-3 bg-slate-50 border rounded-2xl text-center text-xs font-bold text-slate-600">
+                Apunta la cámara al envase o etiqueta de precio y presiona tomar foto.
+            </div>
+
+            <div class="flex gap-3 pt-1">
+                <button onclick="closeScannerModal()" class="w-1/3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-black py-3 rounded-2xl text-xs active:scale-95">Cancelar</button>
+                <button onclick="captureAndAnalyzeImageWithAI()" class="w-2/3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black py-3.5 rounded-2xl shadow-lg border-b-4 border-indigo-900 text-sm active:scale-95 flex items-center justify-center gap-2">
+                    <span>📸</span> <span>TOMAR FOTO Y ANALIZAR</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL 4: CREAR/EDITAR TIENDA -->
-    <div id="storeEditModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-purple-400 space-y-4">
-            <h3 id="storeEditModalTitle" class="font-black text-slate-800 text-base border-b pb-2">Crear Nueva Tienda</h3>
-            <div class="space-y-3 text-xs font-bold text-slate-700">
-                <div>
-                    <label class="block mb-1">Nombre de la Tienda:</label>
-                    <input type="text" id="storeNameInput" class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs focus:border-purple-500 outline-none">
-                </div>
-                <div>
-                    <label class="block mb-1">Emoji / Ícono:</label>
-                    <input type="text" id="storeEmojiInput" placeholder="🏪" class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs focus:border-purple-500 outline-none">
-                </div>
+    <!-- MODAL 4: CONFIRMACIÓN DE PRECIO -->
+    <div id="shelfPriceModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-amber-400 space-y-4">
+            <div class="text-center space-y-1">
+                <span class="text-4xl">🏷️</span>
+                <h3 id="shelfPriceProdName" class="text-xl font-black text-slate-900">Producto Escaneado</h3>
+                <p class="text-xs font-bold text-slate-500">Precio de lista: <span id="shelfPriceOriginalLabel" class="text-emerald-700 font-black">$0</span></p>
             </div>
-            <div class="flex gap-2 pt-2">
-                <button onclick="closeStoreEditModal()" class="w-1/2 bg-slate-200 text-slate-800 font-black py-2.5 rounded-xl text-xs">Cancelar</button>
-                <button onclick="saveStoreFromModal()" class="w-1/2 bg-purple-600 text-white font-black py-2.5 rounded-xl text-xs shadow">Guardar</button>
+            <img id="shelfCapturedPhotoPreview" class="w-32 h-32 object-cover rounded-2xl border-2 border-amber-300 mx-auto hidden shadow">
+            <div class="space-y-2">
+                <label class="block text-xs font-black text-slate-700 uppercase text-center">¿Cuál es el precio exacto en la etiqueta de la góndola?</label>
+                <div id="shelfPriceButtonsContainer" class="grid grid-cols-2 gap-2"></div>
             </div>
-        </div>
-    </div>
-
-    <!-- MODAL 5: AGREGAR/EDITAR PRODUCTO -->
-    <div id="productEditModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-indigo-400 space-y-4 max-h-[90vh] overflow-y-auto">
-            <h3 id="productEditModalTitle" class="font-black text-slate-800 text-base border-b pb-2">Nuevo Producto</h3>
-            <div class="space-y-3 text-xs font-bold text-slate-700">
-                <div>
-                    <label class="block mb-1">Nombre del Producto:</label>
-                    <input type="text" id="prodNameInput" class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs outline-none focus:border-indigo-500">
+            <div class="pt-2 border-t space-y-2">
+                <label class="block text-[11px] font-extrabold text-slate-500 uppercase text-center">O ingresa un precio manualmente:</label>
+                <div class="flex gap-2">
+                    <input type="number" id="shelfPriceCustomInput" placeholder="Ej: 1990" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-black text-sm text-center">
+                    <button onclick="applyCustomShelfPrice()" class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black px-4 py-2.5 rounded-xl text-xs shadow border-b-2 border-amber-600 active:scale-95">Aplicar</button>
                 </div>
-                <div>
-                    <label class="block mb-1">Precio (CLP):</label>
-                    <input type="number" id="prodPriceInput" class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs outline-none focus:border-indigo-500">
-                </div>
-                <div>
-                    <label class="block mb-1">Categoría:</label>
-                    <select id="prodCategoryInput" class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs outline-none focus:border-indigo-500">
-                        <option value="Lácteos">Lácteos</option>
-                        <option value="Frutas y Verduras">Frutas y Verduras</option>
-                        <option value="Panadería">Panadería</option>
-                        <option value="Aseo">Aseo</option>
-                        <option value="Abarrotes">Abarrotes</option>
-                        <option value="Bebidas">Bebidas</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block mb-1">URL de la Imagen:</label>
-                    <input type="text" id="prodPhotoInput" placeholder="https://..." class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs outline-none focus:border-indigo-500">
-                </div>
-            </div>
-            <div class="flex gap-2 pt-2">
-                <button onclick="closeProductEditModal()" class="w-1/2 bg-slate-200 text-slate-800 font-black py-2.5 rounded-xl text-xs">Cancelar</button>
-                <button onclick="saveProductFromModal()" class="w-1/2 bg-indigo-600 text-white font-black py-2.5 rounded-xl text-xs shadow">Guardar Producto</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL 6: ASIGNAR TAREA A ESTUDIANTE -->
-    <div id="assignTaskModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border-4 border-amber-400 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-black text-slate-800 text-base">📋 Asignar Lista de Compras</h3>
-                <button onclick="closeAssignTaskModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
+    <!-- MODAL 5: CANASTO -->
+    <div id="basketModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border-4 border-indigo-400 space-y-4 max-h-[90vh] flex flex-col justify-between">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-black text-slate-800 text-lg flex items-center gap-2"><span>🧺</span> <span>Mi Canasto de Compras</span></h3>
+                <button onclick="closeBasketModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
             </div>
-            <div id="assignTaskProductList" class="space-y-2 max-h-[50vh] overflow-y-auto pr-1"></div>
+            <div class="space-y-3 overflow-y-auto pr-1">
+                <div id="basketItemsList" class="space-y-2"></div>
+                <div class="bg-emerald-50 border-2 border-emerald-300 p-4 rounded-2xl flex justify-between items-center">
+                    <span class="font-black text-emerald-950 text-sm uppercase">Total a Pagar:</span>
+                    <div id="basketTotalCLP" class="text-right text-2xl font-black text-emerald-700">$0</div>
+                </div>
+                <div class="bg-amber-50 border-2 border-amber-300 p-4 rounded-2xl space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-black text-amber-950 text-xs uppercase">Dinero Entregado:</span>
+                        <span id="userPaidTotal" class="text-xl font-black text-amber-900">$0</span>
+                    </div>
+                    <div id="basketCurrencyBreakdown" class="flex flex-wrap gap-1.5 min-h-[32px] items-center"></div>
+                </div>
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-black text-slate-600 uppercase">Toca el billete o moneda para pagar:</label>
+                    <div id="paymentMoneyTray" class="grid grid-cols-3 sm:grid-cols-5 gap-2"></div>
+                </div>
+            </div>
             <div class="flex gap-2 pt-3 border-t">
-                <button onclick="closeAssignTaskModal()" class="w-1/2 bg-slate-200 text-slate-800 font-black py-2.5 rounded-xl text-xs">Cancelar</button>
-                <button onclick="saveAssignedTask()" class="w-1/2 bg-amber-500 text-white font-black py-2.5 rounded-xl text-xs shadow">Guardar Asignación</button>
+                <button onclick="resetUserPayment()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-black px-3 py-3 rounded-2xl text-xs active:scale-95">🔄 Reiniciar</button>
+                <button onclick="clearBasket()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-black px-3 py-3 rounded-2xl text-xs active:scale-95">🗑️ Vaciar</button>
+                <button onclick="verifyAndCheckout()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl shadow-lg border-b-4 border-emerald-900 text-base active:scale-95">💳 ¡PAGAR EN CAJA!</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL 7: CALCULADORA DE VUELTO -->
-    <div id="changeCalculatorModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-4 border-emerald-400 space-y-4 text-center">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-black text-slate-800 text-base">💵 Calculadora de Vuelto</h3>
-                <button onclick="closeChangeCalculatorModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
+    <!-- MODAL 6: ÉXITO -->
+    <div id="checkoutSuccessModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-emerald-400 space-y-4 text-center">
+            <div class="text-5xl animate-bounce">🎉</div>
+            <h3 class="text-2xl font-black text-slate-900">¡COMPRA FINALIZADA!</h3>
+            <div id="gamificationPointsBadge" class="bg-amber-400 text-slate-900 font-black text-lg px-4 py-1.5 rounded-full inline-block shadow">+100 PUNTOS</div>
+            <div id="gamificationMedalIcon" class="text-sm font-black text-indigo-950">🥇 Medalla de Oro (100% Perfecto)</div>
+            <p id="gamificationFeedbackText" class="text-xs font-bold text-slate-600 bg-slate-50 p-3 rounded-2xl border">¡Increíble trabajo! Completaste tu lista perfectamente.</p>
+            <div class="bg-slate-50 p-4 rounded-2xl border space-y-1 text-xs font-bold">
+                <div class="flex justify-between"><span>Total Compra:</span> <span id="successModalTotal" class="font-black text-emerald-700">$0</span></div>
+                <div class="flex justify-between"><span>Entregaste:</span> <span id="successModalPaid" class="font-black text-indigo-900">$0</span></div>
+                <div class="flex justify-between text-amber-800 font-black border-t pt-1"><span>Tu Vuelto:</span> <span id="successModalVueltoAmount" class="text-base">$0</span></div>
             </div>
-            <div class="space-y-3 text-left text-xs font-bold text-slate-700">
-                <div>
-                    <label>Total de la compra:</label>
-                    <input type="number" id="calcTotalInput" readonly class="w-full bg-slate-100 border-2 border-slate-200 p-2.5 rounded-xl text-xs font-black">
-                </div>
-                <div>
-                    <label>¿Con cuánto paga el cliente?:</label>
-                    <input type="number" id="calcPaidInput" oninput="calculateChange()" class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs font-black text-emerald-700 focus:border-emerald-500 outline-none">
-                </div>
-                <div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-center">
-                    <span class="block text-[10px] uppercase font-black text-emerald-800">Vuelto a Entregar:</span>
-                    <span id="calcChangeDisplay" class="text-2xl font-black text-emerald-600">$0</span>
-                </div>
-            </div>
-            <button onclick="closeChangeCalculatorModal()" class="w-full bg-slate-800 text-white font-black py-2.5 rounded-xl text-xs">Cerrar</button>
+            <div id="successModalVueltoBreakdown" class="flex flex-wrap justify-center gap-1.5"></div>
+            <button onclick="closeSuccessModalAndFinish()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3.5 rounded-2xl shadow-lg border-b-4 border-indigo-900 text-base active:scale-95">🚀 Volver al Inicio</button>
         </div>
     </div>
 
-    <!-- MODAL 8: SOPORTE SOCIAL / PICTOGRAMAS -->
-    <div id="pictogramSupportModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-sky-400 space-y-4 text-center">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-black text-slate-800 text-base">🗣️ Guión de Interacción Social</h3>
-                <button onclick="closePictogramSupportModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
+    <!-- MODAL 7: DETALLE MISIÓN -->
+    <div id="viewMissionModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border-4 border-indigo-400 space-y-4 max-h-[85vh] flex flex-col justify-between">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-black text-slate-800 text-base flex items-center gap-2"><span>📋</span> <span>Detalle de la Misión Activa</span></h3>
+                <button onclick="closeViewMissionModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
             </div>
-            <div class="grid grid-cols-2 gap-3 text-left">
-                <div class="p-3 bg-sky-50 rounded-2xl border border-sky-200 flex flex-col items-center text-center space-y-1">
-                    <span class="text-3xl">👋</span>
-                    <span class="text-xs font-black text-sky-900">1. Saludar</span>
-                    <p class="text-[10px] text-sky-700 font-bold">"Hola, buenas tardes"</p>
-                </div>
-                <div class="p-3 bg-sky-50 rounded-2xl border border-sky-200 flex flex-col items-center text-center space-y-1">
-                    <span class="text-3xl">🛒</span>
-                    <span class="text-xs font-black text-sky-900">2. Entregar</span>
-                    <p class="text-[10px] text-sky-700 font-bold">"Quiero pagar estos productos"</p>
-                </div>
-                <div class="p-3 bg-sky-50 rounded-2xl border border-sky-200 flex flex-col items-center text-center space-y-1">
-                    <span class="text-3xl">💵</span>
-                    <span class="text-xs font-black text-sky-900">3. Pagar</span>
-                    <p class="text-[10px] text-sky-700 font-bold">"Aquí está mi dinero"</p>
-                </div>
-                <div class="p-3 bg-sky-50 rounded-2xl border border-sky-200 flex flex-col items-center text-center space-y-1">
-                    <span class="text-3xl">🙏</span>
-                    <span class="text-xs font-black text-sky-900">4. Agradecer</span>
-                    <p class="text-[10px] text-sky-700 font-bold">"Muchas gracias, hasta luego"</p>
-                </div>
+            <div id="viewMissionContent" class="space-y-3 overflow-y-auto pr-1"></div>
+            <div class="flex gap-2 pt-3 border-t">
+                <button onclick="closeViewMissionModal()" class="w-1/3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-black py-3 rounded-2xl text-xs active:scale-95">Cerrar</button>
+                <button onclick="printCurrentMissionSheetFromViewer()" class="w-2/3 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-2xl shadow text-xs border-b-2 border-indigo-900 active:scale-95 flex items-center justify-center gap-2"><span>🖨️</span> <span>Imprimir Ficha</span></button>
             </div>
-            <button onclick="closePictogramSupportModal()" class="w-full bg-sky-600 text-white font-black py-2.5 rounded-xl text-xs shadow">Entendido</button>
         </div>
     </div>
 
-    <!-- MODAL 9: HISTORIAL DE COMPRAS DE ESTUDIANTE -->
-    <div id="purchaseHistoryModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <!-- MODAL 8: CREAR MISIÓN -->
+    <div id="missionModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border-4 border-indigo-400 space-y-4 max-h-[90vh] flex flex-col justify-between">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-black text-slate-800 text-base">📜 Mi Historial de Boletas</h3>
-                <button onclick="closePurchaseHistoryModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-black text-slate-800 text-base flex items-center gap-2"><span>📋</span> <span>Crear Nueva Misión Pedagógica</span></h3>
+                <button onclick="closeMissionModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
             </div>
-            <div id="purchaseHistoryContainer" class="overflow-y-auto space-y-3 pr-1 max-h-[60vh]"></div>
-            <button onclick="closePurchaseHistoryModal()" class="w-full bg-slate-200 text-slate-800 font-black py-2.5 rounded-xl text-xs">Cerrar</button>
-        </div>
-    </div>
-
-    <!-- MODAL 10: CONFIGURACIÓN DE ACCESIBILIDAD Y NEE -->
-    <div id="accessibilityModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-indigo-500 space-y-4">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-black text-slate-800 text-base">♿ Ajustes de Accesibilidad</h3>
-                <button onclick="closeAccessibilityModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
-            </div>
-            <div class="space-y-3 text-xs font-bold text-slate-700">
-                <label class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border">
-                    <span>Alto Contraste</span>
-                    <input type="checkbox" id="highContrastToggle" onchange="toggleHighContrast()" class="w-5 h-5 accent-indigo-600">
-                </label>
-                <label class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border">
-                    <span>Texto Grande y Espaciado</span>
-                    <input type="checkbox" id="largeTextToggle" onchange="toggleLargeText()" class="w-5 h-5 accent-indigo-600">
-                </label>
-                <label class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border">
-                    <span>Lectura en Voz Alta (TTS)</span>
-                    <input type="checkbox" id="ttsToggle" onchange="toggleTTS()" class="w-5 h-5 accent-indigo-600">
-                </label>
-            </div>
-            <button onclick="closeAccessibilityModal()" class="w-full bg-indigo-600 text-white font-black py-2.5 rounded-xl text-xs shadow">Guardar Preferencias</button>
-        </div>
-    </div>
-
-    <!-- MODAL 11: ADMINISTRAR USUARIOS -->
-    <div id="manageUsersModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border-4 border-purple-500 space-y-4 max-h-[90vh] flex flex-col justify-between">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-black text-slate-800 text-base">👥 Gestión de Estudiantes y Profesores</h3>
-                <button onclick="closeManageUsersModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
-            </div>
-            <div id="usersAdminList" class="overflow-y-auto space-y-2 pr-1 max-h-[60vh]"></div>
-            <div class="flex justify-between border-t pt-3">
-                <button onclick="openCreateUserModal()" class="bg-purple-600 text-white font-black px-4 py-2.5 rounded-xl text-xs shadow">+ Nuevo Usuario</button>
-                <button onclick="closeManageUsersModal()" class="bg-slate-200 text-slate-800 font-black px-4 py-2.5 rounded-xl text-xs">Cerrar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL 12: CREAR/EDITAR USUARIO -->
-    <div id="userEditModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-purple-400 space-y-4">
-            <h3 id="userEditModalTitle" class="font-black text-slate-800 text-base border-b pb-2">Nuevo Usuario</h3>
-            <div class="space-y-3 text-xs font-bold text-slate-700">
+            <div class="space-y-3 overflow-y-auto pr-1">
                 <div>
-                    <label class="block mb-1">Nombre Completo:</label>
-                    <input type="text" id="userNameInput" class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs focus:border-purple-500 outline-none">
+                    <label class="block text-xs font-black text-slate-700 uppercase mb-1">Título de la Misión:</label>
+                    <input type="text" id="missionTitleInput" value="Misión de Autonomía en Sala" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-xs">
+                </div>
+                <div class="space-y-1">
+                    <label class="block text-xs font-black text-slate-700 uppercase">Selecciona los productos:</label>
+                    <div id="missionProductsSelectList" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2 bg-slate-50 rounded-2xl border"></div>
+                </div>
+            </div>
+            <div class="flex gap-2 pt-3 border-t">
+                <button onclick="closeMissionModal()" class="w-1/3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-black py-3 rounded-2xl text-xs active:scale-95">Cancelar</button>
+                <button onclick="activateMissionForStudents()" class="w-2/3 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-2xl shadow text-xs border-b-2 border-emerald-900 active:scale-95">🚀 Activar para Alumnos</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 9: SUPERMERCADO -->
+    <div id="supermarketModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-emerald-400 space-y-4">
+            <h3 class="font-black text-slate-800 text-base">🏪 Crear / Editar Supermercado</h3>
+            <input type="hidden" id="modalSupId">
+            <div class="space-y-3 text-xs font-bold">
+                <div>
+                    <label class="block uppercase mb-1">Nombre del Supermercado:</label>
+                    <input type="text" id="modalSupName" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold">
                 </div>
                 <div>
-                    <label class="block mb-1">Rol de Usuario:</label>
-                    <select id="userRoleInput" class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs focus:border-purple-500 outline-none">
-                        <option value="student">Estudiante</option>
-                        <option value="teacher">Profesor / Evaluador</option>
-                        <option value="admin">Administrador</option>
-                    </select>
+                    <label class="block uppercase mb-1">Logo / Imagen:</label>
+                    <input type="file" accept="image/*" onchange="handleSupermarketLogoUpload(event)" class="w-full border p-2 rounded-xl text-xs">
+                    <input type="hidden" id="modalSupLogo">
+                </div>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeSupermarketModal()" class="w-1/2 bg-slate-200 text-slate-800 font-black py-2.5 rounded-xl text-xs">Cancelar</button>
+                <button onclick="saveSupermarketFromModal()" class="w-1/2 bg-emerald-600 text-white font-black py-2.5 rounded-xl text-xs shadow">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 10: PRODUCTO -->
+    <div id="productModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-amber-400 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h3 class="font-black text-slate-800 text-base">📦 Crear / Editar Producto</h3>
+            <input type="hidden" id="modalProdId">
+            <div class="space-y-3 text-xs font-bold">
+                <div>
+                    <label class="block uppercase mb-1">Nombre del Producto:</label>
+                    <input type="text" id="modalProdName" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block uppercase mb-1">Categoría:</label>
+                        <select id="modalProdCategory" class="w-full px-3 py-2.5 rounded-xl border-2 border-slate-300 font-bold"></select>
+                    </div>
+                    <div>
+                        <label class="block uppercase mb-1">Precio Referencia ($):</label>
+                        <input type="number" id="modalProdPrice" class="w-full px-3 py-2.5 rounded-xl border-2 border-slate-300 font-bold">
+                    </div>
+                </div>
+                <div>
+                    <label class="block uppercase mb-1">Supermercado:</label>
+                    <select id="modalProdSupermarket" class="w-full px-3 py-2.5 rounded-xl border-2 border-slate-300 font-bold"></select>
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer bg-sky-50 p-2.5 rounded-xl border border-sky-200">
+                    <input type="checkbox" id="modalProdReplicateAll" class="w-4 h-4 text-sky-600 rounded">
+                    <span class="text-xs font-black text-sky-900">🌐 Disponible en TODOS los supermercados</span>
+                </label>
+                <div>
+                    <label class="block uppercase mb-1">Fotografía del Producto / Envase:</label>
+                    <input type="file" accept="image/*" onchange="handleProductPhotoUpload(event)" class="w-full border p-2 rounded-xl text-xs">
+                    <input type="hidden" id="modalProdPhoto">
+                    <div id="modalProdPhotoPreviewContainer" class="mt-2 text-center hidden">
+                        <img id="modalProdPhotoPreview" class="w-24 h-24 object-cover rounded-xl border-2 border-amber-300 mx-auto shadow-sm">
+                        <span id="modalProdPhotoStatus" class="text-[11px] font-bold text-emerald-600 block mt-1"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeProductModal()" class="w-1/2 bg-slate-200 text-slate-800 font-black py-2.5 rounded-xl text-xs">Cancelar</button>
+                <button onclick="saveProductFromModal()" class="w-1/2 bg-amber-500 text-white font-black py-2.5 rounded-xl text-xs shadow">Guardar Producto</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 11: CATEGORÍA -->
+    <div id="categoryModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-4 border-indigo-400 space-y-4">
+            <h3 class="font-black text-slate-800 text-base">🏷️ Crear Categoría</h3>
+            <div class="space-y-3 text-xs font-bold">
+                <div>
+                    <label class="block uppercase mb-1">Nombre Categoría:</label>
+                    <input type="text" id="modalCatName" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold">
+                </div>
+                <div>
+                    <label class="block uppercase mb-1">Icono / Emoji:</label>
+                    <select id="modalCatIcon" class="w-full px-3 py-2.5 rounded-xl border-2 border-slate-300 font-bold"></select>
+                </div>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeCategoryModal()" class="w-1/2 bg-slate-200 text-slate-800 font-black py-2.5 rounded-xl text-xs">Cancelar</button>
+                <button onclick="saveCategoryFromModal()" class="w-1/2 bg-indigo-600 text-white font-black py-2.5 rounded-xl text-xs shadow">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 12: USUARIOS -->
+    <div id="userModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-purple-400 space-y-4">
+            <h3 class="font-black text-slate-800 text-base">🔑 Crear / Editar Usuario</h3>
+            <input type="hidden" id="modalUserId">
+            <input type="hidden" id="modalUserRole">
+            <div class="space-y-3 text-xs font-bold">
+                <div>
+                    <label class="block uppercase mb-1">Nombre Completo:</label>
+                    <input type="text" id="modalName" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold">
+                </div>
+                <div>
+                    <label class="block uppercase mb-1">RUT o Usuario:</label>
+                    <input type="text" id="modalRut" placeholder="12345678-9" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold">
+                </div>
+                <div>
+                    <label class="block uppercase mb-1">Correo Electrónico (Opcional):</label>
+                    <input type="email" id="modalEmail" placeholder="ejemplo@escuela.cl" class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold">
                 </div>
             </div>
             <div class="flex gap-2 pt-2">
@@ -326,7 +468,7 @@
         </div>
     </div>
 
-    <!-- Cargar primero la lógica de los minijuegos -->
+    <<!-- Cargar primero la lógica de los minijuegos -->
     <script src="games.js"></script>
     <script src="app.js"></script>
 </body>
