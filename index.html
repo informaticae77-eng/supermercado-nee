@@ -3,13 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minijuegos Curriculares Mineduc</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-100 font-sans antialiased text-slate-800">
+    <title>Supermercado Adaptativo - NEE</title>
 
-    <div id="appContainer" class="min-h-screen">
-        <!-- El contenido principal del dashboard se renderiza dinámicamente desde app.js -->
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Librería OCR Tesseract.js v5 -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+    <!-- Librería de Animación de Confeti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- SDKs de Firebase v8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <style>
+        /* Estilos personalizados y utilidades de alto contraste */
+        .high-contrast {
+            filter: contrast(140%) brightness(95%);
+        }
+        .text-spacing-wide {
+            letter-spacing: 0.08em;
+            line-height: 1.8;
+        }
+        @keyframes pulse-slow {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans antialiased text-slate-800 min-h-screen">
+
+    <!-- CONTENEDOR PRINCIPAL DYNAMIC DENTRO DE APP.JS -->
+    <div id="appContainer" class="min-h-screen pb-12">
+        <!-- Renderizado dinámico desde app.js (Dashboard, Tiendas, Navegación) -->
     </div>
 
     <!-- MODAL 1: CENTRO DE DESAFÍOS MINEDUC -->
@@ -27,7 +58,7 @@
                 <button onclick="closeMinigamesModal()" class="text-slate-400 hover:text-slate-700 font-black text-xl p-1">✕</button>
             </div>
 
-            <!-- Contenedor dinámico donde games.js renderiza los juegos -->
+            <!-- Contenedor dinámico donde games.js renderiza los 5 juegos -->
             <div id="arcadeModalBody">
                 <!-- Se inyecta dinámicamente mediante renderMinigamesArcadeView() -->
             </div>
@@ -42,7 +73,261 @@
         </div>
     </div>
 
-    <!-- Cargar primero la lógica de juegos para exponer las funciones globales -->
+    <!-- MODAL 2: ESCÁNER OCR BOLETA -->
+    <div id="ocrModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-emerald-500 space-y-4 text-center">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-black text-slate-800 text-base">📷 Escanear Boleta con IA</h3>
+                <button onclick="closeOCRModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
+            </div>
+            <p class="text-xs text-slate-600 font-bold">Sube o toma una foto clara de tu boleta de supermercado para verificar tus compras.</p>
+            <input type="file" id="ocrInput" accept="image/*" class="hidden" onchange="processOCRImage(event)">
+            <button onclick="document.getElementById('ocrInput').click()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-2xl shadow border-b-4 border-emerald-900 active:scale-95 text-xs flex items-center justify-center gap-2">
+                <span>📷</span> <span>Seleccionar Imagen</span>
+            </button>
+            <div id="ocrStatus" class="text-xs font-black text-indigo-600 min-h-[20px]"></div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: ADMINISTRAR TIENDAS -->
+    <div id="manageStoresModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border-4 border-purple-500 space-y-4 max-h-[90vh] flex flex-col justify-between">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-black text-slate-800 text-base">🏪 Administrar Tiendas y Productos</h3>
+                <button onclick="closeManageStoresModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
+            </div>
+            <div id="storesAdminList" class="overflow-y-auto space-y-3 pr-1 max-h-[60vh]"></div>
+            <div class="flex justify-between border-t pt-3">
+                <button onclick="openCreateStoreModal()" class="bg-purple-600 text-white font-black px-4 py-2.5 rounded-xl text-xs shadow">+ Nueva Tienda</button>
+                <button onclick="closeManageStoresModal()" class="bg-slate-200 text-slate-800 font-black px-4 py-2.5 rounded-xl text-xs">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: CREAR/EDITAR TIENDA -->
+    <div id="storeEditModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-purple-400 space-y-4">
+            <h3 id="storeEditModalTitle" class="font-black text-slate-800 text-base border-b pb-2">Crear Nueva Tienda</h3>
+            <div class="space-y-3 text-xs font-bold text-slate-700">
+                <div>
+                    <label class="block mb-1">Nombre de la Tienda:</label>
+                    <input type="text" id="storeNameInput" class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs focus:border-purple-500 outline-none">
+                </div>
+                <div>
+                    <label class="block mb-1">Emoji / Ícono:</label>
+                    <input type="text" id="storeEmojiInput" placeholder="🏪" class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs focus:border-purple-500 outline-none">
+                </div>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeStoreEditModal()" class="w-1/2 bg-slate-200 text-slate-800 font-black py-2.5 rounded-xl text-xs">Cancelar</button>
+                <button onclick="saveStoreFromModal()" class="w-1/2 bg-purple-600 text-white font-black py-2.5 rounded-xl text-xs shadow">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 5: AGREGAR/EDITAR PRODUCTO -->
+    <div id="productEditModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-indigo-400 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h3 id="productEditModalTitle" class="font-black text-slate-800 text-base border-b pb-2">Nuevo Producto</h3>
+            <div class="space-y-3 text-xs font-bold text-slate-700">
+                <div>
+                    <label class="block mb-1">Nombre del Producto:</label>
+                    <input type="text" id="prodNameInput" class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block mb-1">Precio (CLP):</label>
+                    <input type="number" id="prodPriceInput" class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block mb-1">Categoría:</label>
+                    <select id="prodCategoryInput" class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs outline-none focus:border-indigo-500">
+                        <option value="Lácteos">Lácteos</option>
+                        <option value="Frutas y Verduras">Frutas y Verduras</option>
+                        <option value="Panadería">Panadería</option>
+                        <option value="Aseo">Aseo</option>
+                        <option value="Abarrotes">Abarrotes</option>
+                        <option value="Bebidas">Bebidas</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block mb-1">URL de la Imagen:</label>
+                    <input type="text" id="prodPhotoInput" placeholder="https://..." class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs outline-none focus:border-indigo-500">
+                </div>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeProductEditModal()" class="w-1/2 bg-slate-200 text-slate-800 font-black py-2.5 rounded-xl text-xs">Cancelar</button>
+                <button onclick="saveProductFromModal()" class="w-1/2 bg-indigo-600 text-white font-black py-2.5 rounded-xl text-xs shadow">Guardar Producto</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 6: ASIGNAR TAREA A ESTUDIANTE -->
+    <div id="assignTaskModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border-4 border-amber-400 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-black text-slate-800 text-base">📋 Asignar Lista de Compras</h3>
+                <button onclick="closeAssignTaskModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
+            </div>
+            <div id="assignTaskProductList" class="space-y-2 max-h-[50vh] overflow-y-auto pr-1"></div>
+            <div class="flex gap-2 pt-3 border-t">
+                <button onclick="closeAssignTaskModal()" class="w-1/2 bg-slate-200 text-slate-800 font-black py-2.5 rounded-xl text-xs">Cancelar</button>
+                <button onclick="saveAssignedTask()" class="w-1/2 bg-amber-500 text-white font-black py-2.5 rounded-xl text-xs shadow">Guardar Asignación</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 7: CALCULADORA DE VUELTO -->
+    <div id="changeCalculatorModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-4 border-emerald-400 space-y-4 text-center">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-black text-slate-800 text-base">💵 Calculadora de Vuelto</h3>
+                <button onclick="closeChangeCalculatorModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
+            </div>
+            <div class="space-y-3 text-left text-xs font-bold text-slate-700">
+                <div>
+                    <label>Total de la compra:</label>
+                    <input type="number" id="calcTotalInput" readonly class="w-full bg-slate-100 border-2 border-slate-200 p-2.5 rounded-xl text-xs font-black">
+                </div>
+                <div>
+                    <label>¿Con cuánto paga el cliente?:</label>
+                    <input type="number" id="calcPaidInput" oninput="calculateChange()" class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs font-black text-emerald-700 focus:border-emerald-500 outline-none">
+                </div>
+                <div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-center">
+                    <span class="block text-[10px] uppercase font-black text-emerald-800">Vuelto a Entregar:</span>
+                    <span id="calcChangeDisplay" class="text-2xl font-black text-emerald-600">$0</span>
+                </div>
+            </div>
+            <button onclick="closeChangeCalculatorModal()" class="w-full bg-slate-800 text-white font-black py-2.5 rounded-xl text-xs">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- MODAL 8: SOPORTE SOCIAL / PICTOGRAMAS -->
+    <div id="pictogramSupportModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-sky-400 space-y-4 text-center">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-black text-slate-800 text-base">🗣️ Guión de Interacción Social</h3>
+                <button onclick="closePictogramSupportModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
+            </div>
+            <div class="grid grid-cols-2 gap-3 text-left">
+                <div class="p-3 bg-sky-50 rounded-2xl border border-sky-200 flex flex-col items-center text-center space-y-1">
+                    <span class="text-3xl">👋</span>
+                    <span class="text-xs font-black text-sky-900">1. Saludar</span>
+                    <p class="text-[10px] text-sky-700 font-bold">"Hola, buenas tardes"</p>
+                </div>
+                <div class="p-3 bg-sky-50 rounded-2xl border border-sky-200 flex flex-col items-center text-center space-y-1">
+                    <span class="text-3xl">🛒</span>
+                    <span class="text-xs font-black text-sky-900">2. Entregar</span>
+                    <p class="text-[10px] text-sky-700 font-bold">"Quiero pagar estos productos"</p>
+                </div>
+                <div class="p-3 bg-sky-50 rounded-2xl border border-sky-200 flex flex-col items-center text-center space-y-1">
+                    <span class="text-3xl">💵</span>
+                    <span class="text-xs font-black text-sky-900">3. Pagar</span>
+                    <p class="text-[10px] text-sky-700 font-bold">"Aquí está mi dinero"</p>
+                </div>
+                <div class="p-3 bg-sky-50 rounded-2xl border border-sky-200 flex flex-col items-center text-center space-y-1">
+                    <span class="text-3xl">🙏</span>
+                    <span class="text-xs font-black text-sky-900">4. Agradecer</span>
+                    <p class="text-[10px] text-sky-700 font-bold">"Muchas gracias, hasta luego"</p>
+                </div>
+            </div>
+            <button onclick="closePictogramSupportModal()" class="w-full bg-sky-600 text-white font-black py-2.5 rounded-xl text-xs shadow">Entendido</button>
+        </div>
+    </div>
+
+    <!-- MODAL 9: HISTORIAL DE COMPRAS DE ESTUDIANTE -->
+    <div id="purchaseHistoryModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border-4 border-indigo-400 space-y-4 max-h-[90vh] flex flex-col justify-between">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-black text-slate-800 text-base">📜 Mi Historial de Boletas</h3>
+                <button onclick="closePurchaseHistoryModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
+            </div>
+            <div id="purchaseHistoryContainer" class="overflow-y-auto space-y-3 pr-1 max-h-[60vh]"></div>
+            <button onclick="closePurchaseHistoryModal()" class="w-full bg-slate-200 text-slate-800 font-black py-2.5 rounded-xl text-xs">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- MODAL 10: CONFIGURACIÓN DE ACCESIBILIDAD Y NEE -->
+    <div id="accessibilityModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-indigo-500 space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-black text-slate-800 text-base">♿ Ajustes de Accesibilidad</h3>
+                <button onclick="closeAccessibilityModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
+            </div>
+            <div class="space-y-3 text-xs font-bold text-slate-700">
+                <label class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border">
+                    <span>Alto Contraste</span>
+                    <input type="checkbox" id="highContrastToggle" onchange="toggleHighContrast()" class="w-5 h-5 accent-indigo-600">
+                </label>
+                <label class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border">
+                    <span>Texto Grande y Espaciado</span>
+                    <input type="checkbox" id="largeTextToggle" onchange="toggleLargeText()" class="w-5 h-5 accent-indigo-600">
+                </label>
+                <label class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border">
+                    <span>Lectura en Voz Alta (TTS)</span>
+                    <input type="checkbox" id="ttsToggle" onchange="toggleTTS()" class="w-5 h-5 accent-indigo-600">
+                </label>
+            </div>
+            <button onclick="closeAccessibilityModal()" class="w-full bg-indigo-600 text-white font-black py-2.5 rounded-xl text-xs shadow">Guardar Preferencias</button>
+        </div>
+    </div>
+
+    <!-- MODAL 11: ADMINISTRAR USUARIOS -->
+    <div id="manageUsersModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border-4 border-purple-500 space-y-4 max-h-[90vh] flex flex-col justify-between">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-black text-slate-800 text-base">👥 Gestión de Estudiantes y Profesores</h3>
+                <button onclick="closeManageUsersModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
+            </div>
+            <div id="usersAdminList" class="overflow-y-auto space-y-2 pr-1 max-h-[60vh]"></div>
+            <div class="flex justify-between border-t pt-3">
+                <button onclick="openCreateUserModal()" class="bg-purple-600 text-white font-black px-4 py-2.5 rounded-xl text-xs shadow">+ Nuevo Usuario</button>
+                <button onclick="closeManageUsersModal()" class="bg-slate-200 text-slate-800 font-black px-4 py-2.5 rounded-xl text-xs">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 12: CREAR/EDITAR USUARIO -->
+    <div id="userEditModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-purple-400 space-y-4">
+            <h3 id="userEditModalTitle" class="font-black text-slate-800 text-base border-b pb-2">Nuevo Usuario</h3>
+            <div class="space-y-3 text-xs font-bold text-slate-700">
+                <div>
+                    <label class="block mb-1">Nombre Completo:</label>
+                    <input type="text" id="userNameInput" class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs focus:border-purple-500 outline-none">
+                </div>
+                <div>
+                    <label class="block mb-1">Rol de Usuario:</label>
+                    <select id="userRoleInput" class="w-full border-2 border-slate-200 p-2.5 rounded-xl text-xs focus:border-purple-500 outline-none">
+                        <option value="student">Estudiante</option>
+                        <option value="teacher">Profesor / Evaluador</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeUserModal()" class="w-1/2 bg-slate-200 text-slate-800 font-black py-2.5 rounded-xl text-xs">Cancelar</button>
+                <button onclick="saveUserFromModal()" class="w-1/2 bg-purple-600 text-white font-black py-2.5 rounded-xl text-xs shadow">Guardar Usuario</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 13: INFORME IA PEDAGÓGICO -->
+    <div id="aiReportModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border-4 border-indigo-400 space-y-4 max-h-[90vh] flex flex-col justify-between">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-black text-slate-800 text-base flex items-center gap-2"><span>✨</span> <span>Informe Pedagógico de Autonomía Funcional</span></h3>
+                <button onclick="closeAIReportModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg p-1">✕</button>
+            </div>
+            <div id="aiReportContainer" class="overflow-y-auto pr-1 space-y-4"></div>
+            <div class="flex gap-2 pt-3 border-t">
+                <button onclick="closeAIReportModal()" class="bg-slate-200 text-slate-800 font-black px-4 py-3 rounded-2xl text-xs active:scale-95">Cerrar</button>
+                <button onclick="sendReportByEmail()" class="bg-sky-600 hover:bg-sky-700 text-white font-black px-4 py-3 rounded-2xl text-xs shadow active:scale-95 flex items-center gap-1.5"><span>📧</span> <span>Enviar Correo</span></button>
+                <button onclick="printCurrentReport()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-2xl shadow text-xs border-b-2 border-indigo-900 active:scale-95 flex items-center justify-center gap-2"><span>🖨️</span> <span>Imprimir PDF</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cargar primero la lógica de los minijuegos -->
     <script src="games.js"></script>
     <script src="app.js"></script>
 </body>
