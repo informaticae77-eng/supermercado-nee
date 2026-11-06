@@ -20,25 +20,37 @@ function saveMinigamesProgress() {
     localStorage.setItem('nee_minigames_progress', JSON.stringify(studentMinigamesProgress));
 }
 
-/* Control del Modal 1 Mineduc */
+/* --------------------------------------------------------------------------
+   CONTROL DEL MODAL 1 (CENTRO DE DESAFÍOS)
+   -------------------------------------------------------------------------- */
 function openMinigamesModal() {
     renderMinigamesArcadeView();
     const modal = document.getElementById('minigamesArcadeModal');
-    if (modal) modal.classList.remove('hidden');
+    if (modal) {
+        modal.classList.remove('hidden');
+    } else {
+        renderMinigamesArcadeView();
+    }
 }
 
 function closeMinigamesModal() {
     const modal = document.getElementById('minigamesArcadeModal');
-    if (modal) modal.classList.add('hidden');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
 }
 
-/* Compatibilidad si alguna vista invoca la función antigua */
+/* Redirección por compatibilidad con llamadas antiguas */
 window.openMemoriseModal = function() {
     openMinigamesModal();
 };
 
+window.openMemorisModal = function() {
+    openMinigamesModal();
+};
+
 /* --------------------------------------------------------------------------
-   1. VISTA PRINCIPAL DEL ARCADE EN EL MODAL 1
+   1. VISTA PRINCIPAL DEL ARCADE
    -------------------------------------------------------------------------- */
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -75,7 +87,7 @@ function renderMinigamesArcadeView() {
                 </div>
                 <div>
                     <h4 class="font-black text-slate-800 text-lg">1. El Estante Correcto</h4>
-                    <p class="text-xs text-slate-500 font-bold mt-1">OA Mineduc: Categorización semántica con productos del catálogo real.</p>
+                    <p class="text-xs text-slate-500 font-bold mt-1">OA Mineduc: Categorización semántica con productos reales del catálogo.</p>
                 </div>
                 <button onclick="startMinigame1()" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black py-4 rounded-2xl shadow-md text-sm transition-all">
                     ${completed.includes('mj1') ? '🔄 Jugar de nuevo' : '▶ ¡Iniciar Desafío!'}
@@ -175,7 +187,7 @@ function renderMinigamesArcadeView() {
 }
 
 /* --------------------------------------------------------------------------
-   2. EXTRACCIÓN Y EXTRAÍDO DIRECTO DE LA BASE DE DATOS (APP_STATE.products)
+   2. MINIJUEGO 1: EXTRACCIÓN REAL DE APP_STATE.products (photoUrl)
    -------------------------------------------------------------------------- */
 let mj1State = {
     startTime: null,
@@ -184,18 +196,16 @@ let mj1State = {
     questions: []
 };
 
-// Extractor nativo estricto de APP_STATE.products
 function getDatabaseProducts() {
     let rawList = [];
 
-    // 1. Obtiene la lista creada en la base de datos de tu app
+    // Extrae la lista real de la base de datos de tu aplicación
     if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
         rawList = window.APP_STATE.products;
     } else if (window.APP_DATA && Array.isArray(window.APP_DATA.products)) {
         rawList = window.APP_DATA.products;
     }
 
-    // 2. Procesa cada producto capturando estrictamente photoUrl
     const validProducts = [];
     if (rawList && rawList.length > 0) {
         rawList.forEach(item => {
@@ -204,7 +214,7 @@ function getDatabaseProducts() {
             let name = item.name || item.nombre;
             let category = item.category || item.categoria || 'Lácteos';
             
-            // Atributo exacto de imagen guardado en tu base de datos
+            // Extracción nativa usando la propiedad real: photoUrl
             let photo = item.photoUrl || item.photo || item.image || item.img || item.imagen;
 
             if (name && photo) {
@@ -229,11 +239,10 @@ function startMinigame1() {
     const catalog = getDatabaseProducts();
 
     if (catalog.length === 0) {
-        alert("⚠️ No hay productos creados en la base de datos. Por favor, selecciona una tienda o agrega productos en el Panel Docente.");
+        alert("⚠️ No hay productos creados en la base de datos. Selecciona una tienda para cargar el catálogo.");
         return;
     }
 
-    // Selecciona 4 productos al azar de la base de datos creada
     mj1State.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(4, catalog.length));
     renderMinigame1Question();
 }
@@ -242,15 +251,12 @@ function renderMinigame1Question() {
     const q = mj1State.questions[mj1State.currentQuestion];
     if (!q) return finishMinigame1();
 
-    // Obtener la lista completa para generar alternativas
     const allProducts = getDatabaseProducts();
     const categoriesSet = new Set(allProducts.map(p => p.category));
     
-    // Categorías aseguradas por si hay pocas creadas
     ['Lácteos', 'Frutas y Verduras', 'Panadería', 'Aseo'].forEach(c => categoriesSet.add(c));
     const availableCategories = Array.from(categoriesSet);
 
-    // Opción correcta + 3 distractores
     let options = [q.category];
     const otherCats = availableCategories.filter(c => c !== q.category).sort(() => 0.5 - Math.random());
     options.push(...otherCats.slice(0, 3));
@@ -271,7 +277,7 @@ function renderMinigame1Question() {
         <div class="py-6 bg-slate-50 rounded-3xl border-2 border-slate-100 flex flex-col items-center justify-center space-y-4 shadow-inner">
             <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">¿EN QUÉ ESTANTE VA ESTE PRODUCTO?</h3>
             
-            <!-- MARCO Y FOTO EXTRAÍDA DE photoUrl DE LA BD -->
+            <!-- MARCO Y FOTO EXTRAÍDA DE photoUrl DE APP_STATE.products -->
             <div class="w-52 h-52 sm:w-60 sm:h-60 bg-white p-4 rounded-3xl border-4 border-indigo-200 shadow-lg flex items-center justify-center overflow-hidden">
                 <img src="${q.photoUrl}" 
                      alt="${q.name}" 
@@ -281,7 +287,6 @@ function renderMinigame1Question() {
             <span class="text-xl sm:text-2xl font-black text-slate-800 uppercase px-4 leading-snug">${q.name}</span>
         </div>
 
-        <!-- OPCIONES DE CATEGORÍA -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             ${options.map(catName => `
                 <button onclick="checkMinigame1Answer('${catName.replace(/'/g, "\\'")}')" 
@@ -324,3 +329,11 @@ function finishMinigame1() {
     }
 
     if (typeof currentUser !== 'undefined' && currentUser) {
+        currentUser.points = (currentUser.points || 0) + 20;
+        if (typeof saveLocalData === 'function') saveLocalData();
+    }
+
+    saveMinigamesProgress();
+    alert(`🎉 ¡Excelente! Completaste "El Estante Correcto"\n⏱️ Tiempo: ${timeSpent}s | ❌ Errores: ${mj1State.errors}\n⭐ ¡Ganaste +20 Puntos!`);
+    renderMinigamesArcadeView();
+}
