@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MINIJUEGOS CURRICULARES MINEDUC - SUITE COMPLETA & CATÁLOGO REAL (games.js)
+   MINIJUEGOS CURRICULARES MINEDUC - SUITE COMPLETA (games.js)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -66,7 +66,7 @@ function renderMinigamesArcadeView() {
                 </div>
                 <div>
                     <h4 class="font-black text-slate-800 text-lg">1. El Estante Correcto</h4>
-                    <p class="text-xs text-slate-500 font-bold mt-1">OA Mineduc: Categorización semántica con productos e imágenes reales del catálogo.</p>
+                    <p class="text-xs text-slate-500 font-bold mt-1">OA Mineduc: Categorización semántica con productos del catálogo real.</p>
                 </div>
                 <button onclick="startMinigame1()" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black py-4 rounded-2xl shadow-md text-sm transition-all">
                     ${completed.includes('mj1') ? '🔄 Jugar de nuevo' : '▶ ¡Iniciar Desafío!'}
@@ -157,7 +157,6 @@ function renderMinigamesArcadeView() {
                     ${isBossUnlocked ? '🔥 ¡ENFRENTAR JEFE FINAL!' : '🔒 Completa los 5 juegos'}
                 </button>
             </div>
-
         </div>
     </div>
     `;
@@ -166,7 +165,7 @@ function renderMinigamesArcadeView() {
 }
 
 /* --------------------------------------------------------------------------
-   2. MINIJUEGO 1: EL ESTANTE CORRECTO (EXTRACCIÓN DINÁMICA DE PRODUCTOS)
+   2. MINIJUEGO 1: EL ESTANTE CORRECTO (SIN ALERTAS DE ERROR)
    -------------------------------------------------------------------------- */
 let mj1State = {
     startTime: null,
@@ -175,7 +174,6 @@ let mj1State = {
     questions: []
 };
 
-// Íconos y gradientes para los botones táctiles de respuesta
 const CATEGORY_THEMES = {
     'Lácteos': { icon: '🥛', color: 'from-blue-500 to-indigo-600' },
     'Frutas y Verduras': { icon: '🍎', color: 'from-emerald-500 to-green-600' },
@@ -190,11 +188,10 @@ const CATEGORY_THEMES = {
     'Mascotas': { icon: '🐶', color: 'from-amber-600 to-yellow-700' }
 };
 
-// Función para obtener los productos del catálogo de app.js o localStorage
 function getAppCatalogProducts() {
     let rawProducts = [];
 
-    // 1. Escaneo en variables globales del sistema
+    // Búsqueda profunda en variables de app.js
     if (window.APP_DATA) {
         if (Array.isArray(window.APP_DATA.products)) rawProducts = window.APP_DATA.products;
         else if (Array.isArray(window.APP_DATA.productos)) rawProducts = window.APP_DATA.productos;
@@ -215,7 +212,7 @@ function getAppCatalogProducts() {
     if (rawProducts.length === 0 && window.productsCatalog) rawProducts = window.productsCatalog;
     if (rawProducts.length === 0 && window.products) rawProducts = window.products;
 
-    // 2. Escaneo en localStorage por si no han cargado las variables en window
+    // Búsqueda en localStorage
     if (rawProducts.length === 0) {
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -232,7 +229,6 @@ function getAppCatalogProducts() {
         }
     }
 
-    // Normalizar lista de productos
     const catalog = [];
     if (rawProducts && rawProducts.length > 0) {
         rawProducts.forEach(item => {
@@ -262,7 +258,7 @@ function startMinigame1() {
     
     let catalog = getAppCatalogProducts();
 
-    // Fallback con productos del catálogo en caso de sincronización en frío
+    // Fallback garantizado sin enviar alertas si las variables globales no están cargadas
     if (catalog.length === 0) {
         catalog = [
             { name: 'LECHE ENTERA SOPROLE LIQUIDA 1 LITRO', category: 'Lácteos', image: 'https://cdn-icons-png.flaticon.com/512/2674/2674486.png' },
@@ -272,9 +268,7 @@ function startMinigame1() {
         ];
     }
 
-    // Seleccionar 4 productos al azar para la partida
     mj1State.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 4);
-    
     renderMinigame1Question();
 }
 
@@ -290,7 +284,6 @@ function renderMinigame1Question() {
     if (!availableCategories.includes('Panadería')) availableCategories.push('Panadería');
     if (!availableCategories.includes('Limpieza del Hogar')) availableCategories.push('Limpieza del Hogar');
 
-    // Armar alternativas incluyendo la correcta
     let options = [q.category];
     const otherCats = availableCategories.filter(c => c !== q.category).sort(() => 0.5 - Math.random());
     options.push(...otherCats.slice(0, 3));
@@ -304,14 +297,13 @@ function renderMinigame1Question() {
                 MJ1: El Estante Correcto
             </span>
             <span class="text-sm font-black text-slate-500">
-                Pregunta ${mj1State.currentQuestion + 1} de${mj1State.questions.length}
+                Pregunta ${mj1State.currentQuestion + 1} de ${mj1State.questions.length}
             </span>
         </div>
 
         <div class="py-6 bg-slate-50 rounded-3xl border-2 border-slate-100 flex flex-col items-center justify-center space-y-4 shadow-inner">
             <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">¿EN QUÉ ESTANTE VA ESTE PRODUCTO?</h3>
             
-            <!-- MARCO DE FOTO REAL DEL PRODUCTO -->
             <div class="w-52 h-52 sm:w-60 sm:h-60 bg-white p-4 rounded-3xl border-4 border-indigo-200 shadow-lg flex items-center justify-center overflow-hidden">
                 <img src="${q.image}" 
                      alt="${q.name}" 
@@ -319,11 +311,92 @@ function renderMinigame1Question() {
                      onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/2674/2674486.png';" />
             </div>
 
-            <!-- TÍTULO REAL DEL PRODUCTO DEL CATÁLOGO -->
             <span class="text-xl sm:text-2xl font-black text-slate-800 uppercase px-4 leading-snug">${q.name}</span>
         </div>
 
-        <!-- OPCIONES TÁCTILES CON ÍCONOS -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             ${options.map(catName => {
-                const theme = CATEGORY
+                const theme = CATEGORY_THEMES[catName] || { icon: '📦', color: 'from-indigo-500 to-purple-600' };
+                return `
+                <button onclick="checkMinigame1Answer('${catName.replace(/'/g, "\\'")}')" 
+                        class="w-full h-20 bg-gradient-to-r ${theme.color} hover:brightness-110 active:scale-95 text-white font-black rounded-2xl shadow-lg border-b-4 border-black/20 flex items-center justify-start px-6 gap-4 text-left transition-transform">
+                    <span class="text-3xl sm:text-4xl drop-shadow">${theme.icon}</span>
+                    <span class="text-base sm:text-lg font-black tracking-wide">${catName}</span>
+                </button>
+                `;
+            }).join('')}
+        </div>
+    </div>
+    `;
+
+    document.getElementById('appContainer').innerHTML = html;
+}
+
+function checkMinigame1Answer(selectedCat) {
+    const q = mj1State.questions[mj1State.currentQuestion];
+
+    if (selectedCat.toLowerCase() === q.category.toLowerCase()) {
+        mj1State.currentQuestion++;
+        renderMinigame1Question();
+    } else {
+        mj1State.errors++;
+        alert(`❌ ¡Ups! "${q.name}" no va en ${selectedCat}. ¡Inténtalo de nuevo!`);
+    }
+}
+
+function finishMinigame1() {
+    const timeSpent = Math.round((Date.now() - mj1State.startTime) / 1000);
+
+    studentMinigamesProgress.gameMetrics.push({
+        gameId: 'mj1',
+        date: new Date().toISOString(),
+        errors: mj1State.errors,
+        timeSeconds: timeSpent
+    });
+
+    if (!studentMinigamesProgress.completedGames.includes('mj1')) {
+        studentMinigamesProgress.completedGames.push('mj1');
+    }
+
+    if (typeof currentUser !== 'undefined' && currentUser) {
+        currentUser.points = (currentUser.points || 0) + 20;
+        if (typeof saveLocalData === 'function') saveLocalData();
+    }
+
+    saveMinigamesProgress();
+    alert(`🎉 ¡Excelente! Completaste "El Estante Correcto"\n⏱️ Tiempo: ${timeSpent}s | ❌ Errores: ${mj1State.errors}\n⭐ ¡Ganaste +20 Puntos!`);
+    renderMinigamesArcadeView();
+}
+
+/* --------------------------------------------------------------------------
+   3. AUTO-INYECCIÓN EN EL DASHBOARD DEL ESTUDIANTE
+   -------------------------------------------------------------------------- */
+function connectArcadeToStudentDashboard() {
+    const memoriceBtn = document.querySelector('button[onclick*="Memorice"]') || 
+                        Array.from(document.querySelectorAll('button')).find(b => b.innerText && b.innerText.includes('MEMORICE'));
+
+    if (memoriceBtn && !document.getElementById('arcadeMinigamesBtnNav')) {
+        memoriceBtn.setAttribute('onclick', 'renderMinigamesArcadeView()');
+        memoriceBtn.id = 'arcadeMinigamesBtnNav';
+        memoriceBtn.className = "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-6 py-3 rounded-2xl shadow-lg border-2 border-purple-300 text-sm active:scale-95 transition-transform flex items-center gap-2 animate-pulse";
+        memoriceBtn.innerHTML = `<span>🎮</span> <span>DESAFÍOS MINEDUC (NIVEL 1)</span>`;
+    }
+
+    const container = document.getElementById('appContainer');
+    if (container && container.innerText.includes('Supermercados Disponibles') && !document.getElementById('arcadeBodyCard')) {
+        const cardHTML = `
+        <div id="arcadeBodyCard" class="mb-6 max-w-5xl mx-auto">
+            <button onclick="renderMinigamesArcadeView()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black py-5 px-6 rounded-3xl shadow-xl border-b-4 border-purple-900 text-lg active:scale-95 transition-transform flex items-center justify-center gap-3">
+                <span class="text-3xl">🎮</span>
+                <span>¡Entrar al Centro de Desafíos Mineduc (5 Juegos + Jefe Final)!</span>
+            </button>
+        </div>
+        `;
+        const welcomeBanner = container.querySelector('.bg-gradient-to-r') || container.firstChild;
+        if (welcomeBanner && welcomeBanner.id !== 'arcadeBodyCard') {
+            welcomeBanner.insertAdjacentHTML('afterend', cardHTML);
+        }
+    }
+}
+
+setInterval(connectArcadeToStudentDashboard, 300);
