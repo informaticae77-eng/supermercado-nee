@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - EXTRACCIÓN DIRECTA DE ASSETS LOCALES / BD
+   MÓDULO DE MINIJUEGOS NEE - CONEXIÓN LOCAL DIRECTA SIN INTERNET NI ALERTAS
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -11,17 +11,17 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v10');
+    const saved = localStorage.getItem('nee_arcade_progress_v11');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v10', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v11', JSON.stringify(studentMinigamesProgress));
 }
 
-// ALIAS Y PUENTES DE CONEXIÓN CON EL BOTÓN MORADO
+// ALIAS Y PUENTES DE CONEXIÓN CON EL BOTÓN MORADO DE APP.JS
 window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
 window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
 window.openMemorisModal = function() { renderMinigamesArcadeView(); };
@@ -32,7 +32,7 @@ function exitArcadeToDashboard() {
     else window.location.reload();
 }
 
-// PICTOGRAMAS PARA CATEGORÍAS
+// DICCIONARIO DE PICTOGRAMAS
 const CATEGORY_ICONS = {
     'Lácteos': '🥛',
     'Frutas y Verduras': '🍎',
@@ -53,20 +53,41 @@ function getCategoryIcon(catName) {
 }
 
 // --------------------------------------------------------------------------
-// EXTRAER PRODUCTOS REALES CON SUS IMÁGENES EXACTAS DE APP.JS
+// LECTURA DIRECTA DE PRODUCTOS DESDE TU BASE DE DATOS LOCAL
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
 
-    // Inspeccionar las estructuras reales del objeto APP_STATE y variables globales
+    // 1. Buscar en variables globales de app.js
     if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
         rawList = window.APP_STATE.products;
     } else if (window.state && Array.isArray(window.state.products) && window.state.products.length > 0) {
         rawList = window.state.products;
     } else if (window.products && Array.isArray(window.products) && window.products.length > 0) {
         rawList = window.products;
-    } else if (window.APP_STATE && window.APP_STATE.stores && window.APP_STATE.stores[0] && Array.isArray(window.APP_STATE.stores[0].products)) {
-        rawList = window.APP_STATE.stores[0].products;
+    } else if (window.currentStore && Array.isArray(window.currentStore.products) && window.currentStore.products.length > 0) {
+        rawList = window.currentStore.products;
+    } else if (window.stores && window.stores[0] && Array.isArray(window.stores[0].products)) {
+        rawList = window.stores[0].products;
+    }
+
+    // 2. Si no están en memoria, escanear localStorage local de tu app
+    if (rawList.length === 0) {
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            try {
+                let parsed = JSON.parse(localStorage.getItem(key));
+                if (parsed) {
+                    if (Array.isArray(parsed.products) && parsed.products.length > 0) {
+                        rawList = parsed.products;
+                        break;
+                    } else if (parsed.stores && parsed.stores[0] && Array.isArray(parsed.stores[0].products)) {
+                        rawList = parsed.stores[0].products;
+                        break;
+                    }
+                }
+            } catch(e){}
+        }
     }
 
     const validProducts = [];
@@ -76,16 +97,14 @@ function getDatabaseProducts() {
             if (!item) return;
             let name = item.name || item.nombre || item.titulo;
             let category = item.category || item.categoria || item.seccion || 'Lácteos, Yogures y Huevos';
-            
-            // Prioridad absoluta a la propiedad de imagen definida en tu app.js
             let photo = item.image || item.photo || item.imagen || item.photoUrl || item.img || item.src || item.foto;
             let price = item.price || item.precio || item.costo || 1000;
 
-            if (name && photo) {
+            if (name) {
                 validProducts.push({ 
                     name: name.trim(), 
                     category: category.trim(), 
-                    photoUrl: photo,
+                    photoUrl: photo || '',
                     price: parseInt(price) || 1000
                 });
             }
@@ -96,20 +115,31 @@ function getDatabaseProducts() {
 }
 
 // --------------------------------------------------------------------------
-// EXTRAER BILLETES/MONEDAS REALES DE TU BASE DE DATOS
+// LECTURA DIRECTA DE BILLETES Y MONEDAS DESDE TU BASE DE DATOS LOCAL
 // --------------------------------------------------------------------------
 function getDatabaseMoney() {
     let moneyList = [];
 
-    // Buscar en los objetos de divisas de app.js
-    if (window.APP_STATE && Array.isArray(window.APP_STATE.currency)) {
-        moneyList = window.APP_STATE.currency;
-    } else if (window.APP_STATE && Array.isArray(window.APP_STATE.billetes)) {
-        moneyList = window.APP_STATE.billetes;
-    } else if (window.state && Array.isArray(window.state.cash)) {
-        moneyList = window.state.cash;
-    } else if (window.currencyData && Array.isArray(window.currencyData)) {
-        moneyList = window.currencyData;
+    if (window.APP_STATE && Array.isArray(window.APP_STATE.currency)) moneyList = window.APP_STATE.currency;
+    else if (window.APP_STATE && Array.isArray(window.APP_STATE.billetes)) moneyList = window.APP_STATE.billetes;
+    else if (window.state && Array.isArray(window.state.cash)) moneyList = window.state.cash;
+    else if (window.state && Array.isArray(window.state.money)) moneyList = window.state.money;
+
+    // Escanear localStorage si no están instanciados en window
+    if (moneyList.length === 0) {
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            try {
+                let parsed = JSON.parse(localStorage.getItem(key));
+                if (parsed && Array.isArray(parsed.currency)) {
+                    moneyList = parsed.currency;
+                    break;
+                } else if (parsed && Array.isArray(parsed.cash)) {
+                    moneyList = parsed.cash;
+                    break;
+                }
+            } catch(e){}
+        }
     }
 
     const validMoney = [];
@@ -118,11 +148,11 @@ function getDatabaseMoney() {
         moneyList.forEach(m => {
             let val = parseInt(m.value || m.valor || m.monto);
             let img = m.image || m.imagen || m.img || m.photo || m.src || m.foto;
-            if (val && img) {
+            if (val) {
                 validMoney.push({
                     value: val,
                     label: `$${val.toLocaleString('es-CL')} CLP`,
-                    img: img,
+                    img: img || '',
                     type: val >= 1000 ? 'billete' : 'moneda'
                 });
             }
@@ -198,7 +228,7 @@ function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Desafíos pedagógicos sincronizados con tus empaques y billetes de la tienda.
+                    Desafíos pedagógicos sincronizados con los productos y dinero de tu supermercado.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -282,7 +312,7 @@ function launchGame(gameKey) {
 }
 
 // --------------------------------------------------------------------------
-// LÓGICA DE JUEGOS
+// LÓGICA DE MINIJUEGOS
 // --------------------------------------------------------------------------
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
 
@@ -292,11 +322,8 @@ function startMinigame1() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     
-    const catalog = getDatabaseProducts();
-    if (catalog.length === 0) {
-        alert("⚠️ Por favor selecciona una tienda en el panel principal primero.");
-        return;
-    }
+    let catalog = getDatabaseProducts();
+    if (catalog.length === 0) return;
     gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame1Question();
 }
@@ -412,7 +439,7 @@ function renderMinigame2Question() {
                 ${realMoney.length > 0 ? realMoney.slice(0, 4).map(m => `
                     <button onclick="checkGenericAnswer(${m.value}, ${targetPrice}, startMinigame2, renderMinigame2Question)" 
                             class="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl border-2 border-emerald-400 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
-                        <img src="${m.img}" class="h-16 w-auto object-contain rounded-lg" />
+                        ${m.img ? `<img src="${m.img}" class="h-16 w-auto object-contain rounded-lg" />` : `<span class="text-3xl">${m.type === 'billete' ? '💵' : '🪙'}</span>`}
                         <span class="font-black text-emerald-300 text-sm">${m.label}</span>
                     </button>
                 `).join('') : `
