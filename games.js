@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - CAPTURA DIRECTA EN VIVO DEL CATÁLOGO DE LA TIENDA
+   MÓDULO DE MINIJUEGOS NEE - FILTRADO EXCLUSIVO DE PRODUCTOS (SIN LOGOS)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -11,14 +11,14 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v15');
+    const saved = localStorage.getItem('nee_arcade_progress_v16');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v15', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v16', JSON.stringify(studentMinigamesProgress));
 }
 
 // CONEXIÓN CON EL BOTÓN MORADO
@@ -51,112 +51,126 @@ function getCategoryIcon(catName) {
     return '🏷️';
 }
 
+// NOMBRES A EXCLUIR (LOGOS DE SUPERMERCADOS)
+const STORE_LOGOS_TO_IGNORE = ['jumbo', 'lider', 'santa isabel', 'unimarc', 'tottus', 'supermercado', 'tienda'];
+
 // --------------------------------------------------------------------------
-// EXTRACCIÓN INFALIBLE: LECTURA EN MEMORIA VIVA Y DEL DOM
+// EXTRACCIÓN DE PRODUCTOS REALES EXCLUYENDO LOGOS DE TIENDAS
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
-    let productsFound = [];
+    let rawProducts = [];
 
-    // 1. Escanear profundamente cualquier objeto o arreglo global en app.js
-    for (let key in window) {
-        try {
-            let val = window[key];
-            if (Array.isArray(val) && val.length > 0 && val[0] && (val[0].name || val[0].nombre)) {
-                productsFound = val;
-                break;
-            } else if (val && typeof val === 'object') {
-                if (Array.isArray(val.products) && val.products.length > 0) {
-                    productsFound = val.products;
-                    break;
-                } else if (Array.isArray(val.productos) && val.productos.length > 0) {
-                    productsFound = val.productos;
-                    break;
-                }
-            }
-        } catch(e){}
+    // 1. Buscar dentro del objeto global de estado de app.js
+    if (window.APP_STATE) {
+        if (Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
+            rawProducts = window.APP_STATE.products;
+        } else if (Array.isArray(window.APP_STATE.stores)) {
+            // Si están anidados en la tienda actual o seleccionada
+            window.APP_STATE.stores.forEach(st => {
+                if (Array.isArray(st.products)) rawProducts.push(...st.products);
+                if (Array.isArray(st.productos)) rawProducts.push(...st.productos);
+            });
+        }
+    }
+
+    // 2. Si no los encontró en APP_STATE, escanear otras variables globales
+    if (rawProducts.length === 0) {
+        let sources = [
+            window.state?.products,
+            window.currentStore?.products,
+            window.products,
+            window.initialProducts,
+            window.allProducts
+        ];
+        sources.forEach(src => {
+            if (Array.isArray(src)) rawProducts.push(...src);
+        });
     }
 
     const validProducts = [];
+    const seenNames = new Set();
 
-    if (productsFound.length > 0) {
-        productsFound.forEach(item => {
-            if (!item) return;
-            let name = item.name || item.nombre || item.titulo;
-            let category = item.category || item.categoria || item.seccion || 'Lácteos, Yogures y Huevos';
-            let photo = item.image || item.photo || item.imagen || item.photoUrl || item.img || item.src || item.foto || item.url;
-            let price = item.price || item.precio || item.costo || 1000;
+    rawProducts.forEach(item => {
+        if (!item) return;
+        let name = item.name || item.nombre || item.titulo || '';
+        let cleanName = String(name).trim();
+        let lowerName = cleanName.toLowerCase();
 
-            if (name) {
-                validProducts.push({
-                    name: String(name).trim(),
-                    category: String(category).trim(),
-                    photoUrl: photo || '',
-                    price: parseInt(price) || 1000
+        // FILTRO: Ignorar si es el nombre de una cadena de supermercado
+        if (STORE_LOGOS_TO_IGNORE.some(store => lowerName === store || lowerName.includes(store + ' '))) {
+            return;
+        }
+
+        let category = item.category || item.categoria || item.seccion || 'Lácteos, Yogures y Huevos';
+        let photo = item.image || item.photo || item.imagen || item.photoUrl || item.img || item.src || item.foto;
+        let price = item.price || item.precio || item.costo || 1000;
+
+        if (cleanName && photo && !seenNames.has(lowerName)) {
+            seenNames.add(lowerName);
+            validProducts.push({
+                name: cleanName,
+                category: String(category).trim(),
+                photoUrl: photo,
+                price: parseInt(price) || 1000
+            });
+        }
+    });
+
+    return validProducts;
+}
+
+// --------------------------------------------------------------------------
+// EXTRACCIÓN DE BILLETES Y MONEDAS REALES DE TU APLICACIÓN
+// --------------------------------------------------------------------------
+function getDatabaseMoney(targetPrice) {
+    let moneyList = [];
+
+    if (window.APP_STATE) {
+        if (Array.isArray(window.APP_STATE.currency)) moneyList = window.APP_STATE.currency;
+        else if (Array.isArray(window.APP_STATE.billetes)) moneyList = window.APP_STATE.billetes;
+    }
+
+    if (moneyList.length === 0) {
+        let sources = [window.state?.cash, window.billetes, window.monedas];
+        sources.forEach(src => {
+            if (Array.isArray(src)) moneyList.push(...src);
+        });
+    }
+
+    const validMoney = [];
+    if (moneyList.length > 0) {
+        moneyList.forEach(m => {
+            let val = parseInt(m.value || m.valor || m.monto);
+            let img = m.image || m.imagen || m.img || m.photo || m.src || m.foto;
+            if (val) {
+                validMoney.push({
+                    value: val,
+                    label: `$${val.toLocaleString('es-CL')} CLP`,
+                    img: img || '',
+                    type: val >= 1000 ? 'billete' : 'moneda'
                 });
             }
         });
     }
 
-    // 2. Si no hay arreglo global, leer los elementos HTML que estaban visibles antes de abrir el modal
-    if (validProducts.length === 0 && window._LAST_STORE_HTML_CARD_DATA) {
-        return window._LAST_STORE_HTML_CARD_DATA;
+    // Opciones alternativas con el precio real del producto
+    if (validMoney.length === 0) {
+        const p = targetPrice || 1000;
+        return [
+            { value: p, label: `$${p.toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-emerald-600 border-emerald-400" },
+            { value: p + 500, label: `$${(p + 500).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-purple-600 border-purple-400" },
+            { value: Math.max(100, p - 300), label: `$${Math.max(100, p - 300).toLocaleString('es-CL')} CLP`, icon: "🪙", color: "bg-amber-600 border-amber-400" },
+            { value: p + 1000, label: `$${(p + 1000).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-rose-600 border-rose-400" }
+        ].sort(() => 0.5 - Math.random());
     }
 
-    return validProducts;
-}
-
-// Guardar fotos visible del DOM antes de cambiar de pantalla
-function captureDomProductsBeforeArcade() {
-    const cards = document.querySelectorAll('img');
-    const items = [];
-    cards.forEach(img => {
-        if (img.src && !img.src.includes('data:image/svg') && img.width > 50) {
-            let parentCard = img.closest('div');
-            let textEl = parentCard ? parentCard.querySelector('h3, h4, p, span') : null;
-            let name = textEl ? textEl.innerText.trim() : "Producto";
-            if (name.length > 2) {
-                items.push({
-                    name: name,
-                    category: 'Lácteos, Yogures y Huevos',
-                    photoUrl: img.src,
-                    price: 1350
-                });
-            }
-        }
-    });
-    if (items.length > 0) {
-        window._LAST_STORE_HTML_CARD_DATA = items;
-    }
-}
-
-function getDatabaseMoney(targetPrice) {
-    const p = targetPrice || 1000;
-    
-    // Intentar leer billetes reales si existen en app.js
-    let moneyFound = window.APP_STATE?.currency || window.state?.cash || window.billetes || [];
-    
-    if (Array.isArray(moneyFound) && moneyFound.length > 0) {
-        return moneyFound.map(m => ({
-            value: parseInt(m.value || m.valor),
-            label: `$${parseInt(m.value || m.valor).toLocaleString('es-CL')} CLP`,
-            img: m.image || m.imagen || m.img || m.photo || m.src || ''
-        }));
-    }
-
-    // Opciones numéricas claras para que los niños siempre jueguen
-    return [
-        { value: p, label: `$${p.toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-emerald-600 border-emerald-400" },
-        { value: p + 500, label: `$${(p + 500).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-purple-600 border-purple-400" },
-        { value: Math.max(100, p - 300), label: `$${Math.max(100, p - 300).toLocaleString('es-CL')} CLP`, icon: "🪙", color: "bg-amber-600 border-amber-400" },
-        { value: p + 1000, label: `$${(p + 1000).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-rose-600 border-rose-400" }
-    ].sort(() => 0.5 - Math.random());
+    return validMoney;
 }
 
 // --------------------------------------------------------------------------
 // VISTA PRINCIPAL
 // --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
-    captureDomProductsBeforeArcade();
     loadMinigamesProgress();
 
     const mainContainer = document.getElementById('appContainer');
@@ -219,7 +233,7 @@ function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Desafíos adaptados sincronizados con los productos reales del supermercado.
+                    Desafíos adaptados sincronizados únicamente con las imágenes reales de productos del catálogo.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -303,7 +317,7 @@ function launchGame(gameKey) {
 }
 
 // --------------------------------------------------------------------------
-// LÓGICA DE MINIJUEGOS
+// LÓGICA DE JUEGOS
 // --------------------------------------------------------------------------
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
 
@@ -349,7 +363,7 @@ function renderMinigame1Question() {
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
                 <div class="w-48 h-48 sm:w-56 sm:h-56 bg-white p-4 rounded-3xl border-4 border-indigo-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400';" />
+                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />
                 </div>
                 <span class="text-xl sm:text-2xl font-black text-white uppercase px-4 tracking-wide block">${q.name}</span>
             </div>
@@ -415,7 +429,7 @@ function renderMinigame2Question() {
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-3">
                 <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-emerald-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400';" />
+                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />
                 </div>
                 <span class="text-lg font-black text-white uppercase">${q.name}</span>
 
@@ -472,7 +486,7 @@ function renderMinigame3Question() {
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
                 <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-amber-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400';" />
+                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />
                 </div>
                 <span class="text-xs font-black text-slate-400 uppercase tracking-widest">¿CÓMO SE LLAMA ESTE PRODUCTO?</span>
             </div>
@@ -522,12 +536,12 @@ function renderMinigame4Question() {
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex justify-center items-center gap-6">
                 <div class="text-center">
-                    <img src="${p1.photoUrl}" class="w-24 h-24 object-contain bg-white rounded-2xl p-2 mx-auto" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400';" />
+                    <img src="${p1.photoUrl}" class="w-24 h-24 object-contain bg-white rounded-2xl p-2 mx-auto" />
                     <span class="text-xs font-black text-amber-300 block mt-2">$${p1.price.toLocaleString('es-CL')}</span>
                 </div>
                 <span class="text-4xl font-black text-purple-400">+</span>
                 <div class="text-center">
-                    <img src="${p2.photoUrl}" class="w-24 h-24 object-contain bg-white rounded-2xl p-2 mx-auto" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=400';" />
+                    <img src="${p2.photoUrl}" class="w-24 h-24 object-contain bg-white rounded-2xl p-2 mx-auto" />
                     <span class="text-xs font-black text-amber-300 block mt-2">$${p2.price.toLocaleString('es-CL')}</span>
                 </div>
             </div>
@@ -583,7 +597,7 @@ function renderMinigame5Question() {
                 ${options.map(item => `
                     <button onclick="checkGenericAnswer('${item.name.replace(/'/g, "\\'")}', '${target.name.replace(/'/g, "\\'")}', startMinigame5, renderMinigame5Question)" 
                             class="p-3 bg-white rounded-2xl border-4 border-rose-400 hover:scale-105 active:scale-95 transition-all shadow-lg">
-                        <img src="${item.photoUrl}" class="w-20 h-20 object-contain mx-auto" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400';" />
+                        <img src="${item.photoUrl}" class="w-20 h-20 object-contain mx-auto" />
                     </button>
                 `).join('')}
             </div>
