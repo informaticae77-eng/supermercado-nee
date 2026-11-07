@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - FILTRADO EXCLUSIVO DE PRODUCTOS (SIN LOGOS)
+   MÓDULO DE MINIJUEGOS NEE - SOLUCIÓN PARA BUCLE DE JUEGO COMPLETADO (0s)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -11,17 +11,17 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v16');
+    const saved = localStorage.getItem('nee_arcade_progress_v17');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v16', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v17', JSON.stringify(studentMinigamesProgress));
 }
 
-// CONEXIÓN CON EL BOTÓN MORADO
+// CONEXIONES CON EL BOTÓN MORADO
 window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
 window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
 window.openMemorisModal = function() { renderMinigamesArcadeView(); };
@@ -51,29 +51,31 @@ function getCategoryIcon(catName) {
     return '🏷️';
 }
 
-// NOMBRES A EXCLUIR (LOGOS DE SUPERMERCADOS)
-const STORE_LOGOS_TO_IGNORE = ['jumbo', 'lider', 'santa isabel', 'unimarc', 'tottus', 'supermercado', 'tienda'];
+const STORE_NAMES_TO_IGNORE = ['jumbo', 'lider', 'santa isabel', 'unimarc', 'tottus', 'supermercado', 'tienda'];
 
 // --------------------------------------------------------------------------
-// EXTRACCIÓN DE PRODUCTOS REALES EXCLUYENDO LOGOS DE TIENDAS
+// EXTRACCIÓN INFALIBLE DE PRODUCTOS DE LA TIENDA
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawProducts = [];
 
-    // 1. Buscar dentro del objeto global de estado de app.js
+    // 1. Escanear APP_STATE y sus estructuras anidadas
     if (window.APP_STATE) {
         if (Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
             rawProducts = window.APP_STATE.products;
+        } else if (window.APP_STATE.currentStore && Array.isArray(window.APP_STATE.currentStore.products)) {
+            rawProducts = window.APP_STATE.currentStore.products;
+        } else if (window.APP_STATE.selectedStore && Array.isArray(window.APP_STATE.selectedStore.products)) {
+            rawProducts = window.APP_STATE.selectedStore.products;
         } else if (Array.isArray(window.APP_STATE.stores)) {
-            // Si están anidados en la tienda actual o seleccionada
             window.APP_STATE.stores.forEach(st => {
                 if (Array.isArray(st.products)) rawProducts.push(...st.products);
-                if (Array.isArray(st.productos)) rawProducts.push(...st.productos);
+                if (Array.isArray(st.items)) rawProducts.push(...st.items);
             });
         }
     }
 
-    // 2. Si no los encontró en APP_STATE, escanear otras variables globales
+    // 2. Escanear otras variables posibles en app.js
     if (rawProducts.length === 0) {
         let sources = [
             window.state?.products,
@@ -96,8 +98,8 @@ function getDatabaseProducts() {
         let cleanName = String(name).trim();
         let lowerName = cleanName.toLowerCase();
 
-        // FILTRO: Ignorar si es el nombre de una cadena de supermercado
-        if (STORE_LOGOS_TO_IGNORE.some(store => lowerName === store || lowerName.includes(store + ' '))) {
+        // Ignorar logos de cadenas de supermercados
+        if (STORE_NAMES_TO_IGNORE.some(store => lowerName === store || lowerName.includes(store + ' '))) {
             return;
         }
 
@@ -105,22 +107,33 @@ function getDatabaseProducts() {
         let photo = item.image || item.photo || item.imagen || item.photoUrl || item.img || item.src || item.foto;
         let price = item.price || item.precio || item.costo || 1000;
 
-        if (cleanName && photo && !seenNames.has(lowerName)) {
+        if (cleanName && !seenNames.has(lowerName)) {
             seenNames.add(lowerName);
             validProducts.push({
                 name: cleanName,
                 category: String(category).trim(),
-                photoUrl: photo,
+                photoUrl: photo || 'assets/soprole.png',
                 price: parseInt(price) || 1000
             });
         }
     });
 
+    // 3. RESPALDO GARANTIZADO: Si la tienda aún no tiene lista cargada, proveer productos por defecto
+    if (validProducts.length < 3) {
+        return [
+            { name: "LECHE ENTERA SOPROLE LIQUIDA 1 LITRO", category: "Lácteos, Yogures y Huevos", photoUrl: "assets/soprole.png", price: 1350 },
+            { name: "TOALLA DE PAPEL NOVA GIGANTE 100 METROS", category: "Limpieza del Hogar", photoUrl: "assets/nova.png", price: 4990 },
+            { name: "JALEA COLUN FRAMBUESA 100 GRAMOS", category: "Lácteos, Yogures y Huevos", photoUrl: "assets/colun.png", price: 340 },
+            { name: "PAN DE MOLDE IDEAL FAMILIAR", category: "Panadería", photoUrl: "assets/pan.png", price: 2100 },
+            { name: "NECTAR WATTS DURAZNO 1.5 LITROS", category: "Bebidas", photoUrl: "assets/watts.png", price: 1290 }
+        ];
+    }
+
     return validProducts;
 }
 
 // --------------------------------------------------------------------------
-// EXTRACCIÓN DE BILLETES Y MONEDAS REALES DE TU APLICACIÓN
+// EXTRACCIÓN DE BILLETES Y MONEDAS
 // --------------------------------------------------------------------------
 function getDatabaseMoney(targetPrice) {
     let moneyList = [];
@@ -153,7 +166,7 @@ function getDatabaseMoney(targetPrice) {
         });
     }
 
-    // Opciones alternativas con el precio real del producto
+    // Opciones alternativas calculadas con el precio real del producto
     if (validMoney.length === 0) {
         const p = targetPrice || 1000;
         return [
@@ -233,7 +246,7 @@ function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Desafíos adaptados sincronizados únicamente con las imágenes reales de productos del catálogo.
+                    Desafíos adaptados sincronizados con los productos reales del supermercado.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -328,7 +341,7 @@ function startMinigame1() {
     gameState.currentQuestion = 0;
     
     let catalog = getDatabaseProducts();
-    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
+    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 5);
     renderMinigame1Question();
 }
 
@@ -401,7 +414,7 @@ function startMinigame2() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
-    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
+    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 5);
     renderMinigame2Question();
 }
 
@@ -461,7 +474,7 @@ function startMinigame3() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
-    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
+    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 5);
     renderMinigame3Question();
 }
 
@@ -512,7 +525,7 @@ function startMinigame4() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
-    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(4, catalog.length));
+    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 4);
     renderMinigame4Question();
 }
 
@@ -567,7 +580,7 @@ function startMinigame5() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
-    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
+    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 5);
     renderMinigame5Question();
 }
 
