@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - SOLUCIÓN PARA BUCLE DE JUEGO COMPLETADO (0s)
+   MÓDULO DE MINIJUEGOS NEE - EXTRACCIÓN DE IMÁGENES REALES DEL CATÁLOGO
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -11,17 +11,17 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v17');
+    const saved = localStorage.getItem('nee_arcade_progress_v20');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v17', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v20', JSON.stringify(studentMinigamesProgress));
 }
 
-// CONEXIONES CON EL BOTÓN MORADO
+// CONEXIONES CON APP.JS
 window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
 window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
 window.openMemorisModal = function() { renderMinigamesArcadeView(); };
@@ -51,15 +51,15 @@ function getCategoryIcon(catName) {
     return '🏷️';
 }
 
-const STORE_NAMES_TO_IGNORE = ['jumbo', 'lider', 'santa isabel', 'unimarc', 'tottus', 'supermercado', 'tienda'];
+const STORE_IGNORE = ['jumbo', 'lider', 'santa isabel', 'unimarc', 'tottus', 'supermercado', 'tienda'];
 
 // --------------------------------------------------------------------------
-// EXTRACCIÓN INFALIBLE DE PRODUCTOS DE LA TIENDA
+// LECTURA DE IMÁGENES EXACTAS DE TU CATÁLOGO DE PRODUCTOS
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawProducts = [];
 
-    // 1. Escanear APP_STATE y sus estructuras anidadas
+    // 1. Buscar en todas las estructuras posibles de APP_STATE
     if (window.APP_STATE) {
         if (Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
             rawProducts = window.APP_STATE.products;
@@ -75,7 +75,7 @@ function getDatabaseProducts() {
         }
     }
 
-    // 2. Escanear otras variables posibles en app.js
+    // 2. Escanear variables globales alternativas de app.js
     if (rawProducts.length === 0) {
         let sources = [
             window.state?.products,
@@ -98,42 +98,31 @@ function getDatabaseProducts() {
         let cleanName = String(name).trim();
         let lowerName = cleanName.toLowerCase();
 
-        // Ignorar logos de cadenas de supermercados
-        if (STORE_NAMES_TO_IGNORE.some(store => lowerName === store || lowerName.includes(store + ' '))) {
-            return;
-        }
+        // Filtrar logos de cadenas de tiendas
+        if (STORE_IGNORE.some(st => lowerName === st || lowerName.includes(st + ' '))) return;
 
         let category = item.category || item.categoria || item.seccion || 'Lácteos, Yogures y Huevos';
-        let photo = item.image || item.photo || item.imagen || item.photoUrl || item.img || item.src || item.foto;
         let price = item.price || item.precio || item.costo || 1000;
+        
+        // BÚSQUEDA EXHAUSTIVA DEL CAMPO DE LA FOTO REAL
+        let photo = item.image || item.photo || item.imagen || item.photoUrl || item.img || item.src || item.foto || item.url || item.icon || '';
 
         if (cleanName && !seenNames.has(lowerName)) {
             seenNames.add(lowerName);
             validProducts.push({
                 name: cleanName,
                 category: String(category).trim(),
-                photoUrl: photo || 'assets/soprole.png',
+                photoUrl: photo,
                 price: parseInt(price) || 1000
             });
         }
     });
 
-    // 3. RESPALDO GARANTIZADO: Si la tienda aún no tiene lista cargada, proveer productos por defecto
-    if (validProducts.length < 3) {
-        return [
-            { name: "LECHE ENTERA SOPROLE LIQUIDA 1 LITRO", category: "Lácteos, Yogures y Huevos", photoUrl: "assets/soprole.png", price: 1350 },
-            { name: "TOALLA DE PAPEL NOVA GIGANTE 100 METROS", category: "Limpieza del Hogar", photoUrl: "assets/nova.png", price: 4990 },
-            { name: "JALEA COLUN FRAMBUESA 100 GRAMOS", category: "Lácteos, Yogures y Huevos", photoUrl: "assets/colun.png", price: 340 },
-            { name: "PAN DE MOLDE IDEAL FAMILIAR", category: "Panadería", photoUrl: "assets/pan.png", price: 2100 },
-            { name: "NECTAR WATTS DURAZNO 1.5 LITROS", category: "Bebidas", photoUrl: "assets/watts.png", price: 1290 }
-        ];
-    }
-
     return validProducts;
 }
 
 // --------------------------------------------------------------------------
-// EXTRACCIÓN DE BILLETES Y MONEDAS
+// EXTRACCIÓN DE BILLETES Y MONEDAS REALES
 // --------------------------------------------------------------------------
 function getDatabaseMoney(targetPrice) {
     let moneyList = [];
@@ -166,7 +155,6 @@ function getDatabaseMoney(targetPrice) {
         });
     }
 
-    // Opciones alternativas calculadas con el precio real del producto
     if (validMoney.length === 0) {
         const p = targetPrice || 1000;
         return [
@@ -181,7 +169,7 @@ function getDatabaseMoney(targetPrice) {
 }
 
 // --------------------------------------------------------------------------
-// VISTA PRINCIPAL
+// VISTA PRINCIPAL DEL ARCADE
 // --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -246,7 +234,7 @@ function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Desafíos adaptados sincronizados con los productos reales del supermercado.
+                    Desafíos adaptados sincronizados con las imágenes originales de tu catálogo de productos.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -330,7 +318,7 @@ function launchGame(gameKey) {
 }
 
 // --------------------------------------------------------------------------
-// LÓGICA DE JUEGOS
+// LÓGICA DE JUEGOS CON IMÁGENES DEL CATÁLOGO
 // --------------------------------------------------------------------------
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
 
@@ -375,8 +363,8 @@ function renderMinigame1Question() {
             </div>
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
-                <div class="w-48 h-48 sm:w-56 sm:h-56 bg-white p-4 rounded-3xl border-4 border-indigo-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />
+                <div class="w-48 h-48 sm:w-56 sm:h-56 bg-white p-3 rounded-3xl border-4 border-indigo-500/40 shadow-xl flex items-center justify-center overflow-hidden">
+                    ${q.photoUrl ? `<img src="${q.photoUrl}" alt="${q.name}" class="w-full h-full object-contain" />` : `<span class="text-6xl">🛍️</span>`}
                 </div>
                 <span class="text-xl sm:text-2xl font-black text-white uppercase px-4 tracking-wide block">${q.name}</span>
             </div>
@@ -441,8 +429,8 @@ function renderMinigame2Question() {
             </div>
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-3">
-                <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-emerald-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />
+                <div class="w-44 h-44 bg-white p-3 rounded-3xl border-4 border-emerald-500/40 shadow-xl flex items-center justify-center overflow-hidden">
+                    ${q.photoUrl ? `<img src="${q.photoUrl}" alt="${q.name}" class="w-full h-full object-contain" />` : `<span class="text-6xl">🛍️</span>`}
                 </div>
                 <span class="text-lg font-black text-white uppercase">${q.name}</span>
 
@@ -455,7 +443,7 @@ function renderMinigame2Question() {
             <div class="grid grid-cols-2 gap-4">
                 ${moneyOptions.map(m => `
                     <button onclick="checkGenericAnswer(${m.value}, ${targetPrice}, startMinigame2, renderMinigame2Question)" 
-                            class="p-3 ${m.color || 'bg-slate-800 hover:bg-slate-700 border-emerald-400'} text-white font-black rounded-2xl border-2 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
+                            class="p-3 ${m.color || 'bg-slate-800 border-emerald-400'} text-white font-black rounded-2xl border-2 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
                         ${m.img ? `<img src="${m.img}" class="h-14 w-auto object-contain rounded-lg" />` : `<span class="text-3xl">${m.icon || '💵'}</span>`}
                         <span class="font-black text-amber-300 text-base">${m.label}</span>
                     </button>
@@ -498,8 +486,8 @@ function renderMinigame3Question() {
             </div>
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
-                <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-amber-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />
+                <div class="w-44 h-44 bg-white p-3 rounded-3xl border-4 border-amber-500/40 shadow-xl flex items-center justify-center overflow-hidden">
+                    ${q.photoUrl ? `<img src="${q.photoUrl}" alt="${q.name}" class="w-full h-full object-contain" />` : `<span class="text-6xl">🛍️</span>`}
                 </div>
                 <span class="text-xs font-black text-slate-400 uppercase tracking-widest">¿CÓMO SE LLAMA ESTE PRODUCTO?</span>
             </div>
@@ -549,12 +537,12 @@ function renderMinigame4Question() {
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex justify-center items-center gap-6">
                 <div class="text-center">
-                    <img src="${p1.photoUrl}" class="w-24 h-24 object-contain bg-white rounded-2xl p-2 mx-auto" />
+                    ${p1.photoUrl ? `<img src="${p1.photoUrl}" class="w-24 h-24 object-contain bg-white rounded-2xl p-2 mx-auto" />` : `<div class="w-24 h-24 bg-white rounded-2xl flex items-center justify-center text-3xl mx-auto">🛒</div>`}
                     <span class="text-xs font-black text-amber-300 block mt-2">$${p1.price.toLocaleString('es-CL')}</span>
                 </div>
                 <span class="text-4xl font-black text-purple-400">+</span>
                 <div class="text-center">
-                    <img src="${p2.photoUrl}" class="w-24 h-24 object-contain bg-white rounded-2xl p-2 mx-auto" />
+                    ${p2.photoUrl ? `<img src="${p2.photoUrl}" class="w-24 h-24 object-contain bg-white rounded-2xl p-2 mx-auto" />` : `<div class="w-24 h-24 bg-white rounded-2xl flex items-center justify-center text-3xl mx-auto">🛒</div>`}
                     <span class="text-xs font-black text-amber-300 block mt-2">$${p2.price.toLocaleString('es-CL')}</span>
                 </div>
             </div>
@@ -610,7 +598,7 @@ function renderMinigame5Question() {
                 ${options.map(item => `
                     <button onclick="checkGenericAnswer('${item.name.replace(/'/g, "\\'")}', '${target.name.replace(/'/g, "\\'")}', startMinigame5, renderMinigame5Question)" 
                             class="p-3 bg-white rounded-2xl border-4 border-rose-400 hover:scale-105 active:scale-95 transition-all shadow-lg">
-                        <img src="${item.photoUrl}" class="w-20 h-20 object-contain mx-auto" />
+                        ${item.photoUrl ? `<img src="${item.photoUrl}" class="w-20 h-20 object-contain mx-auto" />` : `<span class="text-4xl block text-center">📦</span>`}
                     </button>
                 `).join('')}
             </div>
