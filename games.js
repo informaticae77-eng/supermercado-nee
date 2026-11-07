@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - CONEXIÓN CON INDEXEDDB Y IMÁGENES REALES
+   MÓDULO DE MINIJUEGOS NEE - CAPTURA DIRECTA EN VIVO DEL CATÁLOGO DE LA TIENDA
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -11,17 +11,17 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v14');
+    const saved = localStorage.getItem('nee_arcade_progress_v15');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v14', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v15', JSON.stringify(studentMinigamesProgress));
 }
 
-// ALIAS PARA BOTÓN MORADO
+// CONEXIÓN CON EL BOTÓN MORADO
 window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
 window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
 window.openMemorisModal = function() { renderMinigamesArcadeView(); };
@@ -52,166 +52,98 @@ function getCategoryIcon(catName) {
 }
 
 // --------------------------------------------------------------------------
-// ESCANEO PROFUNDO DE IMÁGENES REALES (INDEXEDDB + LOCALSTORAGE + DOM)
+// EXTRACCIÓN INFALIBLE: LECTURA EN MEMORIA VIVA Y DEL DOM
 // --------------------------------------------------------------------------
-let CACHED_REAL_PRODUCTS = [];
-let CACHED_REAL_MONEY = [];
+function getDatabaseProducts() {
+    let productsFound = [];
 
-async function syncRealDataFromStorage() {
-    let products = [];
-    let money = [];
+    // 1. Escanear profundamente cualquier objeto o arreglo global en app.js
+    for (let key in window) {
+        try {
+            let val = window[key];
+            if (Array.isArray(val) && val.length > 0 && val[0] && (val[0].name || val[0].nombre)) {
+                productsFound = val;
+                break;
+            } else if (val && typeof val === 'object') {
+                if (Array.isArray(val.products) && val.products.length > 0) {
+                    productsFound = val.products;
+                    break;
+                } else if (Array.isArray(val.productos) && val.productos.length > 0) {
+                    productsFound = val.productos;
+                    break;
+                }
+            }
+        } catch(e){}
+    }
 
-    // 1. Escanear IndexedDB (donde se guardan las fotos subidas por profesores)
-    try {
-        const dbs = await window.indexedDB.databases?.() || [];
-        for (let dbInfo of dbs) {
-            if (!dbInfo.name) continue;
-            await new Promise((resolve) => {
-                const req = indexedDB.open(dbInfo.name);
-                req.onsuccess = (e) => {
-                    const db = e.target.result;
-                    const storeNames = Array.from(db.objectStoreNames);
-                    let pending = storeNames.length;
-                    if (pending === 0) resolve();
-
-                    storeNames.forEach(sName => {
-                        try {
-                            const tx = db.transaction(sName, 'readonly');
-                            const store = tx.objectStore(sName);
-                            const getAll = store.getAll();
-                            getAll.onsuccess = () => {
-                                const res = getAll.result || [];
-                                res.forEach(item => {
-                                    if (item && (item.name || item.nombre)) {
-                                        products.push(item);
-                                    }
-                                    if (item && (item.valor || item.value || item.monto)) {
-                                        money.push(item);
-                                    }
-                                });
-                                pending--;
-                                if (pending === 0) resolve();
-                            };
-                            getAll.onerror = () => { pending--; if (pending === 0) resolve(); };
-                        } catch(err) { pending--; if (pending === 0) resolve(); }
-                    });
-                };
-                req.onerror = () => resolve();
-            });
-        }
-    } catch(e) {}
-
-    // 2. Escanear estado global de app.js
-    const sources = [
-        window.APP_STATE?.products,
-        window.state?.products,
-        window.products,
-        window.initialProducts,
-        window.allProducts,
-        window.currentStore?.products,
-        window.stores?.[0]?.products
-    ];
-
-    sources.forEach(src => {
-        if (Array.isArray(src)) products.push(...src);
-    });
-
-    // 3. Procesar Productos
     const validProducts = [];
-    const seenNames = new Set();
 
-    products.forEach(item => {
-        if (!item) return;
-        let name = item.name || item.nombre || item.titulo;
-        let category = item.category || item.categoria || item.seccion || 'Lácteos, Yogures y Huevos';
-        let photo = item.image || item.photo || item.imagen || item.photoUrl || item.img || item.src || item.foto;
-        let price = item.price || item.precio || item.costo || 1000;
+    if (productsFound.length > 0) {
+        productsFound.forEach(item => {
+            if (!item) return;
+            let name = item.name || item.nombre || item.titulo;
+            let category = item.category || item.categoria || item.seccion || 'Lácteos, Yogures y Huevos';
+            let photo = item.image || item.photo || item.imagen || item.photoUrl || item.img || item.src || item.foto || item.url;
+            let price = item.price || item.precio || item.costo || 1000;
 
-        if (name && !seenNames.has(name.trim().toLowerCase())) {
-            seenNames.add(name.trim().toLowerCase());
-            validProducts.push({
-                name: name.trim(),
-                category: category.trim(),
-                photoUrl: photo || '',
-                price: parseInt(price) || 1000
-            });
-        }
-    });
-
-    if (validProducts.length > 0) {
-        CACHED_REAL_PRODUCTS = validProducts;
+            if (name) {
+                validProducts.push({
+                    name: String(name).trim(),
+                    category: String(category).trim(),
+                    photoUrl: photo || '',
+                    price: parseInt(price) || 1000
+                });
+            }
+        });
     }
 
-    // 4. Procesar Billetes / Monedas
-    const moneySources = [
-        window.APP_STATE?.currency,
-        window.APP_STATE?.billetes,
-        window.state?.cash,
-        window.state?.money,
-        window.billetes,
-        window.monedas
-    ];
-    moneySources.forEach(src => {
-        if (Array.isArray(src)) money.push(...src);
-    });
-
-    const validMoney = [];
-    const seenValues = new Set();
-
-    money.forEach(m => {
-        if (!m) return;
-        let val = parseInt(m.value || m.valor || m.monto);
-        let img = m.image || m.imagen || m.img || m.photo || m.src || m.foto;
-        if (val && !seenValues.has(val)) {
-            seenValues.add(val);
-            validMoney.push({
-                value: val,
-                label: `$${val.toLocaleString('es-CL')} CLP`,
-                img: img || '',
-                type: val >= 1000 ? 'billete' : 'moneda'
-            });
-        }
-    });
-
-    if (validMoney.length > 0) {
-        CACHED_REAL_MONEY = validMoney;
+    // 2. Si no hay arreglo global, leer los elementos HTML que estaban visibles antes de abrir el modal
+    if (validProducts.length === 0 && window._LAST_STORE_HTML_CARD_DATA) {
+        return window._LAST_STORE_HTML_CARD_DATA;
     }
+
+    return validProducts;
 }
 
-function getDatabaseProducts() {
-    if (CACHED_REAL_PRODUCTS.length > 0) return CACHED_REAL_PRODUCTS;
-    
-    // Fallback de tarjetas renderizadas si IndexedDB aún no responde
-    const cards = document.querySelectorAll('.grid > div, [class*="card"], [class*="product"]');
-    const list = [];
-    cards.forEach(card => {
-        const img = card.querySelector('img');
-        const title = card.querySelector('h3, h4, .font-black, .font-bold');
-        const priceEl = card.querySelector('[class*="price"], [class*="green"], [class*="emerald"]');
-
-        if (title && img && img.src) {
-            let name = title.innerText.trim();
-            let priceText = priceEl ? priceEl.innerText.replace(/[^0-9]/g, '') : '1350';
-            if (name) {
-                list.push({
+// Guardar fotos visible del DOM antes de cambiar de pantalla
+function captureDomProductsBeforeArcade() {
+    const cards = document.querySelectorAll('img');
+    const items = [];
+    cards.forEach(img => {
+        if (img.src && !img.src.includes('data:image/svg') && img.width > 50) {
+            let parentCard = img.closest('div');
+            let textEl = parentCard ? parentCard.querySelector('h3, h4, p, span') : null;
+            let name = textEl ? textEl.innerText.trim() : "Producto";
+            if (name.length > 2) {
+                items.push({
                     name: name,
                     category: 'Lácteos, Yogures y Huevos',
                     photoUrl: img.src,
-                    price: parseInt(priceText) || 1350
+                    price: 1350
                 });
             }
         }
     });
-
-    return list.length > 0 ? list : [
-        { name: "LECHE ENTERA SOPROLE LIQUIDA 1 LITRO", category: "Lácteos, Yogures y Huevos", photoUrl: "", price: 1350 }
-    ];
+    if (items.length > 0) {
+        window._LAST_STORE_HTML_CARD_DATA = items;
+    }
 }
 
 function getDatabaseMoney(targetPrice) {
-    if (CACHED_REAL_MONEY.length > 0) return CACHED_REAL_MONEY;
-
     const p = targetPrice || 1000;
+    
+    // Intentar leer billetes reales si existen en app.js
+    let moneyFound = window.APP_STATE?.currency || window.state?.cash || window.billetes || [];
+    
+    if (Array.isArray(moneyFound) && moneyFound.length > 0) {
+        return moneyFound.map(m => ({
+            value: parseInt(m.value || m.valor),
+            label: `$${parseInt(m.value || m.valor).toLocaleString('es-CL')} CLP`,
+            img: m.image || m.imagen || m.img || m.photo || m.src || ''
+        }));
+    }
+
+    // Opciones numéricas claras para que los niños siempre jueguen
     return [
         { value: p, label: `$${p.toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-emerald-600 border-emerald-400" },
         { value: p + 500, label: `$${(p + 500).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-purple-600 border-purple-400" },
@@ -221,11 +153,11 @@ function getDatabaseMoney(targetPrice) {
 }
 
 // --------------------------------------------------------------------------
-// VISTA PRINCIPAL DE DESAFÍOS
+// VISTA PRINCIPAL
 // --------------------------------------------------------------------------
-async function renderMinigamesArcadeView() {
+function renderMinigamesArcadeView() {
+    captureDomProductsBeforeArcade();
     loadMinigamesProgress();
-    await syncRealDataFromStorage();
 
     const mainContainer = document.getElementById('appContainer');
     if (!mainContainer) return;
@@ -287,7 +219,7 @@ async function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Desafíos pedagógicos adaptados sincronizados con los productos reales de tu tienda.
+                    Desafíos adaptados sincronizados con los productos reales del supermercado.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -362,8 +294,7 @@ function renderGameCard(level, gameNum, title, description, gameKey, completedLi
     `;
 }
 
-async function launchGame(gameKey) {
-    await syncRealDataFromStorage();
+function launchGame(gameKey) {
     if (gameKey === 'mj1') startMinigame1();
     else if (gameKey === 'mj2') startMinigame2();
     else if (gameKey === 'mj3') startMinigame3();
@@ -372,7 +303,7 @@ async function launchGame(gameKey) {
 }
 
 // --------------------------------------------------------------------------
-// MINIJUEGOS 1 AL 5 CON RENDERING DINÁMICO
+// LÓGICA DE MINIJUEGOS
 // --------------------------------------------------------------------------
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
 
@@ -418,7 +349,7 @@ function renderMinigame1Question() {
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
                 <div class="w-48 h-48 sm:w-56 sm:h-56 bg-white p-4 rounded-3xl border-4 border-indigo-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    ${q.photoUrl ? `<img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />` : `<span class="text-5xl">🛍️</span>`}
+                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400';" />
                 </div>
                 <span class="text-xl sm:text-2xl font-black text-white uppercase px-4 tracking-wide block">${q.name}</span>
             </div>
@@ -484,7 +415,7 @@ function renderMinigame2Question() {
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-3">
                 <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-emerald-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    ${q.photoUrl ? `<img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />` : `<span class="text-5xl">🛍️</span>`}
+                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400';" />
                 </div>
                 <span class="text-lg font-black text-white uppercase">${q.name}</span>
 
@@ -498,7 +429,7 @@ function renderMinigame2Question() {
                 ${moneyOptions.map(m => `
                     <button onclick="checkGenericAnswer(${m.value}, ${targetPrice}, startMinigame2, renderMinigame2Question)" 
                             class="p-3 ${m.color || 'bg-slate-800 hover:bg-slate-700 border-emerald-400'} text-white font-black rounded-2xl border-2 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
-                        ${m.img ? `<img src="${m.img}" class="h-14 w-auto object-contain rounded-lg" />` : `<span class="text-3xl">${m.icon || (m.type === 'billete' ? '💵' : '🪙')}</span>`}
+                        ${m.img ? `<img src="${m.img}" class="h-14 w-auto object-contain rounded-lg" />` : `<span class="text-3xl">${m.icon || '💵'}</span>`}
                         <span class="font-black text-amber-300 text-base">${m.label}</span>
                     </button>
                 `).join('')}
@@ -541,7 +472,7 @@ function renderMinigame3Question() {
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
                 <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-amber-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    ${q.photoUrl ? `<img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />` : `<span class="text-5xl">🏷️</span>`}
+                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400';" />
                 </div>
                 <span class="text-xs font-black text-slate-400 uppercase tracking-widest">¿CÓMO SE LLAMA ESTE PRODUCTO?</span>
             </div>
@@ -591,12 +522,12 @@ function renderMinigame4Question() {
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex justify-center items-center gap-6">
                 <div class="text-center">
-                    ${p1.photoUrl ? `<img src="${p1.photoUrl}" class="w-24 h-24 object-contain bg-white rounded-2xl p-2 mx-auto" />` : `<div class="w-24 h-24 bg-white rounded-2xl flex items-center justify-center text-3xl mx-auto">🛒</div>`}
+                    <img src="${p1.photoUrl}" class="w-24 h-24 object-contain bg-white rounded-2xl p-2 mx-auto" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400';" />
                     <span class="text-xs font-black text-amber-300 block mt-2">$${p1.price.toLocaleString('es-CL')}</span>
                 </div>
                 <span class="text-4xl font-black text-purple-400">+</span>
                 <div class="text-center">
-                    ${p2.photoUrl ? `<img src="${p2.photoUrl}" class="w-24 h-24 object-contain bg-white rounded-2xl p-2 mx-auto" />` : `<div class="w-24 h-24 bg-white rounded-2xl flex items-center justify-center text-3xl mx-auto">🛒</div>`}
+                    <img src="${p2.photoUrl}" class="w-24 h-24 object-contain bg-white rounded-2xl p-2 mx-auto" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=400';" />
                     <span class="text-xs font-black text-amber-300 block mt-2">$${p2.price.toLocaleString('es-CL')}</span>
                 </div>
             </div>
@@ -652,7 +583,7 @@ function renderMinigame5Question() {
                 ${options.map(item => `
                     <button onclick="checkGenericAnswer('${item.name.replace(/'/g, "\\'")}', '${target.name.replace(/'/g, "\\'")}', startMinigame5, renderMinigame5Question)" 
                             class="p-3 bg-white rounded-2xl border-4 border-rose-400 hover:scale-105 active:scale-95 transition-all shadow-lg">
-                        ${item.photoUrl ? `<img src="${item.photoUrl}" class="w-20 h-20 object-contain mx-auto" />` : `<span class="text-4xl block text-center">📦</span>`}
+                        <img src="${item.photoUrl}" class="w-20 h-20 object-contain mx-auto" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400';" />
                     </button>
                 `).join('')}
             </div>
