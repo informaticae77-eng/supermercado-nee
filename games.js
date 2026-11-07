@@ -320,4 +320,3 @@ function finishMinigame1() {
     alert(`🎉 ¡Excelente! Completaste "El Estante Correcto"\n⏱️ Tiempo: ${timeSpent}s | ❌ Errores: ${mj1State.errors}\n⭐ ¡Ganaste +20 Puntos!`);
     renderMinigamesArcadeView();
 }
-
