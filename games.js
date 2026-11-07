@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - EXTRACCIÓN REAL DE BD (PRODUCTOS Y BILLETES)
+   MÓDULO DE MINIJUEGOS NEE - CONEXIÓN CON ESTRUCTURA REAL DE LA APP
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -11,23 +11,24 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v7');
+    const saved = localStorage.getItem('nee_arcade_progress_v8');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v7', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v8', JSON.stringify(studentMinigamesProgress));
 }
 
-// CONEXIÓN CON EL BOTÓN MORADO
+// ALIAS Y PUENTES DE CONEXIÓN CON EL BOTÓN MORADO
 window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
 window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
 window.openMemorisModal = function() { renderMinigamesArcadeView(); };
 
 function exitArcadeToDashboard() {
     if (typeof renderApp === 'function') renderApp();
+    else if (typeof initApp === 'function') initApp();
     else window.location.reload();
 }
 
@@ -37,10 +38,10 @@ const CATEGORY_ICONS = {
     'Frutas y Verduras': '🍎',
     'Panadería': '🍞',
     'Aseo': '🧼',
+    'Limpieza': '🧼',
     'Bebidas': '🧃',
     'Carnes': '🥩',
-    'Congelados': '🧊',
-    'Abarrotes': '📦'
+    'Fiambre': '🧀'
 };
 
 function getCategoryIcon(catName) {
@@ -52,22 +53,34 @@ function getCategoryIcon(catName) {
 }
 
 // --------------------------------------------------------------------------
-// LECTURA PROFUNDA DE PRODUCTOS E IMÁGENES DESDE APP.JS
+// LECTURA DIRECTA DE PRODUCTOS E IMÁGENES DE TU SUPERMERCADO REAL
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
 
-    // Inspeccionar exhaustivamente todas las variables posibles de app.js
-    if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
+    // 1. Buscar en el estado global activo de app.js
+    if (window.state && Array.isArray(window.state.products) && window.state.products.length > 0) {
+        rawList = window.state.products;
+    } else if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
         rawList = window.APP_STATE.products;
     } else if (window.products && Array.isArray(window.products) && window.products.length > 0) {
         rawList = window.products;
-    } else if (window.APP_DATA && Array.isArray(window.APP_DATA.products) && window.APP_DATA.products.length > 0) {
-        rawList = window.APP_DATA.products;
-    } else if (window.currentStore && Array.isArray(window.currentStore.products)) {
-        rawList = window.currentStore.products;
-    } else if (window.stores && window.stores[0] && Array.isArray(window.stores[0].products)) {
-        rawList = window.stores[0].products;
+    } 
+
+    // 2. Si no están en memoria, leer del localStorage original de app.js
+    if (rawList.length === 0) {
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            if (key.includes('supermercado') || key.includes('nee') || key.includes('store') || key.includes('app')) {
+                try {
+                    let parsed = JSON.parse(localStorage.getItem(key));
+                    if (parsed && Array.isArray(parsed.products) && parsed.products.length > 0) {
+                        rawList = parsed.products;
+                        break;
+                    }
+                } catch(e){}
+            }
+        }
     }
 
     const validProducts = [];
@@ -76,10 +89,8 @@ function getDatabaseProducts() {
         rawList.forEach(item => {
             if (!item) return;
             let name = item.name || item.nombre || item.titulo || item.productName;
-            let category = item.category || item.categoria || item.seccion || 'Lácteos';
-            
-            // Extraer la propiedad exacta de la imagen según app.js
-            let photo = item.photoUrl || item.photo || item.image || item.img || item.imagen || item.foto || item.url || item.src || item.imagenUrl;
+            let category = item.category || item.categoria || item.seccion || 'Lácteos, Yogures y Huevos';
+            let photo = item.image || item.imagen || item.photo || item.photoUrl || item.img || item.src;
             let price = item.price || item.precio || item.costo || 1000;
 
             if (name) {
@@ -87,62 +98,46 @@ function getDatabaseProducts() {
                 validProducts.push({ 
                     name: cleanName || name, 
                     category: category.trim(), 
-                    photoUrl: photo || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400',
+                    photoUrl: photo,
                     price: parseInt(price) || 1000
                 });
             }
         });
     }
 
-    if (validProducts.length === 0) {
-        return [
-            { name: "Leche Entera 1L", category: "Lácteos", photoUrl: "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400", price: 1000 },
-            { name: "Manzana Red 1Kg", category: "Frutas y Verduras", photoUrl: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400", price: 2000 },
-            { name: "Pan Marraqueta 1Kg", category: "Panadería", photoUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400", price: 1500 },
-            { name: "Detergente Multiuso", category: "Aseo", photoUrl: "https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=400", price: 5000 },
-            { name: "Jugo de Naranja 1L", category: "Bebidas", photoUrl: "https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=400", price: 2000 }
-        ];
-    }
-
     return validProducts;
 }
 
 // --------------------------------------------------------------------------
-// LECTURA DE IMÁGENES DE BILLETES Y MONEDAS DE TU BASE DE DATOS DE APP.JS
+// LECTURA DIRECTA DE BILLETES Y MONEDAS DE TU CAPTURA DE PANTALLA
 // --------------------------------------------------------------------------
 function getDatabaseMoney() {
     let moneyDB = [];
 
-    // Busca billetes cargados en app.js
-    if (window.APP_STATE && Array.isArray(window.APP_STATE.money)) {
+    // Buscar el arreglo de billetes en el estado de app.js
+    if (window.state && Array.isArray(window.state.cash)) {
+        moneyDB = window.state.cash;
+    } else if (window.state && Array.isArray(window.state.money)) {
+        moneyDB = window.state.money;
+    } else if (window.APP_STATE && Array.isArray(window.APP_STATE.money)) {
         moneyDB = window.APP_STATE.money;
-    } else if (window.cashData && Array.isArray(window.cashData)) {
-        moneyDB = window.cashData;
-    } else if (window.monedas && Array.isArray(window.monedas)) {
-        moneyDB = window.monedas;
     }
 
-    // Si existen billetes en la BD, se devuelven mapeados
     if (moneyDB.length > 0) {
         return moneyDB.map(m => ({
-            value: m.value || m.valor,
-            label: `$${(m.value || m.valor).toLocaleString('es-CL')} CLP`,
-            img: m.img || m.imagen || m.foto || m.src || m.photoUrl,
+            value: parseInt(m.value || m.valor),
+            label: `$${parseInt(m.value || m.valor).toLocaleString('es-CL')} CLP`,
+            img: m.image || m.imagen || m.img || m.photo || m.src,
             type: (m.value || m.valor) >= 1000 ? 'billete' : 'moneda'
         }));
     }
 
-    // Si no están definidos globalmente en BD, utiliza imágenes representativas de billetes/monedas CLP
-    return [
-        { value: 1000, label: "$1.000 CLP", img: "https://images.unsplash.com/photo-1621981386829-9b458a2cddde?w=200", type: "billete" },
-        { value: 2000, label: "$2.000 CLP", img: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=200", type: "billete" },
-        { value: 5000, label: "$5.000 CLP", img: "https://images.unsplash.com/photo-1580519542036-c47de6196ba5?w=200", type: "billete" },
-        { value: 500, label: "$500 CLP", img: "https://images.unsplash.com/photo-1610375461246-83df859d849d?w=200", type: "moneda" }
-    ];
+    // Retorno estructurado si aún no ha instanciado la variable
+    return [];
 }
 
 // --------------------------------------------------------------------------
-// VISTA PRINCIPAL
+// VISTA PRINCIPAL DEL ARCADE GAMER (RESPONSIVE)
 // --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -207,7 +202,7 @@ function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Desafíos pedagógicos adaptados con fotos reales del catálogo y pictogramas de apoyo.
+                    Desafíos pedagógicos sincronizados en tiempo real con tus productos y billetes de la tienda.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -302,6 +297,10 @@ function startMinigame1() {
     gameState.currentQuestion = 0;
     
     const catalog = getDatabaseProducts();
+    if (catalog.length === 0) {
+        alert("⚠️ Selecciona una tienda o carga un producto para iniciar los juegos.");
+        return;
+    }
     gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame1Question();
 }
@@ -337,7 +336,7 @@ function renderMinigame1Question() {
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
                 <div class="w-48 h-48 sm:w-56 sm:h-56 bg-white p-4 rounded-3xl border-4 border-indigo-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=400'" />
+                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />
                 </div>
                 <span class="text-xl sm:text-2xl font-black text-white uppercase px-4 tracking-wide block">${q.name}</span>
             </div>
@@ -370,7 +369,7 @@ function checkMinigame1Answer(selectedCat) {
 }
 
 // --------------------------------------------------------------------------
-// MINIJUEGO 2: CORTA EL BILLETE (IMÁGENES DE BILLETES REALES)
+// MINIJUEGO 2: CORTA EL BILLETE (IMÁGENES DE BILLETES DE LA BD)
 // --------------------------------------------------------------------------
 function startMinigame2() {
     gameState.key = 'mj2';
@@ -378,6 +377,7 @@ function startMinigame2() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
+    if (catalog.length === 0) return;
     gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame2Question();
 }
@@ -389,16 +389,7 @@ function renderMinigame2Question() {
     const targetPrice = q.price;
     const availableMoney = getDatabaseMoney();
 
-    // Asegura que las opciones incluyan la respuesta exacta o el billete más cercano
     let moneyOptions = [...availableMoney].sort(() => 0.5 - Math.random()).slice(0, 4);
-    if (!moneyOptions.some(m => m.value === targetPrice)) {
-        moneyOptions[0] = {
-            value: targetPrice,
-            label: `$${targetPrice.toLocaleString('es-CL')} CLP`,
-            img: availableMoney[0]?.img || "https://images.unsplash.com/photo-1621981386829-9b458a2cddde?w=200",
-            type: targetPrice >= 1000 ? "billete" : "moneda"
-        };
-    }
 
     const html = `
     <div class="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8 flex items-center justify-center">
@@ -428,15 +419,19 @@ function renderMinigame2Question() {
                 </div>
             </div>
 
-            <!-- OPCIONES CON TARJETAS / IMÁGENES DE BILLETES DE LA BASE DE DATOS -->
+            <!-- MONEDAS Y BILLETES DE TU BASE DE DATOS -->
             <div class="grid grid-cols-2 gap-4">
-                ${moneyOptions.map(m => `
+                ${moneyOptions.length > 0 ? moneyOptions.map(m => `
                     <button onclick="checkGenericAnswer(${m.value}, ${targetPrice}, startMinigame2, renderMinigame2Question)" 
                             class="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl border-2 border-emerald-400 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
-                        <img src="${m.img}" class="h-14 w-auto object-contain rounded-lg" onerror="this.style.display='none'" />
+                        <img src="${m.img}" class="h-16 w-auto object-contain rounded-lg" />
                         <span class="font-black text-emerald-300 text-sm">${m.label}</span>
                     </button>
-                `).join('')}
+                `).join('') : `
+                    <button onclick="checkGenericAnswer(${targetPrice}, ${targetPrice}, startMinigame2, renderMinigame2Question)" class="col-span-2 h-16 bg-emerald-600 text-white font-black rounded-2xl shadow-lg border text-lg">
+                        💵 PAGAR CON $${targetPrice.toLocaleString('es-CL')} CLP
+                    </button>
+                `}
             </div>
             <button onclick="renderMinigamesArcadeView()" class="mt-4 text-xs font-bold text-slate-500 underline block mx-auto">✕ Salir</button>
         </div>
@@ -454,6 +449,7 @@ function startMinigame3() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
+    if (catalog.length === 0) return;
     gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame3Question();
 }
@@ -505,6 +501,7 @@ function startMinigame4() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
+    if (catalog.length === 0) return;
     gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(4, catalog.length));
     renderMinigame4Question();
 }
@@ -560,6 +557,7 @@ function startMinigame5() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
+    if (catalog.length === 0) return;
     gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame5Question();
 }
