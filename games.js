@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - SIN BLOQUEOS Y CON ASSETS REALES DE LA BD
+   MÓDULO DE MINIJUEGOS NEE - EXTRACCIÓN GARANTIZADA DE ASSETS DE APP.JS
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -11,14 +11,14 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v12');
+    const saved = localStorage.getItem('nee_arcade_progress_v13');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v12', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v13', JSON.stringify(studentMinigamesProgress));
 }
 
 // PUENTES CON EL BOTÓN MORADO DE APP.JS
@@ -53,47 +53,33 @@ function getCategoryIcon(catName) {
 }
 
 // --------------------------------------------------------------------------
-// LECTURA DIRECTA DE PRODUCTOS E IMÁGENES DE TU APLICACIÓN
+// LECTURA DIRECTA DE PRODUCTOS E IMÁGENES DESDE APP.JS O DOM REAL
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
-    let rawList = [];
+    let products = [];
 
-    // 1. Buscar en estado global de app.js
-    if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
-        rawList = window.APP_STATE.products;
-    } else if (window.state && Array.isArray(window.state.products) && window.state.products.length > 0) {
-        rawList = window.state.products;
-    } else if (window.products && Array.isArray(window.products) && window.products.length > 0) {
-        rawList = window.products;
-    } else if (window.currentStore && Array.isArray(window.currentStore.products) && window.currentStore.products.length > 0) {
-        rawList = window.currentStore.products;
-    } else if (window.stores && window.stores[0] && Array.isArray(window.stores[0].products)) {
-        rawList = window.stores[0].products;
-    }
+    // 1. Escanear variables globales de app.js
+    let sources = [
+        window.APP_STATE?.products,
+        window.state?.products,
+        window.products,
+        window.initialProducts,
+        window.allProducts,
+        window.currentStore?.products,
+        window.stores?.[0]?.products
+    ];
 
-    // 2. Si no están en variables, leer de localStorage
-    if (rawList.length === 0) {
-        for (let i = 0; i < localStorage.length; i++) {
-            let key = localStorage.key(i);
-            try {
-                let parsed = JSON.parse(localStorage.getItem(key));
-                if (parsed) {
-                    if (Array.isArray(parsed.products) && parsed.products.length > 0) {
-                        rawList = parsed.products;
-                        break;
-                    } else if (parsed.stores && parsed.stores[0] && Array.isArray(parsed.stores[0].products)) {
-                        rawList = parsed.stores[0].products;
-                        break;
-                    }
-                }
-            } catch(e){}
+    for (let src of sources) {
+        if (Array.isArray(src) && src.length > 0) {
+            products = src;
+            break;
         }
     }
 
     const validProducts = [];
 
-    if (rawList && rawList.length > 0) {
-        rawList.forEach(item => {
+    if (products.length > 0) {
+        products.forEach(item => {
             if (!item) return;
             let name = item.name || item.nombre || item.titulo;
             let category = item.category || item.categoria || item.seccion || 'Lácteos, Yogures y Huevos';
@@ -111,48 +97,60 @@ function getDatabaseProducts() {
         });
     }
 
-    // 3. Respaldo directo si la app recién se abre
+    // 2. Si no encontró en variables, escanear tarjetas del HTML del supermercado
     if (validProducts.length === 0) {
-        return [
-            { name: "LECHE ENTERA SOPROLE LIQUIDA 1 LITRO", category: "Lácteos, Yogures y Huevos", photoUrl: "", price: 1350 },
-            { name: "TOALLA DE PAPEL NOVA GIGANTE 100 METROS", category: "Limpieza del Hogar", photoUrl: "", price: 4990 },
-            { name: "JALEA COLUN FRAMBUESA 100 GRAMOS", category: "Lácteos, Yogures y Huevos", photoUrl: "", price: 340 }
-        ];
+        const cards = document.querySelectorAll('.grid > div, [class*="card"], [class*="product"]');
+        cards.forEach(card => {
+            const img = card.querySelector('img');
+            const title = card.querySelector('h3, h4, .font-black, .font-bold');
+            const priceEl = card.querySelector('[class*="price"], [class*="green"], [class*="emerald"]');
+
+            if (title) {
+                let name = title.innerText.trim();
+                let photo = img ? img.src : '';
+                let priceText = priceEl ? priceEl.innerText.replace(/[^0-9]/g, '') : '1350';
+
+                if (name && name.length > 2) {
+                    validProducts.push({
+                        name: name,
+                        category: 'Lácteos, Yogures y Huevos',
+                        photoUrl: photo,
+                        price: parseInt(priceText) || 1350
+                    });
+                }
+            }
+        });
     }
 
     return validProducts;
 }
 
 // --------------------------------------------------------------------------
-// LECTURA DIRECTA DE BILLETES Y MONEDAS DE TU APP
+// LECTURA Y GENERACIÓN DE BILLETES Y MONEDAS CHILENAS (CLP)
 // --------------------------------------------------------------------------
-function getDatabaseMoney() {
+function getDatabaseMoney(targetPrice) {
     let moneyList = [];
 
-    if (window.APP_STATE && Array.isArray(window.APP_STATE.currency)) moneyList = window.APP_STATE.currency;
-    else if (window.APP_STATE && Array.isArray(window.APP_STATE.billetes)) moneyList = window.APP_STATE.billetes;
-    else if (window.state && Array.isArray(window.state.cash)) moneyList = window.state.cash;
-    else if (window.state && Array.isArray(window.state.money)) moneyList = window.state.money;
+    let sources = [
+        window.APP_STATE?.currency,
+        window.APP_STATE?.billetes,
+        window.state?.cash,
+        window.state?.money,
+        window.billetes,
+        window.monedas,
+        window.cashData
+    ];
 
-    if (moneyList.length === 0) {
-        for (let i = 0; i < localStorage.length; i++) {
-            let key = localStorage.key(i);
-            try {
-                let parsed = JSON.parse(localStorage.getItem(key));
-                if (parsed && Array.isArray(parsed.currency)) {
-                    moneyList = parsed.currency;
-                    break;
-                } else if (parsed && Array.isArray(parsed.cash)) {
-                    moneyList = parsed.cash;
-                    break;
-                }
-            } catch(e){}
+    for (let src of sources) {
+        if (Array.isArray(src) && src.length > 0) {
+            moneyList = src;
+            break;
         }
     }
 
     const validMoney = [];
 
-    if (moneyList && moneyList.length > 0) {
+    if (moneyList.length > 0) {
         moneyList.forEach(m => {
             let val = parseInt(m.value || m.valor || m.monto);
             let img = m.image || m.imagen || m.img || m.photo || m.src || m.foto;
@@ -167,11 +165,22 @@ function getDatabaseMoney() {
         });
     }
 
+    // Si la BD de app.js no tenía instanciados los billetes aún, construir opciones CLP estándar con el precio real
+    if (validMoney.length === 0) {
+        const p = targetPrice || 1000;
+        return [
+            { value: p, label: `$${p.toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-emerald-600 border-emerald-400" },
+            { value: p + 500, label: `$${(p + 500).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-purple-600 border-purple-400" },
+            { value: Math.max(100, p - 300), label: `$${Math.max(100, p - 300).toLocaleString('es-CL')} CLP`, icon: "🪙", color: "bg-amber-600 border-amber-400" },
+            { value: p + 1000, label: `$${(p + 1000).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-rose-600 border-rose-400" }
+        ].sort(() => 0.5 - Math.random());
+    }
+
     return validMoney;
 }
 
 // --------------------------------------------------------------------------
-// VISTA PRINCIPAL DEL ARCADE GAMER (RESPONSIVE)
+// VISTA PRINCIPAL DEL ARCADE GAMER
 // --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -236,7 +245,7 @@ function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Desafíos pedagógicos sincronizados con los productos y billetes de tu tienda.
+                    Desafíos pedagógicos adaptados con fotos reales del catálogo y pictogramas de apoyo.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -413,7 +422,7 @@ function renderMinigame2Question() {
     if (!q) return finishMinigame('mj2', 'Corta el Billete');
 
     const targetPrice = q.price;
-    const realMoney = getDatabaseMoney();
+    const moneyOptions = getDatabaseMoney(targetPrice);
 
     const html = `
     <div class="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8 flex items-center justify-center">
@@ -443,17 +452,13 @@ function renderMinigame2Question() {
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-                ${realMoney.length > 0 ? realMoney.slice(0, 4).map(m => `
+                ${moneyOptions.map(m => `
                     <button onclick="checkGenericAnswer(${m.value}, ${targetPrice}, startMinigame2, renderMinigame2Question)" 
-                            class="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl border-2 border-emerald-400 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
-                        ${m.img ? `<img src="${m.img}" class="h-16 w-auto object-contain rounded-lg" />` : `<span class="text-3xl">${m.type === 'billete' ? '💵' : '🪙'}</span>`}
-                        <span class="font-black text-emerald-300 text-sm">${m.label}</span>
+                            class="p-3 ${m.color || 'bg-slate-800 hover:bg-slate-700 border-emerald-400'} text-white font-black rounded-2xl border-2 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
+                        ${m.img ? `<img src="${m.img}" class="h-14 w-auto object-contain rounded-lg" />` : `<span class="text-3xl">${m.icon || (m.type === 'billete' ? '💵' : '🪙')}</span>`}
+                        <span class="font-black text-amber-300 text-base">${m.label}</span>
                     </button>
-                `).join('') : `
-                    <button onclick="checkGenericAnswer(${targetPrice}, ${targetPrice}, startMinigame2, renderMinigame2Question)" class="col-span-2 h-16 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl shadow-lg border border-emerald-400 text-lg">
-                        💵 PAGAR CON $${targetPrice.toLocaleString('es-CL')} CLP
-                    </button>
-                `}
+                `).join('')}
             </div>
             <button onclick="renderMinigamesArcadeView()" class="mt-4 text-xs font-bold text-slate-500 underline block mx-auto">✕ Salir</button>
         </div>
