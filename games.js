@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - CONTROL ANTI-BUCLE (GARANTÍA DE PRODUCTOS)
+   MÓDULO DE MINIJUEGOS NEE - SOLUCIÓN DEFINITIVA DE MANEJO DE IMÁGENES Y EMOJIS
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -11,17 +11,17 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v22');
+    const saved = localStorage.getItem('nee_arcade_progress_v24');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v22', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v24', JSON.stringify(studentMinigamesProgress));
 }
 
-// CONEXIÓN CON EL BOTÓN DE LA APP
+// CONEXIÓN CON APP.JS
 window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
 window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
 window.openMemorisModal = function() { renderMinigamesArcadeView(); };
@@ -52,7 +52,7 @@ function getCategoryIcon(catName) {
 }
 
 // --------------------------------------------------------------------------
-// EXTRACCIÓN CON RESPALDO (NUNCA RETORNA ARREGLO VACÍO)
+// LECTURA DE PRODUCTOS DESDE APP_STATE
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
@@ -71,7 +71,7 @@ function getDatabaseProducts() {
             let name = item.name || item.nombre || 'Producto';
             let category = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
             let price = parseInt(item.price || item.precio) || 1000;
-            let photo = item.photoUrl || item.photo || item.image || item.imagen || '';
+            let photo = item.photoUrl || item.photo || item.image || item.imagen || item.img || item.src || '';
             let emoji = item.iconEmoji || item.emoji || '🛍️';
 
             validProducts.push({
@@ -84,7 +84,7 @@ function getDatabaseProducts() {
         });
     }
 
-    // RESPALDO SI LA TIENDA AÚN NO HA CARGADO SUS PRODUCTOS
+    // RESPALDO GARANTIZADO SI LA TIENDA AÚN NO CARGA PRODUCTOS
     if (validProducts.length === 0) {
         return [
             { id: 'prod-1', name: 'Leche Entera 1L', category: 'Lácteos, Yogures y Huevos', price: 1050, photoUrl: '', iconEmoji: '🥛' },
@@ -97,7 +97,7 @@ function getDatabaseProducts() {
 }
 
 // --------------------------------------------------------------------------
-// EXTRACCIÓN DE BILLETES Y MONEDAS REALES DE TU APP
+// LECTURA DE BILLETES Y MONEDAS SVG
 // --------------------------------------------------------------------------
 function getDatabaseMoney(targetPrice) {
     let currencyList = [];
@@ -126,16 +126,20 @@ function getDatabaseMoney(targetPrice) {
     ].sort(() => 0.5 - Math.random());
 }
 
-// RENDERIZADOR DE PRODUCTO (FOTO REAL O EMOJI)
-function renderProductVisual(product) {
-    if (product.photoUrl && product.photoUrl.trim() !== '') {
-        return `<img src="${product.photoUrl}" alt="${product.name}" class="max-h-full max-w-full object-contain" />`;
+// RENDERIZADOR ANTI-IMÁGENES ROTAS
+function renderProductVisual(product, textSize = "text-7xl") {
+    const emoji = product.iconEmoji || '🛍️';
+    
+    if (product.photoUrl && String(product.photoUrl).trim() !== '' && product.photoUrl.length > 5) {
+        return `<img src="${product.photoUrl}" alt="${product.name}" class="max-h-full max-w-full object-contain mx-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+                <span class="${textSize} font-black" style="display:none;">${emoji}</span>`;
     }
-    return `<span class="text-7xl font-black">${product.iconEmoji || '🛍️'}</span>`;
+    
+    return `<span class="${textSize} font-black">${emoji}</span>`;
 }
 
 // --------------------------------------------------------------------------
-// VISTA PRINCIPAL DEL ARCADE
+// VISTA PRINCIPAL
 // --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -200,7 +204,7 @@ function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Desafíos adaptados sincronizados en vivo con el catálogo de tu tienda.
+                    Desafíos pedagógicos sincronizados con las imágenes reales y pictogramas de tu tienda.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -504,14 +508,14 @@ function renderMinigame4Question() {
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex justify-center items-center gap-6">
                 <div class="text-center">
                     <div class="w-24 h-24 bg-white rounded-2xl p-2 flex items-center justify-center mx-auto overflow-hidden">
-                        ${renderProductVisual(p1)}
+                        ${renderProductVisual(p1, "text-5xl")}
                     </div>
                     <span class="text-xs font-black text-amber-300 block mt-2">$${p1.price.toLocaleString('es-CL')}</span>
                 </div>
                 <span class="text-4xl font-black text-purple-400">+</span>
                 <div class="text-center">
                     <div class="w-24 h-24 bg-white rounded-2xl p-2 flex items-center justify-center mx-auto overflow-hidden">
-                        ${renderProductVisual(p2)}
+                        ${renderProductVisual(p2, "text-5xl")}
                     </div>
                     <span class="text-xs font-black text-amber-300 block mt-2">$${p2.price.toLocaleString('es-CL')}</span>
                 </div>
@@ -568,7 +572,7 @@ function renderMinigame5Question() {
                 ${options.map(item => `
                     <button onclick="checkGenericAnswer('${item.name.replace(/'/g, "\\'")}', '${target.name.replace(/'/g, "\\'")}', startMinigame5, renderMinigame5Question)" 
                             class="p-3 bg-white rounded-2xl border-4 border-rose-400 hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center justify-center overflow-hidden h-28">
-                        ${renderProductVisual(item)}
+                        ${renderProductVisual(item, "text-5xl")}
                     </button>
                 `).join('')}
             </div>
