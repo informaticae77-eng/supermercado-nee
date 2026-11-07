@@ -1,4 +1,6 @@
-// Alias y puentes de compatibilidad para el botón de minijuegos
+// ==========================================================================
+// PUENTES DE COMPATIBILIDAD (Conectan el botón morado con los minijuegos)
+// ==========================================================================
 window.openMinigamesModal = function() {
     if (typeof renderMinigamesArcadeView === 'function') {
         renderMinigamesArcadeView();
