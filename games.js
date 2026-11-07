@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO INDEPENDIENTE: ARCADE DE MINIJUEGOS NEE (MINEDUC + BASE DE DATOS)
+   MÓDULO INDEPENDIENTE: ARCADE DE MINIJUEGOS NEE (MINEDUC + PRODUCTOS REALES)
    Estructura: 5 Niveles | 5 Minijuegos por Nivel | 1 Jefe Final por Nivel
    ========================================================================== */
 
@@ -12,7 +12,7 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v3');
+    const saved = localStorage.getItem('nee_arcade_progress_v4');
     if (saved) {
         try { 
             studentMinigamesProgress = JSON.parse(saved); 
@@ -23,7 +23,7 @@ function loadMinigamesProgress() {
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v3', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v4', JSON.stringify(studentMinigamesProgress));
 }
 
 // --------------------------------------------------------------------------
@@ -42,35 +42,53 @@ function exitArcadeToDashboard() {
 }
 
 // --------------------------------------------------------------------------
-// FUNCIÓN PARA OBTENER PRODUCTOS Y CATEGORÍAS REALES DE LA BASE DE DATOS
+// EXTRACCIÓN AVANZADA DE PRODUCTOS DEL SUPERMERCADO Y CARRO
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
+
+    // Busca productos en todas las ubicaciones posibles de app.js
     if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
         rawList = window.APP_STATE.products;
-    } else if (window.APP_DATA && Array.isArray(window.APP_DATA.products)) {
+    } else if (window.products && Array.isArray(window.products) && window.products.length > 0) {
+        rawList = window.products;
+    } else if (window.APP_DATA && Array.isArray(window.APP_DATA.products) && window.APP_DATA.products.length > 0) {
         rawList = window.APP_DATA.products;
+    } else if (window.currentStore && Array.isArray(window.currentStore.products)) {
+        rawList = window.currentStore.products;
     }
 
     const validProducts = [];
+
     if (rawList && rawList.length > 0) {
         rawList.forEach(item => {
             if (!item) return;
-            let name = item.name || item.nombre;
-            let category = item.category || item.categoria || 'Lácteos';
-            let photo = item.photoUrl || item.photo || item.image || item.img || item.imagen;
+            let name = item.name || item.nombre || item.titulo;
+            let category = item.category || item.categoria || item.seccion || 'Lácteos';
+            let photo = item.photoUrl || item.photo || item.image || item.img || item.imagen || item.foto;
             let price = item.price || item.precio || 1000;
 
-            if (name && photo) {
+            if (name) {
                 let cleanName = name.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26BF}]/gu, '').trim();
                 validProducts.push({ 
                     name: cleanName || name, 
                     category: category.trim(), 
-                    photoUrl: photo,
+                    photoUrl: photo || 'https://via.placeholder.com/150?text=Producto',
                     price: parseInt(price)
                 });
             }
         });
+    }
+
+    // Si por algún motivo la tienda no ha cargado productos en memoria, genera catálogo de respaldo del supermercado
+    if (validProducts.length === 0) {
+        return [
+            { name: "Leche Entera 1L", category: "Lácteos", photoUrl: "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=300", price: 1050 },
+            { name: "Manzana Red", category: "Frutas y Verduras", photoUrl: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300", price: 600 },
+            { name: "Pan Marraqueta 1Kg", category: "Panadería", photoUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300", price: 1800 },
+            { name: "Detergente Multiuso", category: "Aseo", photoUrl: "https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=300", price: 3500 },
+            { name: "Jugo de Naranja 1L", category: "Bebidas", photoUrl: "https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=300", price: 1200 }
+        ];
     }
 
     return validProducts;
@@ -146,7 +164,7 @@ function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Utiliza los productos e imágenes reales de tu catálogo para superar las pruebas pedagógicas Mineduc.
+                    Utiliza los productos del supermercado y tu carro de compras para superar los desafíos pedagógicos Mineduc.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -158,11 +176,11 @@ function renderMinigamesArcadeView() {
         <!-- PARRILLA DE 5 JUEGOS Y BOSS EXAM -->
         <main class="max-w-7xl mx-auto mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             
-            ${renderGameCard(currentLvl, 1, "🍎 El Estante Correcto", "OA04 Mineduc: Categorizar semánticamente productos según góndola.", "mj1", completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 1, "🍎 El Estante Correcto", "OA04 Mineduc: Categorizar semánticamente productos según su góndola.", "mj1", completedInCurrentLvl)}
             ${renderGameCard(currentLvl, 2, "💵 Corta el Billete", "OA07 Mineduc: Reconocer y valorar monedas y billetes CLP.", "mj2", completedInCurrentLvl)}
             ${renderGameCard(currentLvl, 3, "🔤 Palabras en Góndola", "OA02 Mineduc: Conciencia fonológica y lectura de etiquetas.", "mj3", completedInCurrentLvl)}
-            ${renderGameCard(currentLvl, 4, "🧮 Calculadora del Canasto", "OA09 Mineduc: Adición simple y estimación de costos.", "mj4", completedInCurrentLvl)}
-            ${renderGameCard(currentLvl, 5, "📋 La Lista de Compras", "OA12 Mineduc: Memoria operacional y búsqueda guiada.", "mj5", completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 4, "🧮 Calculadora del Canasto", "OA09 Mineduc: Adición simple y estimación de precios del carro.", "mj4", completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 5, "📋 La Lista de Compras", "OA12 Mineduc: Memoria operacional y búsqueda activa.", "mj5", completedInCurrentLvl)}
 
             <!-- TARJETA BOSS -->
             <div class="bg-gradient-to-br from-purple-950 via-slate-900 to-amber-950 rounded-3xl p-6 border-2 border-amber-500/80 shadow-2xl flex flex-col justify-between space-y-5">
@@ -175,7 +193,7 @@ function renderMinigamesArcadeView() {
                 <div>
                     <h3 class="font-black text-white text-lg sm:text-xl uppercase">🛡️ Desafío del Cajero Central</h3>
                     <p class="text-xs text-amber-200/80 font-bold mt-1">
-                        OA15 Mineduc: Integración práctica de autonomía en el supermercado.
+                        OA15 Mineduc: Evaluación integrada para desbloquear el Nivel ${currentLvl < 5 ? currentLvl + 1 : 5}.
                     </p>
                 </div>
                 <button ${isBossUnlocked ? `onclick="startBossExam(${currentLvl})"` : 'disabled'} 
@@ -226,7 +244,7 @@ function renderGameCard(level, gameNum, title, description, gameKey, completedLi
 }
 
 // --------------------------------------------------------------------------
-// EJECUCIÓN DEL JUEGO CON IMÁGENES REALES Y OA MINEDUC
+// LÓGICA DEL MINIJUEGO 1: EL ESTANTE CORRECTO (OA04 MINEDUC)
 // --------------------------------------------------------------------------
 let mj1State = { startTime: null, errors: 0, currentQuestion: 0, questions: [] };
 
@@ -236,13 +254,8 @@ function startMinigame1() {
     mj1State.currentQuestion = 0;
     
     const catalog = getDatabaseProducts();
-
-    if (catalog.length === 0) {
-        alert("⚠️ No se encontraron productos cargados en la base de datos de la tienda. Selecciona una tienda en el panel antes de iniciar.");
-        return;
-    }
-
     mj1State.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
+    
     renderMinigame1Question();
 }
 
@@ -270,25 +283,30 @@ function renderMinigame1Question() {
                     <span class="text-[10px] font-black text-indigo-400 bg-indigo-500/20 px-3 py-1 rounded-full uppercase tracking-wider border border-indigo-500/30">
                         OA04 MINEDUC: Categorización Semántica
                     </span>
-                    <h3 class="text-sm font-black text-slate-300 mt-1">Objetivo: Clasificar productos de la vida diaria según su categoría.</h3>
+                    <h3 class="text-xs font-black text-slate-300 mt-1">Objetivo: Clasificar adecuadamente productos reales en sus secciones correspondientes.</h3>
                 </div>
-                <span class="text-xs font-black text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                <span class="text-xs font-black text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20 whitespace-nowrap">
                     Pregunta ${mj1State.currentQuestion + 1} de ${mj1State.questions.length}
                 </span>
             </div>
 
-            <!-- CONTENEDOR CON LA IMAGEN REAL DE LA BASE DE DATOS -->
+            <!-- CONTENEDOR CON LA IMAGEN Y NOMBRE REAL DEL PRODUCTO -->
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4 shadow-inner">
                 <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest">¿EN QUÉ ESTANTE O SECCIÓN VA ESTE PRODUCTO?</h4>
                 
                 <div class="w-48 h-48 sm:w-56 sm:h-56 bg-white p-4 rounded-3xl border-4 border-indigo-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />
+                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" onerror="this.src='https://via.placeholder.com/200?text=Producto'" />
                 </div>
 
-                <span class="text-xl sm:text-2xl font-black text-white uppercase px-4 tracking-wide">${q.name}</span>
+                <div class="space-y-1">
+                    <span class="text-xl sm:text-2xl font-black text-white uppercase px-4 tracking-wide block">${q.name}</span>
+                    <span class="text-xs font-black text-emerald-400 bg-emerald-500/10 px-3 py-0.5 rounded-full border border-emerald-500/20 inline-block">
+                        Precio en Supermercado: $${q.price.toLocaleString('es-CL')} CLP
+                    </span>
+                </div>
             </div>
 
-            <!-- OPCIONES DE CATEGORÍAS EN BOTONES DE ALTO CONTRASTE -->
+            <!-- BOTONES DE RESPUESTA EN ALTO CONTRASTE NEÓN -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 ${options.map(catName => `
                     <button onclick="checkMinigame1Answer('${catName.replace(/'/g, "\\'")}')" 
@@ -298,8 +316,8 @@ function renderMinigame1Question() {
                 `).join('')}
             </div>
             
-            <button onclick="renderMinigamesArcadeView()" class="mt-4 text-xs font-bold text-slate-500 hover:text-slate-300 underline">
-                ✕ Salir del Desafío
+            <button onclick="renderMinigamesArcadeView()" class="mt-4 text-xs font-bold text-slate-500 hover:text-slate-300 underline block mx-auto">
+                ✕ Salir al Centro de Desafíos
             </button>
         </div>
     </div>
@@ -316,7 +334,7 @@ function checkMinigame1Answer(selectedCat) {
         renderMinigame1Question();
     } else {
         mj1State.errors++;
-        alert(`❌ ¡Ups! "${q.name}" no corresponde a la categoría de ${selectedCat}. ¡Inténtalo de nuevo!`);
+        alert(`❌ ¡Ups! "${q.name}" no va en el estante de ${selectedCat}. ¡Inténtalo de nuevo!`);
     }
 }
 
