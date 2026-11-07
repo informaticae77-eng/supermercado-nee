@@ -1,18 +1,17 @@
 /* ==========================================================================
-   MÓDULO INDEPENDIENTE: ARCADE DE MINIJUEGOS NEE (MINEDUC)
+   MÓDULO INDEPENDIENTE: ARCADE DE MINIJUEGOS NEE (ESTILO GAMER RESPONSIVE)
    Estructura: 5 Niveles | 5 Minijuegos por Nivel | 1 Jefe Final por Nivel
    ========================================================================== */
 
-// Estado global de progreso del estudiante (persistente)
+// Estado global de progreso del estudiante
 let studentMinigamesProgress = {
-    currentLevel: 1, // Niveles del 1 al 5
-    completedGames: {}, // { level1: ['mj1', 'mj2'], level2: [...] }
+    currentLevel: 1,
+    completedGames: {},
     unlockedLevels: [1],
     bossDefeated: {},
     gameMetrics: []
 };
 
-// Cargar progreso desde LocalStorage
 function loadMinigamesProgress() {
     const saved = localStorage.getItem('nee_arcade_progress_v2');
     if (saved) {
@@ -24,27 +23,17 @@ function loadMinigamesProgress() {
     }
 }
 
-// Guardar progreso en LocalStorage
 function saveMinigamesProgress() {
     localStorage.setItem('nee_arcade_progress_v2', JSON.stringify(studentMinigamesProgress));
 }
 
 // --------------------------------------------------------------------------
-// ENLACE DIRECTO CON EL BOTÓN MORADO DE APP.JS (openMemoriseModal)
+// PUENTES DE CONEXIÓN CON APP.JS
 // --------------------------------------------------------------------------
-window.openMemoriseModal = function() {
-    renderMinigamesArcadeView();
-};
+window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
+window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
+window.openMemorisModal = function() { renderMinigamesArcadeView(); };
 
-window.openMinigamesModal = function() {
-    renderMinigamesArcadeView();
-};
-
-window.openMemorisModal = function() {
-    renderMinigamesArcadeView();
-};
-
-// Salir del Arcade y volver a la Tienda / Dashboard Principal
 function exitArcadeToDashboard() {
     if (typeof renderApp === 'function') {
         renderApp();
@@ -54,7 +43,7 @@ function exitArcadeToDashboard() {
 }
 
 // --------------------------------------------------------------------------
-// VISTA PRINCIPAL COMPLETA DEL MÓDULO (5 NIVELES INDEPENDIENTES)
+// VISTA VIBRANTE GAMER (COMPATIBLE CON MÓVILES Y TABLETS)
 // --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -66,49 +55,48 @@ function renderMinigamesArcadeView() {
     const completedInCurrentLvl = studentMinigamesProgress.completedGames[`level${currentLvl}`] || [];
     const isBossUnlocked = completedInCurrentLvl.length >= 5;
 
-    // Configuración de los 5 Niveles Curriculares
     const levelsConfig = [
-        { id: 1, title: "Comprador Principiante", icon: "🛒", color: "from-blue-600 to-indigo-600" },
-        { id: 2, title: "Explorador de Góndolas", icon: "🔍", color: "from-emerald-600 to-teal-600" },
-        { id: 3, title: "As del Vuelto y Cajas", icon: "💵", color: "from-amber-600 to-orange-600" },
-        { id: 4, title: "Planificador Experto", icon: "📋", color: "from-purple-600 to-pink-600" },
-        { id: 5, title: "Maestro del Supermercado", icon: "👑", color: "from-rose-600 to-red-600" }
+        { id: 1, title: "Comprador Principiante", icon: "🛒", badge: "NIVEL 1", border: "border-cyan-500", glow: "shadow-cyan-500/20" },
+        { id: 2, title: "Explorador de Góndolas", icon: "🔍", badge: "NIVEL 2", border: "border-emerald-500", glow: "shadow-emerald-500/20" },
+        { id: 3, title: "As del Vuelto y Cajas", icon: "💵", badge: "NIVEL 3", border: "border-amber-500", glow: "shadow-amber-500/20" },
+        { id: 4, title: "Planificador Experto", icon: "📋", badge: "NIVEL 4", border: "border-purple-500", glow: "shadow-purple-500/20" },
+        { id: 5, title: "Maestro del Supermercado", icon: "👑", badge: "NIVEL 5", border: "border-rose-500", glow: "shadow-rose-500/20" }
     ];
 
     const currentLevelInfo = levelsConfig.find(l => l.id === currentLvl) || levelsConfig[0];
 
     const html = `
-    <div class="min-h-screen bg-slate-900 text-slate-100 p-4 sm:p-8 select-none">
+    <div class="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 lg:p-8 font-sans select-none pb-20">
         
-        <!-- ENCABEZADO Y NAVEGACIÓN -->
-        <header class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-800/80 p-5 rounded-3xl border border-slate-700 shadow-2xl backdrop-blur-md">
-            <div class="flex items-center gap-4">
-                <button onclick="exitArcadeToDashboard()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-3 rounded-2xl font-black text-xs transition-all active:scale-95 flex items-center gap-2 shadow-lg border border-indigo-400">
-                    <span>⬅</span> <span>Volver al Supermercado</span>
+        <!-- ENCABEZADO GAMER RESPONSIVE -->
+        <header class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-900/90 p-4 sm:p-6 rounded-3xl border-2 border-indigo-500/40 shadow-2xl shadow-indigo-500/10 backdrop-blur-xl">
+            <div class="flex items-center gap-3 sm:gap-4 w-full md:w-auto justify-between md:justify-start">
+                <button onclick="exitArcadeToDashboard()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 sm:px-5 sm:py-3 rounded-2xl font-black text-xs sm:text-sm transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-indigo-600/30 border border-indigo-400">
+                    <span>⬅</span> <span>Volver a la Tienda</span>
                 </button>
                 <div>
-                    <span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-wider">
-                        Módulo Independiente Mineduc
+                    <span class="bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-widest block w-fit">
+                        Arcade NEE Mineduc
                     </span>
-                    <h1 class="text-2xl font-black text-white mt-1">Arcade de Autonomía Funcional</h1>
+                    <h1 class="text-xl sm:text-2xl font-black text-white tracking-wide mt-0.5">CENTRO DE DESAFÍOS</h1>
                 </div>
             </div>
 
-            <!-- Selector de Niveles (1 al 5) -->
-            <div class="flex items-center gap-2 bg-slate-900/60 p-2 rounded-2xl border border-slate-700">
+            <!-- BOTONES DE NIVELES SCROLLABLE EN MÓVIL -->
+            <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none">
                 ${levelsConfig.map(lvl => {
                     const isUnlocked = studentMinigamesProgress.unlockedLevels.includes(lvl.id);
                     const isActive = lvl.id === currentLvl;
                     return `
                     <button onclick="${isUnlocked ? `switchLevel(${lvl.id})` : ''}" 
-                            class="px-3.5 py-2 rounded-xl font-black text-xs transition-all flex items-center gap-1.5 ${
+                            class="px-3.5 py-2 rounded-2xl font-black text-xs whitespace-nowrap transition-all flex items-center gap-1.5 border ${
                                 isActive 
-                                    ? 'bg-indigo-600 text-white shadow-lg scale-105' 
+                                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-indigo-400 shadow-lg shadow-indigo-500/50 scale-105' 
                                     : isUnlocked 
-                                        ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' 
-                                        : 'bg-slate-800/40 text-slate-600 cursor-not-allowed'
+                                        ? 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 border-slate-700' 
+                                        : 'bg-slate-900/50 text-slate-600 border-slate-800/50 cursor-not-allowed'
                             }">
-                        <span>${lvl.icon}</span>
+                        <span class="text-base">${lvl.icon}</span>
                         <span>Nivel ${lvl.id}</span>
                         ${!isUnlocked ? '<span class="text-[10px]">🔒</span>' : ''}
                     </button>`;
@@ -116,53 +104,54 @@ function renderMinigamesArcadeView() {
             </div>
         </header>
 
-        <!-- INFORMACIÓN DEL NIVEL ACTIVO -->
-        <section class="max-w-6xl mx-auto mt-6 bg-gradient-to-r ${currentLevelInfo.color} p-6 sm:p-8 rounded-3xl shadow-2xl border-2 border-white/10 flex flex-col sm:flex-row justify-between items-center gap-6">
-            <div>
-                <span class="bg-black/30 text-amber-300 font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider inline-block mb-2">
-                    Etapa ${currentLvl} de 5
+        <!-- BANNER DEL NIVEL ACTUAL EN GAMER NEON -->
+        <section class="max-w-7xl mx-auto mt-6 bg-slate-900/90 rounded-3xl p-6 sm:p-8 border-2 ${currentLevelInfo.border} shadow-2xl ${currentLevelInfo.glow} flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden">
+            <div class="space-y-2 text-center md:text-left z-10">
+                <span class="bg-black/60 text-amber-400 border border-amber-500/40 font-black text-xs px-3 py-1 rounded-full uppercase tracking-widest inline-block">
+                    ⚡ Stage ${currentLvl} de 5
                 </span>
-                <h2 class="text-3xl sm:text-4xl font-black text-white tracking-tight">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
-                <p class="text-sm font-bold text-white/80 mt-1 max-w-xl">
-                    Supera los 5 minijuegos de este nivel para desbloquear la prueba del Jefe Final y avanzar de etapa.
+                <h2 class="text-2xl sm:text-4xl font-black text-white tracking-tight uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
+                <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl leading-relaxed">
+                    Completa los 5 desafíos pedagógicos para desbloquear la batalla final del Boss y avanzar al siguiente nivel.
                 </p>
             </div>
-            <div class="bg-slate-950/40 backdrop-blur-md p-5 rounded-3xl text-center border border-white/20 min-w-[160px]">
-                <span class="text-xs font-black text-slate-300 block uppercase tracking-wider">Avance Nivel ${currentLvl}</span>
-                <span class="text-4xl font-black text-amber-400 mt-1 block">${completedInCurrentLvl.length} / 5</span>
+
+            <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto z-10">
+                <span class="text-[10px] font-black text-indigo-400 block uppercase tracking-widest">PROGRESO DE ETAPA</span>
+                <span class="text-3xl sm:text-4xl font-black text-amber-400 mt-1 block">${completedInCurrentLvl.length} / 5</span>
             </div>
         </section>
 
-        <!-- MÓDULO DE 5 MINIJUEGOS Y 1 JEFE FINAL -->
-        <main class="max-w-6xl mx-auto mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- GRID ADAPTABLE A MÓVILES (1 COL), TABLETS (2 COLS) Y COMPUTADORES (3 COLS) -->
+        <main class="max-w-7xl mx-auto mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             
             ${renderGameCard(currentLvl, 1, "🍎 El Estante Correcto", "Categorización semántica de productos.", "mj1", completedInCurrentLvl)}
-            ${renderGameCard(currentLvl, 2, "💵 Corta el Billete", "Reconocimiento y equivalencia en billetes CLP.", "mj2", completedInCurrentLvl)}
-            ${renderGameCard(currentLvl, 3, "🔤 Palabras en Góndola", "Conciencia fonológica de nombres y ofertas.", "mj3", completedInCurrentLvl)}
-            ${renderGameCard(currentLvl, 4, "🧮 Calculadora del Canasto", "Estimación de sumas y presupuestos.", "mj4", completedInCurrentLvl)}
-            ${renderGameCard(currentLvl, 5, "📋 La Lista de Compras", "Memoria operacional en góndolas reales.", "mj5", completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 2, "💵 Corta el Billete", "Reconocimiento y valorización CLP.", "mj2", completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 3, "🔤 Palabras en Góndola", "Conciencia fonológica de marcas.", "mj3", completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 4, "🧮 Calculadora del Canasto", "Estimación de sumas y compras.", "mj4", completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 5, "📋 La Lista de Compras", "Memoria operacional en supermercado.", "mj5", completedInCurrentLvl)}
 
-            <!-- TARJETA DEL JEFE FINAL -->
-            <div class="bg-gradient-to-br from-amber-600 via-orange-600 to-red-700 rounded-3xl p-6 border-4 border-amber-400/60 shadow-2xl flex flex-col justify-between space-y-4 relative overflow-hidden">
+            <!-- TARJETA DEL JEFE FINAL (BOSS STAGE) -->
+            <div class="bg-gradient-to-br from-purple-950 via-slate-900 to-amber-950 rounded-3xl p-6 border-2 border-amber-500/80 shadow-2xl shadow-amber-500/20 flex flex-col justify-between space-y-5 relative overflow-hidden">
                 <div class="flex justify-between items-start z-10">
-                    <span class="text-5xl animate-bounce">👑</span>
-                    <span class="text-xs font-black px-3 py-1.5 rounded-full bg-black/50 text-amber-300 border border-amber-400">
-                        JEFE FINAL - NIVEL ${currentLvl}
+                    <span class="text-4xl sm:text-5xl animate-bounce">👑</span>
+                    <span class="text-[10px] font-black px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/50 uppercase tracking-widest">
+                        BOSS EXAM NIVEL ${currentLvl}
                     </span>
                 </div>
-                <div class="z-10">
-                    <h3 class="font-black text-white text-xl">🛡️ Desafío del Cajero Central</h3>
-                    <p class="text-xs font-bold text-amber-100 mt-1">
-                        Evaluación integrada para subir al Nivel ${currentLvl < 5 ? currentLvl + 1 : 5}.
+                <div class="z-10 space-y-1">
+                    <h3 class="font-black text-white text-lg sm:text-xl uppercase">🛡️ Desafío del Cajero Central</h3>
+                    <p class="text-xs text-amber-200/80 font-bold leading-relaxed">
+                        Evaluación integral de habilidades para subir al Nivel ${currentLvl < 5 ? currentLvl + 1 : 5}.
                     </p>
                 </div>
                 <button ${isBossUnlocked ? `onclick="startBossExam(${currentLvl})"` : 'disabled'} 
-                        class="w-full py-4 rounded-2xl font-black text-sm z-10 transition-all ${
+                        class="w-full py-4 rounded-2xl font-black text-xs sm:text-sm tracking-wider uppercase z-10 transition-all ${
                             isBossUnlocked 
-                                ? 'bg-slate-950 hover:bg-black text-amber-300 border-2 border-amber-400 active:scale-95 shadow-xl' 
-                                : 'bg-slate-900/80 text-amber-200/40 cursor-not-allowed border border-white/10'
+                                ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 border-2 border-amber-300 active:scale-95 shadow-lg shadow-amber-500/40' 
+                                : 'bg-slate-900/80 text-slate-600 cursor-not-allowed border border-slate-800'
                         }">
-                    ${isBossUnlocked ? '🔥 ¡ENFRENTAR JEFE FINAL!' : '🔒 Completa los 5 juegos'}
+                    ${isBossUnlocked ? '🔥 ¡ENFRENTAR JEFE FINAL!' : '🔒 Completa los 5 minijuegos'}
                 </button>
             </div>
 
@@ -173,45 +162,45 @@ function renderMinigamesArcadeView() {
     mainContainer.innerHTML = html;
 }
 
-// Renderizado individual de tarjetas
+// TARJETAS DE MINIJUEGOS CON ESTILO NEÓN ADAPTABLES
 function renderGameCard(level, gameNum, title, description, gameKey, completedList) {
     const isCompleted = completedList.includes(gameKey);
     const isUnlocked = gameNum === 1 || completedList.includes(`mj${gameNum - 1}`);
 
     return `
-    <div class="bg-slate-800/90 rounded-3xl p-6 border-2 ${isCompleted ? 'border-emerald-500 bg-emerald-950/20' : 'border-slate-700'} shadow-xl flex flex-col justify-between space-y-4">
-        <div class="flex justify-between items-start">
-            <span class="text-xs font-black px-3 py-1 rounded-full ${isCompleted ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-700 text-slate-300'}">
-                ${isCompleted ? '✓ Completado' : `Minijuego ${gameNum}`}
+    <div class="bg-slate-900/90 rounded-3xl p-5 sm:p-6 border-2 ${isCompleted ? 'border-emerald-500/80 shadow-emerald-500/20 bg-emerald-950/10' : 'border-slate-800'} shadow-xl flex flex-col justify-between space-y-4">
+        <div class="flex justify-between items-center">
+            <span class="text-[10px] font-black px-3 py-1 rounded-full ${isCompleted ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-slate-800 text-slate-400'}">
+                ${isCompleted ? '✓ COMPLETADO' : `DESAFÍO ${gameNum}`}
             </span>
-            <span class="text-xs font-black text-slate-400">Nivel ${level}</span>
+            <span class="text-[10px] font-black text-slate-500 tracking-wider">STAGE ${level}</span>
         </div>
         <div>
-            <h3 class="font-black text-white text-lg">${title}</h3>
-            <p class="text-xs text-slate-400 font-bold mt-1">${description}</p>
+            <h3 class="font-black text-white text-base sm:text-lg">${title}</h3>
+            <p class="text-xs text-slate-400 font-bold mt-1 leading-relaxed">${description}</p>
         </div>
         <button ${isUnlocked ? `onclick="launchMinigame('${gameKey}', ${level})"` : 'disabled'} 
-                class="w-full py-3.5 rounded-2xl font-black text-xs transition-all ${
+                class="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all ${
                     isUnlocked 
-                        ? 'bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white shadow-lg' 
-                        : 'bg-slate-700/50 text-slate-500 cursor-not-allowed'
+                        ? (isCompleted 
+                            ? 'bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/50 shadow-md active:scale-95' 
+                            : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 border border-indigo-400 active:scale-95')
+                        : 'bg-slate-950/60 text-slate-600 border border-slate-800/40 cursor-not-allowed'
                 }">
-            ${isUnlocked ? (isCompleted ? '🔄 Rejugar' : '▶ ¡Iniciar!') : '🔒 Bloqueado'}
+            ${isUnlocked ? (isCompleted ? '🔄 Rejugar Desafío' : '▶ ¡Iniciar!') : '🔒 Bloqueado'}
         </button>
     </div>
     `;
 }
 
-// Cambiar de Nivel
 function switchLevel(levelId) {
     studentMinigamesProgress.currentLevel = levelId;
     saveMinigamesProgress();
     renderMinigamesArcadeView();
 }
 
-// Acción de cada Minijuego
 function launchMinigame(gameKey, level) {
-    alert(`🎮 Cargando juego ${gameKey.toUpperCase()} del Nivel ${level}`);
+    alert(`🎮 Iniciando ${gameKey.toUpperCase()} del Nivel ${level}`);
     
     if (!studentMinigamesProgress.completedGames[`level${level}`]) {
         studentMinigamesProgress.completedGames[`level${level}`] = [];
@@ -225,7 +214,6 @@ function launchMinigame(gameKey, level) {
     renderMinigamesArcadeView();
 }
 
-// Enfrentar al Jefe Final
 function startBossExam(level) {
     alert(`👑 ¡Felicidades! Derrotaste al Jefe Final del Nivel ${level}`);
 
