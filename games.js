@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - EXTRACCIÓN DE IMÁGENES REALES DEL CATÁLOGO
+   MÓDULO DE MINIJUEGOS NEE - CONEXIÓN EXACTA CON APP_STATE (IMÁGENES REALES)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -11,17 +11,17 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v20');
+    const saved = localStorage.getItem('nee_arcade_progress_v21');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v20', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v21', JSON.stringify(studentMinigamesProgress));
 }
 
-// CONEXIONES CON APP.JS
+// CONEXIÓN CON EL BOTÓN DE LA APP
 window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
 window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
 window.openMemorisModal = function() { renderMinigamesArcadeView(); };
@@ -51,125 +51,82 @@ function getCategoryIcon(catName) {
     return '🏷️';
 }
 
-const STORE_IGNORE = ['jumbo', 'lider', 'santa isabel', 'unimarc', 'tottus', 'supermercado', 'tienda'];
-
 // --------------------------------------------------------------------------
-// LECTURA DE IMÁGENES EXACTAS DE TU CATÁLOGO DE PRODUCTOS
+// EXTRACCIÓN DIRECTA DESDE APP_STATE.products
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
-    let rawProducts = [];
+    let rawList = [];
 
-    // 1. Buscar en todas las estructuras posibles de APP_STATE
-    if (window.APP_STATE) {
-        if (Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
-            rawProducts = window.APP_STATE.products;
-        } else if (window.APP_STATE.currentStore && Array.isArray(window.APP_STATE.currentStore.products)) {
-            rawProducts = window.APP_STATE.currentStore.products;
-        } else if (window.APP_STATE.selectedStore && Array.isArray(window.APP_STATE.selectedStore.products)) {
-            rawProducts = window.APP_STATE.selectedStore.products;
-        } else if (Array.isArray(window.APP_STATE.stores)) {
-            window.APP_STATE.stores.forEach(st => {
-                if (Array.isArray(st.products)) rawProducts.push(...st.products);
-                if (Array.isArray(st.items)) rawProducts.push(...st.items);
-            });
-        }
-    }
-
-    // 2. Escanear variables globales alternativas de app.js
-    if (rawProducts.length === 0) {
-        let sources = [
-            window.state?.products,
-            window.currentStore?.products,
-            window.products,
-            window.initialProducts,
-            window.allProducts
-        ];
-        sources.forEach(src => {
-            if (Array.isArray(src)) rawProducts.push(...src);
-        });
+    if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
+        rawList = window.APP_STATE.products;
+    } else if (window.products && Array.isArray(window.products)) {
+        rawList = window.products;
     }
 
     const validProducts = [];
-    const seenNames = new Set();
 
-    rawProducts.forEach(item => {
+    rawList.forEach(item => {
         if (!item) return;
-        let name = item.name || item.nombre || item.titulo || '';
-        let cleanName = String(name).trim();
-        let lowerName = cleanName.toLowerCase();
+        let name = item.name || item.nombre || 'Producto';
+        let category = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
+        let price = parseInt(item.price || item.precio) || 1000;
+        let photo = item.photoUrl || item.photo || item.image || item.imagen || '';
+        let emoji = item.iconEmoji || item.emoji || '🛍️';
 
-        // Filtrar logos de cadenas de tiendas
-        if (STORE_IGNORE.some(st => lowerName === st || lowerName.includes(st + ' '))) return;
-
-        let category = item.category || item.categoria || item.seccion || 'Lácteos, Yogures y Huevos';
-        let price = item.price || item.precio || item.costo || 1000;
-        
-        // BÚSQUEDA EXHAUSTIVA DEL CAMPO DE LA FOTO REAL
-        let photo = item.image || item.photo || item.imagen || item.photoUrl || item.img || item.src || item.foto || item.url || item.icon || '';
-
-        if (cleanName && !seenNames.has(lowerName)) {
-            seenNames.add(lowerName);
-            validProducts.push({
-                name: cleanName,
-                category: String(category).trim(),
-                photoUrl: photo,
-                price: parseInt(price) || 1000
-            });
-        }
+        validProducts.push({
+            name: String(name).trim(),
+            category: String(category).trim(),
+            photoUrl: photo,
+            iconEmoji: emoji,
+            price: price
+        });
     });
 
     return validProducts;
 }
 
 // --------------------------------------------------------------------------
-// EXTRACCIÓN DE BILLETES Y MONEDAS REALES
+// EXTRACCIÓN DIRECTA DESDE CLP_CURRENCY_ITEMS (BILLETES SVG)
 // --------------------------------------------------------------------------
 function getDatabaseMoney(targetPrice) {
-    let moneyList = [];
+    let currencyList = [];
 
-    if (window.APP_STATE) {
-        if (Array.isArray(window.APP_STATE.currency)) moneyList = window.APP_STATE.currency;
-        else if (Array.isArray(window.APP_STATE.billetes)) moneyList = window.APP_STATE.billetes;
+    if (typeof CLP_CURRENCY_ITEMS !== 'undefined' && Array.isArray(CLP_CURRENCY_ITEMS)) {
+        currencyList = CLP_CURRENCY_ITEMS;
+    } else if (window.CLP_CURRENCY_ITEMS && Array.isArray(window.CLP_CURRENCY_ITEMS)) {
+        currencyList = window.CLP_CURRENCY_ITEMS;
     }
 
-    if (moneyList.length === 0) {
-        let sources = [window.state?.cash, window.billetes, window.monedas];
-        sources.forEach(src => {
-            if (Array.isArray(src)) moneyList.push(...src);
-        });
+    if (currencyList.length > 0) {
+        // Retornar 4 opciones mezcladas (incluyendo billetes/monedas reales SVG)
+        return [...currencyList].sort(() => 0.5 - Math.random()).slice(0, 4).map(c => ({
+            value: c.value,
+            label: `$${c.value.toLocaleString('es-CL')} CLP`,
+            img: c.img,
+            type: c.type
+        }));
     }
 
-    const validMoney = [];
-    if (moneyList.length > 0) {
-        moneyList.forEach(m => {
-            let val = parseInt(m.value || m.valor || m.monto);
-            let img = m.image || m.imagen || m.img || m.photo || m.src || m.foto;
-            if (val) {
-                validMoney.push({
-                    value: val,
-                    label: `$${val.toLocaleString('es-CL')} CLP`,
-                    img: img || '',
-                    type: val >= 1000 ? 'billete' : 'moneda'
-                });
-            }
-        });
-    }
+    // Fallback de opciones numéricas si no encuentra CLP_CURRENCY_ITEMS
+    const p = targetPrice || 1000;
+    return [
+        { value: p, label: `$${p.toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-emerald-600 border-emerald-400" },
+        { value: p + 500, label: `$${(p + 500).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-purple-600 border-purple-400" },
+        { value: Math.max(100, p - 300), label: `$${Math.max(100, p - 300).toLocaleString('es-CL')} CLP`, icon: "🪙", color: "bg-amber-600 border-amber-400" },
+        { value: p + 1000, label: `$${(p + 1000).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-rose-600 border-rose-400" }
+    ].sort(() => 0.5 - Math.random());
+}
 
-    if (validMoney.length === 0) {
-        const p = targetPrice || 1000;
-        return [
-            { value: p, label: `$${p.toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-emerald-600 border-emerald-400" },
-            { value: p + 500, label: `$${(p + 500).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-purple-600 border-purple-400" },
-            { value: Math.max(100, p - 300), label: `$${Math.max(100, p - 300).toLocaleString('es-CL')} CLP`, icon: "🪙", color: "bg-amber-600 border-amber-400" },
-            { value: p + 1000, label: `$${(p + 1000).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-rose-600 border-rose-400" }
-        ].sort(() => 0.5 - Math.random());
+// RENDERIZADOR INTELIGENTE DE FOTO REAL vs EMOJI NEE
+function renderProductVisual(product, sizeClass = "w-44 h-44") {
+    if (product.photoUrl && product.photoUrl.trim() !== '') {
+        return `<img src="${product.photoUrl}" alt="${product.name}" class="max-h-full max-w-full object-contain" />`;
     }
-
-    return validMoney;
+    return `<span class="text-7xl font-black">${product.iconEmoji || '🛍️'}</span>`;
 }
 
 // --------------------------------------------------------------------------
-// VISTA PRINCIPAL DEL ARCADE
+// VISTA PRINCIPAL ARCADE
 // --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -234,7 +191,7 @@ function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Desafíos adaptados sincronizados con las imágenes originales de tu catálogo de productos.
+                    Desafíos pedagógicos sincronizados en vivo con tu catálogo y billetes SVG CLP.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -318,7 +275,7 @@ function launchGame(gameKey) {
 }
 
 // --------------------------------------------------------------------------
-// LÓGICA DE JUEGOS CON IMÁGENES DEL CATÁLOGO
+// LÓGICA DE JUEGOS
 // --------------------------------------------------------------------------
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
 
@@ -339,7 +296,7 @@ function renderMinigame1Question() {
 
     const allProducts = getDatabaseProducts();
     const categoriesSet = new Set(allProducts.map(p => p.category));
-    ['Lácteos, Yogures y Huevos', 'Frutas y Verduras', 'Panadería', 'Limpieza del Hogar', 'Bebidas'].forEach(c => categoriesSet.add(c));
+    ['Lácteos, Yogures y Huevos', 'Frutas y Verduras', 'Panadería y Pastelería', 'Limpieza del Hogar', 'Bebidas, Agua y Jugos'].forEach(c => categoriesSet.add(c));
     const availableCategories = Array.from(categoriesSet);
 
     let options = [q.category];
@@ -363,8 +320,8 @@ function renderMinigame1Question() {
             </div>
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
-                <div class="w-48 h-48 sm:w-56 sm:h-56 bg-white p-3 rounded-3xl border-4 border-indigo-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    ${q.photoUrl ? `<img src="${q.photoUrl}" alt="${q.name}" class="w-full h-full object-contain" />` : `<span class="text-6xl">🛍️</span>`}
+                <div class="w-48 h-48 sm:w-56 sm:h-56 bg-white p-4 rounded-3xl border-4 border-indigo-500/40 shadow-xl flex items-center justify-center overflow-hidden">
+                    ${renderProductVisual(q)}
                 </div>
                 <span class="text-xl sm:text-2xl font-black text-white uppercase px-4 tracking-wide block">${q.name}</span>
             </div>
@@ -429,8 +386,8 @@ function renderMinigame2Question() {
             </div>
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-3">
-                <div class="w-44 h-44 bg-white p-3 rounded-3xl border-4 border-emerald-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    ${q.photoUrl ? `<img src="${q.photoUrl}" alt="${q.name}" class="w-full h-full object-contain" />` : `<span class="text-6xl">🛍️</span>`}
+                <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-emerald-500/40 shadow-xl flex items-center justify-center overflow-hidden">
+                    ${renderProductVisual(q)}
                 </div>
                 <span class="text-lg font-black text-white uppercase">${q.name}</span>
 
@@ -443,8 +400,8 @@ function renderMinigame2Question() {
             <div class="grid grid-cols-2 gap-4">
                 ${moneyOptions.map(m => `
                     <button onclick="checkGenericAnswer(${m.value}, ${targetPrice}, startMinigame2, renderMinigame2Question)" 
-                            class="p-3 ${m.color || 'bg-slate-800 border-emerald-400'} text-white font-black rounded-2xl border-2 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
-                        ${m.img ? `<img src="${m.img}" class="h-14 w-auto object-contain rounded-lg" />` : `<span class="text-3xl">${m.icon || '💵'}</span>`}
+                            class="p-3 bg-slate-800 hover:bg-slate-700 border-emerald-400 text-white font-black rounded-2xl border-2 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
+                        ${m.img ? `<img src="${m.img}" class="h-16 w-auto object-contain rounded-lg" />` : `<span class="text-3xl">${m.icon || '💵'}</span>`}
                         <span class="font-black text-amber-300 text-base">${m.label}</span>
                     </button>
                 `).join('')}
@@ -486,8 +443,8 @@ function renderMinigame3Question() {
             </div>
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
-                <div class="w-44 h-44 bg-white p-3 rounded-3xl border-4 border-amber-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    ${q.photoUrl ? `<img src="${q.photoUrl}" alt="${q.name}" class="w-full h-full object-contain" />` : `<span class="text-6xl">🛍️</span>`}
+                <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-amber-500/40 shadow-xl flex items-center justify-center overflow-hidden">
+                    ${renderProductVisual(q)}
                 </div>
                 <span class="text-xs font-black text-slate-400 uppercase tracking-widest">¿CÓMO SE LLAMA ESTE PRODUCTO?</span>
             </div>
@@ -537,12 +494,16 @@ function renderMinigame4Question() {
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex justify-center items-center gap-6">
                 <div class="text-center">
-                    ${p1.photoUrl ? `<img src="${p1.photoUrl}" class="w-24 h-24 object-contain bg-white rounded-2xl p-2 mx-auto" />` : `<div class="w-24 h-24 bg-white rounded-2xl flex items-center justify-center text-3xl mx-auto">🛒</div>`}
+                    <div class="w-24 h-24 bg-white rounded-2xl p-2 flex items-center justify-center mx-auto overflow-hidden">
+                        ${renderProductVisual(p1, "w-20 h-20")}
+                    </div>
                     <span class="text-xs font-black text-amber-300 block mt-2">$${p1.price.toLocaleString('es-CL')}</span>
                 </div>
                 <span class="text-4xl font-black text-purple-400">+</span>
                 <div class="text-center">
-                    ${p2.photoUrl ? `<img src="${p2.photoUrl}" class="w-24 h-24 object-contain bg-white rounded-2xl p-2 mx-auto" />` : `<div class="w-24 h-24 bg-white rounded-2xl flex items-center justify-center text-3xl mx-auto">🛒</div>`}
+                    <div class="w-24 h-24 bg-white rounded-2xl p-2 flex items-center justify-center mx-auto overflow-hidden">
+                        ${renderProductVisual(p2, "w-20 h-20")}
+                    </div>
                     <span class="text-xs font-black text-amber-300 block mt-2">$${p2.price.toLocaleString('es-CL')}</span>
                 </div>
             </div>
@@ -597,8 +558,8 @@ function renderMinigame5Question() {
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 ${options.map(item => `
                     <button onclick="checkGenericAnswer('${item.name.replace(/'/g, "\\'")}', '${target.name.replace(/'/g, "\\'")}', startMinigame5, renderMinigame5Question)" 
-                            class="p-3 bg-white rounded-2xl border-4 border-rose-400 hover:scale-105 active:scale-95 transition-all shadow-lg">
-                        ${item.photoUrl ? `<img src="${item.photoUrl}" class="w-20 h-20 object-contain mx-auto" />` : `<span class="text-4xl block text-center">📦</span>`}
+                            class="p-3 bg-white rounded-2xl border-4 border-rose-400 hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center justify-center overflow-hidden h-28">
+                        ${renderProductVisual(item, "w-16 h-16")}
                     </button>
                 `).join('')}
             </div>
