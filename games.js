@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - EXTRACCIÓN GARANTIZADA DE ASSETS DE APP.JS
+   MÓDULO DE MINIJUEGOS NEE - CONEXIÓN CON INDEXEDDB Y IMÁGENES REALES
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -11,17 +11,17 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v13');
+    const saved = localStorage.getItem('nee_arcade_progress_v14');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v13', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v14', JSON.stringify(studentMinigamesProgress));
 }
 
-// PUENTES CON EL BOTÓN MORADO DE APP.JS
+// ALIAS PARA BOTÓN MORADO
 window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
 window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
 window.openMemorisModal = function() { renderMinigamesArcadeView(); };
@@ -32,7 +32,6 @@ function exitArcadeToDashboard() {
     else window.location.reload();
 }
 
-// DICCIONARIO DE PICTOGRAMAS DE CATEGORÍA
 const CATEGORY_ICONS = {
     'Lácteos': '🥛',
     'Frutas y Verduras': '🍎',
@@ -53,13 +52,57 @@ function getCategoryIcon(catName) {
 }
 
 // --------------------------------------------------------------------------
-// LECTURA DIRECTA DE PRODUCTOS E IMÁGENES DESDE APP.JS O DOM REAL
+// ESCANEO PROFUNDO DE IMÁGENES REALES (INDEXEDDB + LOCALSTORAGE + DOM)
 // --------------------------------------------------------------------------
-function getDatabaseProducts() {
-    let products = [];
+let CACHED_REAL_PRODUCTS = [];
+let CACHED_REAL_MONEY = [];
 
-    // 1. Escanear variables globales de app.js
-    let sources = [
+async function syncRealDataFromStorage() {
+    let products = [];
+    let money = [];
+
+    // 1. Escanear IndexedDB (donde se guardan las fotos subidas por profesores)
+    try {
+        const dbs = await window.indexedDB.databases?.() || [];
+        for (let dbInfo of dbs) {
+            if (!dbInfo.name) continue;
+            await new Promise((resolve) => {
+                const req = indexedDB.open(dbInfo.name);
+                req.onsuccess = (e) => {
+                    const db = e.target.result;
+                    const storeNames = Array.from(db.objectStoreNames);
+                    let pending = storeNames.length;
+                    if (pending === 0) resolve();
+
+                    storeNames.forEach(sName => {
+                        try {
+                            const tx = db.transaction(sName, 'readonly');
+                            const store = tx.objectStore(sName);
+                            const getAll = store.getAll();
+                            getAll.onsuccess = () => {
+                                const res = getAll.result || [];
+                                res.forEach(item => {
+                                    if (item && (item.name || item.nombre)) {
+                                        products.push(item);
+                                    }
+                                    if (item && (item.valor || item.value || item.monto)) {
+                                        money.push(item);
+                                    }
+                                });
+                                pending--;
+                                if (pending === 0) resolve();
+                            };
+                            getAll.onerror = () => { pending--; if (pending === 0) resolve(); };
+                        } catch(err) { pending--; if (pending === 0) resolve(); }
+                    });
+                };
+                req.onerror = () => resolve();
+            });
+        }
+    } catch(e) {}
+
+    // 2. Escanear estado global de app.js
+    const sources = [
         window.APP_STATE?.products,
         window.state?.products,
         window.products,
@@ -69,121 +112,120 @@ function getDatabaseProducts() {
         window.stores?.[0]?.products
     ];
 
-    for (let src of sources) {
-        if (Array.isArray(src) && src.length > 0) {
-            products = src;
-            break;
-        }
-    }
+    sources.forEach(src => {
+        if (Array.isArray(src)) products.push(...src);
+    });
 
+    // 3. Procesar Productos
     const validProducts = [];
+    const seenNames = new Set();
 
-    if (products.length > 0) {
-        products.forEach(item => {
-            if (!item) return;
-            let name = item.name || item.nombre || item.titulo;
-            let category = item.category || item.categoria || item.seccion || 'Lácteos, Yogures y Huevos';
-            let photo = item.image || item.photo || item.imagen || item.photoUrl || item.img || item.src || item.foto;
-            let price = item.price || item.precio || item.costo || 1000;
+    products.forEach(item => {
+        if (!item) return;
+        let name = item.name || item.nombre || item.titulo;
+        let category = item.category || item.categoria || item.seccion || 'Lácteos, Yogures y Huevos';
+        let photo = item.image || item.photo || item.imagen || item.photoUrl || item.img || item.src || item.foto;
+        let price = item.price || item.precio || item.costo || 1000;
 
-            if (name) {
-                validProducts.push({ 
-                    name: name.trim(), 
-                    category: category.trim(), 
-                    photoUrl: photo || '',
-                    price: parseInt(price) || 1000
-                });
-            }
-        });
+        if (name && !seenNames.has(name.trim().toLowerCase())) {
+            seenNames.add(name.trim().toLowerCase());
+            validProducts.push({
+                name: name.trim(),
+                category: category.trim(),
+                photoUrl: photo || '',
+                price: parseInt(price) || 1000
+            });
+        }
+    });
+
+    if (validProducts.length > 0) {
+        CACHED_REAL_PRODUCTS = validProducts;
     }
 
-    // 2. Si no encontró en variables, escanear tarjetas del HTML del supermercado
-    if (validProducts.length === 0) {
-        const cards = document.querySelectorAll('.grid > div, [class*="card"], [class*="product"]');
-        cards.forEach(card => {
-            const img = card.querySelector('img');
-            const title = card.querySelector('h3, h4, .font-black, .font-bold');
-            const priceEl = card.querySelector('[class*="price"], [class*="green"], [class*="emerald"]');
-
-            if (title) {
-                let name = title.innerText.trim();
-                let photo = img ? img.src : '';
-                let priceText = priceEl ? priceEl.innerText.replace(/[^0-9]/g, '') : '1350';
-
-                if (name && name.length > 2) {
-                    validProducts.push({
-                        name: name,
-                        category: 'Lácteos, Yogures y Huevos',
-                        photoUrl: photo,
-                        price: parseInt(priceText) || 1350
-                    });
-                }
-            }
-        });
-    }
-
-    return validProducts;
-}
-
-// --------------------------------------------------------------------------
-// LECTURA Y GENERACIÓN DE BILLETES Y MONEDAS CHILENAS (CLP)
-// --------------------------------------------------------------------------
-function getDatabaseMoney(targetPrice) {
-    let moneyList = [];
-
-    let sources = [
+    // 4. Procesar Billetes / Monedas
+    const moneySources = [
         window.APP_STATE?.currency,
         window.APP_STATE?.billetes,
         window.state?.cash,
         window.state?.money,
         window.billetes,
-        window.monedas,
-        window.cashData
+        window.monedas
     ];
-
-    for (let src of sources) {
-        if (Array.isArray(src) && src.length > 0) {
-            moneyList = src;
-            break;
-        }
-    }
+    moneySources.forEach(src => {
+        if (Array.isArray(src)) money.push(...src);
+    });
 
     const validMoney = [];
+    const seenValues = new Set();
 
-    if (moneyList.length > 0) {
-        moneyList.forEach(m => {
-            let val = parseInt(m.value || m.valor || m.monto);
-            let img = m.image || m.imagen || m.img || m.photo || m.src || m.foto;
-            if (val) {
-                validMoney.push({
-                    value: val,
-                    label: `$${val.toLocaleString('es-CL')} CLP`,
-                    img: img || '',
-                    type: val >= 1000 ? 'billete' : 'moneda'
+    money.forEach(m => {
+        if (!m) return;
+        let val = parseInt(m.value || m.valor || m.monto);
+        let img = m.image || m.imagen || m.img || m.photo || m.src || m.foto;
+        if (val && !seenValues.has(val)) {
+            seenValues.add(val);
+            validMoney.push({
+                value: val,
+                label: `$${val.toLocaleString('es-CL')} CLP`,
+                img: img || '',
+                type: val >= 1000 ? 'billete' : 'moneda'
+            });
+        }
+    });
+
+    if (validMoney.length > 0) {
+        CACHED_REAL_MONEY = validMoney;
+    }
+}
+
+function getDatabaseProducts() {
+    if (CACHED_REAL_PRODUCTS.length > 0) return CACHED_REAL_PRODUCTS;
+    
+    // Fallback de tarjetas renderizadas si IndexedDB aún no responde
+    const cards = document.querySelectorAll('.grid > div, [class*="card"], [class*="product"]');
+    const list = [];
+    cards.forEach(card => {
+        const img = card.querySelector('img');
+        const title = card.querySelector('h3, h4, .font-black, .font-bold');
+        const priceEl = card.querySelector('[class*="price"], [class*="green"], [class*="emerald"]');
+
+        if (title && img && img.src) {
+            let name = title.innerText.trim();
+            let priceText = priceEl ? priceEl.innerText.replace(/[^0-9]/g, '') : '1350';
+            if (name) {
+                list.push({
+                    name: name,
+                    category: 'Lácteos, Yogures y Huevos',
+                    photoUrl: img.src,
+                    price: parseInt(priceText) || 1350
                 });
             }
-        });
-    }
+        }
+    });
 
-    // Si la BD de app.js no tenía instanciados los billetes aún, construir opciones CLP estándar con el precio real
-    if (validMoney.length === 0) {
-        const p = targetPrice || 1000;
-        return [
-            { value: p, label: `$${p.toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-emerald-600 border-emerald-400" },
-            { value: p + 500, label: `$${(p + 500).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-purple-600 border-purple-400" },
-            { value: Math.max(100, p - 300), label: `$${Math.max(100, p - 300).toLocaleString('es-CL')} CLP`, icon: "🪙", color: "bg-amber-600 border-amber-400" },
-            { value: p + 1000, label: `$${(p + 1000).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-rose-600 border-rose-400" }
-        ].sort(() => 0.5 - Math.random());
-    }
+    return list.length > 0 ? list : [
+        { name: "LECHE ENTERA SOPROLE LIQUIDA 1 LITRO", category: "Lácteos, Yogures y Huevos", photoUrl: "", price: 1350 }
+    ];
+}
 
-    return validMoney;
+function getDatabaseMoney(targetPrice) {
+    if (CACHED_REAL_MONEY.length > 0) return CACHED_REAL_MONEY;
+
+    const p = targetPrice || 1000;
+    return [
+        { value: p, label: `$${p.toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-emerald-600 border-emerald-400" },
+        { value: p + 500, label: `$${(p + 500).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-purple-600 border-purple-400" },
+        { value: Math.max(100, p - 300), label: `$${Math.max(100, p - 300).toLocaleString('es-CL')} CLP`, icon: "🪙", color: "bg-amber-600 border-amber-400" },
+        { value: p + 1000, label: `$${(p + 1000).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-rose-600 border-rose-400" }
+    ].sort(() => 0.5 - Math.random());
 }
 
 // --------------------------------------------------------------------------
-// VISTA PRINCIPAL DEL ARCADE GAMER
+// VISTA PRINCIPAL DE DESAFÍOS
 // --------------------------------------------------------------------------
-function renderMinigamesArcadeView() {
+async function renderMinigamesArcadeView() {
     loadMinigamesProgress();
+    await syncRealDataFromStorage();
 
     const mainContainer = document.getElementById('appContainer');
     if (!mainContainer) return;
@@ -245,7 +287,7 @@ function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Desafíos pedagógicos adaptados con fotos reales del catálogo y pictogramas de apoyo.
+                    Desafíos pedagógicos adaptados sincronizados con los productos reales de tu tienda.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -320,7 +362,8 @@ function renderGameCard(level, gameNum, title, description, gameKey, completedLi
     `;
 }
 
-function launchGame(gameKey) {
+async function launchGame(gameKey) {
+    await syncRealDataFromStorage();
     if (gameKey === 'mj1') startMinigame1();
     else if (gameKey === 'mj2') startMinigame2();
     else if (gameKey === 'mj3') startMinigame3();
@@ -329,7 +372,7 @@ function launchGame(gameKey) {
 }
 
 // --------------------------------------------------------------------------
-// LÓGICA DE JUEGOS
+// MINIJUEGOS 1 AL 5 CON RENDERING DINÁMICO
 // --------------------------------------------------------------------------
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
 
