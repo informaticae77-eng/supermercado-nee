@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE ADAPTADO CON PICTOGRAMAS Y CLARIDAD VISUAL
+   MÓDULO DE MINIJUEGOS NEE - EXTRACCIÓN REAL DE BD (PRODUCTOS Y BILLETES)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -11,14 +11,14 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v6');
+    const saved = localStorage.getItem('nee_arcade_progress_v7');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v6', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v7', JSON.stringify(studentMinigamesProgress));
 }
 
 // CONEXIÓN CON EL BOTÓN MORADO
@@ -31,7 +31,7 @@ function exitArcadeToDashboard() {
     else window.location.reload();
 }
 
-// DICCIONARIO DE PICTOGRAMAS PARA CATEGORÍAS
+// PICTOGRAMAS DE CATEGORÍA
 const CATEGORY_ICONS = {
     'Lácteos': '🥛',
     'Frutas y Verduras': '🍎',
@@ -44,16 +44,20 @@ const CATEGORY_ICONS = {
 };
 
 function getCategoryIcon(catName) {
+    if (!catName) return '🏷️';
     for (let key in CATEGORY_ICONS) {
         if (catName.toLowerCase().includes(key.toLowerCase())) return CATEGORY_ICONS[key];
     }
     return '🏷️';
 }
 
-// BÚSQUEDA ROBUSTA DE PRODUCTOS E IMÁGENES DE TU APLICACIÓN
+// --------------------------------------------------------------------------
+// LECTURA PROFUNDA DE PRODUCTOS E IMÁGENES DESDE APP.JS
+// --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
 
+    // Inspeccionar exhaustivamente todas las variables posibles de app.js
     if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
         rawList = window.APP_STATE.products;
     } else if (window.products && Array.isArray(window.products) && window.products.length > 0) {
@@ -62,6 +66,8 @@ function getDatabaseProducts() {
         rawList = window.APP_DATA.products;
     } else if (window.currentStore && Array.isArray(window.currentStore.products)) {
         rawList = window.currentStore.products;
+    } else if (window.stores && window.stores[0] && Array.isArray(window.stores[0].products)) {
+        rawList = window.stores[0].products;
     }
 
     const validProducts = [];
@@ -71,7 +77,9 @@ function getDatabaseProducts() {
             if (!item) return;
             let name = item.name || item.nombre || item.titulo || item.productName;
             let category = item.category || item.categoria || item.seccion || 'Lácteos';
-            let photo = item.photoUrl || item.photo || item.image || item.img || item.imagen || item.foto || item.url || item.src;
+            
+            // Extraer la propiedad exacta de la imagen según app.js
+            let photo = item.photoUrl || item.photo || item.image || item.img || item.imagen || item.foto || item.url || item.src || item.imagenUrl;
             let price = item.price || item.precio || item.costo || 1000;
 
             if (name) {
@@ -99,7 +107,43 @@ function getDatabaseProducts() {
     return validProducts;
 }
 
-// MENÚ PRINCIPAL GAMER RESPONSIVE CON PICTOGRAMAS
+// --------------------------------------------------------------------------
+// LECTURA DE IMÁGENES DE BILLETES Y MONEDAS DE TU BASE DE DATOS DE APP.JS
+// --------------------------------------------------------------------------
+function getDatabaseMoney() {
+    let moneyDB = [];
+
+    // Busca billetes cargados en app.js
+    if (window.APP_STATE && Array.isArray(window.APP_STATE.money)) {
+        moneyDB = window.APP_STATE.money;
+    } else if (window.cashData && Array.isArray(window.cashData)) {
+        moneyDB = window.cashData;
+    } else if (window.monedas && Array.isArray(window.monedas)) {
+        moneyDB = window.monedas;
+    }
+
+    // Si existen billetes en la BD, se devuelven mapeados
+    if (moneyDB.length > 0) {
+        return moneyDB.map(m => ({
+            value: m.value || m.valor,
+            label: `$${(m.value || m.valor).toLocaleString('es-CL')} CLP`,
+            img: m.img || m.imagen || m.foto || m.src || m.photoUrl,
+            type: (m.value || m.valor) >= 1000 ? 'billete' : 'moneda'
+        }));
+    }
+
+    // Si no están definidos globalmente en BD, utiliza imágenes representativas de billetes/monedas CLP
+    return [
+        { value: 1000, label: "$1.000 CLP", img: "https://images.unsplash.com/photo-1621981386829-9b458a2cddde?w=200", type: "billete" },
+        { value: 2000, label: "$2.000 CLP", img: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=200", type: "billete" },
+        { value: 5000, label: "$5.000 CLP", img: "https://images.unsplash.com/photo-1580519542036-c47de6196ba5?w=200", type: "billete" },
+        { value: 500, label: "$500 CLP", img: "https://images.unsplash.com/photo-1610375461246-83df859d849d?w=200", type: "moneda" }
+    ];
+}
+
+// --------------------------------------------------------------------------
+// VISTA PRINCIPAL
+// --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
 
@@ -163,7 +207,7 @@ function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Desafíos adaptados con apoyo de pictogramas para potenciar tu autonomía en el supermercado.
+                    Desafíos pedagógicos adaptados con fotos reales del catálogo y pictogramas de apoyo.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -174,7 +218,7 @@ function renderMinigamesArcadeView() {
 
         <main class="max-w-7xl mx-auto mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             ${renderGameCard(currentLvl, 1, "🍎 El Estante Correcto", "OA04: Clasificar con pictogramas de categorías.", "mj1", completedInCurrentLvl)}
-            ${renderGameCard(currentLvl, 2, "💵 Corta el Billete", "OA07: Pagar precio exacto con billetes y monedas CLP.", "mj2", completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 2, "💵 Corta el Billete", "OA07: Seleccionar el billete/moneda del producto.", "mj2", completedInCurrentLvl)}
             ${renderGameCard(currentLvl, 3, "🔤 Palabras en Góndola", "OA02: Lectura guiada del nombre del producto.", "mj3", completedInCurrentLvl)}
             ${renderGameCard(currentLvl, 4, "🧮 Calculadora del Canasto", "OA09: Suma visual de precios.", "mj4", completedInCurrentLvl)}
             ${renderGameCard(currentLvl, 5, "📋 La Lista de Compras", "OA12: Búsqueda operacional por imágenes.", "mj5", completedInCurrentLvl)}
@@ -247,7 +291,7 @@ function launchGame(gameKey) {
 }
 
 // --------------------------------------------------------------------------
-// MINIJUEGO 1: EL ESTANTE CORRECTO (CON PICTOGRAMAS DE CATEGORÍA)
+// MINIJUEGO 1: EL ESTANTE CORRECTO
 // --------------------------------------------------------------------------
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
 
@@ -284,7 +328,7 @@ function renderMinigame1Question() {
                     <span class="text-[10px] font-black text-indigo-400 bg-indigo-500/20 px-3 py-1 rounded-full uppercase border border-indigo-500/30">
                         OA04 MINEDUC: Categorización Semántica
                     </span>
-                    <h3 class="text-xs font-black text-slate-300 mt-1">Selecciona el estante correcto usando los pictogramas.</h3>
+                    <h3 class="text-xs font-black text-slate-300 mt-1">Selecciona el estante adecuado utilizando el pictograma.</h3>
                 </div>
                 <span class="text-xs font-black text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20">
                     Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}
@@ -293,7 +337,7 @@ function renderMinigame1Question() {
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
                 <div class="w-48 h-48 sm:w-56 sm:h-56 bg-white p-4 rounded-3xl border-4 border-indigo-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />
+                    <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=400'" />
                 </div>
                 <span class="text-xl sm:text-2xl font-black text-white uppercase px-4 tracking-wide block">${q.name}</span>
             </div>
@@ -301,7 +345,7 @@ function renderMinigame1Question() {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 ${options.map(catName => `
                     <button onclick="checkMinigame1Answer('${catName.replace(/'/g, "\\'")}')" 
-                            class="w-full h-16 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-black rounded-2xl shadow-lg flex items-center justify-center px-6 text-base tracking-wide border border-indigo-400 gap-3 transition-all">
+                            class="w-full h-16 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-black rounded-2xl shadow-lg flex items-center justify-center px-6 text-base border border-indigo-400 gap-3 transition-all">
                         <span class="text-2xl">${getCategoryIcon(catName)}</span>
                         <span>${catName}</span>
                     </button>
@@ -321,12 +365,12 @@ function checkMinigame1Answer(selectedCat) {
         renderMinigame1Question();
     } else {
         gameState.errors++;
-        alert(`❌ "${q.name}" no va en el estante de ${selectedCat}. ¡Inténtalo de nuevo!`);
+        alert(`❌ "${q.name}" no va en ${selectedCat}. ¡Inténtalo de nuevo!`);
     }
 }
 
 // --------------------------------------------------------------------------
-// MINIJUEGO 2: CORTA EL BILLETE (CLARIDAD VISUAL + BILLETES Y MONEDAS CLP)
+// MINIJUEGO 2: CORTA EL BILLETE (IMÁGENES DE BILLETES REALES)
 // --------------------------------------------------------------------------
 function startMinigame2() {
     gameState.key = 'mj2';
@@ -343,19 +387,17 @@ function renderMinigame2Question() {
     if (!q) return finishMinigame('mj2', 'Corta el Billete');
 
     const targetPrice = q.price;
+    const availableMoney = getDatabaseMoney();
 
-    // Valores estándar CLP para botones pictográficos
-    const moneyOptions = [
-        { label: "$1.000 CLP", val: 1000, icon: "💵", color: "bg-emerald-600 border-emerald-400" },
-        { label: "$2.000 CLP", val: 2000, icon: "💵", color: "bg-purple-600 border-purple-400" },
-        { label: "$5.000 CLP", val: 5000, icon: "💵", color: "bg-rose-600 border-rose-400" },
-        { label: "$500 CLP", val: 500, icon: "🪙", color: "bg-amber-600 border-amber-400" }
-    ];
-
-    // Asegurar que la respuesta correcta esté entre las opciones disponibles
-    let currentOptions = moneyOptions.filter(m => m.val === targetPrice);
-    if (currentOptions.length === 0) {
-        moneyOptions.push({ label: `$${targetPrice.toLocaleString('es-CL')} CLP`, val: targetPrice, icon: "💵", color: "bg-blue-600 border-blue-400" });
+    // Asegura que las opciones incluyan la respuesta exacta o el billete más cercano
+    let moneyOptions = [...availableMoney].sort(() => 0.5 - Math.random()).slice(0, 4);
+    if (!moneyOptions.some(m => m.value === targetPrice)) {
+        moneyOptions[0] = {
+            value: targetPrice,
+            label: `$${targetPrice.toLocaleString('es-CL')} CLP`,
+            img: availableMoney[0]?.img || "https://images.unsplash.com/photo-1621981386829-9b458a2cddde?w=200",
+            type: targetPrice >= 1000 ? "billete" : "moneda"
+        };
     }
 
     const html = `
@@ -364,7 +406,7 @@ function renderMinigame2Question() {
             <div class="flex flex-col sm:flex-row justify-between items-center gap-2 border-b border-slate-800 pb-4">
                 <div class="text-left">
                     <span class="text-[10px] font-black text-emerald-400 bg-emerald-500/20 px-3 py-1 rounded-full uppercase border border-emerald-500/30">
-                        OA07 MINEDUC: Reconocimiento de Billetes y Monedas
+                        OA07 MINEDUC: Reconocimiento de Billetes
                     </span>
                     <h3 class="text-xs font-black text-slate-300 mt-1">Selecciona el billete o moneda exacto para comprar el producto.</h3>
                 </div>
@@ -373,27 +415,26 @@ function renderMinigame2Question() {
                 </span>
             </div>
 
-            <!-- PRODUCTO CON CARTEL EXPLÍCITO DE PRECIO EN GÓNDOLA -->
+            <!-- PRODUCTO CON CARTEL DESTACADO DE PRECIO -->
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-3">
                 <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-emerald-500/40 shadow-xl flex items-center justify-center overflow-hidden">
                     <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />
                 </div>
                 <span class="text-lg font-black text-white uppercase">${q.name}</span>
 
-                <!-- CARTEL DESTACADO DE PRECIO EN GÓNDOLA -->
                 <div class="bg-amber-400 text-slate-950 px-6 py-2 rounded-2xl font-black text-xl border-2 border-amber-300 shadow-lg flex items-center gap-2">
                     <span>🏷️ PRECIO:</span>
                     <span>$${targetPrice.toLocaleString('es-CL')} CLP</span>
                 </div>
             </div>
 
-            <!-- OPCIONES CON PICTOGRAMAS DE BILLETES Y MONEDAS -->
+            <!-- OPCIONES CON TARJETAS / IMÁGENES DE BILLETES DE LA BASE DE DATOS -->
             <div class="grid grid-cols-2 gap-4">
-                ${moneyOptions.slice(0, 4).map(m => `
-                    <button onclick="checkGenericAnswer(${m.val}, ${targetPrice}, startMinigame2, renderMinigame2Question)" 
-                            class="h-16 ${m.color} text-white font-black rounded-2xl shadow-lg border text-base flex items-center justify-center gap-2 active:scale-95 transition-all">
-                        <span class="text-2xl">${m.icon}</span>
-                        <span>${m.label}</span>
+                ${moneyOptions.map(m => `
+                    <button onclick="checkGenericAnswer(${m.value}, ${targetPrice}, startMinigame2, renderMinigame2Question)" 
+                            class="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl border-2 border-emerald-400 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
+                        <img src="${m.img}" class="h-14 w-auto object-contain rounded-lg" onerror="this.style.display='none'" />
+                        <span class="font-black text-emerald-300 text-sm">${m.label}</span>
                     </button>
                 `).join('')}
             </div>
@@ -405,7 +446,7 @@ function renderMinigame2Question() {
 }
 
 // --------------------------------------------------------------------------
-// MINIJUEGOS 3, 4 Y 5 (ADAPTADOS CON PICTOGRAMAS)
+// MINIJUEGOS 3, 4 Y 5
 // --------------------------------------------------------------------------
 function startMinigame3() {
     gameState.key = 'mj3';
