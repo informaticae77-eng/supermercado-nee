@@ -1,6 +1,5 @@
 /* ==========================================================================
-   MÓDULO INDEPENDIENTE: ARCADE DE MINIJUEGOS NEE (5 JUEGOS + BOSS COMPLETE)
-   Estructura: 5 Niveles | 5 Minijuegos por Nivel | 1 Jefe Final por Nivel
+   MÓDULO DE MINIJUEGOS NEE ADAPTADO CON PICTOGRAMAS Y CLARIDAD VISUAL
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -12,42 +11,49 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v5');
+    const saved = localStorage.getItem('nee_arcade_progress_v6');
     if (saved) {
-        try { 
-            studentMinigamesProgress = JSON.parse(saved); 
-        } catch(e) {
-            console.error("Error al cargar progreso:", e);
-        }
+        try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v5', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v6', JSON.stringify(studentMinigamesProgress));
 }
 
-// --------------------------------------------------------------------------
-// PUENTES DE CONEXIÓN CON APP.JS
-// --------------------------------------------------------------------------
+// CONEXIÓN CON EL BOTÓN MORADO
 window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
 window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
 window.openMemorisModal = function() { renderMinigamesArcadeView(); };
 
 function exitArcadeToDashboard() {
-    if (typeof renderApp === 'function') {
-        renderApp();
-    } else {
-        window.location.reload();
-    }
+    if (typeof renderApp === 'function') renderApp();
+    else window.location.reload();
 }
 
-// --------------------------------------------------------------------------
-// LECTURA DE PRODUCTOS E IMÁGENES REALES DE LA BASE DE DATOS
-// --------------------------------------------------------------------------
+// DICCIONARIO DE PICTOGRAMAS PARA CATEGORÍAS
+const CATEGORY_ICONS = {
+    'Lácteos': '🥛',
+    'Frutas y Verduras': '🍎',
+    'Panadería': '🍞',
+    'Aseo': '🧼',
+    'Bebidas': '🧃',
+    'Carnes': '🥩',
+    'Congelados': '🧊',
+    'Abarrotes': '📦'
+};
+
+function getCategoryIcon(catName) {
+    for (let key in CATEGORY_ICONS) {
+        if (catName.toLowerCase().includes(key.toLowerCase())) return CATEGORY_ICONS[key];
+    }
+    return '🏷️';
+}
+
+// BÚSQUEDA ROBUSTA DE PRODUCTOS E IMÁGENES DE TU APLICACIÓN
 function getDatabaseProducts() {
     let rawList = [];
 
-    // Inspeccionar exhaustivamente las estructuras de app.js
     if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
         rawList = window.APP_STATE.products;
     } else if (window.products && Array.isArray(window.products) && window.products.length > 0) {
@@ -65,7 +71,7 @@ function getDatabaseProducts() {
             if (!item) return;
             let name = item.name || item.nombre || item.titulo || item.productName;
             let category = item.category || item.categoria || item.seccion || 'Lácteos';
-            let photo = item.photoUrl || item.photo || item.image || item.img || item.imagen || item.foto || item.url;
+            let photo = item.photoUrl || item.photo || item.image || item.img || item.imagen || item.foto || item.url || item.src;
             let price = item.price || item.precio || item.costo || 1000;
 
             if (name) {
@@ -73,7 +79,7 @@ function getDatabaseProducts() {
                 validProducts.push({ 
                     name: cleanName || name, 
                     category: category.trim(), 
-                    photoUrl: photo || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300',
+                    photoUrl: photo || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400',
                     price: parseInt(price) || 1000
                 });
             }
@@ -82,20 +88,18 @@ function getDatabaseProducts() {
 
     if (validProducts.length === 0) {
         return [
-            { name: "Leche Entera 1L", category: "Lácteos", photoUrl: "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=300", price: 1050 },
-            { name: "Manzana Red", category: "Frutas y Verduras", photoUrl: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300", price: 600 },
-            { name: "Pan Marraqueta 1Kg", category: "Panadería", photoUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300", price: 1800 },
-            { name: "Detergente Multiuso", category: "Aseo", photoUrl: "https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=300", price: 3500 },
-            { name: "Jugo de Naranja 1L", category: "Bebidas", photoUrl: "https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=300", price: 1200 }
+            { name: "Leche Entera 1L", category: "Lácteos", photoUrl: "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400", price: 1000 },
+            { name: "Manzana Red 1Kg", category: "Frutas y Verduras", photoUrl: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400", price: 2000 },
+            { name: "Pan Marraqueta 1Kg", category: "Panadería", photoUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400", price: 1500 },
+            { name: "Detergente Multiuso", category: "Aseo", photoUrl: "https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=400", price: 5000 },
+            { name: "Jugo de Naranja 1L", category: "Bebidas", photoUrl: "https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=400", price: 2000 }
         ];
     }
 
     return validProducts;
 }
 
-// --------------------------------------------------------------------------
-// VISTA PRINCIPAL DEL ARCADE
-// --------------------------------------------------------------------------
+// MENÚ PRINCIPAL GAMER RESPONSIVE CON PICTOGRAMAS
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
 
@@ -107,25 +111,25 @@ function renderMinigamesArcadeView() {
     const isBossUnlocked = completedInCurrentLvl.length >= 5;
 
     const levelsConfig = [
-        { id: 1, title: "Comprador Principiante", icon: "🛒", border: "border-cyan-500", glow: "shadow-cyan-500/20" },
-        { id: 2, title: "Explorador de Góndolas", icon: "🔍", border: "border-emerald-500", glow: "shadow-emerald-500/20" },
-        { id: 3, title: "As del Vuelto y Cajas", icon: "💵", border: "border-amber-500", glow: "shadow-amber-500/20" },
-        { id: 4, title: "Planificador Experto", icon: "📋", border: "border-purple-500", glow: "shadow-purple-500/20" },
-        { id: 5, title: "Maestro del Supermercado", icon: "👑", border: "border-rose-500", glow: "shadow-rose-500/20" }
+        { id: 1, title: "Comprador Principiante", icon: "🛒", border: "border-cyan-500" },
+        { id: 2, title: "Explorador de Góndolas", icon: "🔍", border: "border-emerald-500" },
+        { id: 3, title: "As del Vuelto y Cajas", icon: "💵", border: "border-amber-500" },
+        { id: 4, title: "Planificador Experto", icon: "📋", border: "border-purple-500" },
+        { id: 5, title: "Maestro del Supermercado", icon: "👑", border: "border-rose-500" }
     ];
 
     const currentLevelInfo = levelsConfig.find(l => l.id === currentLvl) || levelsConfig[0];
 
     const html = `
     <div class="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 lg:p-8 font-sans select-none pb-20">
-        <header class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-900/90 p-4 sm:p-6 rounded-3xl border-2 border-indigo-500/40 shadow-2xl backdrop-blur-xl">
+        <header class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-900/90 p-4 sm:p-6 rounded-3xl border-2 border-indigo-500/40 shadow-2xl">
             <div class="flex items-center gap-3 sm:gap-4 w-full md:w-auto justify-between md:justify-start">
-                <button onclick="exitArcadeToDashboard()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 sm:px-5 sm:py-3 rounded-2xl font-black text-xs sm:text-sm transition-all active:scale-95 flex items-center gap-2 shadow-lg border border-indigo-400">
+                <button onclick="exitArcadeToDashboard()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-3 rounded-2xl font-black text-xs sm:text-sm transition-all active:scale-95 flex items-center gap-2 shadow-lg border border-indigo-400">
                     <span>⬅</span> <span>Volver a la Tienda</span>
                 </button>
                 <div>
-                    <span class="bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-widest block w-fit">
-                        Currículo Mineduc NEE
+                    <span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-black text-[10px] px-3 py-0.5 rounded-full uppercase tracking-widest block w-fit">
+                        Adaptado NEE • Mineduc
                     </span>
                     <h1 class="text-xl sm:text-2xl font-black text-white tracking-wide mt-0.5">CENTRO DE DESAFÍOS</h1>
                 </div>
@@ -137,11 +141,11 @@ function renderMinigamesArcadeView() {
                     const isActive = lvl.id === currentLvl;
                     return `
                     <button onclick="${isUnlocked ? `switchLevel(${lvl.id})` : ''}" 
-                            class="px-3.5 py-2 rounded-2xl font-black text-xs whitespace-nowrap transition-all flex items-center gap-1.5 border ${
+                            class="px-4 py-2.5 rounded-2xl font-black text-xs whitespace-nowrap transition-all flex items-center gap-1.5 border ${
                                 isActive 
-                                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-indigo-400 shadow-lg scale-105' 
+                                    ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg scale-105' 
                                     : isUnlocked 
-                                        ? 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 border-slate-700' 
+                                        ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border-slate-700' 
                                         : 'bg-slate-900/50 text-slate-600 border-slate-800/50 cursor-not-allowed'
                             }">
                         <span class="text-base">${lvl.icon}</span>
@@ -152,28 +156,28 @@ function renderMinigamesArcadeView() {
             </div>
         </header>
 
-        <section class="max-w-7xl mx-auto mt-6 bg-slate-900/90 rounded-3xl p-6 sm:p-8 border-2 ${currentLevelInfo.border} shadow-2xl ${currentLevelInfo.glow} flex flex-col md:flex-row justify-between items-center gap-6">
+        <section class="max-w-7xl mx-auto mt-6 bg-slate-900/90 rounded-3xl p-6 sm:p-8 border-2 ${currentLevelInfo.border} shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6">
             <div class="space-y-2 text-center md:text-left">
                 <span class="bg-black/60 text-amber-400 border border-amber-500/40 font-black text-xs px-3 py-1 rounded-full uppercase tracking-widest inline-block">
                     ⚡ Stage ${currentLvl} de 5
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Completa los 5 desafíos pedagógicos para habilitar el Examen del Jefe Final.
+                    Desafíos adaptados con apoyo de pictogramas para potenciar tu autonomía en el supermercado.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
-                <span class="text-[10px] font-black text-indigo-400 block uppercase tracking-widest">DESAFÍOS RESUELTOS</span>
+                <span class="text-[10px] font-black text-indigo-400 block uppercase tracking-widest">PROGRESO DE ETAPA</span>
                 <span class="text-3xl sm:text-4xl font-black text-amber-400 mt-1 block">${completedInCurrentLvl.length} / 5</span>
             </div>
         </section>
 
         <main class="max-w-7xl mx-auto mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-            ${renderGameCard(currentLvl, 1, "🍎 El Estante Correcto", "OA04: Categorizar productos en su sección.", "mj1", completedInCurrentLvl)}
-            ${renderGameCard(currentLvl, 2, "💵 Corta el Billete", "OA07: Identificar billetes y dar el pago justo.", "mj2", completedInCurrentLvl)}
-            ${renderGameCard(currentLvl, 3, "🔤 Palabras en Góndola", "OA02: Conciencia fonológica de etiquetas.", "mj3", completedInCurrentLvl)}
-            ${renderGameCard(currentLvl, 4, "🧮 Calculadora del Canasto", "OA09: Sumas simples y cálculo de costos.", "mj4", completedInCurrentLvl)}
-            ${renderGameCard(currentLvl, 5, "📋 La Lista de Compras", "OA12: Memoria operacional en el catálogo.", "mj5", completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 1, "🍎 El Estante Correcto", "OA04: Clasificar con pictogramas de categorías.", "mj1", completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 2, "💵 Corta el Billete", "OA07: Pagar precio exacto con billetes y monedas CLP.", "mj2", completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 3, "🔤 Palabras en Góndola", "OA02: Lectura guiada del nombre del producto.", "mj3", completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 4, "🧮 Calculadora del Canasto", "OA09: Suma visual de precios.", "mj4", completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 5, "📋 La Lista de Compras", "OA12: Búsqueda operacional por imágenes.", "mj5", completedInCurrentLvl)}
 
             <div class="bg-gradient-to-br from-purple-950 via-slate-900 to-amber-950 rounded-3xl p-6 border-2 border-amber-500/80 shadow-2xl flex flex-col justify-between space-y-5">
                 <div class="flex justify-between items-start">
@@ -185,7 +189,7 @@ function renderMinigamesArcadeView() {
                 <div>
                     <h3 class="font-black text-white text-lg sm:text-xl uppercase">🛡️ Desafío del Cajero Central</h3>
                     <p class="text-xs text-amber-200/80 font-bold mt-1">
-                        OA15: Prueba integrada para avanzar al Nivel ${currentLvl < 5 ? currentLvl + 1 : 5}.
+                        OA15: Prueba integrada para subir al Nivel ${currentLvl < 5 ? currentLvl + 1 : 5}.
                     </p>
                 </div>
                 <button ${isBossUnlocked ? `onclick="startBossExam(${currentLvl})"` : 'disabled'} 
@@ -243,7 +247,7 @@ function launchGame(gameKey) {
 }
 
 // --------------------------------------------------------------------------
-// MINIJUEGO 1: EL ESTANTE CORRECTO (OA04)
+// MINIJUEGO 1: EL ESTANTE CORRECTO (CON PICTOGRAMAS DE CATEGORÍA)
 // --------------------------------------------------------------------------
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
 
@@ -277,18 +281,17 @@ function renderMinigame1Question() {
         <div class="max-w-2xl w-full bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-indigo-500/60 shadow-2xl space-y-6 text-center select-none">
             <div class="flex flex-col sm:flex-row justify-between items-center gap-2 border-b border-slate-800 pb-4">
                 <div class="text-left">
-                    <span class="text-[10px] font-black text-indigo-400 bg-indigo-500/20 px-3 py-1 rounded-full uppercase tracking-wider border border-indigo-500/30">
+                    <span class="text-[10px] font-black text-indigo-400 bg-indigo-500/20 px-3 py-1 rounded-full uppercase border border-indigo-500/30">
                         OA04 MINEDUC: Categorización Semántica
                     </span>
-                    <h3 class="text-xs font-black text-slate-300 mt-1">Objetivo: Seleccionar la categoría adecuada para cada producto.</h3>
+                    <h3 class="text-xs font-black text-slate-300 mt-1">Selecciona el estante correcto usando los pictogramas.</h3>
                 </div>
-                <span class="text-xs font-black text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20 whitespace-nowrap">
+                <span class="text-xs font-black text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20">
                     Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}
                 </span>
             </div>
 
-            <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4 shadow-inner">
-                <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest">¿EN QUÉ ESTANTE O SECCIÓN VA ESTE PRODUCTO?</h4>
+            <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
                 <div class="w-48 h-48 sm:w-56 sm:h-56 bg-white p-4 rounded-3xl border-4 border-indigo-500/40 shadow-xl flex items-center justify-center overflow-hidden">
                     <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />
                 </div>
@@ -298,12 +301,13 @@ function renderMinigame1Question() {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 ${options.map(catName => `
                     <button onclick="checkMinigame1Answer('${catName.replace(/'/g, "\\'")}')" 
-                            class="w-full h-14 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-black rounded-2xl shadow-lg flex items-center justify-center px-6 text-sm tracking-wide border border-indigo-400 transition-all">
-                        ${catName}
+                            class="w-full h-16 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-black rounded-2xl shadow-lg flex items-center justify-center px-6 text-base tracking-wide border border-indigo-400 gap-3 transition-all">
+                        <span class="text-2xl">${getCategoryIcon(catName)}</span>
+                        <span>${catName}</span>
                     </button>
                 `).join('')}
             </div>
-            <button onclick="renderMinigamesArcadeView()" class="mt-4 text-xs font-bold text-slate-500 hover:text-slate-300 underline block mx-auto">✕ Salir</button>
+            <button onclick="renderMinigamesArcadeView()" class="mt-4 text-xs font-bold text-slate-500 underline block mx-auto">✕ Salir al Centro de Desafíos</button>
         </div>
     </div>`;
 
@@ -317,12 +321,12 @@ function checkMinigame1Answer(selectedCat) {
         renderMinigame1Question();
     } else {
         gameState.errors++;
-        alert(`❌ "${q.name}" no va en ${selectedCat}. ¡Inténtalo de nuevo!`);
+        alert(`❌ "${q.name}" no va en el estante de ${selectedCat}. ¡Inténtalo de nuevo!`);
     }
 }
 
 // --------------------------------------------------------------------------
-// MINIJUEGOS 2, 3, 4 Y 5 COMPLETOS
+// MINIJUEGO 2: CORTA EL BILLETE (CLARIDAD VISUAL + BILLETES Y MONEDAS CLP)
 // --------------------------------------------------------------------------
 function startMinigame2() {
     gameState.key = 'mj2';
@@ -338,8 +342,21 @@ function renderMinigame2Question() {
     const q = gameState.questions[gameState.currentQuestion];
     if (!q) return finishMinigame('mj2', 'Corta el Billete');
 
-    const correctPrice = q.price;
-    const options = [correctPrice, correctPrice + 500, Math.max(100, correctPrice - 300), correctPrice + 1000].sort(() => 0.5 - Math.random());
+    const targetPrice = q.price;
+
+    // Valores estándar CLP para botones pictográficos
+    const moneyOptions = [
+        { label: "$1.000 CLP", val: 1000, icon: "💵", color: "bg-emerald-600 border-emerald-400" },
+        { label: "$2.000 CLP", val: 2000, icon: "💵", color: "bg-purple-600 border-purple-400" },
+        { label: "$5.000 CLP", val: 5000, icon: "💵", color: "bg-rose-600 border-rose-400" },
+        { label: "$500 CLP", val: 500, icon: "🪙", color: "bg-amber-600 border-amber-400" }
+    ];
+
+    // Asegurar que la respuesta correcta esté entre las opciones disponibles
+    let currentOptions = moneyOptions.filter(m => m.val === targetPrice);
+    if (currentOptions.length === 0) {
+        moneyOptions.push({ label: `$${targetPrice.toLocaleString('es-CL')} CLP`, val: targetPrice, icon: "💵", color: "bg-blue-600 border-blue-400" });
+    }
 
     const html = `
     <div class="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8 flex items-center justify-center">
@@ -347,27 +364,36 @@ function renderMinigame2Question() {
             <div class="flex flex-col sm:flex-row justify-between items-center gap-2 border-b border-slate-800 pb-4">
                 <div class="text-left">
                     <span class="text-[10px] font-black text-emerald-400 bg-emerald-500/20 px-3 py-1 rounded-full uppercase border border-emerald-500/30">
-                        OA07 MINEDUC: Reconocimiento CLP
+                        OA07 MINEDUC: Reconocimiento de Billetes y Monedas
                     </span>
-                    <h3 class="text-xs font-black text-slate-300 mt-1">Objetivo: Seleccionar el precio exacto del producto.</h3>
+                    <h3 class="text-xs font-black text-slate-300 mt-1">Selecciona el billete o moneda exacto para comprar el producto.</h3>
                 </div>
                 <span class="text-xs font-black text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20">
                     Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}
                 </span>
             </div>
 
-            <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
+            <!-- PRODUCTO CON CARTEL EXPLÍCITO DE PRECIO EN GÓNDOLA -->
+            <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-3">
                 <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-emerald-500/40 shadow-xl flex items-center justify-center overflow-hidden">
                     <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />
                 </div>
-                <span class="text-xl font-black text-white uppercase">${q.name}</span>
+                <span class="text-lg font-black text-white uppercase">${q.name}</span>
+
+                <!-- CARTEL DESTACADO DE PRECIO EN GÓNDOLA -->
+                <div class="bg-amber-400 text-slate-950 px-6 py-2 rounded-2xl font-black text-xl border-2 border-amber-300 shadow-lg flex items-center gap-2">
+                    <span>🏷️ PRECIO:</span>
+                    <span>$${targetPrice.toLocaleString('es-CL')} CLP</span>
+                </div>
             </div>
 
+            <!-- OPCIONES CON PICTOGRAMAS DE BILLETES Y MONEDAS -->
             <div class="grid grid-cols-2 gap-4">
-                ${options.map(val => `
-                    <button onclick="checkGenericAnswer(${val}, ${correctPrice}, startMinigame2, renderMinigame2Question)" 
-                            class="h-14 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl shadow-lg border border-emerald-400 text-lg">
-                        $${val.toLocaleString('es-CL')} CLP
+                ${moneyOptions.slice(0, 4).map(m => `
+                    <button onclick="checkGenericAnswer(${m.val}, ${targetPrice}, startMinigame2, renderMinigame2Question)" 
+                            class="h-16 ${m.color} text-white font-black rounded-2xl shadow-lg border text-base flex items-center justify-center gap-2 active:scale-95 transition-all">
+                        <span class="text-2xl">${m.icon}</span>
+                        <span>${m.label}</span>
                     </button>
                 `).join('')}
             </div>
@@ -378,6 +404,9 @@ function renderMinigame2Question() {
     document.getElementById('appContainer').innerHTML = html;
 }
 
+// --------------------------------------------------------------------------
+// MINIJUEGOS 3, 4 Y 5 (ADAPTADOS CON PICTOGRAMAS)
+// --------------------------------------------------------------------------
 function startMinigame3() {
     gameState.key = 'mj3';
     gameState.startTime = Date.now();
@@ -402,7 +431,7 @@ function renderMinigame3Question() {
         <div class="max-w-2xl w-full bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-amber-500/60 shadow-2xl space-y-6 text-center select-none">
             <div class="flex justify-between items-center border-b border-slate-800 pb-4">
                 <span class="text-[10px] font-black text-amber-400 bg-amber-500/20 px-3 py-1 rounded-full uppercase border border-amber-500/30">
-                    OA02 MINEDUC: Lectura e Identificación
+                    OA02 MINEDUC: Lectura de Etiquetas
                 </span>
                 <span class="text-xs font-black text-amber-400">Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}</span>
             </div>
@@ -411,14 +440,14 @@ function renderMinigame3Question() {
                 <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-amber-500/40 shadow-xl flex items-center justify-center overflow-hidden">
                     <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />
                 </div>
-                <span class="text-xs font-black text-slate-400 uppercase tracking-widest">SELECCIONA EL NOMBRE CORRECTO</span>
+                <span class="text-xs font-black text-slate-400 uppercase tracking-widest">¿CÓMO SE LLAMA ESTE PRODUCTO?</span>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 ${options.map(name => `
                     <button onclick="checkGenericAnswer('${name.replace(/'/g, "\\'")}', '${correctName.replace(/'/g, "\\'")}', startMinigame3, renderMinigame3Question)" 
-                            class="h-14 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-2xl shadow-lg border border-amber-400 text-sm">
-                        ${name}
+                            class="h-14 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-2xl shadow-lg border border-amber-400 text-sm flex items-center justify-center gap-2">
+                        <span>🏷️</span> <span>${name}</span>
                     </button>
                 `).join('')}
             </div>
@@ -445,14 +474,14 @@ function renderMinigame4Question() {
     if (!p1 || !p2) return finishMinigame('mj4', 'Calculadora del Canasto');
 
     const totalSum = p1.price + p2.price;
-    const options = [totalSum, totalSum + 500, Math.max(200, totalSum - 400), totalSum + 1200].sort(() => 0.5 - Math.random());
+    const options = [totalSum, totalSum + 500, Math.max(200, totalSum - 400), totalSum + 1000].sort(() => 0.5 - Math.random());
 
     const html = `
     <div class="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8 flex items-center justify-center">
         <div class="max-w-2xl w-full bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-purple-500/60 shadow-2xl space-y-6 text-center select-none">
             <div class="flex justify-between items-center border-b border-slate-800 pb-4">
                 <span class="text-[10px] font-black text-purple-400 bg-purple-500/20 px-3 py-1 rounded-full uppercase border border-purple-500/30">
-                    OA09 MINEDUC: Suma de Canasto
+                    OA09 MINEDUC: Suma del Canasto
                 </span>
                 <span class="text-xs font-black text-amber-400">Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}</span>
             </div>
@@ -460,20 +489,20 @@ function renderMinigame4Question() {
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex justify-center items-center gap-6">
                 <div class="text-center">
                     <img src="${p1.photoUrl}" class="w-24 h-24 object-contain bg-white rounded-2xl p-2 mx-auto" />
-                    <span class="text-xs font-bold text-slate-300 block mt-1">$${p1.price}</span>
+                    <span class="text-xs font-black text-amber-300 block mt-2">$${p1.price.toLocaleString('es-CL')}</span>
                 </div>
-                <span class="text-3xl font-black text-purple-400">+</span>
+                <span class="text-4xl font-black text-purple-400">+</span>
                 <div class="text-center">
                     <img src="${p2.photoUrl}" class="w-24 h-24 object-contain bg-white rounded-2xl p-2 mx-auto" />
-                    <span class="text-xs font-bold text-slate-300 block mt-1">$${p2.price}</span>
+                    <span class="text-xs font-black text-amber-300 block mt-2">$${p2.price.toLocaleString('es-CL')}</span>
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 ${options.map(val => `
                     <button onclick="checkGenericAnswer(${val}, ${totalSum}, startMinigame4, renderMinigame4Question)" 
-                            class="h-14 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-2xl shadow-lg border border-purple-400 text-lg">
-                        $${val.toLocaleString('es-CL')} CLP
+                            class="h-16 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-2xl shadow-lg border border-purple-400 text-lg flex items-center justify-center gap-2">
+                        <span>🧮</span> <span>$${val.toLocaleString('es-CL')} CLP</span>
                     </button>
                 `).join('')}
             </div>
@@ -512,14 +541,14 @@ function renderMinigame5Question() {
             </div>
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800">
-                <h4 class="text-xs font-black text-slate-400 uppercase">ENCUENTRA EN LA GÓNDOLA:</h4>
+                <h4 class="text-xs font-black text-slate-400 uppercase">ENCUENTRA EN EL CATÁLOGO:</h4>
                 <span class="text-2xl font-black text-amber-300 uppercase mt-1 block">"${target.name}"</span>
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 ${options.map(item => `
                     <button onclick="checkGenericAnswer('${item.name.replace(/'/g, "\\'")}', '${target.name.replace(/'/g, "\\'")}', startMinigame5, renderMinigame5Question)" 
-                            class="p-3 bg-white rounded-2xl border-2 border-rose-400 hover:scale-105 transition-all">
+                            class="p-3 bg-white rounded-2xl border-4 border-rose-400 hover:scale-105 active:scale-95 transition-all shadow-lg">
                         <img src="${item.photoUrl}" class="w-20 h-20 object-contain mx-auto" />
                     </button>
                 `).join('')}
@@ -565,7 +594,7 @@ function switchLevel(levelId) {
 }
 
 function startBossExam(level) {
-    alert(`👑 ¡FEICIDADES! Has derrotado al Jefe Final del Nivel ${level}.`);
+    alert(`👑 ¡FELICIDADES! Has derrotado al Jefe Final del Nivel ${level}.`);
 
     const nextLevel = level + 1;
     if (nextLevel <= 5 && !studentMinigamesProgress.unlockedLevels.includes(nextLevel)) {
