@@ -548,156 +548,6 @@ function confirmPhysicalRewardClaim() {
 }
 
 // ==========================================
-// MINIJUEGO MEMORICE CON AVATAR
-// ==========================================
-function openMemoriseModal() {
-    startMemoriseGame();
-    document.getElementById('memoriseGameModal').classList.remove('hidden');
-}
-
-function closeMemoriseModal() {
-    document.getElementById('memoriseGameModal').classList.add('hidden');
-}
-
-function startMemoriseGame() {
-    const userLevel = (APP_STATE.currentUser && APP_STATE.currentUser.level) || 0;
-    let totalPairsNeeded = 3;
-    if (userLevel === 1) totalPairsNeeded = 4;
-    if (userLevel >= 2) totalPairsNeeded = 6;
-
-    let availableProducts = [...(APP_STATE.products || [])];
-    if (availableProducts.length < totalPairsNeeded) {
-        const fallbacks = [
-            { id: 'fb1', name: 'Leche', photoUrl: '', iconEmoji: '🥛' },
-            { id: 'fb2', name: 'Pan', photoUrl: '', iconEmoji: '🍞' },
-            { id: 'fb3', name: 'Manzana', photoUrl: '', iconEmoji: '🍎' },
-            { id: 'fb4', name: 'Jugo', photoUrl: '', iconEmoji: '🧃' },
-            { id: 'fb5', name: 'Queso', photoUrl: '', iconEmoji: '🧀' },
-            { id: 'fb6', name: 'Galletas', photoUrl: '', iconEmoji: '🍿' }
-        ];
-        availableProducts = availableProducts.concat(fallbacks);
-    }
-
-    const selectedProds = availableProducts.sort(() => 0.5 - Math.random()).slice(0, totalPairsNeeded);
-
-    let deck = [];
-    selectedProds.forEach((prod, index) => {
-        deck.push({ cardId: `card-${index}-a`, productId: prod.id, name: prod.name, photoUrl: prod.photoUrl || prod.photo || prod.image || '', iconEmoji: prod.iconEmoji || '📦', isFlipped: false, isMatched: false });
-        deck.push({ cardId: `card-${index}-b`, productId: prod.id, name: prod.name, photoUrl: prod.photoUrl || prod.photo || prod.image || '', iconEmoji: prod.iconEmoji || '📦', isFlipped: false, isMatched: false });
-    });
-
-    deck.sort(() => 0.5 - Math.random());
-
-    APP_STATE.memorise = {
-        cards: deck,
-        flippedCards: [],
-        matchedPairsCount: 0,
-        movesCount: 0,
-        totalPairsNeeded: totalPairsNeeded,
-        isBusy: false
-    };
-
-    const speechBox = document.getElementById('memoriseAvatarSpeechBox');
-    if (speechBox) {
-        speechBox.innerHTML = getAvatarHtml('mascot', `¡Hola! Encuentra las <b>${totalPairsNeeded} parejas</b> de productos iguales para ganar +15 Puntos.`);
-    }
-
-    speakText(`Minijuego de Memorice. Encuentra las ${totalPairsNeeded} parejas de productos.`);
-    renderMemoriseBoard();
-}
-
-function renderMemoriseBoard() {
-    const boardEl = document.getElementById('memoriseBoard');
-    const levelTag = document.getElementById('memoriseLevelTag');
-    const movesTag = document.getElementById('memoriseMovesTag');
-
-    if (!boardEl) return;
-
-    const userLevel = (APP_STATE.currentUser && APP_STATE.currentUser.level) || 0;
-    if (levelTag) levelTag.textContent = `${LEVEL_TITLES[Math.min(userLevel, LEVEL_TITLES.length - 1)]} (${APP_STATE.memorise.matchedPairsCount}/${APP_STATE.memorise.totalPairsNeeded} parejas)`;
-    if (movesTag) movesTag.textContent = `Movimientos: ${APP_STATE.memorise.movesCount}`;
-
-    boardEl.innerHTML = APP_STATE.memorise.cards.map((card, idx) => {
-        const isVisible = card.isFlipped || card.isMatched;
-        const imgHtml = card.photoUrl 
-            ? `<img src="${card.photoUrl}" class="w-14 h-14 object-cover rounded-xl border">`
-            : `<span class="text-4xl">${card.iconEmoji}</span>`;
-
-        return `
-            <div onclick="handleMemoriseCardClick(${idx})" class="h-28 bg-white border-4 ${card.isMatched ? 'border-emerald-400 bg-emerald-50' : 'border-purple-300'} rounded-2xl shadow-md cursor-pointer flex flex-col items-center justify-center p-2 transition-all active:scale-95">
-                ${isVisible ? `
-                    <div class="flex flex-col items-center space-y-1 animate-fade-in">
-                        ${imgHtml}
-                        <span class="text-[10px] font-black text-slate-800 text-center leading-tight line-clamp-1">${card.name}</span>
-                    </div>
-                ` : `
-                    <div class="text-3xl">❓</div>
-                    <span class="text-[9px] font-bold text-purple-600 mt-1 uppercase">Tocar</span>
-                `}
-            </div>
-        `;
-    }).join('');
-}
-
-function handleMemoriseCardClick(cardIndex) {
-    const mem = APP_STATE.memorise;
-    if (mem.isBusy) return;
-
-    const card = mem.cards[cardIndex];
-    if (card.isFlipped || card.isMatched) return;
-
-    card.isFlipped = true;
-    mem.flippedCards.push({ card, cardIndex });
-    playChimeSound();
-    speakText(card.name);
-
-    renderMemoriseBoard();
-
-    if (mem.flippedCards.length === 2) {
-        mem.movesCount++;
-        mem.isBusy = true;
-        const [first, second] = mem.flippedCards;
-
-        if (first.card.productId === second.card.productId) {
-            first.card.isMatched = true;
-            second.card.isMatched = true;
-            mem.matchedPairsCount++;
-            mem.flippedCards = [];
-            mem.isBusy = false;
-
-            playChimeSound(false);
-            speakText(`¡Excelente! Encontraste el par de ${first.card.name}`);
-
-            const speechBox = document.getElementById('memoriseAvatarSpeechBox');
-            if (speechBox) {
-                speechBox.innerHTML = getAvatarHtml('corporeo', `¡Sensacional! Encontraste el par de <b>${first.card.name}</b>.`);
-            }
-
-            renderMemoriseBoard();
-
-            if (mem.matchedPairsCount === mem.totalPairsNeeded) {
-                setTimeout(() => {
-                    if (typeof confetti !== 'undefined') confetti();
-                    const pointsGained = 15;
-                    speakText(`¡Completaste el Memorice! Ganaste ${pointsGained} puntos.`);
-                    alert(`🎉 ¡FELICITACIONES!\n\nCompletaste el minijuego de Memorice en ${mem.movesCount} movimientos.\n\n⭐ Ganaste +${pointsGained} Puntos`);
-                    awardPointsAndXp(pointsGained, "Minijuego Memorice");
-                    closeMemoriseModal();
-                }, 600);
-            }
-        } else {
-            setTimeout(() => {
-                first.card.isFlipped = false;
-                second.card.isFlipped = false;
-                mem.flippedCards = [];
-                mem.isBusy = false;
-                renderMemoriseBoard();
-            }, 1200);
-        }
-    }
-}
-
-// ==========================================
 // RENDERIZADO PRINCIPAL
 // ==========================================
 function renderApp() {
@@ -782,13 +632,7 @@ function renderLoginView(container) {
                 </div>
                 <p id="loginError" class="text-xs font-bold text-rose-600 hidden text-center">RUT o clave incorrecta.</p>
                 <button onclick="handleLogin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl border-b-4 border-indigo-900 shadow text-lg active:scale-95">Ingresar</button>
-            </div>
-            <div class="bg-indigo-50 border p-3 rounded-2xl text-[11px] font-bold text-indigo-900 space-y-1">
-                <div class="font-black uppercase">💡 Accesos Rápidos de Prueba:</div>
-                <div>• Docente / Educador: RUT <code>12345678-9</code> | PIN <code>1234</code></div>
-                <div>• Estudiante Alumno: RUT <code>98765432-1</code> | PIN <code>1234</code></div>
-            </div>
-        </div>
+            </div>          
     `;
 }
 
@@ -884,8 +728,9 @@ function renderHomeView(container) {
                             <p class="text-xs font-bold text-slate-500">Puntos acumulados: <b class="text-amber-600">${userPoints} pts</b> de ${rewardTarget} pts para el premio</p>
                         </div>
                     </div>
-                    <button onclick="openMemoriseModal()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-5 py-3 rounded-2xl shadow-lg border-b-4 border-purple-900 text-xs active:scale-95 flex items-center gap-2">
-                        <span>🧠</span> <span>JUGAR MINIJUEGO MEMORICE (+15 PTS)</span>
+                <div>
+                    <button onclick="renderMinigamesArcadeView()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black px-5 py-3 rounded-2xl shadow-lg border-b-4 border-purple-900 text-xs active:scale-95 flex items-center gap-2">
+                        <span>🎮</span> <span>JUGAR MINIJUEGOS (+15 PTS)</span>
                     </button>
                 </div>
 
@@ -3330,4 +3175,3 @@ if (document.readyState === 'loading') {
 } else {
     mainInit();
 }
-
