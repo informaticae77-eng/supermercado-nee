@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - CONEXIÓN CON ESTRUCTURA REAL DE LA APP
+   MÓDULO DE MINIJUEGOS NEE - CAPTURA DE DATOS DESDE PANTALLA Y MEMORIA
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -11,14 +11,14 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v8');
+    const saved = localStorage.getItem('nee_arcade_progress_v9');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v8', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v9', JSON.stringify(studentMinigamesProgress));
 }
 
 // ALIAS Y PUENTES DE CONEXIÓN CON EL BOTÓN MORADO
@@ -32,7 +32,7 @@ function exitArcadeToDashboard() {
     else window.location.reload();
 }
 
-// PICTOGRAMAS DE CATEGORÍA
+// DICCIONARIO DE PICTOGRAMAS DE CATEGORÍA
 const CATEGORY_ICONS = {
     'Lácteos': '🥛',
     'Frutas y Verduras': '🍎',
@@ -53,50 +53,35 @@ function getCategoryIcon(catName) {
 }
 
 // --------------------------------------------------------------------------
-// LECTURA DIRECTA DE PRODUCTOS E IMÁGENES DE TU SUPERMERCADO REAL
+// LECTURA DIRECTA DE PRODUCTOS (HTML DOM + ESTADO DE APP.JS + RESPALDO)
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
-    let rawList = [];
+    let products = [];
 
-    // 1. Buscar en el estado global activo de app.js
+    // 1. Intentar capturar desde las variables de estado globales de app.js
     if (window.state && Array.isArray(window.state.products) && window.state.products.length > 0) {
-        rawList = window.state.products;
+        products = window.state.products;
     } else if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
-        rawList = window.APP_STATE.products;
+        products = window.APP_STATE.products;
     } else if (window.products && Array.isArray(window.products) && window.products.length > 0) {
-        rawList = window.products;
-    } 
-
-    // 2. Si no están en memoria, leer del localStorage original de app.js
-    if (rawList.length === 0) {
-        for (let i = 0; i < localStorage.length; i++) {
-            let key = localStorage.key(i);
-            if (key.includes('supermercado') || key.includes('nee') || key.includes('store') || key.includes('app')) {
-                try {
-                    let parsed = JSON.parse(localStorage.getItem(key));
-                    if (parsed && Array.isArray(parsed.products) && parsed.products.length > 0) {
-                        rawList = parsed.products;
-                        break;
-                    }
-                } catch(e){}
-            }
-        }
+        products = window.products;
+    } else if (window.stores && window.stores[0] && Array.isArray(window.stores[0].products)) {
+        products = window.stores[0].products;
     }
 
     const validProducts = [];
 
-    if (rawList && rawList.length > 0) {
-        rawList.forEach(item => {
+    if (products && products.length > 0) {
+        products.forEach(item => {
             if (!item) return;
-            let name = item.name || item.nombre || item.titulo || item.productName;
+            let name = item.name || item.nombre || item.titulo;
             let category = item.category || item.categoria || item.seccion || 'Lácteos, Yogures y Huevos';
             let photo = item.image || item.imagen || item.photo || item.photoUrl || item.img || item.src;
             let price = item.price || item.precio || item.costo || 1000;
 
             if (name) {
-                let cleanName = name.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26BF}]/gu, '').trim();
                 validProducts.push({ 
-                    name: cleanName || name, 
+                    name: name.trim(), 
                     category: category.trim(), 
                     photoUrl: photo,
                     price: parseInt(price) || 1000
@@ -105,23 +90,52 @@ function getDatabaseProducts() {
         });
     }
 
+    // 2. Si no hay productos en variables, escanear el HTML que está renderizado en pantalla
+    if (validProducts.length === 0) {
+        const productCards = document.querySelectorAll('.bg-white, [class*="card"], [class*="product"]');
+        productCards.forEach(card => {
+            const imgEl = card.querySelector('img');
+            const titleEl = card.querySelector('h3, h4, .font-black, .font-bold');
+            const priceEl = card.querySelector('[class*="price"], [class*="green"], [class*="emerald"]');
+
+            if (imgEl && titleEl) {
+                let name = titleEl.innerText.trim();
+                let photo = imgEl.src;
+                let priceText = priceEl ? priceEl.innerText.replace(/[^0-9]/g, '') : '1000';
+                
+                if (name && photo && name.length > 2) {
+                    validProducts.push({
+                        name: name,
+                        category: 'Lácteos, Yogures y Huevos',
+                        photoUrl: photo,
+                        price: parseInt(priceText) || 1000
+                    });
+                }
+            }
+        });
+    }
+
+    // 3. Catálogo de respaldo garantizado con los productos reales del supermercado NEE
+    if (validProducts.length === 0) {
+        return [
+            { name: "LECHE ENTERA SOPROLE LIQUIDA 1 LITRO", category: "Lácteos, Yogures y Huevos", photoUrl: "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400", price: 1350 },
+            { name: "TOALLA DE PAPEL NOVA GIGANTE 100 METROS", category: "Limpieza del Hogar", photoUrl: "https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=400", price: 4990 },
+            { name: "JALEA COLUN FRAMBUESA 100 GRAMOS", category: "Lácteos, Yogures y Huevos", photoUrl: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400", price: 340 }
+        ];
+    }
+
     return validProducts;
 }
 
 // --------------------------------------------------------------------------
-// LECTURA DIRECTA DE BILLETES Y MONEDAS DE TU CAPTURA DE PANTALLA
+// LECTURA DIRECTA DE BILLETES Y MONEDAS REALES
 // --------------------------------------------------------------------------
 function getDatabaseMoney() {
     let moneyDB = [];
 
-    // Buscar el arreglo de billetes en el estado de app.js
-    if (window.state && Array.isArray(window.state.cash)) {
-        moneyDB = window.state.cash;
-    } else if (window.state && Array.isArray(window.state.money)) {
-        moneyDB = window.state.money;
-    } else if (window.APP_STATE && Array.isArray(window.APP_STATE.money)) {
-        moneyDB = window.APP_STATE.money;
-    }
+    if (window.state && Array.isArray(window.state.cash)) moneyDB = window.state.cash;
+    else if (window.state && Array.isArray(window.state.money)) moneyDB = window.state.money;
+    else if (window.APP_STATE && Array.isArray(window.APP_STATE.money)) moneyDB = window.APP_STATE.money;
 
     if (moneyDB.length > 0) {
         return moneyDB.map(m => ({
@@ -132,12 +146,16 @@ function getDatabaseMoney() {
         }));
     }
 
-    // Retorno estructurado si aún no ha instanciado la variable
-    return [];
+    return [
+        { value: 1000, label: "$1.000 CLP", img: "https://images.unsplash.com/photo-1621981386829-9b458a2cddde?w=200", type: "billete" },
+        { value: 2000, label: "$2.000 CLP", img: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=200", type: "billete" },
+        { value: 5000, label: "$5.000 CLP", img: "https://images.unsplash.com/photo-1580519542036-c47de6196ba5?w=200", type: "billete" },
+        { value: 500, label: "$500 CLP", img: "https://images.unsplash.com/photo-1610375461246-83df859d849d?w=200", type: "moneda" }
+    ];
 }
 
 // --------------------------------------------------------------------------
-// VISTA PRINCIPAL DEL ARCADE GAMER (RESPONSIVE)
+// VISTA PRINCIPAL
 // --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -202,7 +220,7 @@ function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Desafíos pedagógicos sincronizados en tiempo real con tus productos y billetes de la tienda.
+                    Desafíos pedagógicos adaptados con fotos reales del catálogo y pictogramas de apoyo.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -286,7 +304,7 @@ function launchGame(gameKey) {
 }
 
 // --------------------------------------------------------------------------
-// MINIJUEGO 1: EL ESTANTE CORRECTO
+// MINIJUEGOS 1 AL 5
 // --------------------------------------------------------------------------
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
 
@@ -297,10 +315,6 @@ function startMinigame1() {
     gameState.currentQuestion = 0;
     
     const catalog = getDatabaseProducts();
-    if (catalog.length === 0) {
-        alert("⚠️ Selecciona una tienda o carga un producto para iniciar los juegos.");
-        return;
-    }
     gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame1Question();
 }
@@ -311,7 +325,7 @@ function renderMinigame1Question() {
 
     const allProducts = getDatabaseProducts();
     const categoriesSet = new Set(allProducts.map(p => p.category));
-    ['Lácteos', 'Frutas y Verduras', 'Panadería', 'Aseo', 'Bebidas'].forEach(c => categoriesSet.add(c));
+    ['Lácteos, Yogures y Huevos', 'Frutas y Verduras', 'Panadería', 'Limpieza del Hogar', 'Bebidas'].forEach(c => categoriesSet.add(c));
     const availableCategories = Array.from(categoriesSet);
 
     let options = [q.category];
@@ -368,16 +382,12 @@ function checkMinigame1Answer(selectedCat) {
     }
 }
 
-// --------------------------------------------------------------------------
-// MINIJUEGO 2: CORTA EL BILLETE (IMÁGENES DE BILLETES DE LA BD)
-// --------------------------------------------------------------------------
 function startMinigame2() {
     gameState.key = 'mj2';
     gameState.startTime = Date.now();
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
-    if (catalog.length === 0) return;
     gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame2Question();
 }
@@ -406,7 +416,6 @@ function renderMinigame2Question() {
                 </span>
             </div>
 
-            <!-- PRODUCTO CON CARTEL DESTACADO DE PRECIO -->
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-3">
                 <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-emerald-500/40 shadow-xl flex items-center justify-center overflow-hidden">
                     <img src="${q.photoUrl}" alt="${q.name}" class="max-h-full max-w-full object-contain" />
@@ -419,19 +428,14 @@ function renderMinigame2Question() {
                 </div>
             </div>
 
-            <!-- MONEDAS Y BILLETES DE TU BASE DE DATOS -->
             <div class="grid grid-cols-2 gap-4">
-                ${moneyOptions.length > 0 ? moneyOptions.map(m => `
+                ${moneyOptions.map(m => `
                     <button onclick="checkGenericAnswer(${m.value}, ${targetPrice}, startMinigame2, renderMinigame2Question)" 
                             class="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl border-2 border-emerald-400 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
                         <img src="${m.img}" class="h-16 w-auto object-contain rounded-lg" />
                         <span class="font-black text-emerald-300 text-sm">${m.label}</span>
                     </button>
-                `).join('') : `
-                    <button onclick="checkGenericAnswer(${targetPrice}, ${targetPrice}, startMinigame2, renderMinigame2Question)" class="col-span-2 h-16 bg-emerald-600 text-white font-black rounded-2xl shadow-lg border text-lg">
-                        💵 PAGAR CON $${targetPrice.toLocaleString('es-CL')} CLP
-                    </button>
-                `}
+                `).join('')}
             </div>
             <button onclick="renderMinigamesArcadeView()" class="mt-4 text-xs font-bold text-slate-500 underline block mx-auto">✕ Salir</button>
         </div>
@@ -440,16 +444,12 @@ function renderMinigame2Question() {
     document.getElementById('appContainer').innerHTML = html;
 }
 
-// --------------------------------------------------------------------------
-// MINIJUEGOS 3, 4 Y 5
-// --------------------------------------------------------------------------
 function startMinigame3() {
     gameState.key = 'mj3';
     gameState.startTime = Date.now();
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
-    if (catalog.length === 0) return;
     gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame3Question();
 }
@@ -501,7 +501,6 @@ function startMinigame4() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
-    if (catalog.length === 0) return;
     gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(4, catalog.length));
     renderMinigame4Question();
 }
@@ -557,7 +556,6 @@ function startMinigame5() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
-    if (catalog.length === 0) return;
     gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame5Question();
 }
