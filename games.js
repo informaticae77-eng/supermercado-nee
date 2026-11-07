@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - CONEXIÓN EXACTA CON APP_STATE (IMÁGENES REALES)
+   MÓDULO DE MINIJUEGOS NEE - CONTROL ANTI-BUCLE (GARANTÍA DE PRODUCTOS)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -11,14 +11,14 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v21');
+    const saved = localStorage.getItem('nee_arcade_progress_v22');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v21', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v22', JSON.stringify(studentMinigamesProgress));
 }
 
 // CONEXIÓN CON EL BOTÓN DE LA APP
@@ -52,41 +52,52 @@ function getCategoryIcon(catName) {
 }
 
 // --------------------------------------------------------------------------
-// EXTRACCIÓN DIRECTA DESDE APP_STATE.products
+// EXTRACCIÓN CON RESPALDO (NUNCA RETORNA ARREGLO VACÍO)
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
 
     if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
         rawList = window.APP_STATE.products;
-    } else if (window.products && Array.isArray(window.products)) {
+    } else if (window.products && Array.isArray(window.products) && window.products.length > 0) {
         rawList = window.products;
     }
 
     const validProducts = [];
 
-    rawList.forEach(item => {
-        if (!item) return;
-        let name = item.name || item.nombre || 'Producto';
-        let category = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
-        let price = parseInt(item.price || item.precio) || 1000;
-        let photo = item.photoUrl || item.photo || item.image || item.imagen || '';
-        let emoji = item.iconEmoji || item.emoji || '🛍️';
+    if (rawList.length > 0) {
+        rawList.forEach(item => {
+            if (!item) return;
+            let name = item.name || item.nombre || 'Producto';
+            let category = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
+            let price = parseInt(item.price || item.precio) || 1000;
+            let photo = item.photoUrl || item.photo || item.image || item.imagen || '';
+            let emoji = item.iconEmoji || item.emoji || '🛍️';
 
-        validProducts.push({
-            name: String(name).trim(),
-            category: String(category).trim(),
-            photoUrl: photo,
-            iconEmoji: emoji,
-            price: price
+            validProducts.push({
+                name: String(name).trim(),
+                category: String(category).trim(),
+                photoUrl: photo,
+                iconEmoji: emoji,
+                price: price
+            });
         });
-    });
+    }
+
+    // RESPALDO SI LA TIENDA AÚN NO HA CARGADO SUS PRODUCTOS
+    if (validProducts.length === 0) {
+        return [
+            { id: 'prod-1', name: 'Leche Entera 1L', category: 'Lácteos, Yogures y Huevos', price: 1050, photoUrl: '', iconEmoji: '🥛' },
+            { id: 'prod-2', name: 'Pan Hallulla 1Kg', category: 'Panadería y Pastelería', price: 1990, photoUrl: '', iconEmoji: '🍞' },
+            { id: 'prod-3', name: 'Manzana Fuji (1Kg)', category: 'Frutas y Verduras', price: 1200, photoUrl: '', iconEmoji: '🍎' }
+        ];
+    }
 
     return validProducts;
 }
 
 // --------------------------------------------------------------------------
-// EXTRACCIÓN DIRECTA DESDE CLP_CURRENCY_ITEMS (BILLETES SVG)
+// EXTRACCIÓN DE BILLETES Y MONEDAS REALES DE TU APP
 // --------------------------------------------------------------------------
 function getDatabaseMoney(targetPrice) {
     let currencyList = [];
@@ -98,7 +109,6 @@ function getDatabaseMoney(targetPrice) {
     }
 
     if (currencyList.length > 0) {
-        // Retornar 4 opciones mezcladas (incluyendo billetes/monedas reales SVG)
         return [...currencyList].sort(() => 0.5 - Math.random()).slice(0, 4).map(c => ({
             value: c.value,
             label: `$${c.value.toLocaleString('es-CL')} CLP`,
@@ -107,7 +117,6 @@ function getDatabaseMoney(targetPrice) {
         }));
     }
 
-    // Fallback de opciones numéricas si no encuentra CLP_CURRENCY_ITEMS
     const p = targetPrice || 1000;
     return [
         { value: p, label: `$${p.toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-emerald-600 border-emerald-400" },
@@ -117,8 +126,8 @@ function getDatabaseMoney(targetPrice) {
     ].sort(() => 0.5 - Math.random());
 }
 
-// RENDERIZADOR INTELIGENTE DE FOTO REAL vs EMOJI NEE
-function renderProductVisual(product, sizeClass = "w-44 h-44") {
+// RENDERIZADOR DE PRODUCTO (FOTO REAL O EMOJI)
+function renderProductVisual(product) {
     if (product.photoUrl && product.photoUrl.trim() !== '') {
         return `<img src="${product.photoUrl}" alt="${product.name}" class="max-h-full max-w-full object-contain" />`;
     }
@@ -126,7 +135,7 @@ function renderProductVisual(product, sizeClass = "w-44 h-44") {
 }
 
 // --------------------------------------------------------------------------
-// VISTA PRINCIPAL ARCADE
+// VISTA PRINCIPAL DEL ARCADE
 // --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -191,7 +200,7 @@ function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Desafíos pedagógicos sincronizados en vivo con tu catálogo y billetes SVG CLP.
+                    Desafíos adaptados sincronizados en vivo con el catálogo de tu tienda.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -286,7 +295,7 @@ function startMinigame1() {
     gameState.currentQuestion = 0;
     
     let catalog = getDatabaseProducts();
-    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 5);
+    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame1Question();
 }
 
@@ -359,7 +368,7 @@ function startMinigame2() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
-    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 5);
+    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame2Question();
 }
 
@@ -419,7 +428,7 @@ function startMinigame3() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
-    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 5);
+    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame3Question();
 }
 
@@ -470,7 +479,7 @@ function startMinigame4() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
-    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 4);
+    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(4, catalog.length));
     renderMinigame4Question();
 }
 
@@ -495,14 +504,14 @@ function renderMinigame4Question() {
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex justify-center items-center gap-6">
                 <div class="text-center">
                     <div class="w-24 h-24 bg-white rounded-2xl p-2 flex items-center justify-center mx-auto overflow-hidden">
-                        ${renderProductVisual(p1, "w-20 h-20")}
+                        ${renderProductVisual(p1)}
                     </div>
                     <span class="text-xs font-black text-amber-300 block mt-2">$${p1.price.toLocaleString('es-CL')}</span>
                 </div>
                 <span class="text-4xl font-black text-purple-400">+</span>
                 <div class="text-center">
                     <div class="w-24 h-24 bg-white rounded-2xl p-2 flex items-center justify-center mx-auto overflow-hidden">
-                        ${renderProductVisual(p2, "w-20 h-20")}
+                        ${renderProductVisual(p2)}
                     </div>
                     <span class="text-xs font-black text-amber-300 block mt-2">$${p2.price.toLocaleString('es-CL')}</span>
                 </div>
@@ -529,7 +538,7 @@ function startMinigame5() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
-    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, 5);
+    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame5Question();
 }
 
@@ -559,7 +568,7 @@ function renderMinigame5Question() {
                 ${options.map(item => `
                     <button onclick="checkGenericAnswer('${item.name.replace(/'/g, "\\'")}', '${target.name.replace(/'/g, "\\'")}', startMinigame5, renderMinigame5Question)" 
                             class="p-3 bg-white rounded-2xl border-4 border-rose-400 hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center justify-center overflow-hidden h-28">
-                        ${renderProductVisual(item, "w-16 h-16")}
+                        ${renderProductVisual(item)}
                     </button>
                 `).join('')}
             </div>
