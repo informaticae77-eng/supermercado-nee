@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - CORRECCIÓN DE ESTADO Y RESET AUTOMÁTICO
+   MÓDULO DE MINIJUEGOS NEE - SOLUCIÓN DEFINITIVA DE CARGA Y RENDERIZADO
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -9,14 +9,14 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v33');
+    const saved = localStorage.getItem('nee_arcade_progress_v34');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v33', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v34', JSON.stringify(studentMinigamesProgress));
 }
 
 function exitArcadeToDashboard() {
@@ -45,6 +45,9 @@ function getCategoryIcon(catName) {
     return '🏷️';
 }
 
+// --------------------------------------------------------------------------
+// LECTURA DIRECTA SIN FILTROS RÍGIDOS DE PRODUCTOS DE LA APP
+// --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
 
@@ -53,6 +56,9 @@ function getDatabaseProducts() {
     }
     if ((!rawList || rawList.length === 0) && window.APP_STATE && Array.isArray(window.APP_STATE.products)) {
         rawList = window.APP_STATE.products;
+    }
+    if ((!rawList || rawList.length === 0) && window.products && Array.isArray(window.products)) {
+        rawList = window.products;
     }
 
     const processedList = [];
@@ -64,6 +70,8 @@ function getDatabaseProducts() {
             let name = item.name || item.nombre || item.productName || `Producto ${index + 1}`;
             let category = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
             let price = parseInt(item.price || item.precio) || 1000;
+            
+            // Revisa todas las claves posibles sin descartar ninguna foto Base64 o URL
             let photoSrc = item.photo || item.image || item.photoUrl || item.imagen || item.img || '';
             let emoji = item.iconEmoji || item.emoji || '🛍️';
 
@@ -78,8 +86,16 @@ function getDatabaseProducts() {
         });
     }
 
-    const withImages = processedList.filter(p => p.photoUrl && p.photoUrl.startsWith('data:image'));
-    return withImages.length > 0 ? withImages : processedList;
+    // Devuelve todos los productos extraídos de APP_STATE
+    if (processedList.length > 0) {
+        return processedList;
+    }
+
+    // Fallback de contingencia sólo si el arreglo está 100% vacío
+    return [
+        { id: 'def-1', name: 'Leche Entera 1L', category: 'Lácteos, Yogures y Huevos', price: 1050, photoUrl: '', iconEmoji: '🥛' },
+        { id: 'def-2', name: 'Pan Hallulla 1Kg', category: 'Panadería y Pastelería', price: 1990, photoUrl: '', iconEmoji: '🍞' }
+    ];
 }
 
 function getDatabaseMoney(targetPrice) {
@@ -109,8 +125,11 @@ function getDatabaseMoney(targetPrice) {
     ].sort(() => 0.5 - Math.random());
 }
 
+// --------------------------------------------------------------------------
+// RENDERIZADO VISUAL ROBUSTO
+// --------------------------------------------------------------------------
 function renderProductVisual(product, textSize = "text-7xl") {
-    if (product && product.photoUrl && product.photoUrl.length > 20) {
+    if (product && product.photoUrl && product.photoUrl.length > 10) {
         return `<img src="${product.photoUrl}" alt="${escapeHtml(product.name)}" class="max-h-full max-w-full object-contain mx-auto" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='block';" />
                 <span class="${textSize} font-black" style="display:none;">${product.iconEmoji || '🛍️'}</span>`;
     }
@@ -122,6 +141,9 @@ function escapeHtml(str) {
     return String(str).replace(/'/g, "\\'").replace(/"/g, '"');
 }
 
+// --------------------------------------------------------------------------
+// VISTA PRINCIPAL ARCADE
+// --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
 
@@ -272,12 +294,6 @@ let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [],
 
 function startMinigame1() {
     const catalog = getDatabaseProducts();
-    if (!catalog || catalog.length === 0) {
-        alert("⚠️ No se encontraron productos cargados en la base de datos.");
-        return;
-    }
-
-    // RESTRUCTURACIÓN SEGURA: Reinicio garantizado desde la pregunta 0
     gameState = {
         key: 'mj1',
         startTime: Date.now(),
@@ -285,7 +301,6 @@ function startMinigame1() {
         currentQuestion: 0,
         questions: [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length))
     };
-
     renderMinigame1Question();
 }
 
@@ -356,7 +371,6 @@ function checkMinigame1Answer(selectedCat) {
 
 function startMinigame2() {
     const catalog = getDatabaseProducts();
-    if (!catalog || catalog.length === 0) return;
     gameState = {
         key: 'mj2',
         startTime: Date.now(),
@@ -421,7 +435,6 @@ function renderMinigame2Question() {
 
 function startMinigame3() {
     const catalog = getDatabaseProducts();
-    if (!catalog || catalog.length === 0) return;
     gameState = {
         key: 'mj3',
         startTime: Date.now(),
@@ -477,7 +490,6 @@ function renderMinigame3Question() {
 
 function startMinigame4() {
     const catalog = getDatabaseProducts();
-    if (!catalog || catalog.length === 0) return;
     gameState = {
         key: 'mj4',
         startTime: Date.now(),
@@ -543,7 +555,6 @@ function renderMinigame4Question() {
 
 function startMinigame5() {
     const catalog = getDatabaseProducts();
-    if (!catalog || catalog.length === 0) return;
     gameState = {
         key: 'mj5',
         startTime: Date.now(),
