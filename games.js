@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - SOLUCIÓN DEFINITIVA DE CARGA Y RENDERIZADO
+   MÓDULO DE MINIJUEGOS NEE - LECTURA ROBUSTA DE BASE DE DATOS
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -9,14 +9,14 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v34');
+    const saved = localStorage.getItem('nee_arcade_progress_v35');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v34', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v35', JSON.stringify(studentMinigamesProgress));
 }
 
 function exitArcadeToDashboard() {
@@ -46,18 +46,21 @@ function getCategoryIcon(catName) {
 }
 
 // --------------------------------------------------------------------------
-// LECTURA DIRECTA SIN FILTROS RÍGIDOS DE PRODUCTOS DE LA APP
+// LECTURA DIRECTA DE LOS 27 PRODUCTOS REALES EN MEMORIA (APP_STATE)
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
 
-    if (window.PRODUCT_STORE && typeof window.PRODUCT_STORE.getProducts === 'function') {
+    // Prioridad 1: APP_STATE.products (El arreglo real con tus 27 productos)
+    if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
+        rawList = window.APP_STATE.products;
+    } 
+    // Prioridad 2: window.PRODUCT_STORE
+    else if (window.PRODUCT_STORE && typeof window.PRODUCT_STORE.getProducts === 'function') {
         rawList = window.PRODUCT_STORE.getProducts();
     }
-    if ((!rawList || rawList.length === 0) && window.APP_STATE && Array.isArray(window.APP_STATE.products)) {
-        rawList = window.APP_STATE.products;
-    }
-    if ((!rawList || rawList.length === 0) && window.products && Array.isArray(window.products)) {
+    // Prioridad 3: window.products
+    else if (window.products && Array.isArray(window.products)) {
         rawList = window.products;
     }
 
@@ -67,35 +70,28 @@ function getDatabaseProducts() {
         rawList.forEach((item, index) => {
             if (!item) return;
 
-            let name = item.name || item.nombre || item.productName || `Producto ${index + 1}`;
-            let category = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
-            let price = parseInt(item.price || item.precio) || 1000;
+            // Extraer nombre con fallbacks para evitar undefined
+            let nameStr = item.name || item.nombre || item.productName || `Producto ${index + 1}`;
+            let categoryStr = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
+            let priceNum = parseInt(item.price || item.precio) || 1000;
             
-            // Revisa todas las claves posibles sin descartar ninguna foto Base64 o URL
+            // Extraer la imagen Base64 de la propiedad donde esté guardada (photo, image o photoUrl)
             let photoSrc = item.photo || item.image || item.photoUrl || item.imagen || item.img || '';
             let emoji = item.iconEmoji || item.emoji || '🛍️';
 
             processedList.push({
                 id: item.id || `prod-${index}`,
-                name: String(name).trim(),
-                category: String(category).trim(),
+                name: String(nameStr).trim(),
+                category: String(categoryStr).trim(),
                 photoUrl: String(photoSrc).trim(),
                 iconEmoji: emoji,
-                price: price
+                price: priceNum
             });
         });
     }
 
-    // Devuelve todos los productos extraídos de APP_STATE
-    if (processedList.length > 0) {
-        return processedList;
-    }
-
-    // Fallback de contingencia sólo si el arreglo está 100% vacío
-    return [
-        { id: 'def-1', name: 'Leche Entera 1L', category: 'Lácteos, Yogures y Huevos', price: 1050, photoUrl: '', iconEmoji: '🥛' },
-        { id: 'def-2', name: 'Pan Hallulla 1Kg', category: 'Panadería y Pastelería', price: 1990, photoUrl: '', iconEmoji: '🍞' }
-    ];
+    // Devuelve los 27 productos leídos de memoria
+    return processedList;
 }
 
 function getDatabaseMoney(targetPrice) {
@@ -126,10 +122,10 @@ function getDatabaseMoney(targetPrice) {
 }
 
 // --------------------------------------------------------------------------
-// RENDERIZADO VISUAL ROBUSTO
+// RENDERIZADO VISUAL DE FOTO BASE64 REAL
 // --------------------------------------------------------------------------
 function renderProductVisual(product, textSize = "text-7xl") {
-    if (product && product.photoUrl && product.photoUrl.length > 10) {
+    if (product && product.photoUrl && product.photoUrl.length > 20) {
         return `<img src="${product.photoUrl}" alt="${escapeHtml(product.name)}" class="max-h-full max-w-full object-contain mx-auto" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='block';" />
                 <span class="${textSize} font-black" style="display:none;">${product.iconEmoji || '🛍️'}</span>`;
     }
