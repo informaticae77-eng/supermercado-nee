@@ -1,3 +1,28 @@
+// ==========================================================================
+// PUENTE DE COMUNICACIÓN PARA MINIJUEGOS (AGREGAR EN APP.JS)
+// ==========================================================================
+window.PRODUCT_STORE = {
+    getProducts: function() {
+        let list = [];
+        if (window.APP_STATE && Array.isArray(window.APP_STATE.products)) {
+            list = window.APP_STATE.products;
+        } else if (window.products && Array.isArray(window.products)) {
+            list = window.products;
+        } else {
+            try {
+                const local = localStorage.getItem('supermarket_app_state') || 
+                              localStorage.getItem('APP_STATE') || 
+                              localStorage.getItem('products');
+                if (local) {
+                    const parsed = JSON.parse(local);
+                    list = Array.isArray(parsed) ? parsed : (parsed.products || []);
+                }
+            } catch(e) {}
+        }
+        return list;
+    }
+};
+
 // ==========================================
 // CONFIGURACIÓN DE FIREBASE Y EMAILJS
 // ==========================================
