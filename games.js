@@ -1,29 +1,20 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - CÓDIGO COMPLETO ACTUALIZADO
+   MÓDULO DE MINIJUEGOS NEE - VERSIÓN PROFESIONAL ACTUALIZADA
+   ==========================================================================
+   - Progreso guardado en localStorage
+   - Carga robusta de productos
+   - Soporte para imágenes, categorías y precios
+   - Dinámica de niveles/minijuegos
+   - Compatibilidad con app principal
    ========================================================================== */
+
+const MINIGAMES_STORAGE_KEY = 'nee_arcade_progress_v36';
 
 let studentMinigamesProgress = {
     currentLevel: 1,
     completedGames: {},
     unlockedLevels: [1]
 };
-
-function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v36');
-    if (saved) {
-        try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
-    }
-}
-
-function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v36', JSON.stringify(studentMinigamesProgress));
-}
-
-function exitArcadeToDashboard() {
-    if (typeof renderApp === 'function') renderApp();
-    else if (typeof initApp === 'function') initApp();
-    else window.location.reload();
-}
 
 const CATEGORY_ICONS = {
     'Lácteos': '🥛',
@@ -37,17 +28,109 @@ const CATEGORY_ICONS = {
     'Despensa': '🌾'
 };
 
+let gameState = {
+    startTime: null,
+    errors: 0,
+    currentQuestion: 0,
+    questions: [],
+    key: ''
+};
+
+function safeStorageGet(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch (e) {
+        return null;
+    }
+}
+
+function safeStorageSet(key, value) {
+    try {
+        localStorage.setItem(key, value);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function normalizeProgress(progress) {
+    const safeProgress = progress || { currentLevel: 1, completedGames: {}, unlockedLevels: [1] };
+
+    const normalized = {
+        currentLevel: Number(safeProgress.currentLevel) || 1,
+        completedGames: safeProgress.completedGames && typeof safeProgress.completedGames === 'object'
+            ? safeProgress.completedGames
+            : {},
+        unlockedLevels: Array.isArray(safeProgress.unlockedLevels) && safeProgress.unlockedLevels.length
+            ? [...new Set(safeProgress.unlockedLevels.map(Number).filter(n => n >= 1 && n <= 5))]
+            : [1]
+    };
+
+    if (!normalized.unlockedLevels.includes(normalized.currentLevel)) {
+        normalized.unlockedLevels.push(normalized.currentLevel);
+    }
+
+    normalized.currentLevel = Math.min(Math.max(normalized.currentLevel, 1), 5);
+
+    return normalized;
+}
+
+function loadMinigamesProgress() {
+    const saved = safeStorageGet(MINIGAMES_STORAGE_KEY);
+    if (!saved) {
+        studentMinigamesProgress = normalizeProgress(studentMinigamesProgress);
+        return;
+    }
+
+    try {
+        const parsed = JSON.parse(saved);
+        studentMinigamesProgress = normalizeProgress(parsed);
+    } catch (e) {
+        studentMinigamesProgress = normalizeProgress(studentMinigamesProgress);
+    }
+}
+
+function saveMinigamesProgress() {
+    studentMinigamesProgress = normalizeProgress(studentMinigamesProgress);
+    safeStorageSet(MINIGAMES_STORAGE_KEY, JSON.stringify(studentMinigamesProgress));
+}
+
+function exitArcadeToDashboard() {
+    if (typeof renderApp === 'function') {
+        renderApp();
+        return;
+    }
+
+    if (typeof initApp === 'function') {
+        initApp();
+        return;
+    }
+
+    window.location.reload();
+}
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
 function getCategoryIcon(catName) {
     if (!catName) return '🏷️';
-    for (let key in CATEGORY_ICONS) {
-        if (String(catName).toLowerCase().includes(key.toLowerCase())) return CATEGORY_ICONS[key];
+
+    const text = String(catName).toLowerCase();
+
+    for (const key in CATEGORY_ICONS) {
+        if (text.includes(key.toLowerCase())) return CATEGORY_ICONS[key];
     }
+
     return '🏷️';
 }
 
-// --------------------------------------------------------------------------
-// FUNCIONES ACTUALIZADAS DE EXTRACCIÓN Y RENDERIZADO DE IMÁGENES
-// --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
 
@@ -59,77 +142,77 @@ function getDatabaseProducts() {
         rawList = window.products;
     } else {
         try {
-            const local = localStorage.getItem('supermarket_app_state') || localStorage.getItem('APP_STATE');
+            const local = safeStorageGet('supermarket_app_state') || safeStorageGet('APP_STATE');
             if (local) {
                 const parsed = JSON.parse(local);
                 rawList = Array.isArray(parsed) ? parsed : (parsed.products || []);
             }
-        } catch (e) {}
+        } catch (e) {
+            rawList = [];
+        }
     }
 
     const processedList = [];
 
-    if (Array.isArray(rawList)) {
-        rawList.forEach((item, index) => {
-            if (!item) return;
+    if (!Array.isArray(rawList)) return processedList;
 
-            const nameStr = item.name || item.nombre || item.productName || `Producto ${index + 1}`;
-            const categoryStr = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
-            const priceNum = parseInt(item.price || item.precio) || 1000;
+    rawList.forEach((item, index) => {
+        if (!item) return;
 
-            // Compatibilidad con muchos nombres de campo de imagen
-            let photoSrc =
-                item.photo ||
-                item.image ||
-                item.photoUrl ||
-                item.imagen ||
-                item.img ||
-                item.foto ||
-                item.fotoUrl ||
-                item.imageUrl ||
-                item.image_url ||
-                item.urlImagen ||
-                item.url_imagen ||
-                '';
+        const nameStr = item.name || item.nombre || item.productName || `Producto ${index + 1}`;
+        const categoryStr = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
+        const priceNum = Number(item.price ?? item.precio ?? 1000) || 1000;
 
-            photoSrc = String(photoSrc || '').trim();
+        let photoSrc =
+            item.photo ||
+            item.image ||
+            item.photoUrl ||
+            item.imagen ||
+            item.img ||
+            item.foto ||
+            item.fotoUrl ||
+            item.imageUrl ||
+            item.image_url ||
+            item.urlImagen ||
+            item.url_imagen ||
+            '';
 
-            // Si viene como Base64 sin prefijo, lo normalizamos
-            if (
-                photoSrc &&
-                !photoSrc.startsWith('data:image') &&
-                !photoSrc.startsWith('http') &&
-                !photoSrc.startsWith('/') &&
-                !photoSrc.startsWith('blob:') &&
-                !photoSrc.startsWith('file:')
-            ) {
-                if (/^[A-Za-z0-9+/=]+$/.test(photoSrc)) {
-                    photoSrc = `data:image/png;base64,${photoSrc}`;
-                }
+        photoSrc = String(photoSrc || '').trim();
+
+        if (
+            photoSrc &&
+            !photoSrc.startsWith('data:image') &&
+            !photoSrc.startsWith('http') &&
+            !photoSrc.startsWith('/') &&
+            !photoSrc.startsWith('blob:') &&
+            !photoSrc.startsWith('file:')
+        ) {
+            if (/^[A-Za-z0-9+/=]+$/.test(photoSrc)) {
+                photoSrc = `data:image/png;base64,${photoSrc}`;
             }
+        }
 
-            const emoji = item.iconEmoji || item.emoji || '🛍️';
+        const emoji = item.iconEmoji || item.emoji || '🛍️';
 
-            processedList.push({
-                id: item.id || `prod-${index}`,
-                name: String(nameStr).trim(),
-                category: String(categoryStr).trim(),
-                photoUrl: photoSrc,
-                iconEmoji: emoji,
-                price: priceNum
-            });
+        processedList.push({
+            id: item.id || `prod-${index}`,
+            name: String(nameStr).trim(),
+            category: String(categoryStr).trim(),
+            photoUrl: photoSrc,
+            iconEmoji: emoji,
+            price: priceNum
         });
-    }
+    });
 
     return processedList;
 }
 
-function renderProductVisual(product, textSize = "text-7xl") {
+function renderProductVisual(product, textSize = 'text-7xl') {
     if (product && product.photoUrl) {
         return `
             <img
-                src="${product.photoUrl}"
-                alt="${String(product.name || 'Producto').replace(/"/g, '"')}"
+                src="${escapeHtml(product.photoUrl)}"
+                alt="${escapeHtml(product.name || 'Producto')}"
                 class="max-h-full max-w-full object-contain mx-auto"
                 onerror="
                     this.style.display='none';
@@ -143,11 +226,6 @@ function renderProductVisual(product, textSize = "text-7xl") {
     return `<span class="${textSize} font-black">${product.iconEmoji || '🛍️'}</span>`;
 }
 
-function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/'/g, "\\'").replace(/"/g, '"');
-}
-
 function getDatabaseMoney(targetPrice) {
     let currencyList = [];
 
@@ -158,51 +236,55 @@ function getDatabaseMoney(targetPrice) {
     }
 
     if (currencyList.length > 0) {
-        return [...currencyList].sort(() => 0.5 - Math.random()).slice(0, 4).map(c => ({
-            value: c.value,
-            label: `$${c.value.toLocaleString('es-CL')} CLP`,
-            img: c.img,
-            type: c.type
-        }));
+        return [...currencyList]
+            .sort(() => 0.5 - Math.random())
+            .slice(0, 4)
+            .map(c => ({
+                value: Number(c.value) || 0,
+                label: `$${Number(c.value || 0).toLocaleString('es-CL')} CLP`,
+                img: c.img || '',
+                type: c.type || 'money',
+                icon: c.icon || '💵'
+            }));
     }
 
-    const p = targetPrice || 1000;
+    const p = Number(targetPrice) || 1000;
+
     return [
-        { value: p, label: `$${p.toLocaleString('es-CL')} CLP`, icon: "💵" },
-        { value: p + 500, label: `$${(p + 500).toLocaleString('es-CL')} CLP`, icon: "💵" },
-        { value: Math.max(100, p - 300), label: `$${Math.max(100, p - 300).toLocaleString('es-CL')} CLP`, icon: "🪙" },
-        { value: p + 1000, label: `$${(p + 1000).toLocaleString('es-CL')} CLP`, icon: "💵" }
+        { value: p, label: `$${p.toLocaleString('es-CL')} CLP`, icon: '💵' },
+        { value: p + 500, label: `$${(p + 500).toLocaleString('es-CL')} CLP`, icon: '💵' },
+        { value: Math.max(100, p - 300), label: `$${Math.max(100, p - 300).toLocaleString('es-CL')} CLP`, icon: '🪙' },
+        { value: p + 1000, label: `$${(p + 1000).toLocaleString('es-CL')} CLP`, icon: '💵' }
     ].sort(() => 0.5 - Math.random());
 }
 
-// --------------------------------------------------------------------------
-// VISTA PRINCIPAL ARCADE
-// --------------------------------------------------------------------------
+function getLevelConfig() {
+    return [
+        { id: 1, title: 'Comprador Principiante', icon: '🛒', border: 'border-cyan-500' },
+        { id: 2, title: 'Explorador de Góndolas', icon: '🔍', border: 'border-emerald-500' },
+        { id: 3, title: 'As del Vuelto y Cajas', icon: '💵', border: 'border-amber-500' },
+        { id: 4, title: 'Planificador Experto', icon: '📋', border: 'border-purple-500' },
+        { id: 5, title: 'Maestro del Supermercado', icon: '👑', border: 'border-rose-500' }
+    ];
+}
+
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
 
     const mainContainer = document.getElementById('appContainer');
     if (!mainContainer) return;
 
+    const levelsConfig = getLevelConfig();
     const currentLvl = studentMinigamesProgress.currentLevel || 1;
     const completedInCurrentLvl = studentMinigamesProgress.completedGames[`level${currentLvl}`] || [];
     const isBossUnlocked = completedInCurrentLvl.length >= 5;
-
-    const levelsConfig = [
-        { id: 1, title: "Comprador Principiante", icon: "🛒", border: "border-cyan-500" },
-        { id: 2, title: "Explorador de Góndolas", icon: "🔍", border: "border-emerald-500" },
-        { id: 3, title: "As del Vuelto y Cajas", icon: "💵", border: "border-amber-500" },
-        { id: 4, title: "Planificador Experto", icon: "📋", border: "border-purple-500" },
-        { id: 5, title: "Maestro del Supermercado", icon: "👑", border: "border-rose-500" }
-    ];
-
     const currentLevelInfo = levelsConfig.find(l => l.id === currentLvl) || levelsConfig[0];
 
     const html = `
     <div class="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 lg:p-8 font-sans select-none pb-20">
         <header class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-900/90 p-4 sm:p-6 rounded-3xl border-2 border-indigo-500/40 shadow-2xl">
             <div class="flex items-center gap-3 sm:gap-4 w-full md:w-auto justify-between md:justify-start">
-                <button onclick="exitArcadeToDashboard()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-3 rounded-2xl font-black text-xs sm:text-sm transition-all active:scale-95 flex items-center gap-2 shadow-lg border border-indigo-400">
+                <button onclick="exitArcadeToDashboard()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-3 rounded-2xl font-black text-xs sm:text-sm transition-all active:scale-95 flex items-center gap-2">
                     <span>⬅</span> <span>Volver a la Tienda</span>
                 </button>
                 <div>
@@ -220,10 +302,10 @@ function renderMinigamesArcadeView() {
                     return `
                     <button onclick="${isUnlocked ? `switchLevel(${lvl.id})` : ''}" 
                             class="px-4 py-2.5 rounded-2xl font-black text-xs whitespace-nowrap transition-all flex items-center gap-1.5 border ${
-                                isActive 
-                                    ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg scale-105' 
-                                    : isUnlocked 
-                                        ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border-slate-700' 
+                                isActive
+                                    ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg scale-105'
+                                    : isUnlocked
+                                        ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border-slate-700'
                                         : 'bg-slate-900/50 text-slate-600 border-slate-800/50 cursor-not-allowed'
                             }">
                         <span class="text-base">${lvl.icon}</span>
@@ -251,11 +333,11 @@ function renderMinigamesArcadeView() {
         </section>
 
         <main class="max-w-7xl mx-auto mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-            ${renderGameCard(currentLvl, 1, "🍎 El Estante Correcto", "OA04: Clasificar con pictogramas de categorías.", "mj1", completedInCurrentLvl)}
-            ${renderGameCard(currentLvl, 2, "💵 Corta el Billete", "OA07: Seleccionar el billete/moneda del producto.", "mj2", completedInCurrentLvl)}
-            ${renderGameCard(currentLvl, 3, "🔤 Palabras en Góndola", "OA02: Lectura guiada del nombre del producto.", "mj3", completedInCurrentLvl)}
-            ${renderGameCard(currentLvl, 4, "🧮 Calculadora del Canasto", "OA09: Suma visual de precios.", "mj4", completedInCurrentLvl)}
-            ${renderGameCard(currentLvl, 5, "📋 La Lista de Compras", "OA12: Búsqueda operacional por imágenes.", "mj5", completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 1, '🍎 El Estante Correcto', 'OA04: Clasificar con pictogramas de categorías.', 'mj1', completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 2, '💵 Corta el Billete', 'OA07: Seleccionar el billete/moneda del producto.', 'mj2', completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 3, '🔤 Palabras en Góndola', 'OA02: Lectura guiada del nombre del producto.', 'mj3', completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 4, '🧮 Calculadora del Canasto', 'OA09: Suma visual de precios.', 'mj4', completedInCurrentLvl)}
+            ${renderGameCard(currentLvl, 5, '📋 La Lista de Compras', 'OA12: Búsqueda operacional por imágenes.', 'mj5', completedInCurrentLvl)}
 
             <div class="bg-gradient-to-br from-purple-950 via-slate-900 to-amber-950 rounded-3xl p-6 border-2 border-amber-500/80 shadow-2xl flex flex-col justify-between space-y-5">
                 <div class="flex justify-between items-start">
@@ -272,8 +354,8 @@ function renderMinigamesArcadeView() {
                 </div>
                 <button ${isBossUnlocked ? `onclick="startBossExam(${currentLvl})"` : 'disabled'} 
                         class="w-full py-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider ${
-                            isBossUnlocked 
-                                ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 border-2 border-amber-300 active:scale-95 shadow-lg' 
+                            isBossUnlocked
+                                ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 border-2 border-amber-300 active:scale-95 shadow-lg'
                                 : 'bg-slate-900/80 text-slate-600 cursor-not-allowed border border-slate-800'
                         }">
                     ${isBossUnlocked ? '🔥 ¡ENFRENTAR JEFE FINAL!' : '🔒 Completa los 5 minijuegos'}
@@ -304,9 +386,9 @@ function renderGameCard(level, gameNum, title, description, gameKey, completedLi
         </div>
         <button ${isUnlocked ? `onclick="launchGame('${gameKey}')"` : 'disabled'} 
                 class="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all ${
-                    isUnlocked 
-                        ? (isCompleted 
-                            ? 'bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/50 shadow-md active:scale-95' 
+                    isUnlocked
+                        ? (isCompleted
+                            ? 'bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/50 shadow-md active:scale-95'
                             : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 border border-indigo-400 active:scale-95')
                         : 'bg-slate-950/60 text-slate-600 border border-slate-800/40 cursor-not-allowed'
                 }">
@@ -324,30 +406,28 @@ function launchGame(gameKey) {
     else if (gameKey === 'mj5') startMinigame5();
 }
 
-// --------------------------------------------------------------------------
-// LÓGICA DE JUEGOS CON INICIALIZACIÓN PROTEGIDA
-// --------------------------------------------------------------------------
-let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
+function buildGameQuestions(minigameKey, limit = 5) {
+    const catalog = getDatabaseProducts();
+    if (!catalog.length) return [];
+
+    const shuffled = [...catalog].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, Math.min(limit, shuffled.length));
+}
 
 function startMinigame1() {
-    const catalog = getDatabaseProducts();
-    const shuffled = [...catalog].sort(() => 0.5 - Math.random());
-    
     gameState = {
         key: 'mj1',
         startTime: Date.now(),
         errors: 0,
         currentQuestion: 0,
-        questions: shuffled.slice(0, Math.min(5, shuffled.length))
+        questions: buildGameQuestions('mj1', 5)
     };
-    
+
     renderMinigame1Question();
 }
 
 function renderMinigame1Question() {
-    if (!gameState.questions || gameState.questions.length === 0) {
-        return;
-    }
+    if (!gameState.questions || gameState.questions.length === 0) return;
 
     if (gameState.currentQuestion >= gameState.questions.length) {
         return finishMinigame('mj1', 'El Estante Correcto');
@@ -356,9 +436,15 @@ function renderMinigame1Question() {
     const q = gameState.questions[gameState.currentQuestion];
     const allProducts = getDatabaseProducts();
     const categoriesSet = new Set(allProducts.map(p => p.category));
-    ['Lácteos, Yogures y Huevos', 'Frutas y Verduras', 'Panadería y Pastelería', 'Limpieza del Hogar', 'Bebidas, Agua y Jugos'].forEach(c => categoriesSet.add(c));
-    const availableCategories = Array.from(categoriesSet);
+    [
+        'Lácteos, Yogures y Huevos',
+        'Frutas y Verduras',
+        'Panadería y Pastelería',
+        'Limpieza del Hogar',
+        'Bebidas, Agua y Jugos'
+    ].forEach(c => categoriesSet.add(c));
 
+    const availableCategories = Array.from(categoriesSet);
     let options = [q.category];
     const otherCats = availableCategories.filter(c => c !== q.category).sort(() => 0.5 - Math.random());
     options.push(...otherCats.slice(0, 3));
@@ -383,15 +469,15 @@ function renderMinigame1Question() {
                 <div class="w-48 h-48 sm:w-56 sm:h-56 bg-white p-4 rounded-3xl border-4 border-indigo-500/40 shadow-xl flex items-center justify-center overflow-hidden">
                     ${renderProductVisual(q)}
                 </div>
-                <span class="text-xl sm:text-2xl font-black text-white uppercase px-4 tracking-wide block">${q.name}</span>
+                <span class="text-xl sm:text-2xl font-black text-white uppercase px-4 tracking-wide block">${escapeHtml(q.name)}</span>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 ${options.map(catName => `
                     <button onclick="checkMinigame1Answer('${escapeHtml(catName)}')" 
-                            class="w-full h-16 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-black rounded-2xl shadow-lg flex items-center justify-center px-6 text-base border border-indigo-400 gap-3 transition-all">
+                            class="w-full h-16 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-black rounded-2xl shadow-lg flex items-center justify-center px-6 text-base border border-indigo-400">
                         <span class="text-2xl">${getCategoryIcon(catName)}</span>
-                        <span>${catName}</span>
+                        <span>${escapeHtml(catName)}</span>
                     </button>
                 `).join('')}
             </div>
@@ -404,7 +490,9 @@ function renderMinigame1Question() {
 
 function checkMinigame1Answer(selectedCat) {
     const q = gameState.questions[gameState.currentQuestion];
-    if (selectedCat.toLowerCase() === q.category.toLowerCase()) {
+    if (!q) return;
+
+    if (String(selectedCat).toLowerCase() === String(q.category).toLowerCase()) {
         gameState.currentQuestion++;
         renderMinigame1Question();
     } else {
@@ -414,16 +502,14 @@ function checkMinigame1Answer(selectedCat) {
 }
 
 function startMinigame2() {
-    const catalog = getDatabaseProducts();
-    const shuffled = [...catalog].sort(() => 0.5 - Math.random());
-
     gameState = {
         key: 'mj2',
         startTime: Date.now(),
         errors: 0,
         currentQuestion: 0,
-        questions: shuffled.slice(0, Math.min(5, shuffled.length))
+        questions: buildGameQuestions('mj2', 5)
     };
+
     renderMinigame2Question();
 }
 
@@ -435,7 +521,7 @@ function renderMinigame2Question() {
     }
 
     const q = gameState.questions[gameState.currentQuestion];
-    const targetPrice = q.price;
+    const targetPrice = Number(q.price) || 1000;
     const moneyOptions = getDatabaseMoney(targetPrice);
 
     const html = `
@@ -457,7 +543,7 @@ function renderMinigame2Question() {
                 <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-emerald-500/40 shadow-xl flex items-center justify-center overflow-hidden">
                     ${renderProductVisual(q)}
                 </div>
-                <span class="text-lg font-black text-white uppercase">${q.name}</span>
+                <span class="text-lg font-black text-white uppercase">${escapeHtml(q.name)}</span>
 
                 <div class="bg-amber-400 text-slate-950 px-6 py-2 rounded-2xl font-black text-xl border-2 border-amber-300 shadow-lg flex items-center gap-2">
                     <span>🏷️ PRECIO:</span>
@@ -467,10 +553,10 @@ function renderMinigame2Question() {
 
             <div class="grid grid-cols-2 gap-4">
                 ${moneyOptions.map(m => `
-                    <button onclick="checkGenericAnswer(${m.value}, ${targetPrice}, startMinigame2, renderMinigame2Question)" 
-                            class="p-3 bg-slate-800 hover:bg-slate-700 border-emerald-400 text-white font-black rounded-2xl border-2 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
-                        ${m.img ? `<img src="${m.img}" class="h-16 w-auto object-contain rounded-lg" />` : `<span class="text-3xl">${m.icon || '💵'}</span>`}
-                        <span class="font-black text-amber-300 text-base">${m.label}</span>
+                    <button onclick="checkGenericAnswer(${Number(m.value) || 0}, ${targetPrice}, startMinigame2, renderMinigame2Question)" 
+                            class="p-3 bg-slate-800 hover:bg-slate-700 border-emerald-400 text-white font-black rounded-2xl border-2 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all">
+                        ${m.img ? `<img src="${escapeHtml(m.img)}" class="h-16 w-auto object-contain rounded-lg" />` : `<span class="text-3xl">${m.icon || '💵'}</span>`}
+                        <span class="font-black text-amber-300 text-base">${escapeHtml(m.label)}</span>
                     </button>
                 `).join('')}
             </div>
@@ -482,16 +568,14 @@ function renderMinigame2Question() {
 }
 
 function startMinigame3() {
-    const catalog = getDatabaseProducts();
-    const shuffled = [...catalog].sort(() => 0.5 - Math.random());
-
     gameState = {
         key: 'mj3',
         startTime: Date.now(),
         errors: 0,
         currentQuestion: 0,
-        questions: shuffled.slice(0, Math.min(5, shuffled.length))
+        questions: buildGameQuestions('mj3', 5)
     };
+
     renderMinigame3Question();
 }
 
@@ -529,7 +613,7 @@ function renderMinigame3Question() {
                 ${options.map(name => `
                     <button onclick="checkGenericAnswer('${escapeHtml(name)}', '${escapeHtml(correctName)}', startMinigame3, renderMinigame3Question)" 
                             class="h-14 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-2xl shadow-lg border border-amber-400 text-sm flex items-center justify-center gap-2">
-                        <span>🏷️</span> <span>${name}</span>
+                        <span>🏷️</span> <span>${escapeHtml(name)}</span>
                     </button>
                 `).join('')}
             </div>
@@ -541,16 +625,14 @@ function renderMinigame3Question() {
 }
 
 function startMinigame4() {
-    const catalog = getDatabaseProducts();
-    const shuffled = [...catalog].sort(() => 0.5 - Math.random());
-
     gameState = {
         key: 'mj4',
         startTime: Date.now(),
         errors: 0,
         currentQuestion: 0,
-        questions: shuffled.slice(0, Math.min(4, shuffled.length))
+        questions: buildGameQuestions('mj4', 4)
     };
+
     renderMinigame4Question();
 }
 
@@ -565,7 +647,7 @@ function renderMinigame4Question() {
     const p2 = gameState.questions[(gameState.currentQuestion + 1) % gameState.questions.length];
     if (!p1 || !p2) return finishMinigame('mj4', 'Calculadora del Canasto');
 
-    const totalSum = p1.price + p2.price;
+    const totalSum = Number(p1.price) + Number(p2.price);
     const options = [totalSum, totalSum + 500, Math.max(200, totalSum - 400), totalSum + 1000].sort(() => 0.5 - Math.random());
 
     const html = `
@@ -581,24 +663,24 @@ function renderMinigame4Question() {
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex justify-center items-center gap-6">
                 <div class="text-center">
                     <div class="w-24 h-24 bg-white rounded-2xl p-2 flex items-center justify-center mx-auto overflow-hidden">
-                        ${renderProductVisual(p1, "text-5xl")}
+                        ${renderProductVisual(p1, 'text-5xl')}
                     </div>
-                    <span class="text-xs font-black text-amber-300 block mt-2">$${p1.price.toLocaleString('es-CL')}</span>
+                    <span class="text-xs font-black text-amber-300 block mt-2">$${Number(p1.price || 0).toLocaleString('es-CL')}</span>
                 </div>
                 <span class="text-4xl font-black text-purple-400">+</span>
                 <div class="text-center">
                     <div class="w-24 h-24 bg-white rounded-2xl p-2 flex items-center justify-center mx-auto overflow-hidden">
-                        ${renderProductVisual(p2, "text-5xl")}
+                        ${renderProductVisual(p2, 'text-5xl')}
                     </div>
-                    <span class="text-xs font-black text-amber-300 block mt-2">$${p2.price.toLocaleString('es-CL')}</span>
+                    <span class="text-xs font-black text-amber-300 block mt-2">$${Number(p2.price || 0).toLocaleString('es-CL')}</span>
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 ${options.map(val => `
-                    <button onclick="checkGenericAnswer(${val}, ${totalSum}, startMinigame4, renderMinigame4Question)" 
+                    <button onclick="checkGenericAnswer(${Number(val) || 0}, ${totalSum}, startMinigame4, renderMinigame4Question)" 
                             class="h-16 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-2xl shadow-lg border border-purple-400 text-lg flex items-center justify-center gap-2">
-                        <span>🧮</span> <span>$${val.toLocaleString('es-CL')} CLP</span>
+                        <span>🧮</span> <span>$${Number(val || 0).toLocaleString('es-CL')} CLP</span>
                     </button>
                 `).join('')}
             </div>
@@ -610,16 +692,14 @@ function renderMinigame4Question() {
 }
 
 function startMinigame5() {
-    const catalog = getDatabaseProducts();
-    const shuffled = [...catalog].sort(() => 0.5 - Math.random());
-
     gameState = {
         key: 'mj5',
         startTime: Date.now(),
         errors: 0,
         currentQuestion: 0,
-        questions: shuffled.slice(0, Math.min(5, shuffled.length))
+        questions: buildGameQuestions('mj5', 5)
     };
+
     renderMinigame5Question();
 }
 
@@ -646,14 +726,14 @@ function renderMinigame5Question() {
 
             <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800">
                 <h4 class="text-xs font-black text-slate-400 uppercase">ENCUENTRA EN EL CATÁLOGO:</h4>
-                <span class="text-2xl font-black text-amber-300 uppercase mt-1 block">"${target.name}"</span>
+                <span class="text-2xl font-black text-amber-300 uppercase mt-1 block">"${escapeHtml(target.name)}"</span>
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 ${options.map(item => `
                     <button onclick="checkGenericAnswer('${escapeHtml(item.name)}', '${escapeHtml(target.name)}', startMinigame5, renderMinigame5Question)" 
                             class="p-3 bg-white rounded-2xl border-4 border-rose-400 hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center justify-center overflow-hidden h-28">
-                        ${renderProductVisual(item, "text-5xl")}
+                        ${renderProductVisual(item, 'text-5xl')}
                     </button>
                 `).join('')}
             </div>
@@ -665,17 +745,17 @@ function renderMinigame5Question() {
 }
 
 function checkGenericAnswer(val, correct, startFn, nextFn) {
-    if (val === correct) {
+    if (String(val) === String(correct)) {
         gameState.currentQuestion++;
         nextFn();
     } else {
         gameState.errors++;
-        alert("❌ Respuesta incorrecta. ¡Inténtalo de nuevo!");
+        alert('❌ Respuesta incorrecta. ¡Inténtalo de nuevo!');
     }
 }
 
 function finishMinigame(key, title) {
-    const timeSpent = Math.round((Date.now() - gameState.startTime) / 1000);
+    const timeSpent = Math.round((Date.now() - (gameState.startTime || Date.now())) / 1000);
     const lvl = studentMinigamesProgress.currentLevel || 1;
 
     if (!studentMinigamesProgress.completedGames[`level${lvl}`]) {
@@ -692,22 +772,35 @@ function finishMinigame(key, title) {
 }
 
 function switchLevel(levelId) {
-    studentMinigamesProgress.currentLevel = levelId;
+    studentMinigamesProgress.currentLevel = Number(levelId) || 1;
     saveMinigamesProgress();
     renderMinigamesArcadeView();
 }
 
 function startBossExam(level) {
-    alert(`👑 ¡FELICIDADES! Has derrotado al Jefe Final del Nivel ${level}.`);
+    const currentLevel = Number(level) || 1;
+    const completed = studentMinigamesProgress.completedGames[`level${currentLevel}`] || [];
+    const nextLevel = currentLevel + 1;
 
-    const nextLevel = level + 1;
-    if (nextLevel <= 5 && !studentMinigamesProgress.unlockedLevels.includes(nextLevel)) {
-        studentMinigamesProgress.unlockedLevels.push(nextLevel);
-        studentMinigamesProgress.currentLevel = nextLevel;
+    if (completed.length >= 5) {
+        alert(`👑 ¡FELICIDADES! Has derrotado al Jefe Final del Nivel ${currentLevel}.`);
+
+        if (nextLevel <= 5 && !studentMinigamesProgress.unlockedLevels.includes(nextLevel)) {
+            studentMinigamesProgress.unlockedLevels.push(nextLevel);
+        }
+
+        if (nextLevel <= 5) {
+            studentMinigamesProgress.currentLevel = nextLevel;
+        } else {
+            studentMinigamesProgress.currentLevel = 5;
+        }
+
+        saveMinigamesProgress();
+        renderMinigamesArcadeView();
+        return;
     }
 
-    saveMinigamesProgress();
-    renderMinigamesArcadeView();
+    alert('🔒 Debes completar los 5 minijuegos del nivel antes de desafiar al jefe.');
 }
 
 window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
