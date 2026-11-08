@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - SINCRONIZACIÓN DIRECTA V31
+   MÓDULO DE MINIJUEGOS NEE - SOLUCIÓN DEFINITIVA CON SANITIZACIÓN TOTAL
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -9,14 +9,14 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v31');
+    const saved = localStorage.getItem('nee_arcade_progress_v32');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v31', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v32', JSON.stringify(studentMinigamesProgress));
 }
 
 function exitArcadeToDashboard() {
@@ -33,19 +33,20 @@ const CATEGORY_ICONS = {
     'Limpieza': '🧼',
     'Bebidas': '🧃',
     'Carnes': '🥩',
-    'Fiambre': '🧀'
+    'Fiambre': '🧀',
+    'Despensa': '🌾'
 };
 
 function getCategoryIcon(catName) {
     if (!catName) return '🏷️';
     for (let key in CATEGORY_ICONS) {
-        if (catName.toLowerCase().includes(key.toLowerCase())) return CATEGORY_ICONS[key];
+        if (String(catName).toLowerCase().includes(key.toLowerCase())) return CATEGORY_ICONS[key];
     }
     return '🏷️';
 }
 
 // --------------------------------------------------------------------------
-// LECTURA DIRECTA Y UNIFICADA DESDE PRODUCT_STORE O APP_STATE
+// LECTURA DIRECTA DE PRODUCTOS Y EXTRACTION BASE64 SEGURA
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
@@ -53,7 +54,6 @@ function getDatabaseProducts() {
     if (window.PRODUCT_STORE && typeof window.PRODUCT_STORE.getProducts === 'function') {
         rawList = window.PRODUCT_STORE.getProducts();
     }
-    
     if ((!rawList || rawList.length === 0) && window.APP_STATE && Array.isArray(window.APP_STATE.products)) {
         rawList = window.APP_STATE.products;
     }
@@ -64,36 +64,29 @@ function getDatabaseProducts() {
         rawList.forEach((item, index) => {
             if (!item) return;
 
-            let name = item.name || item.nombre || `Producto ${index + 1}`;
-            let category = item.category || item.categoria || 'General';
+            // SANITIZACIÓN: Evita undefined que rompa string methods
+            let name = item.name || item.nombre || item.productName || `Producto ${index + 1}`;
+            let category = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
             let price = parseInt(item.price || item.precio) || 1000;
             
-            // Extraer la imagen sin importar la propiedad donde esté
-            let photoSrc = item.image || item.photo || item.photoUrl || item.imagen || item.img || '';
+            // PRIORIDAD BASE64: Busca la imagen en .photo, .image o .photoUrl
+            let photoSrc = item.photo || item.image || item.photoUrl || item.imagen || item.img || '';
             let emoji = item.iconEmoji || item.emoji || '🛍️';
 
             processedList.push({
                 id: item.id || `prod-${index}`,
                 name: String(name).trim(),
                 category: String(category).trim(),
-                photoUrl: photoSrc,
+                photoUrl: String(photoSrc).trim(),
                 iconEmoji: emoji,
                 price: price
             });
         });
     }
 
-    // Filtrar preferentemente los productos que sí tienen foto
-    const withImages = processedList.filter(p => p.photoUrl && String(p.photoUrl).trim().length > 10);
-    
-    if (withImages.length > 0) return withImages;
-    if (processedList.length > 0) return processedList;
-
-    // Productos de respaldo si la base de datos está completamente vacía
-    return [
-        { id: 'def-1', name: 'Leche Entera 1L', category: 'Lácteos, Yogures y Huevos', price: 1050, photoUrl: '', iconEmoji: '🥛' },
-        { id: 'def-2', name: 'Pan Hallulla 1Kg', category: 'Panadería y Pastelería', price: 1990, photoUrl: '', iconEmoji: '🍞' }
-    ];
+    // Retorna todos los productos que tengan imagen Base64 válida
+    const withImages = processedList.filter(p => p.photoUrl && p.photoUrl.startsWith('data:image'));
+    return withImages.length > 0 ? withImages : processedList;
 }
 
 function getDatabaseMoney(targetPrice) {
@@ -124,14 +117,19 @@ function getDatabaseMoney(targetPrice) {
 }
 
 // --------------------------------------------------------------------------
-// RENDERIZADO VISUAL CON CONTROL DE FALLOS (FALLBACK)
+// RENDERIZADO VISUAL CON IMAGEN REAL BASE64
 // --------------------------------------------------------------------------
 function renderProductVisual(product, textSize = "text-7xl") {
-    if (product.photoUrl && String(product.photoUrl).trim().length > 10) {
-        return `<img src="${product.photoUrl}" alt="${product.name}" class="max-h-full max-w-full object-contain mx-auto" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='block';" />
+    if (product && product.photoUrl && product.photoUrl.length > 20) {
+        return `<img src="${product.photoUrl}" alt="${escapeHtml(product.name)}" class="max-h-full max-w-full object-contain mx-auto" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='block';" />
                 <span class="${textSize} font-black" style="display:none;">${product.iconEmoji || '🛍️'}</span>`;
     }
     return `<span class="${textSize} font-black">${product.iconEmoji || '🛍️'}</span>`;
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/'/g, "\\'").replace(/"/g, '"');
 }
 
 // --------------------------------------------------------------------------
@@ -339,7 +337,7 @@ function renderMinigame1Question() {
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 ${options.map(catName => `
-                    <button onclick="checkMinigame1Answer('${catName.replace(/'/g, "\\'")}')" 
+                    <button onclick="checkMinigame1Answer('${escapeHtml(catName)}')" 
                             class="w-full h-16 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-black rounded-2xl shadow-lg flex items-center justify-center px-6 text-base border border-indigo-400 gap-3 transition-all">
                         <span class="text-2xl">${getCategoryIcon(catName)}</span>
                         <span>${catName}</span>
@@ -466,7 +464,7 @@ function renderMinigame3Question() {
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 ${options.map(name => `
-                    <button onclick="checkGenericAnswer('${name.replace(/'/g, "\\'")}', '${correctName.replace(/'/g, "\\'")}', startMinigame3, renderMinigame3Question)" 
+                    <button onclick="checkGenericAnswer('${escapeHtml(name)}', '${escapeHtml(correctName)}', startMinigame3, renderMinigame3Question)" 
                             class="h-14 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-2xl shadow-lg border border-amber-400 text-sm flex items-center justify-center gap-2">
                         <span>🏷️</span> <span>${name}</span>
                     </button>
@@ -578,7 +576,7 @@ function renderMinigame5Question() {
 
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 ${options.map(item => `
-                    <button onclick="checkGenericAnswer('${item.name.replace(/'/g, "\\'")}', '${target.name.replace(/'/g, "\\'")}', startMinigame5, renderMinigame5Question)" 
+                    <button onclick="checkGenericAnswer('${escapeHtml(item.name)}', '${escapeHtml(target.name)}', startMinigame5, renderMinigame5Question)" 
                             class="p-3 bg-white rounded-2xl border-4 border-rose-400 hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center justify-center overflow-hidden h-28">
                         ${renderProductVisual(item, "text-5xl")}
                     </button>
@@ -638,7 +636,7 @@ function startBossExam(level) {
 }
 
 // --------------------------------------------------------------------------
-// ASIGNACIÓN GLOBAL DE RUTA AL MENÚ PRINCIPAL
+// EXPOSICIÓN GLOBAL SEGURA
 // --------------------------------------------------------------------------
 window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
 window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
