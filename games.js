@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - REPLICACIÓN EXACTA DE RENDERING DE APP.JS
+   MÓDULO DE MINIJUEGOS NEE - VINCULACIÓN DIRECTA DE MENÚ PRINCIPAL
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -11,14 +11,14 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v28');
+    const saved = localStorage.getItem('nee_arcade_progress_v29');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v28', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v29', JSON.stringify(studentMinigamesProgress));
 }
 
 function exitArcadeToDashboard() {
@@ -47,7 +47,7 @@ function getCategoryIcon(catName) {
 }
 
 // --------------------------------------------------------------------------
-// EXTRACCIÓN DE PRODUCTOS IGUAL QUE EN APP.JS
+// EXTRACCIÓN DE PRODUCTOS DESDE APP_STATE
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
@@ -67,7 +67,6 @@ function getDatabaseProducts() {
         let category = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
         let price = parseInt(item.price || item.precio) || 1000;
         
-        // REPLICACIÓN DE APP.JS: Busca la imagen en .image, .photo o .photoUrl
         let photoSrc = item.image || item.photo || item.photoUrl || item.imagen || item.img || '';
         let emoji = item.iconEmoji || item.emoji || '🛍️';
 
@@ -81,10 +80,7 @@ function getDatabaseProducts() {
         });
     });
 
-    // Filtramos solo aquellos que tienen una imagen válida cargada
     const withImages = processedList.filter(p => p.photoUrl && String(p.photoUrl).trim().length > 20);
-
-    // Si hay productos con foto real, usa prioritariamente esos; de lo contrario, usa toda la lista
     return withImages.length > 0 ? withImages : processedList;
 }
 
@@ -115,9 +111,6 @@ function getDatabaseMoney(targetPrice) {
     ].sort(() => 0.5 - Math.random());
 }
 
-// --------------------------------------------------------------------------
-// RENDERIZADOR DE IMAGEN (MISMA LÓGICA DE LA TIENDA)
-// --------------------------------------------------------------------------
 function renderProductVisual(product, textSize = "text-7xl") {
     if (product.photoUrl && String(product.photoUrl).trim().length > 20) {
         return `<img src="${product.photoUrl}" alt="${product.name}" class="max-h-full max-w-full object-contain mx-auto" onerror="this.onerror=null; this.parentNode.innerHTML='<span class=\\'${textSize} font-black\\'>${product.iconEmoji || '🛍️'}</span>';" />`;
@@ -126,7 +119,7 @@ function renderProductVisual(product, textSize = "text-7xl") {
 }
 
 // --------------------------------------------------------------------------
-// VISTA PRINCIPAL ARCADE
+// VISTA PRINCIPAL ARCADE (MENÚ DE DESAFÍOS)
 // --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -191,7 +184,7 @@ function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Desafíos pedagógicos sincronizados con las imágenes de tu tienda.
+                    Selecciona uno de los desafíos pedagógicos para comenzar a jugar.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -286,14 +279,20 @@ function startMinigame1() {
     gameState.currentQuestion = 0;
     
     let catalog = getDatabaseProducts();
+    if (catalog.length === 0) {
+        alert("No hay productos cargados en la base de datos.");
+        return;
+    }
     gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame1Question();
 }
 
 function renderMinigame1Question() {
-    const q = gameState.questions[gameState.currentQuestion];
-    if (!q) return finishMinigame('mj1', 'El Estante Correcto');
+    if (gameState.currentQuestion >= gameState.questions.length) {
+        return finishMinigame('mj1', 'El Estante Correcto');
+    }
 
+    const q = gameState.questions[gameState.currentQuestion];
     const allProducts = getDatabaseProducts();
     const categoriesSet = new Set(allProducts.map(p => p.category));
     ['Lácteos, Yogures y Huevos', 'Frutas y Verduras', 'Panadería y Pastelería', 'Limpieza del Hogar', 'Bebidas, Agua y Jugos'].forEach(c => categoriesSet.add(c));
@@ -359,14 +358,17 @@ function startMinigame2() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
+    if (catalog.length === 0) return;
     gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame2Question();
 }
 
 function renderMinigame2Question() {
-    const q = gameState.questions[gameState.currentQuestion];
-    if (!q) return finishMinigame('mj2', 'Corta el Billete');
+    if (gameState.currentQuestion >= gameState.questions.length) {
+        return finishMinigame('mj2', 'Corta el Billete');
+    }
 
+    const q = gameState.questions[gameState.currentQuestion];
     const targetPrice = q.price;
     const moneyOptions = getDatabaseMoney(targetPrice);
 
@@ -419,14 +421,17 @@ function startMinigame3() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
+    if (catalog.length === 0) return;
     gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame3Question();
 }
 
 function renderMinigame3Question() {
-    const q = gameState.questions[gameState.currentQuestion];
-    if (!q) return finishMinigame('mj3', 'Palabras en Góndola');
+    if (gameState.currentQuestion >= gameState.questions.length) {
+        return finishMinigame('mj3', 'Palabras en Góndola');
+    }
 
+    const q = gameState.questions[gameState.currentQuestion];
     const correctName = q.name;
     const allProducts = getDatabaseProducts();
     const otherNames = allProducts.filter(p => p.name !== correctName).map(p => p.name);
@@ -470,11 +475,16 @@ function startMinigame4() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
+    if (catalog.length === 0) return;
     gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(4, catalog.length));
     renderMinigame4Question();
 }
 
 function renderMinigame4Question() {
+    if (gameState.currentQuestion >= gameState.questions.length) {
+        return finishMinigame('mj4', 'Calculadora del Canasto');
+    }
+
     const p1 = gameState.questions[gameState.currentQuestion];
     const p2 = gameState.questions[(gameState.currentQuestion + 1) % gameState.questions.length];
     if (!p1 || !p2) return finishMinigame('mj4', 'Calculadora del Canasto');
@@ -529,14 +539,17 @@ function startMinigame5() {
     gameState.errors = 0;
     gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
+    if (catalog.length === 0) return;
     gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
     renderMinigame5Question();
 }
 
 function renderMinigame5Question() {
-    const target = gameState.questions[gameState.currentQuestion];
-    if (!target) return finishMinigame('mj5', 'La Lista de Compras');
+    if (gameState.currentQuestion >= gameState.questions.length) {
+        return finishMinigame('mj5', 'La Lista de Compras');
+    }
 
+    const target = gameState.questions[gameState.currentQuestion];
     const allProducts = getDatabaseProducts();
     const options = [target, ...allProducts.filter(p => p.name !== target.name).slice(0, 3)].sort(() => 0.5 - Math.random());
 
@@ -617,9 +630,9 @@ function startBossExam(level) {
 }
 
 // --------------------------------------------------------------------------
-// ASIGNACIÓN GLOBAL SIN RECURSIÓN
+// ASIGNACIÓN GLOBAL DIRECTA (ABRE EL MENÚ PRINCIPAL DEL ARCADE)
 // --------------------------------------------------------------------------
-window.openMemoriseModal = renderMinigamesArcadeView;
-window.openMinigamesModal = renderMinigamesArcadeView;
-window.openMemorisModal = renderMinigamesArcadeView;
-window.openArcadeModal = renderMinigamesArcadeView;
+window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
+window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
+window.openMemorisModal = function() { renderMinigamesArcadeView(); };
+window.openArcadeModal = function() { renderMinigamesArcadeView(); };
