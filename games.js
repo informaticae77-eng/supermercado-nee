@@ -1,24 +1,22 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - SOLUCIÓN DEFINITIVA DE CARGA DE PRODUCTOS
+   MÓDULO DE MINIJUEGOS NEE - SINCRONIZACIÓN DIRECTA V31
    ========================================================================== */
 
 let studentMinigamesProgress = {
     currentLevel: 1,
     completedGames: {},
-    unlockedLevels: [1],
-    bossDefeated: {},
-    gameMetrics: []
+    unlockedLevels: [1]
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v30');
+    const saved = localStorage.getItem('nee_arcade_progress_v31');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v30', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v31', JSON.stringify(studentMinigamesProgress));
 }
 
 function exitArcadeToDashboard() {
@@ -47,65 +45,54 @@ function getCategoryIcon(catName) {
 }
 
 // --------------------------------------------------------------------------
-// EXTRACCIÓN MULTI-FUENTE (Garantiza encontrar tus productos y Base64)
+// LECTURA DIRECTA Y UNIFICADA DESDE PRODUCT_STORE O APP_STATE
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
 
-    // 1. Intentar desde APP_STATE
-    if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
-        rawList = window.APP_STATE.products;
-    } 
-    // 2. Intentar desde window.products
-    else if (window.products && Array.isArray(window.products) && window.products.length > 0) {
-        rawList = window.products;
+    if (window.PRODUCT_STORE && typeof window.PRODUCT_STORE.getProducts === 'function') {
+        rawList = window.PRODUCT_STORE.getProducts();
     }
-    // 3. Lectura directa desde localStorage de la app si aún no se ha instanciado APP_STATE
-    else {
-        try {
-            const savedState = localStorage.getItem('supermarket_app_state') || localStorage.getItem('APP_STATE');
-            if (savedState) {
-                const parsed = JSON.parse(savedState);
-                if (parsed && Array.isArray(parsed.products)) {
-                    rawList = parsed.products;
-                }
-            }
-        } catch(e){}
+    
+    if ((!rawList || rawList.length === 0) && window.APP_STATE && Array.isArray(window.APP_STATE.products)) {
+        rawList = window.APP_STATE.products;
     }
 
     const processedList = [];
 
-    rawList.forEach(item => {
-        if (!item) return;
+    if (Array.isArray(rawList)) {
+        rawList.forEach((item, index) => {
+            if (!item) return;
 
-        let name = item.name || item.nombre || 'Producto';
-        let category = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
-        let price = parseInt(item.price || item.precio) || 1000;
-        
-        // Lee fotos en Base64 desde .image o .photo
-        let photoSrc = item.image || item.photo || item.photoUrl || item.imagen || item.img || '';
-        let emoji = item.iconEmoji || item.emoji || '🛍️';
+            let name = item.name || item.nombre || `Producto ${index + 1}`;
+            let category = item.category || item.categoria || 'General';
+            let price = parseInt(item.price || item.precio) || 1000;
+            
+            // Extraer la imagen sin importar la propiedad donde esté
+            let photoSrc = item.image || item.photo || item.photoUrl || item.imagen || item.img || '';
+            let emoji = item.iconEmoji || item.emoji || '🛍️';
 
-        processedList.push({
-            id: item.id || 'prod-' + Math.random(),
-            name: String(name).trim(),
-            category: String(category).trim(),
-            photoUrl: photoSrc,
-            iconEmoji: emoji,
-            price: price
+            processedList.push({
+                id: item.id || `prod-${index}`,
+                name: String(name).trim(),
+                category: String(category).trim(),
+                photoUrl: photoSrc,
+                iconEmoji: emoji,
+                price: price
+            });
         });
-    });
+    }
 
-    // Filtrar solo productos con imágenes Base64 / fotos reales
-    const withImages = processedList.filter(p => p.photoUrl && String(p.photoUrl).trim().length > 20);
-
+    // Filtrar preferentemente los productos que sí tienen foto
+    const withImages = processedList.filter(p => p.photoUrl && String(p.photoUrl).trim().length > 10);
+    
     if (withImages.length > 0) return withImages;
     if (processedList.length > 0) return processedList;
 
-    // Productos de respaldo solo en caso extremo
+    // Productos de respaldo si la base de datos está completamente vacía
     return [
-        { id: 'p1', name: 'Leche Entera 1L', category: 'Lácteos, Yogures y Huevos', price: 1050, photoUrl: '', iconEmoji: '🥛' },
-        { id: 'p2', name: 'Pan Hallulla 1Kg', category: 'Panadería y Pastelería', price: 1990, photoUrl: '', iconEmoji: '🍞' }
+        { id: 'def-1', name: 'Leche Entera 1L', category: 'Lácteos, Yogures y Huevos', price: 1050, photoUrl: '', iconEmoji: '🥛' },
+        { id: 'def-2', name: 'Pan Hallulla 1Kg', category: 'Panadería y Pastelería', price: 1990, photoUrl: '', iconEmoji: '🍞' }
     ];
 }
 
@@ -136,9 +123,13 @@ function getDatabaseMoney(targetPrice) {
     ].sort(() => 0.5 - Math.random());
 }
 
+// --------------------------------------------------------------------------
+// RENDERIZADO VISUAL CON CONTROL DE FALLOS (FALLBACK)
+// --------------------------------------------------------------------------
 function renderProductVisual(product, textSize = "text-7xl") {
-    if (product.photoUrl && String(product.photoUrl).trim().length > 20) {
-        return `<img src="${product.photoUrl}" alt="${product.name}" class="max-h-full max-w-full object-contain mx-auto" onerror="this.onerror=null; this.parentNode.innerHTML='<span class=\\'${textSize} font-black\\'>${product.iconEmoji || '🛍️'}</span>';" />`;
+    if (product.photoUrl && String(product.photoUrl).trim().length > 10) {
+        return `<img src="${product.photoUrl}" alt="${product.name}" class="max-h-full max-w-full object-contain mx-auto" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='block';" />
+                <span class="${textSize} font-black" style="display:none;">${product.iconEmoji || '🛍️'}</span>`;
     }
     return `<span class="${textSize} font-black">${product.iconEmoji || '🛍️'}</span>`;
 }
@@ -293,7 +284,7 @@ function launchGame(gameKey) {
 }
 
 // --------------------------------------------------------------------------
-// LÓGICA DE JUEGOS CON COMPROBACIÓN SEGURA
+// LÓGICA DE JUEGOS
 // --------------------------------------------------------------------------
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
 
@@ -647,7 +638,7 @@ function startBossExam(level) {
 }
 
 // --------------------------------------------------------------------------
-// EXPOSICIÓN GLOBAL SEGURA
+// ASIGNACIÓN GLOBAL DE RUTA AL MENÚ PRINCIPAL
 // --------------------------------------------------------------------------
 window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
 window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
