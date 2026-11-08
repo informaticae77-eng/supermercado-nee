@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - SOLUCIÓN DEFINITIVA DE FLUJO DE JUEGO (V35)
+   MÓDULO DE MINIJUEGOS NEE - CÓDIGO COMPLETO ACTUALIZADO
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -9,14 +9,14 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v35');
+    const saved = localStorage.getItem('nee_arcade_progress_v36');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v35', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v36', JSON.stringify(studentMinigamesProgress));
 }
 
 function exitArcadeToDashboard() {
@@ -46,7 +46,7 @@ function getCategoryIcon(catName) {
 }
 
 // --------------------------------------------------------------------------
-// LECTURA DIRECTA DE LOS 27 PRODUCTOS REALES DE LA APP
+// FUNCIONES ACTUALIZADAS DE EXTRACCIÓN Y RENDERIZADO DE IMÁGENES
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
@@ -64,7 +64,7 @@ function getDatabaseProducts() {
                 const parsed = JSON.parse(local);
                 rawList = Array.isArray(parsed) ? parsed : (parsed.products || []);
             }
-        } catch(e){}
+        } catch (e) {}
     }
 
     const processedList = [];
@@ -73,19 +73,48 @@ function getDatabaseProducts() {
         rawList.forEach((item, index) => {
             if (!item) return;
 
-            let nameStr = item.name || item.nombre || item.productName || `Producto ${index + 1}`;
-            let categoryStr = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
-            let priceNum = parseInt(item.price || item.precio) || 1000;
-            
-            // Extrae fotos Base64 de photo, image o photoUrl
-            let photoSrc = item.photo || item.image || item.photoUrl || item.imagen || item.img || '';
-            let emoji = item.iconEmoji || item.emoji || '🛍️';
+            const nameStr = item.name || item.nombre || item.productName || `Producto ${index + 1}`;
+            const categoryStr = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
+            const priceNum = parseInt(item.price || item.precio) || 1000;
+
+            // Compatibilidad con muchos nombres de campo de imagen
+            let photoSrc =
+                item.photo ||
+                item.image ||
+                item.photoUrl ||
+                item.imagen ||
+                item.img ||
+                item.foto ||
+                item.fotoUrl ||
+                item.imageUrl ||
+                item.image_url ||
+                item.urlImagen ||
+                item.url_imagen ||
+                '';
+
+            photoSrc = String(photoSrc || '').trim();
+
+            // Si viene como Base64 sin prefijo, lo normalizamos
+            if (
+                photoSrc &&
+                !photoSrc.startsWith('data:image') &&
+                !photoSrc.startsWith('http') &&
+                !photoSrc.startsWith('/') &&
+                !photoSrc.startsWith('blob:') &&
+                !photoSrc.startsWith('file:')
+            ) {
+                if (/^[A-Za-z0-9+/=]+$/.test(photoSrc)) {
+                    photoSrc = `data:image/png;base64,${photoSrc}`;
+                }
+            }
+
+            const emoji = item.iconEmoji || item.emoji || '🛍️';
 
             processedList.push({
                 id: item.id || `prod-${index}`,
                 name: String(nameStr).trim(),
                 category: String(categoryStr).trim(),
-                photoUrl: String(photoSrc).trim(),
+                photoUrl: photoSrc,
                 iconEmoji: emoji,
                 price: priceNum
             });
@@ -93,6 +122,30 @@ function getDatabaseProducts() {
     }
 
     return processedList;
+}
+
+function renderProductVisual(product, textSize = "text-7xl") {
+    if (product && product.photoUrl) {
+        return `
+            <img
+                src="${product.photoUrl}"
+                alt="${String(product.name || 'Producto').replace(/"/g, '"')}"
+                class="max-h-full max-w-full object-contain mx-auto"
+                onerror="
+                    this.style.display='none';
+                    if (this.nextElementSibling) this.nextElementSibling.style.display='inline';
+                "
+            />
+            <span class="${textSize} font-black" style="display:none;">${product.iconEmoji || '🛍️'}</span>
+        `;
+    }
+
+    return `<span class="${textSize} font-black">${product.iconEmoji || '🛍️'}</span>`;
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/'/g, "\\'").replace(/"/g, '"');
 }
 
 function getDatabaseMoney(targetPrice) {
@@ -122,21 +175,8 @@ function getDatabaseMoney(targetPrice) {
     ].sort(() => 0.5 - Math.random());
 }
 
-function renderProductVisual(product, textSize = "text-7xl") {
-    if (product && product.photoUrl && product.photoUrl.length > 20) {
-        return `<img src="${product.photoUrl}" alt="${escapeHtml(product.name)}" class="max-h-full max-w-full object-contain mx-auto" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='block';" />
-                <span class="${textSize} font-black" style="display:none;">${product.iconEmoji || '🛍️'}</span>`;
-    }
-    return `<span class="${textSize} font-black">${product.iconEmoji || '🛍️'}</span>`;
-}
-
-function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/'/g, "\\'").replace(/"/g, '"');
-}
-
 // --------------------------------------------------------------------------
-// VISTA PRINCIPAL DEL MENU ARCADE
+// VISTA PRINCIPAL ARCADE
 // --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -306,7 +346,6 @@ function startMinigame1() {
 
 function renderMinigame1Question() {
     if (!gameState.questions || gameState.questions.length === 0) {
-        alert("⚠️ Cargando productos... Por favor reintenta en un momento.");
         return;
     }
 
