@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - FILTRADO EXCLUSIVO DE IMÁGENES REALES (BASE64)
+   MÓDULO DE MINIJUEGOS NEE - CORRECCIÓN DE BOTÓN AZUL E IMÁGENES BASE64
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -11,24 +11,15 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v26');
+    const saved = localStorage.getItem('nee_arcade_progress_v27');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v26', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v27', JSON.stringify(studentMinigamesProgress));
 }
-
-// --------------------------------------------------------------------------
-// VINCULACIÓN GLOBAL CON EL BOTÓN AZUL
-// --------------------------------------------------------------------------
-window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
-window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
-window.openMemorisModal = function() { renderMinigamesArcadeView(); };
-window.openArcadeModal = function() { renderMinigamesArcadeView(); };
-window.renderMinigamesArcadeView = function() { renderMinigamesArcadeView(); };
 
 function exitArcadeToDashboard() {
     if (typeof renderApp === 'function') renderApp();
@@ -56,7 +47,7 @@ function getCategoryIcon(catName) {
 }
 
 // --------------------------------------------------------------------------
-// OBTENER ÚNICAMENTE PRODUCTOS QUE POSEAN IMAGEN REAL (BASE64)
+// LECTURA Y FILTRADO DE IMÁGENES BASE64
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
@@ -77,7 +68,7 @@ function getDatabaseProducts() {
         let category = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
         let price = parseInt(item.price || item.precio) || 1000;
         
-        // Extrae foto de la propiedad `image` o `photo` (Formatos Base64 de tu consola)
+        // Lee la imagen real desde .image o .photo
         let photo = item.image || item.photo || item.photoUrl || item.imagen || item.img || '';
         let emoji = item.iconEmoji || item.emoji || '🛍️';
 
@@ -89,7 +80,6 @@ function getDatabaseProducts() {
             price: price
         };
 
-        // Si la foto es una cadena Base64 válida (mayor a 50 caracteres)
         if (photo && String(photo).trim().length > 50) {
             productsWithRealImages.push(prodObj);
         } else {
@@ -97,21 +87,16 @@ function getDatabaseProducts() {
         }
     });
 
-    // PRIORIDAD ABSOLUTA: Si hay productos con imágenes reales, usa SOLO esos.
     if (productsWithRealImages.length > 0) {
         return productsWithRealImages;
     }
 
-    // Si absolutamente ningún producto tiene foto, usa la lista general
     return fallbackProducts.length > 0 ? fallbackProducts : [
         { name: 'Leche Entera 1L', category: 'Lácteos, Yogures y Huevos', price: 1050, photoUrl: '', iconEmoji: '🥛' },
         { name: 'Pan Hallulla 1Kg', category: 'Panadería y Pastelería', price: 1990, photoUrl: '', iconEmoji: '🍞' }
     ];
 }
 
-// --------------------------------------------------------------------------
-// LECTURA DE BILLETES Y MONEDAS REALES
-// --------------------------------------------------------------------------
 function getDatabaseMoney(targetPrice) {
     let currencyList = [];
 
@@ -139,7 +124,6 @@ function getDatabaseMoney(targetPrice) {
     ].sort(() => 0.5 - Math.random());
 }
 
-// RENDERIZADOR DE IMAGEN REAL
 function renderProductVisual(product, textSize = "text-7xl") {
     if (product.photoUrl && String(product.photoUrl).trim().length > 50) {
         return `<img src="${product.photoUrl}" alt="${product.name}" class="max-h-full max-w-full object-contain mx-auto" />`;
@@ -213,7 +197,7 @@ function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Desafíos pedagógicos sincronizados con las imágenes reales en Base64 de tu catálogo.
+                    Desafíos pedagógicos sincronizados con las imágenes reales de tu catálogo.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -637,3 +621,11 @@ function startBossExam(level) {
     saveMinigamesProgress();
     renderMinigamesArcadeView();
 }
+
+// --------------------------------------------------------------------------
+// ASIGNACIÓN GLOBAL SEGURA PARA APP.JS
+// --------------------------------------------------------------------------
+window.openMemoriseModal = renderMinigamesArcadeView;
+window.openMinigamesModal = renderMinigamesArcadeView;
+window.openMemorisModal = renderMinigamesArcadeView;
+window.openArcadeModal = renderMinigamesArcadeView;
