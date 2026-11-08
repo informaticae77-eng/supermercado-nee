@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - CORRECCIÓN DE EVENTOS ONCLICK (V37)
+   MÓDULO DE MINIJUEGOS NEE - SOLUCIÓN DEFINITIVA DE MONTAJE DOM (V38)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -17,6 +17,15 @@ function loadMinigamesProgress() {
 
 function saveMinigamesProgress() {
     localStorage.setItem('nee_arcade_progress_v36', JSON.stringify(studentMinigamesProgress));
+}
+
+// Búsqueda inteligente del contenedor activo de la aplicación
+function getAppContainer() {
+    return document.getElementById('appContainer') || 
+           document.getElementById('app') || 
+           document.querySelector('main') || 
+           document.querySelector('.min-h-screen') || 
+           document.body;
 }
 
 function exitArcadeToDashboard() {
@@ -45,9 +54,6 @@ function getCategoryIcon(catName) {
     return '🏷️';
 }
 
-// --------------------------------------------------------------------------
-// EXTRACCIÓN Y RENDERIZADO DE IMÁGENES
-// --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
 
@@ -179,8 +185,8 @@ function getDatabaseMoney(targetPrice) {
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
 
-    const mainContainer = document.getElementById('appContainer');
-    if (!mainContainer) return;
+    const container = getAppContainer();
+    if (!container) return;
 
     const currentLvl = studentMinigamesProgress.currentLevel || 1;
     const completedInCurrentLvl = studentMinigamesProgress.completedGames[`level${currentLvl}`] || [];
@@ -281,7 +287,7 @@ function renderMinigamesArcadeView() {
     </div>
     `;
 
-    mainContainer.innerHTML = html;
+    container.innerHTML = html;
 }
 
 function renderGameCard(level, gameNum, title, description, fnCall, gameKey, completedList) {
@@ -335,9 +341,7 @@ function startMinigame1() {
 }
 
 function renderMinigame1Question() {
-    if (!gameState.questions || gameState.questions.length === 0) {
-        return;
-    }
+    if (!gameState.questions || gameState.questions.length === 0) return;
 
     if (gameState.currentQuestion >= gameState.questions.length) {
         return finishMinigame('mj1', 'El Estante Correcto');
@@ -389,7 +393,7 @@ function renderMinigame1Question() {
         </div>
     </div>`;
 
-    document.getElementById('appContainer').innerHTML = html;
+    getAppContainer().innerHTML = html;
 }
 
 function checkMinigame1Answer(selectedCat) {
@@ -468,7 +472,7 @@ function renderMinigame2Question() {
         </div>
     </div>`;
 
-    document.getElementById('appContainer').innerHTML = html;
+    getAppContainer().innerHTML = html;
 }
 
 function startMinigame3() {
@@ -527,7 +531,7 @@ function renderMinigame3Question() {
         </div>
     </div>`;
 
-    document.getElementById('appContainer').innerHTML = html;
+    getAppContainer().innerHTML = html;
 }
 
 function startMinigame4() {
@@ -587,7 +591,7 @@ function renderMinigame4Question() {
             <div class="grid grid-cols-2 gap-4">
                 ${options.map(val => `
                     <button onclick="checkGenericAnswer(${val}, ${totalSum}, startMinigame4, renderMinigame4Question)" 
-                            class="h-16 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-2xl shadow-lg border border-purple-400 text-lg flex items-center justify-center gap-2">
+                            class="p-3 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-2xl shadow-lg border border-purple-400 text-lg flex items-center justify-center gap-2">
                         <span>🧮</span> <span>$${val.toLocaleString('es-CL')} CLP</span>
                     </button>
                 `).join('')}
@@ -596,7 +600,7 @@ function renderMinigame4Question() {
         </div>
     </div>`;
 
-    document.getElementById('appContainer').innerHTML = html;
+    getAppContainer().innerHTML = html;
 }
 
 function startMinigame5() {
@@ -651,7 +655,7 @@ function renderMinigame5Question() {
         </div>
     </div>`;
 
-    document.getElementById('appContainer').innerHTML = html;
+    getAppContainer().innerHTML = html;
 }
 
 function checkGenericAnswer(val, correct, startFn, nextFn) {
@@ -700,7 +704,6 @@ function startBossExam(level) {
     renderMinigamesArcadeView();
 }
 
-// Exposiciones globales garantizadas
 window.startMinigame1 = startMinigame1;
 window.startMinigame2 = startMinigame2;
 window.startMinigame3 = startMinigame3;
