@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - ACCESO DIRECTO E INDEPENDIENTE A BASE DE DATOS
+   MÓDULO DE MINIJUEGOS NEE - SOLUCIÓN DEFINITIVA DE FLUJO DE JUEGO (V35)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -9,14 +9,14 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v34');
+    const saved = localStorage.getItem('nee_arcade_progress_v35');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v34', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v35', JSON.stringify(studentMinigamesProgress));
 }
 
 function exitArcadeToDashboard() {
@@ -46,37 +46,25 @@ function getCategoryIcon(catName) {
 }
 
 // --------------------------------------------------------------------------
-// MOTOR INDEPENDIENTE DE EXTRACCIÓN DE PRODUCTOS
+// LECTURA DIRECTA DE LOS 27 PRODUCTOS REALES DE LA APP
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
 
-    // 1. Intentar desde APP_STATE en memoria
     if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
         rawList = window.APP_STATE.products;
-    } 
-    // 2. Intentar desde PRODUCT_STORE si existe
-    else if (window.PRODUCT_STORE && typeof window.PRODUCT_STORE.getProducts === 'function') {
+    } else if (window.PRODUCT_STORE && typeof window.PRODUCT_STORE.getProducts === 'function') {
         rawList = window.PRODUCT_STORE.getProducts();
-    }
-    // 3. LECTURA DIRECTA DEL LOCALSTORAGE (INDEPENDIENTE DE LA APP)
-    else {
-        const keysToTry = ['supermarket_app_state', 'APP_STATE', 'products', 'nee_products_backup'];
-        for (let key of keysToTry) {
-            try {
-                const stored = localStorage.getItem(key);
-                if (stored) {
-                    const parsed = JSON.parse(stored);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        rawList = parsed;
-                        break;
-                    } else if (parsed && Array.isArray(parsed.products) && parsed.products.length > 0) {
-                        rawList = parsed.products;
-                        break;
-                    }
-                }
-            } catch(e){}
-        }
+    } else if (window.products && Array.isArray(window.products)) {
+        rawList = window.products;
+    } else {
+        try {
+            const local = localStorage.getItem('supermarket_app_state') || localStorage.getItem('APP_STATE');
+            if (local) {
+                const parsed = JSON.parse(local);
+                rawList = Array.isArray(parsed) ? parsed : (parsed.products || []);
+            }
+        } catch(e){}
     }
 
     const processedList = [];
@@ -85,12 +73,11 @@ function getDatabaseProducts() {
         rawList.forEach((item, index) => {
             if (!item) return;
 
-            // Extraer nombre con fallbacks de seguridad
             let nameStr = item.name || item.nombre || item.productName || `Producto ${index + 1}`;
             let categoryStr = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
             let priceNum = parseInt(item.price || item.precio) || 1000;
             
-            // Extraer foto Base64 desde cualquier propiedad disponible
+            // Extrae fotos Base64 de photo, image o photoUrl
             let photoSrc = item.photo || item.image || item.photoUrl || item.imagen || item.img || '';
             let emoji = item.iconEmoji || item.emoji || '🛍️';
 
@@ -105,17 +92,7 @@ function getDatabaseProducts() {
         });
     }
 
-    // Si encontramos productos reales, los devolvemos todos
-    if (processedList.length > 0) {
-        return processedList;
-    }
-
-    // Lista de contingencia pedagógica si el almacenamiento local estuviera completamente vacío
-    return [
-        { id: 'def-1', name: 'Leche Entera 1L', category: 'Lácteos, Yogures y Huevos', price: 1050, photoUrl: '', iconEmoji: '🥛' },
-        { id: 'def-2', name: 'Pan Hallulla 1Kg', category: 'Panadería y Pastelería', price: 1990, photoUrl: '', iconEmoji: '🍞' },
-        { id: 'def-3', name: 'Manzana Malla 1Kg', category: 'Frutas y Verduras', price: 1200, photoUrl: '', iconEmoji: '🍎' }
-    ];
+    return processedList;
 }
 
 function getDatabaseMoney(targetPrice) {
@@ -146,7 +123,7 @@ function getDatabaseMoney(targetPrice) {
 }
 
 function renderProductVisual(product, textSize = "text-7xl") {
-    if (product && product.photoUrl && product.photoUrl.length > 10) {
+    if (product && product.photoUrl && product.photoUrl.length > 20) {
         return `<img src="${product.photoUrl}" alt="${escapeHtml(product.name)}" class="max-h-full max-w-full object-contain mx-auto" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='block';" />
                 <span class="${textSize} font-black" style="display:none;">${product.iconEmoji || '🛍️'}</span>`;
     }
@@ -159,7 +136,7 @@ function escapeHtml(str) {
 }
 
 // --------------------------------------------------------------------------
-// VISTA PRINCIPAL ARCADE
+// VISTA PRINCIPAL DEL MENU ARCADE
 // --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -308,7 +285,7 @@ function launchGame(gameKey) {
 }
 
 // --------------------------------------------------------------------------
-// LÓGICA DE JUEGOS CON CONTROL ESTRICTO DE ESTADO DE INICIO
+// LÓGICA DE JUEGOS CON INICIALIZACIÓN PROTEGIDA
 // --------------------------------------------------------------------------
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
 
@@ -328,8 +305,11 @@ function startMinigame1() {
 }
 
 function renderMinigame1Question() {
-    if (!gameState.questions || gameState.questions.length === 0) return;
-    
+    if (!gameState.questions || gameState.questions.length === 0) {
+        alert("⚠️ Cargando productos... Por favor reintenta en un momento.");
+        return;
+    }
+
     if (gameState.currentQuestion >= gameState.questions.length) {
         return finishMinigame('mj1', 'El Estante Correcto');
     }
@@ -397,7 +377,7 @@ function checkMinigame1Answer(selectedCat) {
 function startMinigame2() {
     const catalog = getDatabaseProducts();
     const shuffled = [...catalog].sort(() => 0.5 - Math.random());
-    
+
     gameState = {
         key: 'mj2',
         startTime: Date.now(),
@@ -691,9 +671,6 @@ function startBossExam(level) {
     renderMinigamesArcadeView();
 }
 
-// --------------------------------------------------------------------------
-// MAPPING DIRECTO SIN RECURSIÓN
-// --------------------------------------------------------------------------
 window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
 window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
 window.openMemorisModal = function() { renderMinigamesArcadeView(); };
