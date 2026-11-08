@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - SOLUCIÓN DEFINITIVA CON SANITIZACIÓN TOTAL
+   MÓDULO DE MINIJUEGOS NEE - CORRECCIÓN DE ESTADO Y RESET AUTOMÁTICO
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -9,14 +9,14 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v32');
+    const saved = localStorage.getItem('nee_arcade_progress_v33');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v32', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v33', JSON.stringify(studentMinigamesProgress));
 }
 
 function exitArcadeToDashboard() {
@@ -45,9 +45,6 @@ function getCategoryIcon(catName) {
     return '🏷️';
 }
 
-// --------------------------------------------------------------------------
-// LECTURA DIRECTA DE PRODUCTOS Y EXTRACTION BASE64 SEGURA
-// --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
 
@@ -64,12 +61,9 @@ function getDatabaseProducts() {
         rawList.forEach((item, index) => {
             if (!item) return;
 
-            // SANITIZACIÓN: Evita undefined que rompa string methods
             let name = item.name || item.nombre || item.productName || `Producto ${index + 1}`;
             let category = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
             let price = parseInt(item.price || item.precio) || 1000;
-            
-            // PRIORIDAD BASE64: Busca la imagen en .photo, .image o .photoUrl
             let photoSrc = item.photo || item.image || item.photoUrl || item.imagen || item.img || '';
             let emoji = item.iconEmoji || item.emoji || '🛍️';
 
@@ -84,7 +78,6 @@ function getDatabaseProducts() {
         });
     }
 
-    // Retorna todos los productos que tengan imagen Base64 válida
     const withImages = processedList.filter(p => p.photoUrl && p.photoUrl.startsWith('data:image'));
     return withImages.length > 0 ? withImages : processedList;
 }
@@ -116,9 +109,6 @@ function getDatabaseMoney(targetPrice) {
     ].sort(() => 0.5 - Math.random());
 }
 
-// --------------------------------------------------------------------------
-// RENDERIZADO VISUAL CON IMAGEN REAL BASE64
-// --------------------------------------------------------------------------
 function renderProductVisual(product, textSize = "text-7xl") {
     if (product && product.photoUrl && product.photoUrl.length > 20) {
         return `<img src="${product.photoUrl}" alt="${escapeHtml(product.name)}" class="max-h-full max-w-full object-contain mx-auto" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='block';" />
@@ -132,9 +122,6 @@ function escapeHtml(str) {
     return String(str).replace(/'/g, "\\'").replace(/"/g, '"');
 }
 
-// --------------------------------------------------------------------------
-// VISTA PRINCIPAL ARCADE
-// --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
 
@@ -281,24 +268,29 @@ function launchGame(gameKey) {
     else if (gameKey === 'mj5') startMinigame5();
 }
 
-// --------------------------------------------------------------------------
-// LÓGICA DE JUEGOS
-// --------------------------------------------------------------------------
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
 
 function startMinigame1() {
-    gameState.key = 'mj1';
-    gameState.startTime = Date.now();
-    gameState.errors = 0;
-    gameState.currentQuestion = 0;
-    
-    let catalog = getDatabaseProducts();
-    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
+    const catalog = getDatabaseProducts();
+    if (!catalog || catalog.length === 0) {
+        alert("⚠️ No se encontraron productos cargados en la base de datos.");
+        return;
+    }
+
+    // RESTRUCTURACIÓN SEGURA: Reinicio garantizado desde la pregunta 0
+    gameState = {
+        key: 'mj1',
+        startTime: Date.now(),
+        errors: 0,
+        currentQuestion: 0,
+        questions: [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length))
+    };
+
     renderMinigame1Question();
 }
 
 function renderMinigame1Question() {
-    if (gameState.currentQuestion >= gameState.questions.length) {
+    if (!gameState.questions || gameState.questions.length === 0 || gameState.currentQuestion >= gameState.questions.length) {
         return finishMinigame('mj1', 'El Estante Correcto');
     }
 
@@ -363,17 +355,20 @@ function checkMinigame1Answer(selectedCat) {
 }
 
 function startMinigame2() {
-    gameState.key = 'mj2';
-    gameState.startTime = Date.now();
-    gameState.errors = 0;
-    gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
-    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
+    if (!catalog || catalog.length === 0) return;
+    gameState = {
+        key: 'mj2',
+        startTime: Date.now(),
+        errors: 0,
+        currentQuestion: 0,
+        questions: [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length))
+    };
     renderMinigame2Question();
 }
 
 function renderMinigame2Question() {
-    if (gameState.currentQuestion >= gameState.questions.length) {
+    if (!gameState.questions || gameState.questions.length === 0 || gameState.currentQuestion >= gameState.questions.length) {
         return finishMinigame('mj2', 'Corta el Billete');
     }
 
@@ -425,17 +420,20 @@ function renderMinigame2Question() {
 }
 
 function startMinigame3() {
-    gameState.key = 'mj3';
-    gameState.startTime = Date.now();
-    gameState.errors = 0;
-    gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
-    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
+    if (!catalog || catalog.length === 0) return;
+    gameState = {
+        key: 'mj3',
+        startTime: Date.now(),
+        errors: 0,
+        currentQuestion: 0,
+        questions: [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length))
+    };
     renderMinigame3Question();
 }
 
 function renderMinigame3Question() {
-    if (gameState.currentQuestion >= gameState.questions.length) {
+    if (!gameState.questions || gameState.questions.length === 0 || gameState.currentQuestion >= gameState.questions.length) {
         return finishMinigame('mj3', 'Palabras en Góndola');
     }
 
@@ -478,17 +476,20 @@ function renderMinigame3Question() {
 }
 
 function startMinigame4() {
-    gameState.key = 'mj4';
-    gameState.startTime = Date.now();
-    gameState.errors = 0;
-    gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
-    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(4, catalog.length));
+    if (!catalog || catalog.length === 0) return;
+    gameState = {
+        key: 'mj4',
+        startTime: Date.now(),
+        errors: 0,
+        currentQuestion: 0,
+        questions: [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(4, catalog.length))
+    };
     renderMinigame4Question();
 }
 
 function renderMinigame4Question() {
-    if (gameState.currentQuestion >= gameState.questions.length) {
+    if (!gameState.questions || gameState.questions.length === 0 || gameState.currentQuestion >= gameState.questions.length) {
         return finishMinigame('mj4', 'Calculadora del Canasto');
     }
 
@@ -541,17 +542,20 @@ function renderMinigame4Question() {
 }
 
 function startMinigame5() {
-    gameState.key = 'mj5';
-    gameState.startTime = Date.now();
-    gameState.errors = 0;
-    gameState.currentQuestion = 0;
     const catalog = getDatabaseProducts();
-    gameState.questions = [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length));
+    if (!catalog || catalog.length === 0) return;
+    gameState = {
+        key: 'mj5',
+        startTime: Date.now(),
+        errors: 0,
+        currentQuestion: 0,
+        questions: [...catalog].sort(() => 0.5 - Math.random()).slice(0, Math.min(5, catalog.length))
+    };
     renderMinigame5Question();
 }
 
 function renderMinigame5Question() {
-    if (gameState.currentQuestion >= gameState.questions.length) {
+    if (!gameState.questions || gameState.questions.length === 0 || gameState.currentQuestion >= gameState.questions.length) {
         return finishMinigame('mj5', 'La Lista de Compras');
     }
 
@@ -635,9 +639,6 @@ function startBossExam(level) {
     renderMinigamesArcadeView();
 }
 
-// --------------------------------------------------------------------------
-// EXPOSICIÓN GLOBAL SEGURA
-// --------------------------------------------------------------------------
 window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
 window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
 window.openMemorisModal = function() { renderMinigamesArcadeView(); };
