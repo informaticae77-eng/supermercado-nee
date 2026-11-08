@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - SOLUCIÓN COMPLETA (BOTÓN AZUL + BASE64)
+   MÓDULO DE MINIJUEGOS NEE - FILTRADO EXCLUSIVO DE IMÁGENES REALES (BASE64)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -11,18 +11,18 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v25');
+    const saved = localStorage.getItem('nee_arcade_progress_v26');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v25', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v26', JSON.stringify(studentMinigamesProgress));
 }
 
 // --------------------------------------------------------------------------
-// VINCULACIÓN GLOBAL GARANTIZADA PARA EL BOTÓN AZUL DE APP.JS
+// VINCULACIÓN GLOBAL CON EL BOTÓN AZUL
 // --------------------------------------------------------------------------
 window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
 window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
@@ -56,7 +56,7 @@ function getCategoryIcon(catName) {
 }
 
 // --------------------------------------------------------------------------
-// LECTURA DE PRODUCTOS (SOPORTA BASE64: item.image / item.photo)
+// OBTENER ÚNICAMENTE PRODUCTOS QUE POSEAN IMAGEN REAL (BASE64)
 // --------------------------------------------------------------------------
 function getDatabaseProducts() {
     let rawList = [];
@@ -67,42 +67,50 @@ function getDatabaseProducts() {
         rawList = window.products;
     }
 
-    const validProducts = [];
+    const productsWithRealImages = [];
+    const fallbackProducts = [];
 
-    if (rawList.length > 0) {
-        rawList.forEach(item => {
-            if (!item) return;
-            let name = item.name || item.nombre || 'Producto';
-            let category = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
-            let price = parseInt(item.price || item.precio) || 1000;
-            
-            // BUSCA LA IMAGEN EN TODAS LAS CLAVES POSIBLES (INCLUYENDO BASE64)
-            let photo = item.image || item.photo || item.photoUrl || item.imagen || item.img || item.src || '';
-            let emoji = item.iconEmoji || item.emoji || '🛍️';
+    rawList.forEach(item => {
+        if (!item) return;
 
-            validProducts.push({
-                name: String(name).trim(),
-                category: String(category).trim(),
-                photoUrl: photo,
-                iconEmoji: emoji,
-                price: price
-            });
-        });
+        let name = item.name || item.nombre || 'Producto';
+        let category = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
+        let price = parseInt(item.price || item.precio) || 1000;
+        
+        // Extrae foto de la propiedad `image` o `photo` (Formatos Base64 de tu consola)
+        let photo = item.image || item.photo || item.photoUrl || item.imagen || item.img || '';
+        let emoji = item.iconEmoji || item.emoji || '🛍️';
+
+        const prodObj = {
+            name: String(name).trim(),
+            category: String(category).trim(),
+            photoUrl: photo,
+            iconEmoji: emoji,
+            price: price
+        };
+
+        // Si la foto es una cadena Base64 válida (mayor a 50 caracteres)
+        if (photo && String(photo).trim().length > 50) {
+            productsWithRealImages.push(prodObj);
+        } else {
+            fallbackProducts.push(prodObj);
+        }
+    });
+
+    // PRIORIDAD ABSOLUTA: Si hay productos con imágenes reales, usa SOLO esos.
+    if (productsWithRealImages.length > 0) {
+        return productsWithRealImages;
     }
 
-    if (validProducts.length === 0) {
-        return [
-            { id: 'prod-1', name: 'Leche Entera 1L', category: 'Lácteos, Yogures y Huevos', price: 1050, photoUrl: '', iconEmoji: '🥛' },
-            { id: 'prod-2', name: 'Pan Hallulla 1Kg', category: 'Panadería y Pastelería', price: 1990, photoUrl: '', iconEmoji: '🍞' },
-            { id: 'prod-3', name: 'Manzana Fuji (1Kg)', category: 'Frutas y Verduras', price: 1200, photoUrl: '', iconEmoji: '🍎' }
-        ];
-    }
-
-    return validProducts;
+    // Si absolutamente ningún producto tiene foto, usa la lista general
+    return fallbackProducts.length > 0 ? fallbackProducts : [
+        { name: 'Leche Entera 1L', category: 'Lácteos, Yogures y Huevos', price: 1050, photoUrl: '', iconEmoji: '🥛' },
+        { name: 'Pan Hallulla 1Kg', category: 'Panadería y Pastelería', price: 1990, photoUrl: '', iconEmoji: '🍞' }
+    ];
 }
 
 // --------------------------------------------------------------------------
-// LECTURA DE MONEDAS Y BILLETES
+// LECTURA DE BILLETES Y MONEDAS REALES
 // --------------------------------------------------------------------------
 function getDatabaseMoney(targetPrice) {
     let currencyList = [];
@@ -124,27 +132,23 @@ function getDatabaseMoney(targetPrice) {
 
     const p = targetPrice || 1000;
     return [
-        { value: p, label: `$${p.toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-emerald-600 border-emerald-400" },
-        { value: p + 500, label: `$${(p + 500).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-purple-600 border-purple-400" },
-        { value: Math.max(100, p - 300), label: `$${Math.max(100, p - 300).toLocaleString('es-CL')} CLP`, icon: "🪙", color: "bg-amber-600 border-amber-400" },
-        { value: p + 1000, label: `$${(p + 1000).toLocaleString('es-CL')} CLP`, icon: "💵", color: "bg-rose-600 border-rose-400" }
+        { value: p, label: `$${p.toLocaleString('es-CL')} CLP`, icon: "💵" },
+        { value: p + 500, label: `$${(p + 500).toLocaleString('es-CL')} CLP`, icon: "💵" },
+        { value: Math.max(100, p - 300), label: `$${Math.max(100, p - 300).toLocaleString('es-CL')} CLP`, icon: "🪙" },
+        { value: p + 1000, label: `$${(p + 1000).toLocaleString('es-CL')} CLP`, icon: "💵" }
     ].sort(() => 0.5 - Math.random());
 }
 
-// RENDERIZADOR DE IMÁGENES REALES / BASE64
+// RENDERIZADOR DE IMAGEN REAL
 function renderProductVisual(product, textSize = "text-7xl") {
-    const emoji = product.iconEmoji || '🛍️';
-    
-    if (product.photoUrl && String(product.photoUrl).trim() !== '' && product.photoUrl.length > 10) {
-        return `<img src="${product.photoUrl}" alt="${product.name}" class="max-h-full max-w-full object-contain mx-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
-                <span class="${textSize} font-black" style="display:none;">${emoji}</span>`;
+    if (product.photoUrl && String(product.photoUrl).trim().length > 50) {
+        return `<img src="${product.photoUrl}" alt="${product.name}" class="max-h-full max-w-full object-contain mx-auto" />`;
     }
-    
-    return `<span class="${textSize} font-black">${emoji}</span>`;
+    return `<span class="${textSize} font-black">${product.iconEmoji || '🛍️'}</span>`;
 }
 
 // --------------------------------------------------------------------------
-// VISTA PRINCIPAL
+// VISTA PRINCIPAL ARCADE
 // --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
@@ -209,7 +213,7 @@ function renderMinigamesArcadeView() {
                 </span>
                 <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
                 <p class="text-xs sm:text-sm font-bold text-slate-300 max-w-xl">
-                    Desafíos pedagógicos sincronizados con las imágenes reales y pictogramas de tu tienda.
+                    Desafíos pedagógicos sincronizados con las imágenes reales en Base64 de tu catálogo.
                 </p>
             </div>
             <div class="bg-slate-950/80 p-5 rounded-2xl text-center border border-slate-700 min-w-[170px] w-full md:w-auto">
@@ -330,7 +334,7 @@ function renderMinigame1Question() {
                     <span class="text-[10px] font-black text-indigo-400 bg-indigo-500/20 px-3 py-1 rounded-full uppercase border border-indigo-500/30">
                         OA04 MINEDUC: Categorización Semántica
                     </span>
-                    <h3 class="text-xs font-black text-slate-300 mt-1">Selecciona el estante adecuado utilizando el pictograma.</h3>
+                    <h3 class="text-xs font-black text-slate-300 mt-1">Selecciona el estante adecuado utilizando la foto real.</h3>
                 </div>
                 <span class="text-xs font-black text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20">
                     Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}
