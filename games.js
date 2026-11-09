@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - CONTROL DE MODALES Y MONTAJE DIRECTO (V39)
+   MÓDULO DE MINIJUEGOS NEE - OVERLAY FLOTANTE EN BODY (V40)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -17,23 +17,6 @@ function loadMinigamesProgress() {
 
 function saveMinigamesProgress() {
     localStorage.setItem('nee_arcade_progress_v36', JSON.stringify(studentMinigamesProgress));
-}
-
-// Cierra cualquier modal sobrepuesto antes de renderizar la pregunta
-function getAppContainer() {
-    // Si hay un modal abierto en la pantalla de la app, lo ocultamos para que el juego sea visible
-    const activeModals = document.querySelectorAll('.modal, [role="dialog"], .fixed.inset-0');
-    activeModals.forEach(m => {
-        if (m.id !== 'game-canvas-area') {
-            m.style.display = 'none';
-        }
-    });
-
-    return document.getElementById('appContainer') || 
-           document.getElementById('app') || 
-           document.querySelector('main') || 
-           document.querySelector('.min-h-screen') || 
-           document.body;
 }
 
 function exitArcadeToDashboard() {
@@ -188,13 +171,36 @@ function getDatabaseMoney(targetPrice) {
 }
 
 // --------------------------------------------------------------------------
+// INYECTOR DE OVERLAY FLOTANTE (REEMPLAZA EL CAMBIO DE CONTAINER)
+// --------------------------------------------------------------------------
+function renderGameOverlay(innerHtmlContent) {
+    let overlay = document.getElementById('nee-game-modal-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'nee-game-modal-overlay';
+        overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background-color:rgba(2, 6, 23, 0.95); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px; overflow-y:auto;';
+        document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = innerHtmlContent;
+    overlay.style.display = 'flex';
+}
+
+function closeGameOverlay() {
+    const overlay = document.getElementById('nee-game-modal-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        overlay.innerHTML = '';
+    }
+}
+
+// --------------------------------------------------------------------------
 // VISTA PRINCIPAL ARCADE
 // --------------------------------------------------------------------------
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
 
-    const container = getAppContainer();
-    if (!container) return;
+    const mainContainer = document.getElementById('appContainer') || document.querySelector('main') || document.body;
+    if (!mainContainer) return;
 
     const currentLvl = studentMinigamesProgress.currentLevel || 1;
     const completedInCurrentLvl = studentMinigamesProgress.completedGames[`level${currentLvl}`] || [];
@@ -295,7 +301,7 @@ function renderMinigamesArcadeView() {
     </div>
     `;
 
-    container.innerHTML = html;
+    mainContainer.innerHTML = html;
 }
 
 function renderGameCard(level, gameNum, title, description, fnCall, gameKey, completedList) {
@@ -352,6 +358,7 @@ function renderMinigame1Question() {
     if (!gameState.questions || gameState.questions.length === 0) return;
 
     if (gameState.currentQuestion >= gameState.questions.length) {
+        closeGameOverlay();
         return finishMinigame('mj1', 'El Estante Correcto');
     }
 
@@ -367,41 +374,39 @@ function renderMinigame1Question() {
     options.sort(() => 0.5 - Math.random());
 
     const html = `
-    <div class="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8 flex items-center justify-center">
-        <div class="max-w-2xl w-full bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-indigo-500/60 shadow-2xl space-y-6 text-center select-none">
-            <div class="flex flex-col sm:flex-row justify-between items-center gap-2 border-b border-slate-800 pb-4">
-                <div class="text-left">
-                    <span class="text-[10px] font-black text-indigo-400 bg-indigo-500/20 px-3 py-1 rounded-full uppercase border border-indigo-500/30">
-                        OA04 MINEDUC: Categorización Semántica
-                    </span>
-                    <h3 class="text-xs font-black text-slate-300 mt-1">Selecciona el estante adecuado utilizando la foto real.</h3>
-                </div>
-                <span class="text-xs font-black text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20">
-                    Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}
+    <div class="max-w-2xl w-full bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-indigo-500/60 shadow-2xl space-y-6 text-center select-none my-auto">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-2 border-b border-slate-800 pb-4">
+            <div class="text-left">
+                <span class="text-[10px] font-black text-indigo-400 bg-indigo-500/20 px-3 py-1 rounded-full uppercase border border-indigo-500/30">
+                    OA04 MINEDUC: Categorización Semántica
                 </span>
+                <h3 class="text-xs font-black text-slate-300 mt-1">Selecciona el estante adecuado utilizando la foto real.</h3>
             </div>
-
-            <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
-                <div class="w-48 h-48 sm:w-56 sm:h-56 bg-white p-4 rounded-3xl border-4 border-indigo-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    ${renderProductVisual(q)}
-                </div>
-                <span class="text-xl sm:text-2xl font-black text-white uppercase px-4 tracking-wide block">${q.name}</span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                ${options.map(catName => `
-                    <button onclick="checkMinigame1Answer('${escapeHtml(catName)}')" 
-                            class="w-full h-16 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-black rounded-2xl shadow-lg flex items-center justify-center px-6 text-base border border-indigo-400 gap-3 transition-all">
-                        <span class="text-2xl">${getCategoryIcon(catName)}</span>
-                        <span>${catName}</span>
-                    </button>
-                `).join('')}
-            </div>
-            <button onclick="renderMinigamesArcadeView()" class="mt-4 text-xs font-bold text-slate-500 underline block mx-auto">✕ Salir al Centro de Desafíos</button>
+            <span class="text-xs font-black text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20">
+                Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}
+            </span>
         </div>
+
+        <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
+            <div class="w-48 h-48 sm:w-56 sm:h-56 bg-white p-4 rounded-3xl border-4 border-indigo-500/40 shadow-xl flex items-center justify-center overflow-hidden">
+                ${renderProductVisual(q)}
+            </div>
+            <span class="text-xl sm:text-2xl font-black text-white uppercase px-4 tracking-wide block">${q.name}</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            ${options.map(catName => `
+                <button onclick="checkMinigame1Answer('${escapeHtml(catName)}')" 
+                        class="w-full h-16 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-black rounded-2xl shadow-lg flex items-center justify-center px-6 text-base border border-indigo-400 gap-3 transition-all">
+                    <span class="text-2xl">${getCategoryIcon(catName)}</span>
+                    <span>${catName}</span>
+                </button>
+            `).join('')}
+        </div>
+        <button onclick="closeGameOverlay()" class="mt-4 text-xs font-bold text-slate-400 hover:text-white underline block mx-auto">✕ Salir al Centro de Desafíos</button>
     </div>`;
 
-    getAppContainer().innerHTML = html;
+    renderGameOverlay(html);
 }
 
 function checkMinigame1Answer(selectedCat) {
@@ -433,6 +438,7 @@ function renderMinigame2Question() {
     if (!gameState.questions || gameState.questions.length === 0) return;
 
     if (gameState.currentQuestion >= gameState.questions.length) {
+        closeGameOverlay();
         return finishMinigame('mj2', 'Corta el Billete');
     }
 
@@ -441,46 +447,44 @@ function renderMinigame2Question() {
     const moneyOptions = getDatabaseMoney(targetPrice);
 
     const html = `
-    <div class="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8 flex items-center justify-center">
-        <div class="max-w-2xl w-full bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-emerald-500/60 shadow-2xl space-y-6 text-center select-none">
-            <div class="flex flex-col sm:flex-row justify-between items-center gap-2 border-b border-slate-800 pb-4">
-                <div class="text-left">
-                    <span class="text-[10px] font-black text-emerald-400 bg-emerald-500/20 px-3 py-1 rounded-full uppercase border border-emerald-500/30">
-                        OA07 MINEDUC: Reconocimiento de Billetes
-                    </span>
-                    <h3 class="text-xs font-black text-slate-300 mt-1">Selecciona el billete o moneda para pagar el producto.</h3>
-                </div>
-                <span class="text-xs font-black text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20">
-                    Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}
+    <div class="max-w-2xl w-full bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-emerald-500/60 shadow-2xl space-y-6 text-center select-none my-auto">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-2 border-b border-slate-800 pb-4">
+            <div class="text-left">
+                <span class="text-[10px] font-black text-emerald-400 bg-emerald-500/20 px-3 py-1 rounded-full uppercase border border-emerald-500/30">
+                    OA07 MINEDUC: Reconocimiento de Billetes
                 </span>
+                <h3 class="text-xs font-black text-slate-300 mt-1">Selecciona el billete o moneda para pagar el producto.</h3>
             </div>
-
-            <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-3">
-                <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-emerald-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    ${renderProductVisual(q)}
-                </div>
-                <span class="text-lg font-black text-white uppercase">${q.name}</span>
-
-                <div class="bg-amber-400 text-slate-950 px-6 py-2 rounded-2xl font-black text-xl border-2 border-amber-300 shadow-lg flex items-center gap-2">
-                    <span>🏷️ PRECIO:</span>
-                    <span>$${targetPrice.toLocaleString('es-CL')} CLP</span>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                ${moneyOptions.map(m => `
-                    <button onclick="checkGenericAnswer(${m.value}, ${targetPrice}, startMinigame2, renderMinigame2Question)" 
-                            class="p-3 bg-slate-800 hover:bg-slate-700 border-emerald-400 text-white font-black rounded-2xl border-2 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
-                        ${m.img ? `<img src="${m.img}" class="h-16 w-auto object-contain rounded-lg" />` : `<span class="text-3xl">${m.icon || '💵'}</span>`}
-                        <span class="font-black text-amber-300 text-base">${m.label}</span>
-                    </button>
-                `).join('')}
-            </div>
-            <button onclick="renderMinigamesArcadeView()" class="mt-4 text-xs font-bold text-slate-500 underline block mx-auto">✕ Salir</button>
+            <span class="text-xs font-black text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20">
+                Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}
+            </span>
         </div>
+
+        <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-3">
+            <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-emerald-500/40 shadow-xl flex items-center justify-center overflow-hidden">
+                ${renderProductVisual(q)}
+            </div>
+            <span class="text-lg font-black text-white uppercase">${q.name}</span>
+
+            <div class="bg-amber-400 text-slate-950 px-6 py-2 rounded-2xl font-black text-xl border-2 border-amber-300 shadow-lg flex items-center gap-2">
+                <span>🏷️ PRECIO:</span>
+                <span>$${targetPrice.toLocaleString('es-CL')} CLP</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            ${moneyOptions.map(m => `
+                <button onclick="checkGenericAnswer(${m.value}, ${targetPrice}, startMinigame2, renderMinigame2Question)" 
+                        class="p-3 bg-slate-800 hover:bg-slate-700 border-emerald-400 text-white font-black rounded-2xl border-2 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
+                    ${m.img ? `<img src="${m.img}" class="h-16 w-auto object-contain rounded-lg" />` : `<span class="text-3xl">${m.icon || '💵'}</span>`}
+                    <span class="font-black text-amber-300 text-base">${m.label}</span>
+                </button>
+            `).join('')}
+        </div>
+        <button onclick="closeGameOverlay()" class="mt-4 text-xs font-bold text-slate-400 hover:text-white underline block mx-auto">✕ Salir</button>
     </div>`;
 
-    getAppContainer().innerHTML = html;
+    renderGameOverlay(html);
 }
 
 function startMinigame3() {
@@ -501,6 +505,7 @@ function renderMinigame3Question() {
     if (!gameState.questions || gameState.questions.length === 0) return;
 
     if (gameState.currentQuestion >= gameState.questions.length) {
+        closeGameOverlay();
         return finishMinigame('mj3', 'Palabras en Góndola');
     }
 
@@ -511,35 +516,33 @@ function renderMinigame3Question() {
     const options = [correctName, ...otherNames.slice(0, 3)].sort(() => 0.5 - Math.random());
 
     const html = `
-    <div class="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8 flex items-center justify-center">
-        <div class="max-w-2xl w-full bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-amber-500/60 shadow-2xl space-y-6 text-center select-none">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-4">
-                <span class="text-[10px] font-black text-amber-400 bg-amber-500/20 px-3 py-1 rounded-full uppercase border border-amber-500/30">
-                    OA02 MINEDUC: Lectura de Etiquetas
-                </span>
-                <span class="text-xs font-black text-amber-400">Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}</span>
-            </div>
-
-            <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
-                <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-amber-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    ${renderProductVisual(q)}
-                </div>
-                <span class="text-xs font-black text-slate-400 uppercase tracking-widest">¿CÓMO SE LLAMA ESTE PRODUCTO?</span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                ${options.map(name => `
-                    <button onclick="checkGenericAnswer('${escapeHtml(name)}', '${escapeHtml(correctName)}', startMinigame3, renderMinigame3Question)" 
-                            class="h-14 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-2xl shadow-lg border border-amber-400 text-sm flex items-center justify-center gap-2">
-                        <span>🏷️</span> <span>${name}</span>
-                    </button>
-                `).join('')}
-            </div>
-            <button onclick="renderMinigamesArcadeView()" class="mt-4 text-xs font-bold text-slate-500 underline block mx-auto">✕ Salir</button>
+    <div class="max-w-2xl w-full bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-amber-500/60 shadow-2xl space-y-6 text-center select-none my-auto">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+            <span class="text-[10px] font-black text-amber-400 bg-amber-500/20 px-3 py-1 rounded-full uppercase border border-amber-500/30">
+                OA02 MINEDUC: Lectura de Etiquetas
+            </span>
+            <span class="text-xs font-black text-amber-400">Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}</span>
         </div>
+
+        <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
+            <div class="w-44 h-44 bg-white p-4 rounded-3xl border-4 border-amber-500/40 shadow-xl flex items-center justify-center overflow-hidden">
+                ${renderProductVisual(q)}
+            </div>
+            <span class="text-xs font-black text-slate-400 uppercase tracking-widest">¿CÓMO SE LLAMA ESTE PRODUCTO?</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            ${options.map(name => `
+                <button onclick="checkGenericAnswer('${escapeHtml(name)}', '${escapeHtml(correctName)}', startMinigame3, renderMinigame3Question)" 
+                        class="h-14 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-2xl shadow-lg border border-amber-400 text-sm flex items-center justify-center gap-2">
+                    <span>🏷️</span> <span>${name}</span>
+                </button>
+            `).join('')}
+        </div>
+        <button onclick="closeGameOverlay()" class="mt-4 text-xs font-bold text-slate-400 hover:text-white underline block mx-auto">✕ Salir</button>
     </div>`;
 
-    getAppContainer().innerHTML = html;
+    renderGameOverlay(html);
 }
 
 function startMinigame4() {
@@ -560,55 +563,57 @@ function renderMinigame4Question() {
     if (!gameState.questions || gameState.questions.length === 0) return;
 
     if (gameState.currentQuestion >= gameState.questions.length) {
+        closeGameOverlay();
         return finishMinigame('mj4', 'Calculadora del Canasto');
     }
 
     const p1 = gameState.questions[gameState.currentQuestion];
     const p2 = gameState.questions[(gameState.currentQuestion + 1) % gameState.questions.length];
-    if (!p1 || !p2) return finishMinigame('mj4', 'Calculadora del Canasto');
+    if (!p1 || !p2) {
+        closeGameOverlay();
+        return finishMinigame('mj4', 'Calculadora del Canasto');
+    }
 
     const totalSum = p1.price + p2.price;
     const options = [totalSum, totalSum + 500, Math.max(200, totalSum - 400), totalSum + 1000].sort(() => 0.5 - Math.random());
 
     const html = `
-    <div class="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8 flex items-center justify-center">
-        <div class="max-w-2xl w-full bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-purple-500/60 shadow-2xl space-y-6 text-center select-none">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-4">
-                <span class="text-[10px] font-black text-purple-400 bg-purple-500/20 px-3 py-1 rounded-full uppercase border border-purple-500/30">
-                    OA09 MINEDUC: Suma del Canasto
-                </span>
-                <span class="text-xs font-black text-amber-400">Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}</span>
-            </div>
-
-            <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex justify-center items-center gap-6">
-                <div class="text-center">
-                    <div class="w-24 h-24 bg-white rounded-2xl p-2 flex items-center justify-center mx-auto overflow-hidden">
-                        ${renderProductVisual(p1, "text-5xl")}
-                    </div>
-                    <span class="text-xs font-black text-amber-300 block mt-2">$${p1.price.toLocaleString('es-CL')}</span>
-                </div>
-                <span class="text-4xl font-black text-purple-400">+</span>
-                <div class="text-center">
-                    <div class="w-24 h-24 bg-white rounded-2xl p-2 flex items-center justify-center mx-auto overflow-hidden">
-                        ${renderProductVisual(p2, "text-5xl")}
-                    </div>
-                    <span class="text-xs font-black text-amber-300 block mt-2">$${p2.price.toLocaleString('es-CL')}</span>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                ${options.map(val => `
-                    <button onclick="checkGenericAnswer(${val}, ${totalSum}, startMinigame4, renderMinigame4Question)" 
-                            class="p-3 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-2xl shadow-lg border border-purple-400 text-lg flex items-center justify-center gap-2">
-                        <span>🧮</span> <span>$${val.toLocaleString('es-CL')} CLP</span>
-                    </button>
-                `).join('')}
-            </div>
-            <button onclick="renderMinigamesArcadeView()" class="mt-4 text-xs font-bold text-slate-500 underline block mx-auto">✕ Salir</button>
+    <div class="max-w-2xl w-full bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-purple-500/60 shadow-2xl space-y-6 text-center select-none my-auto">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+            <span class="text-[10px] font-black text-purple-400 bg-purple-500/20 px-3 py-1 rounded-full uppercase border border-purple-500/30">
+                OA09 MINEDUC: Suma del Canasto
+            </span>
+            <span class="text-xs font-black text-amber-400">Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}</span>
         </div>
+
+        <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex justify-center items-center gap-6">
+            <div class="text-center">
+                <div class="w-24 h-24 bg-white rounded-2xl p-2 flex items-center justify-center mx-auto overflow-hidden">
+                    ${renderProductVisual(p1, "text-5xl")}
+                </div>
+                <span class="text-xs font-black text-amber-300 block mt-2">$${p1.price.toLocaleString('es-CL')}</span>
+            </div>
+            <span class="text-4xl font-black text-purple-400">+</span>
+            <div class="text-center">
+                <div class="w-24 h-24 bg-white rounded-2xl p-2 flex items-center justify-center mx-auto overflow-hidden">
+                    ${renderProductVisual(p2, "text-5xl")}
+                </div>
+                <span class="text-xs font-black text-amber-300 block mt-2">$${p2.price.toLocaleString('es-CL')}</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            ${options.map(val => `
+                <button onclick="checkGenericAnswer(${val}, ${totalSum}, startMinigame4, renderMinigame4Question)" 
+                        class="p-3 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-2xl shadow-lg border border-purple-400 text-lg flex items-center justify-center gap-2">
+                    <span>🧮</span> <span>$${val.toLocaleString('es-CL')} CLP</span>
+                </button>
+            `).join('')}
+        </div>
+        <button onclick="closeGameOverlay()" class="mt-4 text-xs font-bold text-slate-400 hover:text-white underline block mx-auto">✕ Salir</button>
     </div>`;
 
-    getAppContainer().innerHTML = html;
+    renderGameOverlay(html);
 }
 
 function startMinigame5() {
@@ -629,6 +634,7 @@ function renderMinigame5Question() {
     if (!gameState.questions || gameState.questions.length === 0) return;
 
     if (gameState.currentQuestion >= gameState.questions.length) {
+        closeGameOverlay();
         return finishMinigame('mj5', 'La Lista de Compras');
     }
 
@@ -637,33 +643,31 @@ function renderMinigame5Question() {
     const options = [target, ...allProducts.filter(p => p.name !== target.name).slice(0, 3)].sort(() => 0.5 - Math.random());
 
     const html = `
-    <div class="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8 flex items-center justify-center">
-        <div class="max-w-2xl w-full bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-rose-500/60 shadow-2xl space-y-6 text-center select-none">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-4">
-                <span class="text-[10px] font-black text-rose-400 bg-rose-500/20 px-3 py-1 rounded-full uppercase border border-rose-500/30">
-                    OA12 MINEDUC: Búsqueda Guiada
-                </span>
-                <span class="text-xs font-black text-amber-400">Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}</span>
-            </div>
-
-            <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800">
-                <h4 class="text-xs font-black text-slate-400 uppercase">ENCUENTRA EN EL CATÁLOGO:</h4>
-                <span class="text-2xl font-black text-amber-300 uppercase mt-1 block">"${target.name}"</span>
-            </div>
-
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                ${options.map(item => `
-                    <button onclick="checkGenericAnswer('${escapeHtml(item.name)}', '${escapeHtml(target.name)}', startMinigame5, renderMinigame5Question)" 
-                            class="p-3 bg-white rounded-2xl border-4 border-rose-400 hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center justify-center overflow-hidden h-28">
-                        ${renderProductVisual(item, "text-5xl")}
-                    </button>
-                `).join('')}
-            </div>
-            <button onclick="renderMinigamesArcadeView()" class="mt-4 text-xs font-bold text-slate-500 underline block mx-auto">✕ Salir</button>
+    <div class="max-w-2xl w-full bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-rose-500/60 shadow-2xl space-y-6 text-center select-none my-auto">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+            <span class="text-[10px] font-black text-rose-400 bg-rose-500/20 px-3 py-1 rounded-full uppercase border border-rose-500/30">
+                OA12 MINEDUC: Búsqueda Guiada
+            </span>
+            <span class="text-xs font-black text-amber-400">Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}</span>
         </div>
+
+        <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800">
+            <h4 class="text-xs font-black text-slate-400 uppercase">ENCUENTRA EN EL CATÁLOGO:</h4>
+            <span class="text-2xl font-black text-amber-300 uppercase mt-1 block">"${target.name}"</span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            ${options.map(item => `
+                <button onclick="checkGenericAnswer('${escapeHtml(item.name)}', '${escapeHtml(target.name)}', startMinigame5, renderMinigame5Question)" 
+                        class="p-3 bg-white rounded-2xl border-4 border-rose-400 hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center justify-center overflow-hidden h-28">
+                    ${renderProductVisual(item, "text-5xl")}
+                </button>
+            `).join('')}
+        </div>
+        <button onclick="closeGameOverlay()" class="mt-4 text-xs font-bold text-slate-400 hover:text-white underline block mx-auto">✕ Salir</button>
     </div>`;
 
-    getAppContainer().innerHTML = html;
+    renderGameOverlay(html);
 }
 
 function checkGenericAnswer(val, correct, startFn, nextFn) {
@@ -717,8 +721,10 @@ window.startMinigame2 = startMinigame2;
 window.startMinigame3 = startMinigame3;
 window.startMinigame4 = startMinigame4;
 window.startMinigame5 = startMinigame5;
+window.closeGameOverlay = closeGameOverlay;
 
 window.openMemoriseModal = function() { renderMinigamesArcadeView(); };
 window.openMinigamesModal = function() { renderMinigamesArcadeView(); };
 window.openMemorisModal = function() { renderMinigamesArcadeView(); };
 window.openArcadeModal = function() { renderMinigamesArcadeView(); };
+
