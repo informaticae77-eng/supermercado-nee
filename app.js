@@ -1,14 +1,13 @@
 /*
  * Bootstrap de GitHub Pages.
  * app.js del directorio raíz solo contiene utilidades de monedas en la rama
- * principal. La implementación completa está fijada al commit d3bc3a9...;
- * cargarla como script clásico conserva sus funciones globales y el contrato
- * esperado por games.js (APP_STATE, renderApp, Firebase y helpers).
+ * principal. La implementación completa está fijada a un commit inmutable;
+ * se carga como script clásico para conservar los globales que usan games.js.
  */
 (function loadCompleteApplication() {
     'use strict';
 
-    var APP_SCRIPT_URL = 'https://raw.githubusercontent.com/informaticae77-eng/supermercado-nee/d3bc3a9f8960babeff7f8520a0a457e4f9c11111/app.js';
+    var APP_SCRIPT_URL = 'https://cdn.jsdelivr.net/gh/informaticae77-eng/supermercado-nee@d3bc3a9f8960babeff7f8520a0a457e4f9c11111/app.js';
     var script = document.createElement('script');
     script.src = APP_SCRIPT_URL;
     script.async = false;
