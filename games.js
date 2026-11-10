@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - CÓDIGO CORREGIDO Y ESTABLE
+   MÓDULO DE MINIJUEGOS NEE - SOLUCIÓN INTEGRADA DE MODAL Y DOM (V45)
    ========================================================================== */
 
 let studentMinigamesProgress = {
@@ -9,28 +9,47 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v40');
+    const saved = localStorage.getItem('nee_arcade_progress_v45');
     if (saved) {
         try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v40', JSON.stringify(studentMinigamesProgress));
+    localStorage.setItem('nee_arcade_progress_v45', JSON.stringify(studentMinigamesProgress));
 }
 
+// Obtiene el contenedor correcto (Prioriza el interior del Modal si existe en index.html)
 function getAppContainer() {
-    return document.getElementById('app') || document.getElementById('appContainer') || document.body;
+    const modalBody = document.getElementById('arcadeModalBody');
+    const modalWrapper = document.getElementById('minigamesArcadeModal');
+
+    if (modalWrapper && modalBody) {
+        modalWrapper.classList.remove('hidden');
+        modalWrapper.style.display = 'flex';
+        return modalBody;
+    }
+
+    return document.getElementById('appContainer') || 
+           document.getElementById('app') || 
+           document.querySelector('main') || 
+           document.body;
+}
+
+function closeMinigamesModal() {
+    const modalWrapper = document.getElementById('minigamesArcadeModal');
+    if (modalWrapper) {
+        modalWrapper.classList.add('hidden');
+        modalWrapper.style.display = 'none';
+    } else {
+        exitArcadeToDashboard();
+    }
 }
 
 function exitArcadeToDashboard() {
-    if (typeof renderApp === 'function') {
-        renderApp();
-    } else if (typeof initApp === 'function') {
-        initApp();
-    } else {
-        window.location.reload();
-    }
+    closeMinigamesModal();
+    if (typeof renderApp === 'function') renderApp();
+    else if (typeof initApp === 'function') initApp();
 }
 
 const CATEGORY_ICONS = {
@@ -127,7 +146,7 @@ function getDatabaseProducts() {
     return processedList;
 }
 
-function renderProductVisual(product, textSize = "text-7xl") {
+function renderProductVisual(product, textSize = "text-6xl") {
     if (product && product.photoUrl) {
         return `
             <img
@@ -171,28 +190,27 @@ function renderMinigamesArcadeView() {
     const currentLevelInfo = levelsConfig.find(l => l.id === currentLvl) || levelsConfig[0];
 
     const html = `
-    <div class="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 lg:p-8 font-sans select-none pb-20">
-        <header class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-900/90 p-4 sm:p-6 rounded-3xl border-2 border-indigo-500/40 shadow-2xl">
-            <div class="flex items-center gap-3 sm:gap-4 w-full md:w-auto justify-between md:justify-start">
-                <button onclick="exitArcadeToDashboard()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-3 rounded-2xl font-black text-xs sm:text-sm transition-all active:scale-95 flex items-center gap-2 shadow-lg border border-indigo-400">
-                    <span>⬅</span> <span>Volver a la Tienda</span>
-                </button>
-                <div>
-                    <span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-black text-[10px] px-3 py-0.5 rounded-full uppercase tracking-widest block w-fit">
-                        Adaptado NEE • Mineduc
-                    </span>
-                    <h1 class="text-xl sm:text-2xl font-black text-white tracking-wide mt-0.5">CENTRO DE DESAFÍOS</h1>
-                </div>
+    <div class="bg-slate-900 text-slate-100 p-4 sm:p-6 rounded-3xl font-sans select-none space-y-6">
+        <header class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-950 p-4 rounded-2xl border border-indigo-500/40">
+            <div>
+                <span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-black text-[10px] px-3 py-0.5 rounded-full uppercase tracking-widest block w-fit">
+                    Adaptado NEE • Mineduc
+                </span>
+                <h1 class="text-xl font-black text-white mt-1">CENTRO DE DESAFÍOS</h1>
             </div>
+            <button onclick="closeMinigamesModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-xs font-bold border border-slate-700">
+                ✕ Cerrar Arcade
+            </button>
         </header>
 
-        <section class="max-w-7xl mx-auto mt-6 bg-slate-900/90 rounded-3xl p-6 sm:p-8 border-2 ${currentLevelInfo.border} shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6">
-            <div class="space-y-2 text-center md:text-left">
-                <h2 class="text-2xl sm:text-4xl font-black text-white uppercase">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
+        <section class="bg-slate-950 p-6 rounded-2xl border-2 ${currentLevelInfo.border} flex justify-between items-center">
+            <div>
+                <span class="bg-amber-500/20 text-amber-300 font-black text-xs px-3 py-1 rounded-full uppercase">Stage ${currentLvl} de 5</span>
+                <h2 class="text-2xl font-black text-white uppercase mt-2">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
             </div>
         </section>
 
-        <main class="max-w-7xl mx-auto mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+        <main class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             ${renderGameCard(currentLvl, 1, "🍎 El Estante Correcto", "OA04: Clasificar con pictogramas de categorías.", "startMinigame1()", "mj1", completedInCurrentLvl)}
         </main>
     </div>
@@ -205,13 +223,13 @@ function renderGameCard(level, gameNum, title, description, fnCall, gameKey, com
     const isCompleted = completedList.includes(gameKey);
 
     return `
-    <div class="bg-slate-900/90 rounded-3xl p-5 sm:p-6 border-2 border-slate-800 shadow-xl flex flex-col justify-between space-y-4">
+    <div class="bg-slate-950 rounded-2xl p-5 border border-slate-800 flex flex-col justify-between space-y-4">
         <div>
-            <h3 class="font-black text-white text-base sm:text-lg">${title}</h3>
-            <p class="text-xs text-slate-400 font-bold mt-1 leading-relaxed">${description}</p>
+            <h3 class="font-black text-white text-lg">${title}</h3>
+            <p class="text-xs text-slate-400 font-bold mt-1">${description}</p>
         </div>
         <button onclick="${fnCall}" 
-                class="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg border border-indigo-400 active:scale-95">
+                class="w-full py-3 rounded-xl font-black text-xs uppercase tracking-wider bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg border border-indigo-400 active:scale-95">
             ${isCompleted ? '🔄 Rejugar Desafío' : '▶ ¡Iniciar!'}
         </button>
     </div>
@@ -254,26 +272,29 @@ function renderMinigame1Question() {
     options.sort(() => 0.5 - Math.random());
 
     const html = `
-    <div class="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8 flex items-center justify-center">
-        <div class="max-w-2xl w-full bg-slate-900 rounded-3xl p-6 sm:p-8 border-2 border-indigo-500/60 shadow-2xl space-y-6 text-center select-none">
-            <div class="py-4 bg-slate-950 rounded-3xl border border-slate-800 flex flex-col items-center justify-center space-y-4">
-                <div class="w-48 h-48 sm:w-56 sm:h-56 bg-white p-4 rounded-3xl border-4 border-indigo-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                    ${renderProductVisual(q)}
-                </div>
-                <span class="text-xl sm:text-2xl font-black text-white uppercase px-4 tracking-wide block">${q.name}</span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                ${options.map(catName => `
-                    <button onclick="checkMinigame1Answer('${escapeHtml(catName)}')" 
-                            class="w-full h-16 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-black rounded-2xl shadow-lg flex items-center justify-center px-6 text-base border border-indigo-400 gap-3 transition-all">
-                        <span class="text-2xl">${getCategoryIcon(catName)}</span>
-                        <span>${catName}</span>
-                    </button>
-                `).join('')}
-            </div>
-            <button onclick="renderMinigamesArcadeView()" class="mt-4 text-xs font-bold text-slate-500 underline block mx-auto">✕ Salir al Centro de Desafíos</button>
+    <div class="bg-slate-950 text-slate-100 p-6 rounded-3xl border-2 border-indigo-500/60 shadow-2xl space-y-6 text-center select-none">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+            <span class="text-xs font-black text-indigo-400 uppercase">OA04 MINEDUC: Categorización</span>
+            <span class="text-xs font-black text-amber-400">Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}</span>
         </div>
+
+        <div class="py-4 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col items-center justify-center space-y-3">
+            <div class="w-44 h-44 bg-white p-3 rounded-2xl border-4 border-indigo-500/40 shadow-xl flex items-center justify-center overflow-hidden">
+                ${renderProductVisual(q)}
+            </div>
+            <span class="text-lg font-black text-white uppercase px-2">${q.name}</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            ${options.map(catName => `
+                <button onclick="checkMinigame1Answer('${escapeHtml(catName)}')" 
+                        class="w-full h-14 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-black rounded-xl shadow-lg flex items-center justify-center px-4 text-sm border border-indigo-400 gap-2">
+                    <span class="text-xl">${getCategoryIcon(catName)}</span>
+                    <span>${catName}</span>
+                </button>
+            `).join('')}
+        </div>
+        <button onclick="renderMinigamesArcadeView()" class="mt-4 text-xs font-bold text-slate-500 underline block mx-auto">✕ Volver a la lista de desafíos</button>
     </div>`;
 
     getAppContainer().innerHTML = html;
@@ -286,17 +307,19 @@ function checkMinigame1Answer(selectedCat) {
         renderMinigame1Question();
     } else {
         gameState.errors++;
-        alert(`❌ "${q.name}" no va en ${selectedCat}. ¡Inténtalo de nuevo!`);
+        alert(`❌ "${q.name}" no pertenece a ${selectedCat}. ¡Inténtalo de nuevo!`);
     }
 }
 
 function finishMinigame(key, title) {
     saveMinigamesProgress();
-    alert(`🎉 ¡Excelente! Completaste "${title}"`);
+    alert(`🎉 ¡Excelente! Completaste el desafío "${title}"`);
     renderMinigamesArcadeView();
 }
 
+// Registro global de funciones
 window.renderMinigamesArcadeView = renderMinigamesArcadeView;
 window.openMinigamesModal = renderMinigamesArcadeView;
+window.closeMinigamesModal = closeMinigamesModal;
 window.startMinigame1 = startMinigame1;
 window.checkMinigame1Answer = checkMinigame1Answer;
