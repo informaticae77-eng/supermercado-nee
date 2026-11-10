@@ -1,6 +1,7 @@
-/* ==========================================================================
-   MÓDULO DE MINIJUEGOS NEE - SOLUCIÓN INTEGRADA DE MODAL Y DOM (V45)
-   ========================================================================== */
+/* ========================================================================
+   MINIJUEGOS NEE
+   Compatible con APP_STATE de app.js y con el catálogo de Firestore.
+   ======================================================================== */
 
 let studentMinigamesProgress = {
     currentLevel: 1,
@@ -9,317 +10,295 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
-    const saved = localStorage.getItem('nee_arcade_progress_v45');
-    if (saved) {
-        try { studentMinigamesProgress = JSON.parse(saved); } catch(e){}
+    try {
+        const saved = localStorage.getItem('nee_arcade_progress_v36');
+        if (!saved) return;
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+            studentMinigamesProgress = {
+                currentLevel: Number(parsed.currentLevel) || 1,
+                completedGames: parsed.completedGames || {},
+                unlockedLevels: Array.isArray(parsed.unlockedLevels) ? parsed.unlockedLevels : [1]
+            };
+        }
+    } catch (error) {
+        console.warn('No se pudo cargar el progreso de minijuegos:', error);
     }
 }
 
 function saveMinigamesProgress() {
-    localStorage.setItem('nee_arcade_progress_v45', JSON.stringify(studentMinigamesProgress));
-}
-
-// Obtiene el contenedor correcto (Prioriza el interior del Modal si existe en index.html)
-function getAppContainer() {
-    const modalBody = document.getElementById('arcadeModalBody');
-    const modalWrapper = document.getElementById('minigamesArcadeModal');
-
-    if (modalWrapper && modalBody) {
-        modalWrapper.classList.remove('hidden');
-        modalWrapper.style.display = 'flex';
-        return modalBody;
-    }
-
-    return document.getElementById('appContainer') || 
-           document.getElementById('app') || 
-           document.querySelector('main') || 
-           document.body;
-}
-
-function closeMinigamesModal() {
-    const modalWrapper = document.getElementById('minigamesArcadeModal');
-    if (modalWrapper) {
-        modalWrapper.classList.add('hidden');
-        modalWrapper.style.display = 'none';
-    } else {
-        exitArcadeToDashboard();
+    try {
+        localStorage.setItem('nee_arcade_progress_v36', JSON.stringify(studentMinigamesProgress));
+    } catch (error) {
+        console.warn('No se pudo guardar el progreso de minijuegos:', error);
     }
 }
 
 function exitArcadeToDashboard() {
-    closeMinigamesModal();
+    closeGameOverlay();
     if (typeof renderApp === 'function') renderApp();
-    else if (typeof initApp === 'function') initApp();
+    else window.location.reload();
 }
 
 const CATEGORY_ICONS = {
-    'Lácteos': '🥛',
-    'Frutas y Verduras': '🍎',
-    'Panadería': '🍞',
-    'Aseo': '🧼',
-    'Limpieza': '🧼',
-    'Bebidas': '🧃',
-    'Carnes': '🥩',
-    'Fiambre': '🧀',
-    'Despensa': '🌾'
+    'lácteos': '🥛', 'frutas': '🍎', 'verduras': '🥕', 'panadería': '🍞',
+    'aseo': '🧼', 'limpieza': '🧼', 'bebidas': '🧃', 'carnes': '🥩',
+    'fiambre': '🧀', 'despensa': '🌾', 'congelados': '🧊', 'mascotas': '🐶'
 };
 
-function getCategoryIcon(catName) {
-    if (!catName) return '🏷️';
-    for (let key in CATEGORY_ICONS) {
-        if (String(catName).toLowerCase().includes(key.toLowerCase())) return CATEGORY_ICONS[key];
-    }
-    return '🏷️';
+function getCategoryIcon(category) {
+    const value = String(category || '').toLocaleLowerCase('es');
+    const match = Object.keys(CATEGORY_ICONS).find(key => value.includes(key));
+    return match ? CATEGORY_ICONS[match] : '🏷️';
 }
 
 function getDatabaseProducts() {
-    let rawList = [];
+    let source = [];
 
-    if (window.APP_STATE && Array.isArray(window.APP_STATE.products) && window.APP_STATE.products.length > 0) {
-        rawList = window.APP_STATE.products;
+    // APP_STATE es una variable global léxica de app.js, no necesariamente window.APP_STATE.
+    if (typeof APP_STATE !== 'undefined' && APP_STATE && Array.isArray(APP_STATE.products)) {
+        source = APP_STATE.products;
+    } else if (window.APP_STATE && Array.isArray(window.APP_STATE.products)) {
+        source = window.APP_STATE.products;
     } else if (window.PRODUCT_STORE && typeof window.PRODUCT_STORE.getProducts === 'function') {
-        rawList = window.PRODUCT_STORE.getProducts();
-    } else if (window.products && Array.isArray(window.products)) {
-        rawList = window.products;
-    } else {
-        try {
-            const local = localStorage.getItem('supermarket_app_state') || localStorage.getItem('APP_STATE');
-            if (local) {
-                const parsed = JSON.parse(local);
-                rawList = Array.isArray(parsed) ? parsed : (parsed.products || []);
-            }
-        } catch (e) {}
+        source = window.PRODUCT_STORE.getProducts();
+    } else if (Array.isArray(window.products)) {
+        source = window.products;
     }
 
-    const processedList = [];
+    if (!Array.isArray(source)) return [];
 
-    if (Array.isArray(rawList)) {
-        rawList.forEach((item, index) => {
-            if (!item) return;
+    return source.filter(Boolean).map((item, index) => {
+        const rawPrice = item.price ?? item.precio ?? 1000;
+        const price = Number(String(rawPrice).replace(/[^0-9.-]/g, '')) || 1000;
+        let photo = item.photoUrl || item.photo || item.image || item.imagen || item.img ||
+            item.foto || item.fotoUrl || item.imageUrl || item.image_url ||
+            item.urlImagen || item.url_imagen || '';
+        photo = String(photo || '').trim();
 
-            const nameStr = item.name || item.nombre || item.productName || `Producto ${index + 1}`;
-            const categoryStr = item.category || item.categoria || 'Lácteos, Yogures y Huevos';
-            const priceNum = parseInt(item.price || item.precio) || 1000;
+        // Acepta base64 desnudo y rutas relativas. No convierte URLs ni data URLs.
+        if (photo && !/^(data:|https?:|\/|blob:|file:)/i.test(photo) && /^[A-Za-z0-9+/=]+$/.test(photo)) {
+            photo = `data:image/jpeg;base64,${photo}`;
+        }
 
-            let photoSrc =
-                item.photo ||
-                item.image ||
-                item.photoUrl ||
-                item.imagen ||
-                item.img ||
-                item.foto ||
-                item.fotoUrl ||
-                item.imageUrl ||
-                item.image_url ||
-                item.urlImagen ||
-                item.url_imagen ||
-                '';
-
-            photoSrc = String(photoSrc || '').trim();
-
-            if (
-                photoSrc &&
-                !photoSrc.startsWith('data:image') &&
-                !photoSrc.startsWith('http') &&
-                !photoSrc.startsWith('/') &&
-                !photoSrc.startsWith('blob:') &&
-                !photoSrc.startsWith('file:')
-            ) {
-                if (/^[A-Za-z0-9+/=]+$/.test(photoSrc)) {
-                    photoSrc = `data:image/png;base64,${photoSrc}`;
-                }
-            }
-
-            const emoji = item.iconEmoji || item.emoji || '🛍️';
-
-            processedList.push({
-                id: item.id || `prod-${index}`,
-                name: String(nameStr).trim(),
-                category: String(categoryStr).trim(),
-                photoUrl: photoSrc,
-                iconEmoji: emoji,
-                price: priceNum
-            });
-        });
-    }
-
-    return processedList;
+        return {
+            id: String(item.id ?? `prod-${index}`),
+            name: String(item.name || item.nombre || item.productName || `Producto ${index + 1}`),
+            category: String(item.category || item.categoria || 'General'),
+            price,
+            photoUrl: photo,
+            iconEmoji: item.iconEmoji || item.emoji || '🛍️'
+        };
+    });
 }
 
-function renderProductVisual(product, textSize = "text-6xl") {
-    if (product && product.photoUrl) {
-        return `
-            <img
-                src="${product.photoUrl}"
-                alt="${String(product.name || 'Producto').replace(/"/g, '"')}"
-                class="max-h-full max-w-full object-contain mx-auto"
-                onerror="
-                    this.style.display='none';
-                    if (this.nextElementSibling) this.nextElementSibling.style.display='inline';
-                "
-            />
-            <span class="${textSize} font-black" style="display:none;">${product.iconEmoji || '🛍️'}</span>
-        `;
-    }
-
-    return `<span class="${textSize} font-black">${product.iconEmoji || '🛍️'}</span>`;
+function renderProductVisual(product, size = 'text-7xl') {
+    const emoji = product && product.iconEmoji ? product.iconEmoji : '🛍️';
+    if (!product || !product.photoUrl) return `<span class="${size} font-black">${emoji}</span>`;
+    const src = String(product.photoUrl).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const alt = String(product.name || 'Producto').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    return `<img src="${src}" alt="${alt}" class="max-h-full max-w-full object-contain mx-auto" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="${size} font-black" hidden>${emoji}</span>`;
 }
 
-function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/'/g, "\\'").replace(/"/g, '"');
+function getDatabaseMoney(targetPrice) {
+    let currencies = [];
+    if (typeof CLP_CURRENCY_ITEMS !== 'undefined' && Array.isArray(CLP_CURRENCY_ITEMS)) currencies = CLP_CURRENCY_ITEMS;
+    else if (Array.isArray(window.CLP_CURRENCY_ITEMS)) currencies = window.CLP_CURRENCY_ITEMS;
+    if (currencies.length) {
+        const exact = currencies.find(item => Number(item.value) === Number(targetPrice));
+        const choices = currencies.filter(item => Number(item.value) !== Number(targetPrice)).sort(() => Math.random() - 0.5).slice(0, 3);
+        return [ ...(exact ? [exact] : [{ value: targetPrice, label: `$${Number(targetPrice).toLocaleString('es-CL')} CLP`, icon: '💵' }]), ...choices ]
+            .map(item => ({ value: Number(item.value), label: item.label || `$${Number(item.value).toLocaleString('es-CL')} CLP`, img: item.img, icon: item.type === 'coin' ? '🪙' : '💵' }))
+            .sort(() => Math.random() - 0.5);
+    }
+    const price = Number(targetPrice) || 1000;
+    return [price, price + 500, Math.max(100, price - 300), price + 1000]
+        .map((value, index) => ({ value, label: `$${value.toLocaleString('es-CL')} CLP`, icon: index === 2 ? '🪙' : '💵' }))
+        .sort(() => Math.random() - 0.5);
+}
+
+function renderGameOverlay(content) {
+    let overlay = document.getElementById('nee-game-modal-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'nee-game-modal-overlay';
+        overlay.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;background:rgba(2,6,23,.96);z-index:999999;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;';
+        document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = content;
+    overlay.style.display = 'flex';
+}
+
+function closeGameOverlay() {
+    const overlay = document.getElementById('nee-game-modal-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        overlay.innerHTML = '';
+    }
 }
 
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
-
-    const container = getAppContainer();
+    const container = document.getElementById('appContainer') || document.querySelector('main') || document.body;
     if (!container) return;
 
-    const currentLvl = studentMinigamesProgress.currentLevel || 1;
-    const completedInCurrentLvl = studentMinigamesProgress.completedGames[`level${currentLvl}`] || [];
+    const level = Math.min(5, Math.max(1, Number(studentMinigamesProgress.currentLevel) || 1));
+    studentMinigamesProgress.currentLevel = level;
+    const completed = studentMinigamesProgress.completedGames[`level${level}`] || [];
+    const levels = ['Comprador Principiante', 'Explorador de Góndolas', 'As del Vuelto y Cajas', 'Planificador Experto', 'Maestro del Supermercado'];
 
-    const levelsConfig = [
-        { id: 1, title: "Comprador Principiante", icon: "🛒", border: "border-cyan-500" },
-        { id: 2, title: "Explorador de Góndolas", icon: "🔍", border: "border-emerald-500" },
-        { id: 3, title: "As del Vuelto y Cajas", icon: "💵", border: "border-amber-500" },
-        { id: 4, title: "Planificador Experto", icon: "📋", border: "border-purple-500" },
-        { id: 5, title: "Maestro del Supermercado", icon: "👑", border: "border-rose-500" }
-    ];
-
-    const currentLevelInfo = levelsConfig.find(l => l.id === currentLvl) || levelsConfig[0];
-
-    const html = `
-    <div class="bg-slate-900 text-slate-100 p-4 sm:p-6 rounded-3xl font-sans select-none space-y-6">
-        <header class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-950 p-4 rounded-2xl border border-indigo-500/40">
-            <div>
-                <span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-black text-[10px] px-3 py-0.5 rounded-full uppercase tracking-widest block w-fit">
-                    Adaptado NEE • Mineduc
-                </span>
-                <h1 class="text-xl font-black text-white mt-1">CENTRO DE DESAFÍOS</h1>
-            </div>
-            <button onclick="closeMinigamesModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-xs font-bold border border-slate-700">
-                ✕ Cerrar Arcade
-            </button>
+    container.innerHTML = `
+      <section class="min-h-[70vh] bg-slate-950 text-slate-100 p-4 sm:p-7 rounded-3xl">
+        <header class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4 bg-slate-900 p-5 rounded-3xl border border-indigo-500/50">
+          <div class="flex items-center gap-3"><button onclick="exitArcadeToDashboard()" class="bg-indigo-600 text-white px-4 py-3 rounded-xl font-black">⬅ Volver</button><div><span class="text-indigo-300 text-xs font-black">ARCADE DE APRENDIZAJE</span><h1 class="text-xl font-black">CENTRO DE DESAFÍOS</h1></div></div>
+          <div class="flex flex-wrap gap-2">${levels.map((name, i) => { const n = i + 1; const unlocked = studentMinigamesProgress.unlockedLevels.includes(n); return `<button ${unlocked ? `onclick="switchLevel(${n})"` : 'disabled'} class="px-3 py-2 rounded-xl font-bold ${n === level ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'}">Nivel ${n}${unlocked ? '' : ' 🔒'}</button>`; }).join('')}</div>
         </header>
-
-        <section class="bg-slate-950 p-6 rounded-2xl border-2 ${currentLevelInfo.border} flex justify-between items-center">
-            <div>
-                <span class="bg-amber-500/20 text-amber-300 font-black text-xs px-3 py-1 rounded-full uppercase">Stage ${currentLvl} de 5</span>
-                <h2 class="text-2xl font-black text-white uppercase mt-2">${currentLevelInfo.title} ${currentLevelInfo.icon}</h2>
-            </div>
-        </section>
-
-        <main class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            ${renderGameCard(currentLvl, 1, "🍎 El Estante Correcto", "OA04: Clasificar con pictogramas de categorías.", "startMinigame1()", "mj1", completedInCurrentLvl)}
+        <div class="max-w-7xl mx-auto mt-5 bg-slate-900 p-5 rounded-3xl border border-indigo-500/40 flex justify-between items-center gap-3"><div><p class="text-amber-400 font-black">Nivel ${level} de 5</p><h2 class="text-2xl font-black">${levels[level - 1]}</h2></div><p class="font-black text-amber-300">${completed.length} / 5</p></div>
+        <main class="max-w-7xl mx-auto mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          ${renderGameCard(1, '🍎 El Estante Correcto', 'Clasifica productos por categoría.', 'startMinigame1', 'mj1', completed)}
+          ${renderGameCard(2, '💵 Corta el Billete', 'Reconoce el valor del producto.', 'startMinigame2', 'mj2', completed)}
+          ${renderGameCard(3, '🔤 Palabras en Góndola', 'Lee el nombre del producto.', 'startMinigame3', 'mj3', completed)}
+          ${renderGameCard(4, '🧮 Calculadora del Canasto', 'Suma los precios de dos productos.', 'startMinigame4', 'mj4', completed)}
+          ${renderGameCard(5, '📋 La Lista de Compras', 'Encuentra el producto usando su imagen.', 'startMinigame5', 'mj5', completed)}
+          <div class="bg-slate-900 p-5 rounded-3xl border border-amber-500"><h3 class="font-black text-amber-300">👑 Desafío final</h3><p class="my-3 text-sm">Completa los cinco minijuegos para desbloquear el siguiente nivel.</p><button ${completed.length >= 5 ? `onclick="startBossExam(${level})"` : 'disabled'} class="w-full bg-amber-500 text-slate-950 p-3 rounded-xl font-black">${completed.length >= 5 ? 'Enfrentar desafío' : '🔒 Completa los 5 minijuegos'}</button></div>
         </main>
-    </div>
-    `;
-
-    container.innerHTML = html;
+      </section>`;
 }
 
-function renderGameCard(level, gameNum, title, description, fnCall, gameKey, completedList) {
-    const isCompleted = completedList.includes(gameKey);
-
-    return `
-    <div class="bg-slate-950 rounded-2xl p-5 border border-slate-800 flex flex-col justify-between space-y-4">
-        <div>
-            <h3 class="font-black text-white text-lg">${title}</h3>
-            <p class="text-xs text-slate-400 font-bold mt-1">${description}</p>
-        </div>
-        <button onclick="${fnCall}" 
-                class="w-full py-3 rounded-xl font-black text-xs uppercase tracking-wider bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg border border-indigo-400 active:scale-95">
-            ${isCompleted ? '🔄 Rejugar Desafío' : '▶ ¡Iniciar!'}
-        </button>
-    </div>
-    `;
+function renderGameCard(number, title, description, functionName, key, completed) {
+    const done = completed.includes(key);
+    const unlocked = number === 1 || completed.includes(`mj${number - 1}`);
+    return `<article class="bg-slate-900 p-5 rounded-3xl border ${done ? 'border-emerald-500' : 'border-slate-700'} flex flex-col justify-between gap-4"><div><span class="text-xs font-black text-indigo-300">${done ? '✓ COMPLETADO' : `DESAFÍO ${number}`}</span><h3 class="font-black text-lg mt-2">${title}</h3><p class="text-slate-400 text-sm mt-1">${description}</p></div><button ${unlocked ? `onclick="${functionName}()"` : 'disabled'} class="w-full ${unlocked ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-slate-800 text-slate-500'} text-white py-3 rounded-xl font-black">${unlocked ? (done ? 'Rejugar' : '▶ Iniciar') : '🔒 Bloqueado'}</button></article>`;
 }
 
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
 
-function startMinigame1() {
-    const catalog = getDatabaseProducts();
-    const shuffled = [...catalog].sort(() => 0.5 - Math.random());
-    
-    gameState = {
-        key: 'mj1',
-        startTime: Date.now(),
-        errors: 0,
-        currentQuestion: 0,
-        questions: shuffled.slice(0, Math.min(5, shuffled.length))
-    };
-    
-    renderMinigame1Question();
-}
-
-function renderMinigame1Question() {
-    if (!gameState.questions || gameState.questions.length === 0) return;
-
-    if (gameState.currentQuestion >= gameState.questions.length) {
-        return finishMinigame('mj1', 'El Estante Correcto');
+function beginGame(key, maxQuestions) {
+    const products = getDatabaseProducts();
+    if (!products.length) {
+        alert('No hay productos disponibles para los minijuegos. Espera a que cargue el catálogo e inténtalo nuevamente.');
+        return false;
     }
-
-    const q = gameState.questions[gameState.currentQuestion];
-    const allProducts = getDatabaseProducts();
-    const categoriesSet = new Set(allProducts.map(p => p.category));
-    ['Lácteos, Yogures y Huevos', 'Frutas y Verduras', 'Panadería y Pastelería', 'Limpieza del Hogar'].forEach(c => categoriesSet.add(c));
-    const availableCategories = Array.from(categoriesSet);
-
-    let options = [q.category];
-    const otherCats = availableCategories.filter(c => c !== q.category).sort(() => 0.5 - Math.random());
-    options.push(...otherCats.slice(0, 3));
-    options.sort(() => 0.5 - Math.random());
-
-    const html = `
-    <div class="bg-slate-950 text-slate-100 p-6 rounded-3xl border-2 border-indigo-500/60 shadow-2xl space-y-6 text-center select-none">
-        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-            <span class="text-xs font-black text-indigo-400 uppercase">OA04 MINEDUC: Categorización</span>
-            <span class="text-xs font-black text-amber-400">Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}</span>
-        </div>
-
-        <div class="py-4 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col items-center justify-center space-y-3">
-            <div class="w-44 h-44 bg-white p-3 rounded-2xl border-4 border-indigo-500/40 shadow-xl flex items-center justify-center overflow-hidden">
-                ${renderProductVisual(q)}
-            </div>
-            <span class="text-lg font-black text-white uppercase px-2">${q.name}</span>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            ${options.map(catName => `
-                <button onclick="checkMinigame1Answer('${escapeHtml(catName)}')" 
-                        class="w-full h-14 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-black rounded-xl shadow-lg flex items-center justify-center px-4 text-sm border border-indigo-400 gap-2">
-                    <span class="text-xl">${getCategoryIcon(catName)}</span>
-                    <span>${catName}</span>
-                </button>
-            `).join('')}
-        </div>
-        <button onclick="renderMinigamesArcadeView()" class="mt-4 text-xs font-bold text-slate-500 underline block mx-auto">✕ Volver a la lista de desafíos</button>
-    </div>`;
-
-    getAppContainer().innerHTML = html;
+    const shuffled = [...products].sort(() => Math.random() - 0.5);
+    gameState = { key, startTime: Date.now(), errors: 0, currentQuestion: 0, questions: shuffled.slice(0, Math.min(maxQuestions, shuffled.length)) };
+    return true;
 }
 
-function checkMinigame1Answer(selectedCat) {
+function startMinigame1() { if (beginGame('mj1', 5)) renderQuestion1(); }
+function startMinigame2() { if (beginGame('mj2', 5)) renderQuestion2(); }
+function startMinigame3() { if (beginGame('mj3', 5)) renderQuestion3(); }
+function startMinigame4() { if (beginGame('mj4', 4)) renderQuestion4(); }
+function startMinigame5() { if (beginGame('mj5', 5)) renderQuestion5(); }
+
+function questionFrame(color, label, content, choices, exitLabel = 'Salir') {
+    return `<div class="max-w-2xl w-full bg-slate-900 text-white rounded-3xl p-5 sm:p-8 border-2 ${color} shadow-2xl space-y-5 text-center my-auto"><div class="flex justify-between items-center border-b border-slate-700 pb-3"><b class="text-xs">${label}</b><b class="text-amber-300 text-xs">Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}</b></div>${content}${choices}<button onclick="closeGameOverlay()" class="text-slate-400 underline text-xs">✕ ${exitLabel}</button></div>`;
+}
+
+function encodedArg(value) {
+    return JSON.stringify(String(value)).replace(/</g, '\\u003c').replace(/&/g, '\\u0026').replace(/"/g, '&quot;');
+}
+
+function renderQuestion1() {
+    if (gameState.currentQuestion >= gameState.questions.length) return finishMinigame('mj1', 'El Estante Correcto');
+    const product = gameState.questions[gameState.currentQuestion];
+    const categories = [...new Set([product.category, ...getDatabaseProducts().map(p => p.category), 'Frutas y Verduras', 'Lácteos, Yogures y Huevos', 'Panadería y Pastelería', 'Limpieza del Hogar'])].filter(Boolean).sort(() => Math.random() - .5).slice(0, 4);
+    if (!categories.includes(product.category)) categories[0] = product.category;
+    const visual = `<div class="w-48 h-48 mx-auto bg-white rounded-3xl p-3 flex items-center justify-center">${renderProductVisual(product)}</div><h2 class="font-black text-xl mt-3">${product.name}</h2>`;
+    const buttons = `<div class="grid sm:grid-cols-2 gap-3">${categories.map(c => `<button onclick="answerCategory(${encodedArg(c)})" class="bg-indigo-600 p-4 rounded-xl font-black">${getCategoryIcon(c)} ${c}</button>`).join('')}</div>`;
+    renderGameOverlay(questionFrame('border-indigo-500', 'OA04 · Clasifica el producto', visual, buttons, 'Salir al arcade'));
+}
+function answerCategory(category) {
     const q = gameState.questions[gameState.currentQuestion];
-    if (selectedCat.toLowerCase() === q.category.toLowerCase()) {
+    if (String(category).toLowerCase() === String(q.category).toLowerCase()) { gameState.currentQuestion++; renderQuestion1(); }
+    else { gameState.errors++; alert(`❌ ${q.name} no va en ${category}. Inténtalo otra vez.`); }
+}
+
+function renderQuestion2() {
+    if (gameState.currentQuestion >= gameState.questions.length) return finishMinigame('mj2', 'Corta el Billete');
+    const p = gameState.questions[gameState.currentQuestion];
+    const visual = `<div class="w-44 h-44 mx-auto bg-white rounded-3xl p-3 flex items-center justify-center">${renderProductVisual(p)}</div><h2 class="font-black text-xl mt-3">${p.name}</h2><p class="text-amber-300 font-black text-2xl">Precio: $${p.price.toLocaleString('es-CL')}</p>`;
+    const choices = `<div class="grid grid-cols-2 gap-3">${getDatabaseMoney(p.price).map(m => `<button onclick="answerGeneric(${Number(m.value)},${Number(p.price)},'mj2')" class="bg-slate-800 border border-emerald-400 p-3 rounded-xl font-black">${m.img ? `<img src="${m.img}" class="h-14 mx-auto object-contain">` : `<span class="text-2xl">${m.icon || '💵'}</span>`}<span class="block text-amber-300">${m.label}</span></button>`).join('')}</div>`;
+    renderGameOverlay(questionFrame('border-emerald-500', 'OA07 · Selecciona el valor correcto', visual, choices));
+}
+
+function renderQuestion3() {
+    if (gameState.currentQuestion >= gameState.questions.length) return finishMinigame('mj3', 'Palabras en Góndola');
+    const p = gameState.questions[gameState.currentQuestion];
+    const names = [p.name, ...getDatabaseProducts().filter(item => item.id !== p.id).map(item => item.name)].slice(0, 4).sort(() => Math.random() - .5);
+    const visual = `<div class="w-44 h-44 mx-auto bg-white rounded-3xl p-3 flex items-center justify-center">${renderProductVisual(p)}</div><p class="text-slate-300 font-bold mt-3">¿Cómo se llama este producto?</p>`;
+    const choices = `<div class="grid sm:grid-cols-2 gap-3">${names.map(name => `<button onclick="answerGeneric(${encodedArg(name)},${encodedArg(p.name)},'mj3')" class="bg-amber-600 p-3 rounded-xl font-black">${name}</button>`).join('')}</div>`;
+    renderGameOverlay(questionFrame('border-amber-500', 'OA02 · Lee el producto', visual, choices));
+}
+
+function renderQuestion4() {
+    if (gameState.currentQuestion >= gameState.questions.length) return finishMinigame('mj4', 'Calculadora del Canasto');
+    const p1 = gameState.questions[gameState.currentQuestion];
+    const p2 = gameState.questions[(gameState.currentQuestion + 1) % gameState.questions.length];
+    const total = p1.price + p2.price;
+    const values = [...new Set([total, total + 500, Math.max(100, total - 300), total + 1000])].sort(() => Math.random() - .5);
+    const visual = `<div class="flex items-center justify-center gap-4"><div>${renderProductVisual(p1, 'text-5xl')}<p>$${p1.price.toLocaleString('es-CL')}</p></div><b class="text-3xl">+</b><div>${renderProductVisual(p2, 'text-5xl')}<p>$${p2.price.toLocaleString('es-CL')}</p></div></div><p class="font-black text-lg mt-3">¿Cuánto cuestan juntos?</p>`;
+    const choices = `<div class="grid grid-cols-2 gap-3">${values.map(value => `<button onclick="answerGeneric(${value},${total},'mj4')" class="bg-purple-600 p-4 rounded-xl font-black">$${value.toLocaleString('es-CL')}</button>`).join('')}</div>`;
+    renderGameOverlay(questionFrame('border-purple-500', 'OA09 · Suma el canasto', visual, choices));
+}
+
+function renderQuestion5() {
+    if (gameState.currentQuestion >= gameState.questions.length) return finishMinigame('mj5', 'La Lista de Compras');
+    const target = gameState.questions[gameState.currentQuestion];
+    const options = [target, ...getDatabaseProducts().filter(p => p.id !== target.id)].slice(0, 4).sort(() => Math.random() - .5);
+    const visual = `<p class="text-slate-300 font-bold">Encuentra este producto:</p><h2 class="text-2xl text-amber-300 font-black">${target.name}</h2>`;
+    const choices = `<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">${options.map(item => `<button onclick="answerGeneric(${encodedArg(item.id)},${encodedArg(target.id)},'mj5')" class="bg-white h-28 rounded-xl p-2 flex items-center justify-center">${renderProductVisual(item, 'text-5xl')}</button>`).join('')}</div>`;
+    renderGameOverlay(questionFrame('border-rose-500', 'OA12 · Encuentra el producto', visual, choices));
+}
+
+function answerGeneric(selected, correct, key) {
+    if (String(selected) === String(correct)) {
         gameState.currentQuestion++;
-        renderMinigame1Question();
+        ({ mj2: renderQuestion2, mj3: renderQuestion3, mj4: renderQuestion4, mj5: renderQuestion5 })[key]();
     } else {
         gameState.errors++;
-        alert(`❌ "${q.name}" no pertenece a ${selectedCat}. ¡Inténtalo de nuevo!`);
+        alert('❌ Respuesta incorrecta. ¡Inténtalo de nuevo!');
     }
 }
 
 function finishMinigame(key, title) {
+    closeGameOverlay();
+    const level = studentMinigamesProgress.currentLevel || 1;
+    const listKey = `level${level}`;
+    if (!Array.isArray(studentMinigamesProgress.completedGames[listKey])) studentMinigamesProgress.completedGames[listKey] = [];
+    if (!studentMinigamesProgress.completedGames[listKey].includes(key)) studentMinigamesProgress.completedGames[listKey].push(key);
     saveMinigamesProgress();
-    alert(`🎉 ¡Excelente! Completaste el desafío "${title}"`);
+    const elapsed = Math.round((Date.now() - gameState.startTime) / 1000);
+    if (typeof awardPointsAndXp === 'function') awardPointsAndXp(15, `Minijuego: ${title}`);
+    alert(`🎉 ¡Completaste ${title}!\nTiempo: ${elapsed}s · Errores: ${gameState.errors}\nGanaste 15 puntos.`);
     renderMinigamesArcadeView();
 }
 
-// Registro global de funciones
+function switchLevel(level) {
+    if (!studentMinigamesProgress.unlockedLevels.includes(level)) return;
+    studentMinigamesProgress.currentLevel = level;
+    saveMinigamesProgress();
+    renderMinigamesArcadeView();
+}
+
+function startBossExam(level) {
+    const completed = studentMinigamesProgress.completedGames[`level${level}`] || [];
+    if (completed.length < 5) return alert('Completa los cinco minijuegos antes del desafío final.');
+    const next = level + 1;
+    if (next <= 5 && !studentMinigamesProgress.unlockedLevels.includes(next)) studentMinigamesProgress.unlockedLevels.push(next);
+    if (next <= 5) studentMinigamesProgress.currentLevel = next;
+    saveMinigamesProgress();
+    alert(level < 5 ? `¡Nivel ${next} desbloqueado!` : '¡Felicitaciones! Completaste todos los niveles.');
+    renderMinigamesArcadeView();
+}
+
 window.renderMinigamesArcadeView = renderMinigamesArcadeView;
-window.openMinigamesModal = renderMinigamesArcadeView;
-window.closeMinigamesModal = closeMinigamesModal;
 window.startMinigame1 = startMinigame1;
-window.checkMinigame1Answer = checkMinigame1Answer;
+window.startMinigame2 = startMinigame2;
+window.startMinigame3 = startMinigame3;
+window.startMinigame4 = startMinigame4;
+window.startMinigame5 = startMinigame5;
+window.closeGameOverlay = closeGameOverlay;
+window.openMemoriseModal = renderMinigamesArcadeView;
+window.openMinigamesModal = renderMinigamesArcadeView;
+window.openMemorisModal = renderMinigamesArcadeView;
+window.openArcadeModal = renderMinigamesArcadeView;
