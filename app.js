@@ -813,10 +813,10 @@ function handleLogin() {
         APP_STATE.currentUser = user;
         localStorage.setItem('nee_active_user', JSON.stringify(user));
         if (user.role === 'student') {
-            const noStoresMessage = (APP_STATE.supermarkets || []).length === 0
+            const supermarketInstructions = (APP_STATE.supermarkets || []).length === 0
                 ? ' Por ahora no hay supermercados disponibles.'
-                : '';
-            speakText(`¡Hola, ${user.name}! ¡Qué alegría que estés aquí! En esta aplicación vas a practicar cómo hacer compras: elegir una tienda, buscar los productos de tu lista y pagar. Puedes aprender paso a paso, a tu ritmo. ¡Anímate a participar! ¡Comencemos!${noStoresMessage}`, 'energetic');
+                : ' Para empezar, ve a “Supermercados Disponibles” y toca uno para entrar.';
+            speakText(`¡Hola, ${user.name}! ¡Qué alegría que estés aquí! En esta aplicación vas a practicar cómo hacer compras: buscar los productos de tu lista y pagar. Puedes aprender paso a paso, a tu ritmo. ¡Anímate a participar! ¡Comencemos!${supermarketInstructions} Si necesitas ayuda, toca el botón “Ayuda” de abajo a la derecha y luego “Leer pantalla” para escuchar lo que aparece.`, 'energetic');
         } else {
             speakText(`Bienvenido ${user.name}`);
         }
