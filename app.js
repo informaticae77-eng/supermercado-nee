@@ -948,7 +948,7 @@ function selectSupermarket(id) {
     const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(id));
     const supName = sup ? sup.name : 'Supermercado';
 
-    speakText(`Entraste a ${supName}. Agrega los productos de tu lista y comprueba al terminar.`);
+    speakText(`¡Muy bien! Entraste a ${supName}. Estoy aquí para acompañarte. Busca con calma los productos de tu lista y agrégalos a tu canasto cuando los encuentres.`);
     renderApp();
 }
 
@@ -1551,6 +1551,7 @@ function openBasketModal() {
     renderBasketModalContent();
     const el = document.getElementById('basketModal');
     if (el) el.classList.remove('hidden');
+    speakText('Revisemos tu canasto con calma. Aquí puedes comprobar los productos y pagar paso a paso. ¡Tú puedes!');
 }
 
 function closeBasketModal() {
