@@ -146,7 +146,7 @@
         </div>
     </main>
 
-    <div role="group" aria-label="Controles de asistencia de audio" class="fixed bottom-3 left-1/2 z-[60] flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center gap-2 rounded-2xl border-2 border-indigo-300 bg-white/95 p-2 shadow-xl">
+    <div id="audioAssistanceControls" hidden role="group" aria-label="Controles de asistencia de audio" class="fixed bottom-16 right-3 z-[60] hidden flex max-w-[calc(100vw-1rem)] flex-wrap items-center justify-end gap-2 rounded-2xl border-2 border-indigo-300 bg-white/95 p-2 shadow-xl">
         <button id="audioAssistanceToggle" type="button" onclick="toggleAudioAssistance()" aria-pressed="true" class="rounded-xl bg-indigo-600 px-3 py-2.5 text-xs font-black text-white shadow active:scale-95 focus:outline-none focus:ring-4 focus:ring-indigo-300">
             🔊 Audio activado
         </button>
@@ -156,7 +156,13 @@
         <button id="stopAudioButton" type="button" onclick="stopSpeech()" aria-label="Detener lectura en voz alta" class="rounded-xl bg-slate-200 px-3 py-2.5 text-xs font-black text-slate-900 shadow active:scale-95 focus:outline-none focus:ring-4 focus:ring-slate-300">
             ⏹ Detener
         </button>
+        <button type="button" onclick="toggleAudioControls()" aria-label="Ocultar controles de audio" class="rounded-xl bg-slate-100 px-3 py-2.5 text-xs font-black text-slate-700 shadow active:scale-95 focus:outline-none focus:ring-4 focus:ring-slate-300">
+            ✕
+        </button>
     </div>
+    <button id="audioControlsLauncher" type="button" onclick="toggleAudioControls()" aria-controls="audioAssistanceControls" aria-expanded="false" aria-label="Mostrar controles de ayuda de audio" class="fixed bottom-3 right-3 z-[60] rounded-2xl border-2 border-indigo-300 bg-white/95 px-3 py-2.5 text-xs font-black text-indigo-900 shadow-xl active:scale-95 focus:outline-none focus:ring-4 focus:ring-indigo-300">
+        🔊 Ayuda
+    </button>
     
 <!-- MODAL 1: CENTRO DE DESAFÍOS MINEDUC -->
     <!-- MODAL 1: CENTRO DE DESAFÍOS MINEDUC -->
