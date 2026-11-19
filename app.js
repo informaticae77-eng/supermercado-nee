@@ -801,7 +801,7 @@ function handleLogin() {
         APP_STATE.currentUser = user;
         localStorage.setItem('nee_active_user', JSON.stringify(user));
         if (user.role === 'student') {
-            speakText(`¡Hola, ${user.name}! ¡Qué alegría que estés aquí! En esta aplicación vas a practicar cómo hacer compras: elegir una tienda, buscar los productos de tu lista y pagar. Puedes aprender paso a paso, a tu ritmo. ¡Anímate a participar! ¡Comencemos! Busca la sección “Supermercados disponibles” y toca uno para entrar.`, 'energetic');
+            speakText(`¡Hola, ${user.name}! ¡Qué alegría que estés aquí! En esta aplicación vas a practicar cómo hacer compras: elegir una tienda, buscar los productos de tu lista y pagar. Puedes aprender paso a paso, a tu ritmo. ¡Anímate a participar! ¡Comencemos! Busca la sección “Supermercados disponibles” y toca uno para entrar. Si necesitas ayuda para escuchar lo que aparece en la pantalla, abajo encontrarás el botón “Leer pantalla”. Tócalo y te lo leeré en voz alta.`, 'energetic');
         } else {
             speakText(`Bienvenido ${user.name}`);
         }
