@@ -423,6 +423,7 @@ function renderThemeOverlay() {
 // ==========================================
 const AUDIO_ASSISTANCE_STORAGE_KEY = 'nee_audio_assistance_enabled';
 let audioAssistanceEnabled = true;
+let lastAnnouncedMissionKey = null;
 
 try {
     audioAssistanceEnabled = localStorage.getItem(AUDIO_ASSISTANCE_STORAGE_KEY) !== 'false';
@@ -470,6 +471,7 @@ function toggleAudioAssistance() {
     updateAudioAssistanceControls();
     if (audioAssistanceEnabled) {
         speakText('Hola. La ayuda de audio está activada. Puedes tocar “Leer pantalla” cuando quieras.');
+        announceActiveMissionToStudent();
     } else {
         stopSpeech();
     }
@@ -492,13 +494,13 @@ function stopSpeech() {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 }
 
-function speakText(text, tone = 'friendly') {
+function speakText(text, tone = 'friendly', queue = false) {
     if (!audioAssistanceEnabled || !('speechSynthesis' in window) || typeof window.SpeechSynthesisUtterance !== 'function') return;
     const clean = String(text || '').replace(/\$/g, ' ').replace(/\bCLP\b/gi, ' ').trim();
     if (!clean) return;
 
     try {
-        window.speechSynthesis.cancel();
+        if (!queue) window.speechSynthesis.cancel();
         const utterance = new window.SpeechSynthesisUtterance(clean);
         utterance.rate = tone === 'energetic' ? 1 : 0.9;
         utterance.pitch = tone === 'energetic' ? 1.2 : 1.12;
@@ -514,6 +516,22 @@ function speakText(text, tone = 'friendly') {
     } catch (error) {
         console.warn('No se pudo reproducir la asistencia de audio:', error);
     }
+}
+
+function announceActiveMissionToStudent() {
+    const mission = APP_STATE.activeMission;
+    if (!audioAssistanceEnabled || APP_STATE.currentUser?.role !== 'student' || APP_STATE.teacherPreviewMode
+        || !mission?.active || !mission.id || !Array.isArray(mission.itemIds)
+        || !('speechSynthesis' in window) || typeof window.SpeechSynthesisUtterance !== 'function') return;
+
+    const studentId = APP_STATE.currentUser.id || APP_STATE.currentUser.rut || APP_STATE.currentUser.name;
+    const missionKey = `${studentId}:${mission.id}`;
+    if (missionKey === lastAnnouncedMissionKey) return;
+
+    const title = mission.title || 'Misión de compra';
+    const itemCount = mission.itemIds.length;
+    speakText(`Tienes una misión nueva: ${title}. Tu lista tiene ${itemCount} ${itemCount === 1 ? 'producto' : 'productos'}.`, 'energetic', true);
+    lastAnnouncedMissionKey = missionKey;
 }
 
 function playChimeSound(isError = false) {
@@ -775,6 +793,7 @@ function renderApp() {
         }
     }
     updateBasketBadge();
+    announceActiveMissionToStudent();
 }
 
 function renderLoginView(container) {
