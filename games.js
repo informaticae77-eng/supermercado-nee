@@ -35,6 +35,8 @@ function saveMinigamesProgress() {
 }
 
 function exitArcadeToDashboard() {
+    if (typeof APP_STATE !== 'undefined') APP_STATE.arcadeActive = false;
+    bossState = null;
     closeGameOverlay();
     if (typeof renderApp === 'function') renderApp();
     else window.location.reload();
@@ -53,6 +55,7 @@ function getCategoryIcon(category) {
 }
 
 function getDatabaseProducts() {
+    if (bossState) return bossState.products;
     let source = [];
 
     // APP_STATE es una variable global léxica de app.js, no necesariamente window.APP_STATE.
@@ -93,6 +96,7 @@ function getDatabaseProducts() {
 }
 
 function getDatabaseCategories() {
+    if (bossState) return bossState.categories;
     const storedCategories = typeof APP_STATE !== 'undefined' && Array.isArray(APP_STATE.categories)
         ? APP_STATE.categories.map(category => category.name || category.category)
         : [];
@@ -110,6 +114,7 @@ function renderProductVisual(product, size = 'text-7xl') {
 }
 
 function getDatabaseCurrencies() {
+    if (bossState) return bossState.currencies;
     const currencies = typeof CLP_CURRENCY_ITEMS !== 'undefined' && Array.isArray(CLP_CURRENCY_ITEMS)
         ? CLP_CURRENCY_ITEMS
         : Array.isArray(window.CLP_CURRENCY_ITEMS) ? window.CLP_CURRENCY_ITEMS : [];
@@ -147,6 +152,7 @@ function closeGameOverlay() {
 }
 
 function openMinigamesArcade() {
+    if (typeof APP_STATE !== 'undefined') APP_STATE.arcadeActive = true;
     renderMinigamesArcadeView();
     if (typeof speakText === 'function') {
         speakText('Bienvenido al centro de minijuegos. Aquí practicarás con productos y compras. En El Estante Correcto clasifica productos; en Reconoce Billetes y Monedas aprende sus valores; en Palabras en Góndola reconoce nombres; en Calculadora del Canasto suma precios; y en La Lista de Compras encuentra productos por su imagen. Escucha la ayuda de cada pregunta y puedes repetirla con el botón de audio. Cada minijuego completado entrega 15 puntos.');
@@ -177,7 +183,7 @@ function renderMinigamesArcadeView() {
           ${renderGameCard(3, '🔤 Palabras en Góndola', 'Lee el nombre del producto.', 'startMinigame3', 'mj3', completed)}
           ${renderGameCard(4, '🧮 Calculadora del Canasto', 'Suma los precios de dos productos.', 'startMinigame4', 'mj4', completed)}
           ${renderGameCard(5, '📋 La Lista de Compras', 'Encuentra el producto usando su imagen.', 'startMinigame5', 'mj5', completed)}
-          <div class="bg-slate-900 p-5 rounded-3xl border border-amber-500"><h3 class="font-black text-amber-300">👑 Desafío final</h3><p class="my-3 text-sm">Completa los cinco minijuegos para desbloquear el siguiente nivel.</p><button ${completed.length >= 5 ? `onclick="startBossExam(${level})"` : 'disabled'} class="w-full bg-amber-500 text-slate-950 p-3 rounded-xl font-black">${completed.length >= 5 ? 'Enfrentar desafío' : '🔒 Completa los 5 minijuegos'}</button></div>
+          <div class="bg-slate-900 p-5 rounded-3xl border border-amber-500"><h3 class="font-black text-amber-300">👑 Desafío final: el jefe del supermercado</h3><p class="my-3 text-sm">Completa los cinco minijuegos y enfrenta cinco etapas para desbloquear el siguiente nivel.</p><button ${completed.length >= 5 ? `onclick="startBossExam(${level})"` : 'disabled'} class="w-full bg-amber-500 text-slate-950 p-3 rounded-xl font-black">${completed.length >= 5 ? 'Enfrentar desafío' : '🔒 Completa los 5 minijuegos'}</button></div>
         </main>
       </section>`;
 }
@@ -189,6 +195,14 @@ function renderGameCard(number, title, description, functionName, key, completed
 }
 
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
+let bossState = null;
+const BOSS_SKILLS = [
+    { key: 'mj1', label: 'Categorías' },
+    { key: 'mj2', label: 'Billetes y monedas' },
+    { key: 'mj3', label: 'Nombres de productos' },
+    { key: 'mj4', label: 'Suma de precios' },
+    { key: 'mj5', label: 'Lista de compras' }
+];
 
 function beginGame(key, maxQuestions, questionPool = getDatabaseProducts()) {
     if (!questionPool.length) {
@@ -214,16 +228,25 @@ function startMinigame4() { if (beginGame('mj4', 4)) renderQuestion4(); }
 function startMinigame5() { if (beginGame('mj5', 5)) renderQuestion5(); }
 
 function questionFrame(color, label, content, choices, exitLabel = 'Salir') {
-    return `<div class="max-w-2xl w-full bg-slate-900 text-white rounded-3xl p-5 sm:p-8 border-2 ${color} shadow-2xl space-y-5 text-center my-auto"><div class="flex justify-between items-center border-b border-slate-700 pb-3"><b class="text-xs">${label}</b><b class="text-amber-300 text-xs">Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}</b></div>${content}<button onclick="repeatGameHelp()" class="bg-sky-700 hover:bg-sky-600 px-4 py-2 rounded-xl font-black text-sm" aria-label="Repetir instrucciones de voz">🔊 Repetir ayuda</button>${choices}<button onclick="closeGameOverlay()" class="text-slate-400 underline text-xs">✕ ${exitLabel}</button></div>`;
+    const bossBanner = bossState ? `<div class="bg-amber-950 border border-amber-400 rounded-2xl p-3"><p class="text-2xl">👑 🛒</p><p class="font-black text-amber-300">Jefe del supermercado · ${bossState.stage} de 5 estrellas</p><p class="text-sm">Completa las cinco etapas para vencer al jefe.</p></div>` : '';
+    const progress = bossState ? `Etapa ${bossState.stage + 1} de 5` : `Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}`;
+    return `<div class="max-w-2xl w-full bg-slate-900 text-white rounded-3xl p-5 sm:p-8 border-2 ${color} shadow-2xl space-y-5 text-center my-auto">${bossBanner}<div class="flex justify-between items-center border-b border-slate-700 pb-3"><b class="text-xs">${label}</b><b class="text-amber-300 text-xs">${progress}</b></div>${content}<button onclick="repeatGameHelp()" class="bg-sky-700 hover:bg-sky-600 px-4 py-2 rounded-xl font-black text-sm" aria-label="Repetir instrucciones de voz">🔊 Repetir ayuda</button>${choices}<p id="bossFeedback" role="status" class="text-amber-200 font-bold"></p><button onclick="exitGameQuestion()" class="text-slate-400 underline text-xs">✕ ${exitLabel}</button></div>`;
+}
+
+function exitGameQuestion() {
+    bossState = null;
+    closeGameOverlay();
+    renderMinigamesArcadeView();
 }
 
 function repeatGameHelp() {
+    if (bossState) bossState.current.repeatedHelp++;
     if (gameState.helpText && typeof speakText === 'function') speakText(gameState.helpText);
 }
 
 function presentGameQuestion(helpText) {
-    gameState.helpText = helpText;
-    if (typeof speakText === 'function') speakText(helpText);
+    gameState.helpText = bossState ? `Jefe del supermercado. Etapa ${bossState.stage + 1} de 5. ${helpText}` : helpText;
+    if (typeof speakText === 'function') speakText(gameState.helpText);
 }
 
 function encodedArg(value) {
@@ -242,6 +265,7 @@ function renderQuestion1() {
 }
 function answerCategory(category) {
     const q = gameState.questions[gameState.currentQuestion];
+    if (bossState) return answerBossStage(String(category).toLowerCase() === String(q.category).toLowerCase());
     if (String(category).toLowerCase() === String(q.category).toLowerCase()) { gameState.currentQuestion++; renderQuestion1(); }
     else { gameState.errors++; alert(`❌ ${q.name} no va en ${category}. Inténtalo otra vez.`); }
 }
@@ -263,7 +287,7 @@ function renderQuestion2() {
 function renderQuestion3() {
     if (gameState.currentQuestion >= gameState.questions.length) return finishMinigame('mj3', 'Palabras en Góndola');
     const p = gameState.questions[gameState.currentQuestion];
-    const names = [p.name, ...getDatabaseProducts().filter(item => item.id !== p.id).map(item => item.name)].slice(0, 4).sort(() => Math.random() - .5);
+    const names = [...new Set([p.name, ...getDatabaseProducts().filter(item => item.id !== p.id).map(item => item.name)])].slice(0, 4).sort(() => Math.random() - .5);
     const visual = `<div class="w-44 h-44 mx-auto bg-white rounded-3xl p-3 flex items-center justify-center">${renderProductVisual(p)}</div><p class="text-slate-300 font-bold mt-3">¿Cómo se llama este producto?</p>`;
     const choices = `<div class="grid sm:grid-cols-2 gap-3">${names.map(name => `<button onclick="answerGeneric(${encodedArg(name)},${encodedArg(p.name)},'mj3')" class="bg-amber-600 p-3 rounded-xl font-black">${name}</button>`).join('')}</div>`;
     presentGameQuestion(`Observa la imagen del producto. Escucha los nombres posibles: ${names.join(', ')}. ¿Cómo se llama?`);
@@ -293,6 +317,7 @@ function renderQuestion5() {
 }
 
 function answerGeneric(selected, correct, key) {
+    if (bossState) return answerBossStage(String(selected) === String(correct));
     if (String(selected) === String(correct)) {
         gameState.currentQuestion++;
         ({ mj2: renderQuestion2, mj3: renderQuestion3, mj4: renderQuestion4, mj5: renderQuestion5 })[key]();
@@ -323,13 +348,93 @@ function switchLevel(level) {
 }
 
 function startBossExam(level) {
+    loadMinigamesProgress();
+    if (level !== studentMinigamesProgress.currentLevel || !studentMinigamesProgress.unlockedLevels.includes(level)) return;
     const completed = studentMinigamesProgress.completedGames[`level${level}`] || [];
     if (completed.length < 5) return alert('Completa los cinco minijuegos antes del desafío final.');
-    const next = level + 1;
+    const products = getDatabaseProducts();
+    const currencies = getDatabaseCurrencies();
+    const categories = getDatabaseCategories();
+    if (products.length < 2 || new Set(products.map(product => product.name.toLocaleLowerCase('es'))).size < 2
+        || categories.length < 2 || currencies.length < 2) {
+        return alert('Para comenzar el desafío se necesitan al menos dos productos con nombres distintos, dos categorías y dos billetes o monedas.');
+    }
+
+    bossState = { level, stage: 0, startTime: Date.now(), results: [], current: null, products, currencies, categories };
+    startBossStage();
+}
+
+function startBossStage() {
+    const skill = BOSS_SKILLS[bossState.stage];
+    const pool = skill.key === 'mj2' ? getDatabaseCurrencies() : getDatabaseProducts();
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    gameState = { key: skill.key, startTime: Date.now(), errors: 0, currentQuestion: 0, questions: shuffled.slice(0, 2) };
+    bossState.current = { key: skill.key, label: skill.label, errors: 0, repeatedHelp: 0, startTime: Date.now() };
+    ({ mj1: renderQuestion1, mj2: renderQuestion2, mj3: renderQuestion3, mj4: renderQuestion4, mj5: renderQuestion5 })[skill.key]();
+}
+
+function answerBossStage(correct) {
+    const current = bossState.current;
+    if (!correct) {
+        current.errors++;
+        const feedback = document.getElementById('bossFeedback');
+        if (feedback) feedback.textContent = 'Todavía no. ¡Inténtalo de nuevo!';
+        if (typeof speakText === 'function') speakText('Todavía no. ¡Inténtalo de nuevo!');
+        return;
+    }
+
+    bossState.results.push({
+        key: current.key,
+        label: current.label,
+        errors: current.errors,
+        firstAttemptCorrect: current.errors === 0,
+        repeatedHelp: current.repeatedHelp,
+        timeSeconds: Math.round((Date.now() - current.startTime) / 1000)
+    });
+    bossState.stage++;
+    if (bossState.stage < BOSS_SKILLS.length) {
+        startBossStage();
+    } else {
+        finishBossExam();
+    }
+}
+
+function finishBossExam() {
+    const result = bossState;
+    bossState = null;
+    closeGameOverlay();
+    const next = result.level + 1;
     if (next <= 5 && !studentMinigamesProgress.unlockedLevels.includes(next)) studentMinigamesProgress.unlockedLevels.push(next);
     if (next <= 5) studentMinigamesProgress.currentLevel = next;
     saveMinigamesProgress();
-    alert(level < 5 ? `¡Nivel ${next} desbloqueado!` : '¡Felicitaciones! Completaste todos los niveles.');
+    const firstAttemptCorrect = result.results.filter(stage => stage.firstAttemptCorrect).length;
+    const errors = result.results.reduce((total, stage) => total + stage.errors, 0);
+    const repeatedHelp = result.results.reduce((total, stage) => total + stage.repeatedHelp, 0);
+    const student = typeof APP_STATE !== 'undefined' ? APP_STATE.currentUser : null;
+    if (student && student.role === 'student' && !APP_STATE.teacherPreviewMode) {
+        const evaluation = {
+            type: 'boss',
+            studentId: String(student.id || ''),
+            studentName: String(student.name || 'Estudiante'),
+            level: result.level,
+            date: new Date().toISOString(),
+            timeSeconds: Math.round((Date.now() - result.startTime) / 1000),
+            errors,
+            repeatedHelp,
+            firstAttemptCorrect,
+            stages: result.results
+        };
+        if (typeof db !== 'undefined' && db) {
+            db.collection('evaluations').add(evaluation).catch(error => {
+                console.error('No se pudo guardar la evaluación del desafío final:', error);
+                alert('No se pudo guardar la evaluación para el educador. Revisa la conexión y vuelve a completar el desafío.');
+            });
+        } else {
+            console.warn('No se pudo guardar la evaluación del desafío final: base de datos no disponible.');
+            alert('La evaluación no se guardó para el educador porque la base de datos no está disponible.');
+        }
+    }
+    alert(`🏆 ¡Venciste al jefe!\nAciertos al primer intento: ${firstAttemptCorrect} de 5.\nErrores: ${errors}.\n${result.level < 5 ? `¡Nivel ${next} desbloqueado!` : '¡Completaste todos los niveles!'}`);
     renderMinigamesArcadeView();
 }
 

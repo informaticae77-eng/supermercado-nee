@@ -233,6 +233,7 @@ const APP_STATE = {
     selectedCategoryFilter: 'ALL',
     teacherActiveTab: 'home',
     teacherPreviewMode: false,
+    arcadeActive: false,
     basket: [],
     userPaidAmount: 0,
     userPaidItems: [],
@@ -251,6 +252,8 @@ const APP_STATE = {
         { id: 'prod-3', name: 'Manzana Fuji (1Kg)', category: 'Frutas y Verduras', price: 1200, isAll: true, iconEmoji: '🍎' }
     ],
     evaluations: [],
+    bossEvaluations: [],
+    bossEvaluationsError: '',
     customCurrencies: {},
     settings: { ...DEFAULT_SETTINGS },
     aiConfig: { ...DEFAULT_AI_CONFIG },
@@ -774,6 +777,13 @@ function renderApp() {
         return;
     }
 
+    if (APP_STATE.arcadeActive) {
+        if (headerBasketBtn) headerBasketBtn.classList.remove('hidden');
+        renderMinigamesArcadeView();
+        updateBasketBadge();
+        return;
+    }
+
     if (APP_STATE.teacherPreviewMode) {
         if (headerBasketBtn) headerBasketBtn.classList.remove('hidden');
         renderStudentPreviewWrapper(container);
@@ -847,6 +857,7 @@ function handleLogin() {
 }
 
 function logout() {
+    APP_STATE.arcadeActive = false;
     APP_STATE.currentUser = null;
     APP_STATE.selectedSupermarketId = null;
     APP_STATE.teacherPreviewMode = false;
@@ -861,6 +872,7 @@ function logout() {
 }
 
 function goHome() {
+    APP_STATE.arcadeActive = false;
     APP_STATE.selectedSupermarketId = null;
     APP_STATE.selectedCategoryFilter = 'ALL';
     renderApp();
@@ -2516,6 +2528,10 @@ function renderTeacherHomeTab() {
     const totalEvals = (APP_STATE.evaluations || []).length;
     const avgTime = totalEvals > 0 ? Math.round(APP_STATE.evaluations.reduce((a, e) => a + (e.timeSeconds || 0), 0) / totalEvals) : 0;
     const totalVoiceHelp = APP_STATE.telemetry ? APP_STATE.telemetry.voiceHelpCount || 0 : 0;
+    const escapeText = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[char]);
+    const bossEvaluations = [...(APP_STATE.bossEvaluations || [])].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
 
     return `
         <div class="space-y-6">
@@ -2548,6 +2564,21 @@ function renderTeacherHomeTab() {
                     </div>
                     <div class="bg-sky-100 text-sky-600 p-3 rounded-2xl text-xl">🔊</div>
                 </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-3xl border-4 border-amber-200 shadow-md space-y-4">
+                <h3 class="font-black text-slate-800 text-base">👑 Resultados del desafío final</h3>
+                <p class="text-xs text-slate-600">Cada etapa se repite hasta acertar. Los aciertos al primer intento, errores, tiempo y solicitudes para repetir la ayuda permiten observar el desempeño; no constituyen un diagnóstico.</p>
+                ${APP_STATE.bossEvaluationsError ? `<p role="alert" class="text-rose-700 font-bold">${escapeText(APP_STATE.bossEvaluationsError)}</p>` : ''}
+                ${bossEvaluations.length === 0 ? '<p class="text-sm text-slate-500">Aún no hay desafíos finales registrados.</p>' : bossEvaluations.map(e => `
+                    <details class="border border-slate-200 rounded-2xl p-4">
+                        <summary class="cursor-pointer font-black text-indigo-950">${escapeText(e.studentName || 'Estudiante')} · Nivel ${escapeText(e.level)} · ${escapeText(e.date ? new Date(e.date).toLocaleString('es-CL') : 'Fecha no disponible')}</summary>
+                        <p class="text-sm mt-2">Primer intento: ${escapeText(e.firstAttemptCorrect)} de 5 · Errores: ${escapeText(e.errors)} · Tiempo: ${escapeText(e.timeSeconds)} s · Solicitudes de ayuda: ${escapeText(e.repeatedHelp)}</p>
+                        <div class="overflow-x-auto mt-3"><table class="w-full text-left text-xs"><thead><tr><th>Habilidad</th><th>Primer intento</th><th>Errores</th><th>Tiempo</th><th>Solicitudes de ayuda</th></tr></thead><tbody>
+                            ${(Array.isArray(e.stages) ? e.stages : []).map(stage => `<tr class="border-t"><td class="py-2">${escapeText(stage.label)}</td><td>${stage.firstAttemptCorrect ? 'Sí' : 'No'}</td><td>${escapeText(stage.errors)}</td><td>${escapeText(stage.timeSeconds)} s</td><td>${escapeText(stage.repeatedHelp)}</td></tr>`).join('')}
+                        </tbody></table></div>
+                    </details>
+                `).join('')}
             </div>
 
             <div class="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-md space-y-4">
@@ -3291,6 +3322,7 @@ function initFirebaseListeners() {
     } catch(e) {}
 
     if (!db) {
+        APP_STATE.bossEvaluationsError = 'La base de datos no está disponible; no se pueden cargar los resultados del desafío final.';
         renderApp();
         return;
     }
@@ -3316,9 +3348,23 @@ function initFirebaseListeners() {
     });
     listenCol('supermarkets', data => { APP_STATE.supermarkets = data; });
     listenCol('products', data => { APP_STATE.products = data; });
-    listenCol('evaluations', data => { APP_STATE.evaluations = data; });
 
     try {
+        db.collection('evaluations').onSnapshot(
+            snapshot => {
+                const evaluations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                APP_STATE.evaluations = evaluations.filter(e => e.type !== 'boss');
+                APP_STATE.bossEvaluations = evaluations.filter(e => e.type === 'boss');
+                APP_STATE.bossEvaluationsError = '';
+                renderApp();
+            },
+            error => {
+                console.error('No se pudieron cargar las evaluaciones del desafío final:', error);
+                APP_STATE.bossEvaluationsError = 'No se pudieron cargar los resultados del desafío final.';
+                renderApp();
+            }
+        );
+
         db.collection('settings').doc('activeMission').onSnapshot(
             doc => {
                 if (doc.exists && doc.data() && doc.data().active) {
