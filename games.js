@@ -92,6 +92,15 @@ function getDatabaseProducts() {
     });
 }
 
+function getDatabaseCategories() {
+    const storedCategories = typeof APP_STATE !== 'undefined' && Array.isArray(APP_STATE.categories)
+        ? APP_STATE.categories.map(category => category.name || category.category)
+        : [];
+    return [...new Set([...storedCategories, ...getDatabaseProducts().map(product => product.category)]
+        .map(category => String(category || '').trim())
+        .filter(Boolean))];
+}
+
 function renderProductVisual(product, size = 'text-7xl') {
     const emoji = product && product.iconEmoji ? product.iconEmoji : '🛍️';
     if (!product || !product.photoUrl) return `<span class="${size} font-black">${emoji}</span>`;
@@ -100,21 +109,20 @@ function renderProductVisual(product, size = 'text-7xl') {
     return `<img src="${src}" alt="${alt}" class="max-h-full max-w-full object-contain mx-auto" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="${size} font-black" hidden>${emoji}</span>`;
 }
 
-function getDatabaseMoney(targetPrice) {
-    let currencies = [];
-    if (typeof CLP_CURRENCY_ITEMS !== 'undefined' && Array.isArray(CLP_CURRENCY_ITEMS)) currencies = CLP_CURRENCY_ITEMS;
-    else if (Array.isArray(window.CLP_CURRENCY_ITEMS)) currencies = window.CLP_CURRENCY_ITEMS;
-    if (currencies.length) {
-        const exact = currencies.find(item => Number(item.value) === Number(targetPrice));
-        const choices = currencies.filter(item => Number(item.value) !== Number(targetPrice)).sort(() => Math.random() - 0.5).slice(0, 3);
-        return [ ...(exact ? [exact] : [{ value: targetPrice, label: `$${Number(targetPrice).toLocaleString('es-CL')} CLP`, icon: '💵' }]), ...choices ]
-            .map(item => ({ value: Number(item.value), label: item.label || `$${Number(item.value).toLocaleString('es-CL')} CLP`, img: item.img, icon: item.type === 'coin' ? '🪙' : '💵' }))
-            .sort(() => Math.random() - 0.5);
-    }
-    const price = Number(targetPrice) || 1000;
-    return [price, price + 500, Math.max(100, price - 300), price + 1000]
-        .map((value, index) => ({ value, label: `$${value.toLocaleString('es-CL')} CLP`, icon: index === 2 ? '🪙' : '💵' }))
-        .sort(() => Math.random() - 0.5);
+function getDatabaseCurrencies() {
+    const currencies = typeof CLP_CURRENCY_ITEMS !== 'undefined' && Array.isArray(CLP_CURRENCY_ITEMS)
+        ? CLP_CURRENCY_ITEMS
+        : Array.isArray(window.CLP_CURRENCY_ITEMS) ? window.CLP_CURRENCY_ITEMS : [];
+    const customImages = typeof APP_STATE !== 'undefined' && APP_STATE.customCurrencies
+        ? APP_STATE.customCurrencies
+        : {};
+
+    return currencies.map(currency => ({
+        ...currency,
+        value: Number(currency.value),
+        img: customImages[currency.id] || currency.img,
+        label: `$${Number(currency.value).toLocaleString('es-CL')} pesos`
+    }));
 }
 
 function renderGameOverlay(content) {
@@ -135,6 +143,14 @@ function closeGameOverlay() {
         overlay.style.display = 'none';
         overlay.innerHTML = '';
     }
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+}
+
+function openMinigamesArcade() {
+    renderMinigamesArcadeView();
+    if (typeof speakText === 'function') {
+        speakText('Bienvenido al centro de minijuegos. Aquí practicarás con productos y compras. En El Estante Correcto clasifica productos; en Reconoce Billetes y Monedas aprende sus valores; en Palabras en Góndola reconoce nombres; en Calculadora del Canasto suma precios; y en La Lista de Compras encuentra productos por su imagen. Escucha la ayuda de cada pregunta y puedes repetirla con el botón de audio. Cada minijuego completado entrega 15 puntos.');
+    }
 }
 
 function renderMinigamesArcadeView() {
@@ -154,9 +170,10 @@ function renderMinigamesArcadeView() {
           <div class="flex flex-wrap gap-2">${levels.map((name, i) => { const n = i + 1; const unlocked = studentMinigamesProgress.unlockedLevels.includes(n); return `<button ${unlocked ? `onclick="switchLevel(${n})"` : 'disabled'} class="px-3 py-2 rounded-xl font-bold ${n === level ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'}">Nivel ${n}${unlocked ? '' : ' 🔒'}</button>`; }).join('')}</div>
         </header>
         <div class="max-w-7xl mx-auto mt-5 bg-slate-900 p-5 rounded-3xl border border-indigo-500/40 flex justify-between items-center gap-3"><div><p class="text-amber-400 font-black">Nivel ${level} de 5</p><h2 class="text-2xl font-black">${levels[level - 1]}</h2></div><p class="font-black text-amber-300">${completed.length} / 5</p></div>
+        <p class="max-w-7xl mx-auto mt-4 bg-indigo-950 border border-indigo-500/50 rounded-2xl p-4 text-sm text-indigo-100"><b class="text-white">¿De qué se trata?</b> Practica reconocer productos, categorías y dinero chileno. Escucha las instrucciones al comenzar cada desafío y toca <b class="text-white">🔊 Repetir ayuda</b> si necesitas volver a oírlas.</p>
         <main class="max-w-7xl mx-auto mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           ${renderGameCard(1, '🍎 El Estante Correcto', 'Clasifica productos por categoría.', 'startMinigame1', 'mj1', completed)}
-          ${renderGameCard(2, '💵 Corta el Billete', 'Reconoce el valor del producto.', 'startMinigame2', 'mj2', completed)}
+          ${renderGameCard(2, '💵 Reconoce Billetes y Monedas', 'Reconoce el valor de billetes y monedas chilenas.', 'startMinigame2', 'mj2', completed)}
           ${renderGameCard(3, '🔤 Palabras en Góndola', 'Lee el nombre del producto.', 'startMinigame3', 'mj3', completed)}
           ${renderGameCard(4, '🧮 Calculadora del Canasto', 'Suma los precios de dos productos.', 'startMinigame4', 'mj4', completed)}
           ${renderGameCard(5, '📋 La Lista de Compras', 'Encuentra el producto usando su imagen.', 'startMinigame5', 'mj5', completed)}
@@ -173,25 +190,40 @@ function renderGameCard(number, title, description, functionName, key, completed
 
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
 
-function beginGame(key, maxQuestions) {
-    const products = getDatabaseProducts();
-    if (!products.length) {
+function beginGame(key, maxQuestions, questionPool = getDatabaseProducts()) {
+    if (!questionPool.length) {
         alert('No hay productos disponibles para los minijuegos. Espera a que cargue el catálogo e inténtalo nuevamente.');
         return false;
     }
-    const shuffled = [...products].sort(() => Math.random() - 0.5);
+    const shuffled = [...questionPool].sort(() => Math.random() - 0.5);
     gameState = { key, startTime: Date.now(), errors: 0, currentQuestion: 0, questions: shuffled.slice(0, Math.min(maxQuestions, shuffled.length)) };
     return true;
 }
 
 function startMinigame1() { if (beginGame('mj1', 5)) renderQuestion1(); }
-function startMinigame2() { if (beginGame('mj2', 5)) renderQuestion2(); }
+function startMinigame2() {
+    const currencies = getDatabaseCurrencies();
+    if (!currencies.length) {
+        alert('No hay billetes o monedas disponibles para el minijuego.');
+        return;
+    }
+    if (beginGame('mj2', 5, currencies)) renderQuestion2();
+}
 function startMinigame3() { if (beginGame('mj3', 5)) renderQuestion3(); }
 function startMinigame4() { if (beginGame('mj4', 4)) renderQuestion4(); }
 function startMinigame5() { if (beginGame('mj5', 5)) renderQuestion5(); }
 
 function questionFrame(color, label, content, choices, exitLabel = 'Salir') {
-    return `<div class="max-w-2xl w-full bg-slate-900 text-white rounded-3xl p-5 sm:p-8 border-2 ${color} shadow-2xl space-y-5 text-center my-auto"><div class="flex justify-between items-center border-b border-slate-700 pb-3"><b class="text-xs">${label}</b><b class="text-amber-300 text-xs">Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}</b></div>${content}${choices}<button onclick="closeGameOverlay()" class="text-slate-400 underline text-xs">✕ ${exitLabel}</button></div>`;
+    return `<div class="max-w-2xl w-full bg-slate-900 text-white rounded-3xl p-5 sm:p-8 border-2 ${color} shadow-2xl space-y-5 text-center my-auto"><div class="flex justify-between items-center border-b border-slate-700 pb-3"><b class="text-xs">${label}</b><b class="text-amber-300 text-xs">Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}</b></div>${content}<button onclick="repeatGameHelp()" class="bg-sky-700 hover:bg-sky-600 px-4 py-2 rounded-xl font-black text-sm" aria-label="Repetir instrucciones de voz">🔊 Repetir ayuda</button>${choices}<button onclick="closeGameOverlay()" class="text-slate-400 underline text-xs">✕ ${exitLabel}</button></div>`;
+}
+
+function repeatGameHelp() {
+    if (gameState.helpText && typeof speakText === 'function') speakText(gameState.helpText);
+}
+
+function presentGameQuestion(helpText) {
+    gameState.helpText = helpText;
+    if (typeof speakText === 'function') speakText(helpText);
 }
 
 function encodedArg(value) {
@@ -201,10 +233,11 @@ function encodedArg(value) {
 function renderQuestion1() {
     if (gameState.currentQuestion >= gameState.questions.length) return finishMinigame('mj1', 'El Estante Correcto');
     const product = gameState.questions[gameState.currentQuestion];
-    const categories = [...new Set([product.category, ...getDatabaseProducts().map(p => p.category), 'Frutas y Verduras', 'Lácteos, Yogures y Huevos', 'Panadería y Pastelería', 'Limpieza del Hogar'])].filter(Boolean).sort(() => Math.random() - .5).slice(0, 4);
+    const categories = [...new Set([...getDatabaseCategories(), product.category])].filter(Boolean).sort(() => Math.random() - .5).slice(0, 4);
     if (!categories.includes(product.category)) categories[0] = product.category;
     const visual = `<div class="w-48 h-48 mx-auto bg-white rounded-3xl p-3 flex items-center justify-center">${renderProductVisual(product)}</div><h2 class="font-black text-xl mt-3">${product.name}</h2>`;
     const buttons = `<div class="grid sm:grid-cols-2 gap-3">${categories.map(c => `<button onclick="answerCategory(${encodedArg(c)})" class="bg-indigo-600 p-4 rounded-xl font-black">${getCategoryIcon(c)} ${c}</button>`).join('')}</div>`;
+    presentGameQuestion(`Busca el producto ${product.name}. ¿En qué categoría está? Escucha las opciones: ${categories.join(', ')}.`);
     renderGameOverlay(questionFrame('border-indigo-500', 'OA04 · Clasifica el producto', visual, buttons, 'Salir al arcade'));
 }
 function answerCategory(category) {
@@ -214,11 +247,17 @@ function answerCategory(category) {
 }
 
 function renderQuestion2() {
-    if (gameState.currentQuestion >= gameState.questions.length) return finishMinigame('mj2', 'Corta el Billete');
-    const p = gameState.questions[gameState.currentQuestion];
-    const visual = `<div class="w-44 h-44 mx-auto bg-white rounded-3xl p-3 flex items-center justify-center">${renderProductVisual(p)}</div><h2 class="font-black text-xl mt-3">${p.name}</h2><p class="text-amber-300 font-black text-2xl">Precio: $${p.price.toLocaleString('es-CL')}</p>`;
-    const choices = `<div class="grid grid-cols-2 gap-3">${getDatabaseMoney(p.price).map(m => `<button onclick="answerGeneric(${Number(m.value)},${Number(p.price)},'mj2')" class="bg-slate-800 border border-emerald-400 p-3 rounded-xl font-black">${m.img ? `<img src="${m.img}" class="h-14 mx-auto object-contain">` : `<span class="text-2xl">${m.icon || '💵'}</span>`}<span class="block text-amber-300">${m.label}</span></button>`).join('')}</div>`;
-    renderGameOverlay(questionFrame('border-emerald-500', 'OA07 · Selecciona el valor correcto', visual, choices));
+    if (gameState.currentQuestion >= gameState.questions.length) return finishMinigame('mj2', 'Reconoce billetes y monedas');
+    const currency = gameState.questions[gameState.currentQuestion];
+    const currencyKind = currency.type === 'coin' ? 'moneda' : 'billete';
+    const choices = [...new Map([currency, ...getDatabaseCurrencies().filter(item => item.id !== currency.id)
+        .sort(() => Math.random() - 0.5).slice(0, 3)].map(item => [item.id, item])).values()]
+        .sort(() => Math.random() - 0.5);
+    const visual = `<div class="w-64 h-36 mx-auto bg-white rounded-3xl p-3 flex items-center justify-center">${currency.img ? `<img src="${currency.img}" alt="${currencyKind === 'moneda' ? 'Moneda chilena' : 'Billete chileno'}" class="max-h-full max-w-full object-contain">` : `<span class="text-4xl">${currency.type === 'coin' ? '🪙' : '💵'}</span>`}</div><p class="font-bold text-slate-300 mt-3">¿Cuánto vale ${currencyKind === 'moneda' ? 'esta' : 'este'} ${currencyKind}?</p>`;
+    const choiceLabels = choices.map(item => `${item.type === 'coin' ? 'moneda' : 'billete'} de ${item.value} pesos`);
+    const buttons = `<div class="grid grid-cols-2 gap-3">${choices.map(m => `<button onclick="answerGeneric(${Number(m.value)},${Number(currency.value)},'mj2')" class="bg-slate-800 border border-emerald-400 p-3 rounded-xl font-black">${m.img ? `<img src="${m.img}" alt="" class="h-14 mx-auto object-contain">` : `<span class="text-2xl">${m.type === 'coin' ? '🪙' : '💵'}</span>`}<span class="block text-amber-300">${m.label}</span></button>`).join('')}</div>`;
+    presentGameQuestion(`Observa ${currencyKind === 'moneda' ? 'esta moneda' : 'este billete'}. Escucha las opciones: ${choiceLabels.join(', ')}. ¿Cuánto vale?`);
+    renderGameOverlay(questionFrame('border-emerald-500', 'OA07 · Reconoce billetes y monedas', visual, buttons));
 }
 
 function renderQuestion3() {
@@ -227,6 +266,7 @@ function renderQuestion3() {
     const names = [p.name, ...getDatabaseProducts().filter(item => item.id !== p.id).map(item => item.name)].slice(0, 4).sort(() => Math.random() - .5);
     const visual = `<div class="w-44 h-44 mx-auto bg-white rounded-3xl p-3 flex items-center justify-center">${renderProductVisual(p)}</div><p class="text-slate-300 font-bold mt-3">¿Cómo se llama este producto?</p>`;
     const choices = `<div class="grid sm:grid-cols-2 gap-3">${names.map(name => `<button onclick="answerGeneric(${encodedArg(name)},${encodedArg(p.name)},'mj3')" class="bg-amber-600 p-3 rounded-xl font-black">${name}</button>`).join('')}</div>`;
+    presentGameQuestion(`Observa la imagen del producto. Escucha los nombres posibles: ${names.join(', ')}. ¿Cómo se llama?`);
     renderGameOverlay(questionFrame('border-amber-500', 'OA02 · Lee el producto', visual, choices));
 }
 
@@ -238,6 +278,7 @@ function renderQuestion4() {
     const values = [...new Set([total, total + 500, Math.max(100, total - 300), total + 1000])].sort(() => Math.random() - .5);
     const visual = `<div class="flex items-center justify-center gap-4"><div>${renderProductVisual(p1, 'text-5xl')}<p>$${p1.price.toLocaleString('es-CL')}</p></div><b class="text-3xl">+</b><div>${renderProductVisual(p2, 'text-5xl')}<p>$${p2.price.toLocaleString('es-CL')}</p></div></div><p class="font-black text-lg mt-3">¿Cuánto cuestan juntos?</p>`;
     const choices = `<div class="grid grid-cols-2 gap-3">${values.map(value => `<button onclick="answerGeneric(${value},${total},'mj4')" class="bg-purple-600 p-4 rounded-xl font-black">$${value.toLocaleString('es-CL')}</button>`).join('')}</div>`;
+    presentGameQuestion(`El producto ${p1.name} cuesta ${p1.price} pesos y ${p2.name} cuesta ${p2.price} pesos. ¿Cuánto cuestan juntos?`);
     renderGameOverlay(questionFrame('border-purple-500', 'OA09 · Suma el canasto', visual, choices));
 }
 
@@ -247,6 +288,7 @@ function renderQuestion5() {
     const options = [target, ...getDatabaseProducts().filter(p => p.id !== target.id)].slice(0, 4).sort(() => Math.random() - .5);
     const visual = `<p class="text-slate-300 font-bold">Encuentra este producto:</p><h2 class="text-2xl text-amber-300 font-black">${target.name}</h2>`;
     const choices = `<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">${options.map(item => `<button onclick="answerGeneric(${encodedArg(item.id)},${encodedArg(target.id)},'mj5')" class="bg-white h-28 rounded-xl p-2 flex items-center justify-center">${renderProductVisual(item, 'text-5xl')}</button>`).join('')}</div>`;
+    presentGameQuestion(`Encuentra el producto ${target.name}. Escucha su nombre y busca su imagen entre las opciones.`);
     renderGameOverlay(questionFrame('border-rose-500', 'OA12 · Encuentra el producto', visual, choices));
 }
 
@@ -292,6 +334,7 @@ function startBossExam(level) {
 }
 
 window.renderMinigamesArcadeView = renderMinigamesArcadeView;
+window.openMinigamesArcade = openMinigamesArcade;
 window.startMinigame1 = startMinigame1;
 window.startMinigame2 = startMinigame2;
 window.startMinigame3 = startMinigame3;
@@ -299,6 +342,6 @@ window.startMinigame4 = startMinigame4;
 window.startMinigame5 = startMinigame5;
 window.closeGameOverlay = closeGameOverlay;
 window.openMemoriseModal = renderMinigamesArcadeView;
-window.openMinigamesModal = renderMinigamesArcadeView;
+window.openMinigamesModal = openMinigamesArcade;
 window.openMemorisModal = renderMinigamesArcadeView;
-window.openArcadeModal = renderMinigamesArcadeView;
+window.openArcadeModal = openMinigamesArcade;
