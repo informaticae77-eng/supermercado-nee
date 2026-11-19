@@ -801,7 +801,7 @@ function handleLogin() {
         APP_STATE.currentUser = user;
         localStorage.setItem('nee_active_user', JSON.stringify(user));
         if (user.role === 'student') {
-            speakText(`¡Hola, ${user.name}! ¡Qué alegría que estés aquí! En esta aplicación vas a practicar cómo hacer compras: elegir una tienda, buscar los productos de tu lista y pagar. Puedes aprender paso a paso, a tu ritmo. ¡Anímate a participar! ¡Comencemos!`, 'energetic');
+            speakText(`¡Hola, ${user.name}! ¡Qué alegría que estés aquí! En esta aplicación vas a practicar cómo hacer compras: elegir una tienda, buscar los productos de tu lista y pagar. Puedes aprender paso a paso, a tu ritmo. ¡Anímate a participar! ¡Comencemos! Busca la sección “Supermercados disponibles” y toca uno para entrar.`, 'energetic');
         } else {
             speakText(`Bienvenido ${user.name}`);
         }
@@ -830,6 +830,7 @@ function goHome() {
     APP_STATE.selectedSupermarketId = null;
     APP_STATE.selectedCategoryFilter = 'ALL';
     renderApp();
+    speakText('Supermercados disponibles. Toca uno para entrar.');
 }
 
 // ==========================================
@@ -947,7 +948,7 @@ function selectSupermarket(id) {
     const sup = (APP_STATE.supermarkets || []).find(s => String(s.id) === String(id));
     const supName = sup ? sup.name : 'Supermercado';
 
-    speakText(`Entraste a ${supName}. Agrega los productos de tu lista y comprueba al terminar.`);
+    speakText(`¡Muy bien! Entraste a ${supName}. Estoy aquí para acompañarte. Busca con calma los productos de tu lista y agrégalos a tu canasto cuando los encuentres.`);
     renderApp();
 }
 
@@ -1550,6 +1551,7 @@ function openBasketModal() {
     renderBasketModalContent();
     const el = document.getElementById('basketModal');
     if (el) el.classList.remove('hidden');
+    speakText('Revisemos tu canasto con calma. Aquí puedes comprobar los productos y pagar paso a paso. ¡Tú puedes!');
 }
 
 function closeBasketModal() {

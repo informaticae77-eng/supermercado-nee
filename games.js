@@ -163,6 +163,7 @@ function renderMinigamesArcadeView() {
           <div class="bg-slate-900 p-5 rounded-3xl border border-amber-500"><h3 class="font-black text-amber-300">👑 Desafío final</h3><p class="my-3 text-sm">Completa los cinco minijuegos para desbloquear el siguiente nivel.</p><button ${completed.length >= 5 ? `onclick="startBossExam(${level})"` : 'disabled'} class="w-full bg-amber-500 text-slate-950 p-3 rounded-xl font-black">${completed.length >= 5 ? 'Enfrentar desafío' : '🔒 Completa los 5 minijuegos'}</button></div>
         </main>
       </section>`;
+    speakText('¡Bienvenido al centro de desafíos! Elige un juego cuando estés listo. Puedes intentarlo a tu ritmo; yo te acompaño.');
 }
 
 function renderGameCard(number, title, description, functionName, key, completed) {
@@ -184,11 +185,36 @@ function beginGame(key, maxQuestions) {
     return true;
 }
 
-function startMinigame1() { if (beginGame('mj1', 5)) renderQuestion1(); }
-function startMinigame2() { if (beginGame('mj2', 5)) renderQuestion2(); }
-function startMinigame3() { if (beginGame('mj3', 5)) renderQuestion3(); }
-function startMinigame4() { if (beginGame('mj4', 4)) renderQuestion4(); }
-function startMinigame5() { if (beginGame('mj5', 5)) renderQuestion5(); }
+function startMinigame1() {
+    if (beginGame('mj1', 5)) {
+        speakText('¡Vamos paso a paso! Mira el producto y elige la categoría que le corresponde.');
+        renderQuestion1();
+    }
+}
+function startMinigame2() {
+    if (beginGame('mj2', 5)) {
+        speakText('¡Tú puedes! Observa el precio y elige el billete o la moneda con el valor correcto.');
+        renderQuestion2();
+    }
+}
+function startMinigame3() {
+    if (beginGame('mj3', 5)) {
+        speakText('¡Lo haremos juntos! Mira el producto y elige su nombre entre las opciones.');
+        renderQuestion3();
+    }
+}
+function startMinigame4() {
+    if (beginGame('mj4', 4)) {
+        speakText('No hay apuro. Observa los precios, súmalos y elige el total.');
+        renderQuestion4();
+    }
+}
+function startMinigame5() {
+    if (beginGame('mj5', 5)) {
+        speakText('¡Buen trabajo! Busca en las imágenes el producto que aparece en tu lista.');
+        renderQuestion5();
+    }
+}
 
 function questionFrame(color, label, content, choices, exitLabel = 'Salir') {
     return `<div class="max-w-2xl w-full bg-slate-900 text-white rounded-3xl p-5 sm:p-8 border-2 ${color} shadow-2xl space-y-5 text-center my-auto"><div class="flex justify-between items-center border-b border-slate-700 pb-3"><b class="text-xs">${label}</b><b class="text-amber-300 text-xs">Pregunta ${gameState.currentQuestion + 1} de ${gameState.questions.length}</b></div>${content}${choices}<button onclick="closeGameOverlay()" class="text-slate-400 underline text-xs">✕ ${exitLabel}</button></div>`;
