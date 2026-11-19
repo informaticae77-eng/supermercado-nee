@@ -447,6 +447,18 @@ function updateAudioAssistanceControls() {
     if (stopButton) stopButton.disabled = !speechSupported;
 }
 
+function toggleAudioControls() {
+    const controls = document.getElementById('audioAssistanceControls');
+    const launcher = document.getElementById('audioControlsLauncher');
+    if (!controls || !launcher) return;
+
+    const isOpening = controls.classList.contains('hidden');
+    controls.hidden = !isOpening;
+    controls.classList.toggle('hidden', !isOpening);
+    launcher.setAttribute('aria-expanded', String(isOpening));
+    launcher.setAttribute('aria-label', `${isOpening ? 'Ocultar' : 'Mostrar'} controles de ayuda de audio`);
+}
+
 function toggleAudioAssistance() {
     audioAssistanceEnabled = !audioAssistanceEnabled;
     try {
