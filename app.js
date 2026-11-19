@@ -801,11 +801,12 @@ function handleLogin() {
         APP_STATE.currentUser = user;
         localStorage.setItem('nee_active_user', JSON.stringify(user));
         if (user.role === 'student') {
-            speakText(`¡Hola, ${user.name}! ¡Qué alegría que estés aquí! En esta aplicación vas a practicar cómo hacer compras: elegir una tienda, buscar los productos de tu lista y pagar. Puedes aprender paso a paso, a tu ritmo. ¡Anímate a participar! ¡Comencemos! Busca la sección “Supermercados disponibles” y toca uno para entrar. Si necesitas ayuda para escuchar lo que aparece en la pantalla, abajo encontrarás el botón “Leer pantalla”. Tócalo y te lo leeré en voz alta.`, 'energetic');
+            renderApp();
+            speakText(`¡Hola, ${user.name}! ¡Qué alegría que estés aquí! Puedes aprender paso a paso y a tu ritmo. Busca la sección “Supermercados disponibles” y toca una tienda para entrar. Si necesitas ayuda, toca el botón “Leer pantalla” que está abajo; leeré en voz alta lo que aparece en la pantalla.`, 'energetic');
         } else {
             speakText(`Bienvenido ${user.name}`);
+            renderApp();
         }
-        renderApp();
     } else {
         const err = document.getElementById('loginError');
         if (err) err.classList.remove('hidden');
@@ -901,7 +902,7 @@ function renderHomeView(container) {
                     <h2 class="text-2xl sm:text-4xl font-black ${theme.bannerText}">${theme.titleMsg}</h2>
                     <p class="text-sm font-bold text-white/90">${theme.greetingMsg}</p>
 
-                    ${getAvatarHtml('mascot', `¡Hola <b>${APP_STATE.currentUser?.name || ''}</b>! Selecciona una tienda para comenzar tu misión.`)}
+                    ${getAvatarHtml('mascot', `¡Hola <b>${APP_STATE.currentUser?.name || ''}</b>! Selecciona una tienda para comenzar tu misión. ¿Necesitas ayuda? Toca abajo el botón <b>“Leer pantalla”</b> y leeré el contenido en voz alta.`)}
                 </div>
 
                 <div class="z-10 hidden sm:flex flex-col items-center">
