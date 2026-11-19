@@ -421,20 +421,87 @@ function renderThemeOverlay() {
 // ==========================================
 // AUDIO Y SINTESIS DE VOZ
 // ==========================================
-function speakText(text) {
-    if (APP_STATE.telemetry) APP_STATE.telemetry.voiceHelpCount++;
-    if (!('speechSynthesis' in window)) return;
+const AUDIO_ASSISTANCE_STORAGE_KEY = 'nee_audio_assistance_enabled';
+let audioAssistanceEnabled = true;
+
+try {
+    audioAssistanceEnabled = localStorage.getItem(AUDIO_ASSISTANCE_STORAGE_KEY) !== 'false';
+} catch (error) {
+    console.warn('No se pudo cargar la preferencia de asistencia de audio:', error);
+}
+
+function updateAudioAssistanceControls() {
+    const toggleButton = document.getElementById('audioAssistanceToggle');
+    const readButton = document.getElementById('readPageAudioButton');
+    const stopButton = document.getElementById('stopAudioButton');
+    const speechSupported = 'speechSynthesis' in window && typeof window.SpeechSynthesisUtterance === 'function';
+
+    if (toggleButton) {
+        toggleButton.disabled = !speechSupported;
+        toggleButton.setAttribute('aria-pressed', String(audioAssistanceEnabled));
+        toggleButton.textContent = speechSupported
+            ? `${audioAssistanceEnabled ? '🔊' : '🔇'} Audio ${audioAssistanceEnabled ? 'activado' : 'pausado'}`
+            : '🔇 Audio no disponible';
+    }
+    if (readButton) readButton.disabled = !speechSupported || !audioAssistanceEnabled;
+    if (stopButton) stopButton.disabled = !speechSupported;
+}
+
+function toggleAudioAssistance() {
+    audioAssistanceEnabled = !audioAssistanceEnabled;
+    try {
+        localStorage.setItem(AUDIO_ASSISTANCE_STORAGE_KEY, String(audioAssistanceEnabled));
+    } catch (error) {
+        console.warn('No se pudo guardar la preferencia de asistencia de audio:', error);
+    }
+
+    updateAudioAssistanceControls();
+    if (audioAssistanceEnabled) {
+        speakText('Hola. La ayuda de audio está activada. Puedes tocar “Leer pantalla” cuando quieras.');
+    } else {
+        stopSpeech();
+    }
+}
+
+function readCurrentPage() {
+    const pageContent = document.getElementById('appContainer');
+    const visibleModals = Array.from(document.querySelectorAll('body > div.fixed.inset-0'))
+        .filter(element => element.id !== 'themeOverlayContainer' && !element.classList.contains('hidden'));
+    const text = [
+        document.getElementById('headerMainTitle')?.innerText,
+        pageContent?.innerText,
+        ...visibleModals.map(modal => modal.innerText)
+    ].filter(Boolean).join('. ').replace(/\s+/g, ' ').trim();
+
+    if (text) speakText(text);
+}
+
+function stopSpeech() {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+}
+
+function speakText(text, tone = 'friendly') {
+    if (!audioAssistanceEnabled || !('speechSynthesis' in window) || typeof window.SpeechSynthesisUtterance !== 'function') return;
+    const clean = String(text || '').replace(/\$/g, ' ').replace(/\bCLP\b/gi, ' ').trim();
+    if (!clean) return;
+
     try {
         window.speechSynthesis.cancel();
-        const clean = text.replace(/\$/g, ' ').replace(/\bCLP\b/gi, ' ').trim();
-        if (!clean) return;
-        setTimeout(() => {
-            const utterance = new SpeechSynthesisUtterance(clean);
-            utterance.lang = 'es-CL';
-            utterance.rate = 0.88;
-            window.speechSynthesis.speak(utterance);
-        }, 50);
-    } catch(e) {}
+        const utterance = new window.SpeechSynthesisUtterance(clean);
+        utterance.rate = tone === 'energetic' ? 1 : 0.9;
+        utterance.pitch = tone === 'energetic' ? 1.2 : 1.12;
+        utterance.volume = 1;
+        const voices = window.speechSynthesis.getVoices();
+        const spanishVoice = voices.find(voice => /^es-CL$/i.test(voice.lang))
+            || voices.find(voice => /^es(?:-|$)/i.test(voice.lang));
+        utterance.lang = spanishVoice?.lang || 'es-CL';
+        if (spanishVoice) utterance.voice = spanishVoice;
+        utterance.onerror = event => console.warn('No se pudo reproducir la asistencia de audio:', event.error);
+        window.speechSynthesis.speak(utterance);
+        if (APP_STATE.telemetry) APP_STATE.telemetry.voiceHelpCount++;
+    } catch (error) {
+        console.warn('No se pudo reproducir la asistencia de audio:', error);
+    }
 }
 
 function playChimeSound(isError = false) {
@@ -733,7 +800,11 @@ function handleLogin() {
     if (user && user.pin === pinVal) {
         APP_STATE.currentUser = user;
         localStorage.setItem('nee_active_user', JSON.stringify(user));
-        speakText(`Bienvenido ${user.name}`);
+        if (user.role === 'student') {
+            speakText(`¡Hola, ${user.name}! ¡Qué alegría que estés aquí! En esta aplicación vas a practicar cómo hacer compras: elegir una tienda, buscar los productos de tu lista y pagar. Puedes aprender paso a paso, a tu ritmo. ¡Anímate a participar! ¡Comencemos!`, 'energetic');
+        } else {
+            speakText(`Bienvenido ${user.name}`);
+        }
         renderApp();
     } else {
         const err = document.getElementById('loginError');
@@ -916,7 +987,7 @@ function validateStudentList() {
             (extraItems.length > 0 ? `• Agregaste este producto que NO está en la lista: ${extraNames}.\n` : '') +
             `\n👉 Presiona el botón rojo "🗑️ QUITAR ESTE PRODUCTO" para corregir tu lista.\n\nPuntuación actual: ${currentScore}%`;
 
-        speakText(`Este no es el producto que estamos buscando. Te equivocaste, inténtalo nuevamente.`);
+        speakText('No pasa nada. Vamos a revisar la lista juntos. Busca el producto correcto y vuelve a intentarlo.');
         alert(alertMsg);
         renderApp();
     } else {
@@ -1316,7 +1387,7 @@ async function captureAndAnalyzeImageWithAI() {
             const currentScore = Math.max(10, 100 - (APP_STATE.classroomErrorsCount * 15));
             const readSnippet = detectedText.length > 0 ? detectedText.substring(0, 35).replace(/\n/g, ' ') : 'Texto no legible';
 
-            speakText(`Eso no es ${targetProduct.name}. Enfoca claramente la etiqueta o el envase.`);
+            speakText(`Todavía no encontramos ${targetProduct.name}. No pasa nada. Acércate un poquito y enfoca la etiqueta o el envase.`);
 
             if (statusBox) {
                 statusBox.innerHTML = `
@@ -3253,6 +3324,7 @@ function initFirebaseListeners() {
 }
 
 function mainInit() {
+    updateAudioAssistanceControls();
     renderApp();
     initFirebaseListeners();
 }
