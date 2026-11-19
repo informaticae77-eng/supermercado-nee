@@ -480,7 +480,7 @@ function stopSpeech() {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 }
 
-function speakText(text) {
+function speakText(text, tone = 'friendly') {
     if (!audioAssistanceEnabled || !('speechSynthesis' in window) || typeof window.SpeechSynthesisUtterance !== 'function') return;
     const clean = String(text || '').replace(/\$/g, ' ').replace(/\bCLP\b/gi, ' ').trim();
     if (!clean) return;
@@ -488,8 +488,8 @@ function speakText(text) {
     try {
         window.speechSynthesis.cancel();
         const utterance = new window.SpeechSynthesisUtterance(clean);
-        utterance.rate = 0.9;
-        utterance.pitch = 1.12;
+        utterance.rate = tone === 'energetic' ? 1 : 0.9;
+        utterance.pitch = tone === 'energetic' ? 1.2 : 1.12;
         utterance.volume = 1;
         const voices = window.speechSynthesis.getVoices();
         const spanishVoice = voices.find(voice => /^es-CL$/i.test(voice.lang))
@@ -800,7 +800,11 @@ function handleLogin() {
     if (user && user.pin === pinVal) {
         APP_STATE.currentUser = user;
         localStorage.setItem('nee_active_user', JSON.stringify(user));
-        speakText(`Bienvenido ${user.name}`);
+        if (user.role === 'student') {
+            speakText(`¡Hola, ${user.name}! ¡Qué alegría que estés aquí! En esta aplicación vas a practicar cómo hacer compras: elegir una tienda, buscar los productos de tu lista y pagar. Puedes aprender paso a paso, a tu ritmo. ¡Anímate a participar! ¡Comencemos!`, 'energetic');
+        } else {
+            speakText(`Bienvenido ${user.name}`);
+        }
         renderApp();
     } else {
         const err = document.getElementById('loginError');
