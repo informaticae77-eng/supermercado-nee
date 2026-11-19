@@ -2992,20 +2992,47 @@ function renderTeacherUsersTab() {
                         <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">🎒 Estudiantes</h3>
                         <button onclick="openCreateUserModal('student')" class="bg-emerald-600 text-white text-xs font-black px-2.5 py-1.5 rounded-xl shadow">+ Alumno</button>
                     </div>
-                    <div class="space-y-2 max-h-96 overflow-y-auto">${renderUserRoleList('student')}</div>
+                    <label class="block text-[11px] font-black text-slate-600 uppercase">
+                        Filtrar por curso:
+                        <select id="studentCourseFilter" onchange="filterStudentList(this.value)" class="mt-1 w-full px-3 py-2 rounded-xl border-2 border-slate-200 font-bold normal-case">
+                            <option value="all">Todos los cursos</option>
+                            <option value="none">Sin curso asignado</option>
+                            ${(APP_STATE.courses || []).map(course => `<option value="${escapeHtml(course.id)}">${escapeHtml(course.name)}</option>`).join('')}
+                        </select>
+                    </label>
+                    <div id="studentRoleList" class="space-y-2 max-h-96 overflow-y-auto">${renderUserRoleList('student')}</div>
                 </div>
             </div>
         </div>
     `;
 }
 
-function renderUserRoleList(role) {
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[char]);
+}
+
+function renderUserRoleList(role, courseFilter = 'all') {
     const isAdmin = APP_STATE.currentUser && APP_STATE.currentUser.role === 'admin';
-    const users = (APP_STATE.users || []).filter(u => u.role === role);
-    if (users.length === 0) return `<p class="text-xs text-slate-400 italic py-4 text-center">No hay usuarios registrados.</p>`;
+    const courses = APP_STATE.courses || [];
+    const users = (APP_STATE.users || []).filter(u => {
+        if (u.role !== role) return false;
+        if (role !== 'student' || courseFilter === 'all') return true;
+        const hasCourse = courses.some(course => String(course.id) === String(u.courseId));
+        if (courseFilter === 'none') return !hasCourse;
+        return String(u.courseId) === String(courseFilter);
+    });
+    if (users.length === 0) {
+        const message = role === 'student' && courseFilter !== 'all'
+            ? 'No hay alumnos para este curso.'
+            : 'No hay usuarios registrados.';
+        return `<p class="text-xs text-slate-400 italic py-4 text-center">${message}</p>`;
+    }
 
     return users.map(u => {
         const uLevel = u.level || 0;
+        const course = role === 'student' ? courses.find(c => String(c.id) === String(u.courseId)) : null;
         return `
             <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl space-y-2 text-xs font-bold">
                 <div class="flex justify-between items-center">
@@ -3020,11 +3047,16 @@ function renderUserRoleList(role) {
                 <div class="text-[11px] text-slate-600">
                     <div>RUT: <b>${u.rut || 'N/A'}</b> | Clave: <code class="bg-slate-200 px-1 py-0.5 rounded text-indigo-900 font-black">${u.pin}</code></div>
                     <div>📧 ${u.email || 'Sin correo'}</div>
-                    ${role === 'student' ? `<div class="text-amber-700 font-black mt-1 flex justify-between"><span>⭐ Puntos: ${u.points || 0} pts</span> <span>🏆 Nivel ${uLevel}</span></div>` : ''}
+                    ${role === 'student' ? `<div class="text-indigo-700 font-black">📚 Curso: ${escapeHtml(course?.name || 'Sin curso asignado')}</div><div class="text-amber-700 font-black mt-1 flex justify-between"><span>⭐ Puntos: ${u.points || 0} pts</span> <span>🏆 Nivel ${uLevel}</span></div>` : ''}
                 </div>
             </div>
         `;
     }).join('');
+}
+
+function filterStudentList(courseId) {
+    const list = document.getElementById('studentRoleList');
+    if (list) list.innerHTML = renderUserRoleList('student', courseId);
 }
 
 // ==========================================
@@ -3238,8 +3270,30 @@ function openCreateUserModal(role) {
         document.getElementById('modalName').value = '';
         document.getElementById('modalRut').value = '';
         document.getElementById('modalEmail').value = '';
+        updateUserCourseField();
         el.classList.remove('hidden');
     }
+}
+
+function updateUserCourseField(courseId = '') {
+    const role = document.getElementById('modalUserRole').value;
+    const field = document.getElementById('modalUserCourseField');
+    const select = document.getElementById('modalUserCourse');
+    const emptyMessage = document.getElementById('modalUserCourseEmpty');
+    const courses = APP_STATE.courses || [];
+    if (!field || !select) return;
+
+    field.classList.toggle('hidden', role !== 'student');
+    select.required = role === 'student';
+    select.innerHTML = '<option value="">Selecciona un curso</option>';
+    courses.forEach(course => {
+        const option = document.createElement('option');
+        option.value = course.id;
+        option.textContent = course.name;
+        select.appendChild(option);
+    });
+    select.value = courseId || '';
+    if (emptyMessage) emptyMessage.classList.toggle('hidden', courses.length > 0);
 }
 
 function openEditUserModal(userId) {
@@ -3252,6 +3306,7 @@ function openEditUserModal(userId) {
         document.getElementById('modalName').value = user.name || '';
         document.getElementById('modalRut').value = user.rut || '';
         document.getElementById('modalEmail').value = user.email || '';
+        updateUserCourseField(user.courseId || '');
         el.classList.remove('hidden');
     }
 }
@@ -3266,12 +3321,17 @@ function saveUserFromModal() {
     const name = document.getElementById('modalName').value.trim();
     const rut = document.getElementById('modalRut').value.trim();
     const email = document.getElementById('modalEmail').value.trim();
+    const courseId = role === 'student' ? document.getElementById('modalUserCourse').value : '';
 
     if (!name || !rut) return alert("Completa nombre y RUT.");
+    if (role === 'student' && !(APP_STATE.courses || []).some(course => String(course.id) === String(courseId))) {
+        return alert("Selecciona un curso válido para el alumno.");
+    }
 
     const id = userId || ('u-' + Date.now());
     const pin = rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
     const userPayload = { id, role, name, rut, username: rut, email, pin, points: 0, level: 0, xp: 0 };
+    if (role === 'student') userPayload.courseId = courseId;
 
     const idx = APP_STATE.users.findIndex(u => String(u.id) === String(id));
     if (idx !== -1) APP_STATE.users[idx] = { ...APP_STATE.users[idx], ...userPayload };
