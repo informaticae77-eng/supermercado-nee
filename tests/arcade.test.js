@@ -9,6 +9,10 @@ function createArcade() {
         currentLevel: 1, unlockedLevels: [1], completedGames: { level1: ['mj1', 'mj2', 'mj3', 'mj4', 'mj5'] }
     })]]);
     const elements = new Map([['appContainer', { innerHTML: '' }], ['bossFeedback', { textContent: '' }]]);
+    const petRequestElements = {
+        '[data-pet-request]': { textContent: '' },
+        '[data-pet-request-icon]': { textContent: '' }
+    };
     const writes = [];
     const alerts = [];
     const app = {
@@ -25,7 +29,7 @@ function createArcade() {
         getElementById: id => elements.get(id) || null,
         createElement: () => ({ style: {}, innerHTML: '' }),
         body: { appendChild: element => elements.set(element.id, element) },
-        querySelector: () => null
+        querySelector: selector => petRequestElements[selector] || null
     };
     const context = vm.createContext({
         window: { speechSynthesis: { cancel() {} }, setInterval() { return 1; }, clearInterval() {} },
@@ -42,7 +46,7 @@ function createArcade() {
         renderApp() {}
     });
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../games.js'), 'utf8'), context);
-    return { context, elements, stored, writes, alerts, app };
+    return { context, elements, petRequestElements, stored, writes, alerts, app };
 }
 
 test('completing a minigame returns to the challenge center', () => {
@@ -133,6 +137,8 @@ test('level 1 reward unlocks only after the boss and remains available to that s
     context.startBossExam(1);
     for (let i = 0; i < 5; i++) context.answerBossStage(true);
     assert.match(elements.get('nee-game-modal-overlay').innerHTML, /Mi mascota/);
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /pet-roamer/);
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /¡Tengo hambre!/);
     assert.ok(stored.has('nee_pet_level1_v1_student_student-1'));
     context.closeGameOverlay();
     context.switchLevel(1);
@@ -144,6 +150,28 @@ test('level 1 reward unlocks only after the boss and remains available to that s
     app.currentUser.id = 'student-2';
     context.openPetGame();
     assert.equal(elements.get('nee-game-modal-overlay').style.display, 'none');
+});
+
+test('pet asks for each need and prioritizes low needs or sickness', () => {
+    const { context, petRequestElements, stored } = createArcade();
+    const healthyPet = { food: 100, water: 100, fun: 100, sick: false };
+    assert.equal(context.getPetRequest(healthyPet).key, 'food');
+    vm.runInContext('petRequestIndex = 1', context);
+    assert.equal(context.getPetRequest(healthyPet).key, 'water');
+    vm.runInContext('petRequestIndex = 2', context);
+    assert.equal(context.getPetRequest(healthyPet).key, 'fun');
+    assert.equal(context.getPetRequest({ ...healthyPet, food: 40 }).key, 'food');
+    assert.equal(context.getPetRequest({ ...healthyPet, sick: true }).key, 'heal');
+
+    stored.set('nee_pet_level1_v1_student_student-1', JSON.stringify({
+        unlocked: true, ...healthyPet, updatedAt: Date.now()
+    }));
+    vm.runInContext('petRequestIndex = 0', context);
+    context.openPetGame();
+    context.advancePetRequest();
+    assert.match(petRequestElements['[data-pet-request]'].textContent, /Tengo sed/);
+    assert.equal(petRequestElements['[data-pet-request-icon]'].textContent, '💧');
+    context.closeGameOverlay();
 });
 
 test('pet needs decay while away, sickness requires care, and actions persist', () => {

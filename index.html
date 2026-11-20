@@ -137,6 +137,18 @@
             0%, 100% { transform: translateX(-5px); }
             50% { transform: translateX(8px); }
         }
+        @keyframes petRoam {
+            0%, 100% { transform: translateX(-30px) translateY(0) scale(0.98); }
+            25% { transform: translateX(-12px) translateY(-5px) scale(1); }
+            50% { transform: translateX(22px) translateY(0) scale(1.02); }
+            75% { transform: translateX(36px) translateY(-7px) scale(1); }
+        }
+        @keyframes petRequestPop {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.025); }
+        }
+        .pet-roamer { animation: petRoam 6s ease-in-out infinite; }
+        .pet-request-bubble { animation: petRequestPop 2.2s ease-in-out infinite; }
         .pet-sprite {
             width: 200px;
             height: 200px;
@@ -153,7 +165,7 @@
         .pet-sprite-sad { animation: petSad 1.8s ease-in-out infinite; }
         .pet-cloud { animation: petCloudDrift 5s ease-in-out infinite; }
         @media (prefers-reduced-motion: reduce) {
-            .pet-sprite, .pet-cloud { animation: none !important; }
+            .pet-sprite, .pet-cloud, .pet-roamer, .pet-request-bubble { animation: none !important; }
         }
 
     </style>

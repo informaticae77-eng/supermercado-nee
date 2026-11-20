@@ -147,6 +147,10 @@ function closeGameOverlay() {
         window.clearInterval(petRefreshTimer);
         petRefreshTimer = null;
     }
+    if (petRequestTimer !== null) {
+        window.clearInterval(petRequestTimer);
+        petRequestTimer = null;
+    }
     const overlay = document.getElementById('nee-game-modal-overlay');
     if (overlay) {
         overlay.style.display = 'none';
@@ -202,6 +206,8 @@ function renderGameCard(number, title, description, functionName, key, completed
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
 let bossState = null;
 let petRefreshTimer = null;
+let petRequestTimer = null;
+let petRequestIndex = 0;
 const BOSS_SKILLS = [
     { key: 'mj1', label: 'Categorías' },
     { key: 'mj2', label: 'Billetes y monedas' },
@@ -407,6 +413,29 @@ function updatePetNeeds(pet) {
     if (pet.food <= 25 || pet.water <= 25) pet.sick = true;
 }
 
+function getPetRequest(pet) {
+    const needs = [
+        { key: 'food', value: pet.food, icon: '🍎', message: '¡Tengo hambre! ¿Me das algo rico?' },
+        { key: 'water', value: pet.water, icon: '💧', message: '¡Tengo sed! ¿Me das agüita, por favor?' },
+        { key: 'fun', value: pet.fun, icon: '🎈', message: '¡Quiero jugar contigo! ¿Jugamos un ratito?' }
+    ];
+    const lowestNeed = needs.reduce((lowest, need) => need.value < lowest.value ? need : lowest);
+    if (pet.sick) return { key: 'heal', icon: '🩹', message: 'No me siento bien. ¿Me ayudas a cuidarme?' };
+    if (lowestNeed.value < 75) return lowestNeed;
+    return needs[petRequestIndex % needs.length];
+}
+
+function advancePetRequest() {
+    const pet = loadPet();
+    if (!pet) return;
+    petRequestIndex++;
+    const request = getPetRequest(pet);
+    const bubble = document.querySelector('[data-pet-request]');
+    const icon = document.querySelector('[data-pet-request-icon]');
+    if (bubble) bubble.textContent = request.message;
+    if (icon) icon.textContent = request.icon;
+}
+
 function openPetGame() {
     const pet = loadPet();
     if (!pet) {
@@ -431,13 +460,17 @@ function openPetGame() {
             renderPetGame(current);
         }, 60000);
     }
-    if (typeof speakText === 'function') speakText('Este es tu premio. Cuida a tu mascota: dale comida y agua, juega con ella y ayúdala si se enferma.');
+    if (petRequestTimer === null) {
+        petRequestTimer = window.setInterval(advancePetRequest, 9000);
+    }
+    if (typeof speakText === 'function') speakText(`¡Hola! ${getPetRequest(pet).message} También puedes darme comida, agua y jugar conmigo.`);
 }
 
 function renderPetGame(pet, message = '', action = '') {
     const actionMotion = { food: 'eat', water: 'water', fun: 'play', heal: 'heal' }[action];
     const motion = actionMotion || (pet.sick || pet.fun < 25 ? 'sad' : 'idle');
-    const status = pet.sick ? '🤒 Está enferma. Dale comida y agua, y luego cuídala.' : pet.fun < 25 ? '😢 Quiere jugar contigo.' : '😊 ¡Está contenta de verte!';
+    const request = getPetRequest(pet);
+    const status = message || request.message;
     const meter = (label, value) => `<div><div class="flex justify-between font-bold"><span>${label}</span><span>${Math.round(value)}%</span></div><div class="h-3 bg-slate-700 rounded-full overflow-hidden"><div class="h-full bg-pink-400" style="width:${Math.max(0, Math.min(100, value))}%"></div></div></div>`;
     renderGameOverlay(`<section class="max-w-xl w-full bg-slate-900 text-white rounded-3xl p-5 sm:p-8 border-2 border-pink-400 space-y-4 text-center my-auto">
       <h2 class="text-2xl font-black">🎁 Mi mascota</h2><p class="text-sm text-slate-300">Premio del desafío final del nivel 1. Sus necesidades bajan con el tiempo, incluso al cerrar el juego.</p>
@@ -447,11 +480,16 @@ function renderPetGame(pet, message = '', action = '') {
         <span aria-hidden="true" class="pet-cloud absolute right-16 top-14 text-2xl" style="animation-delay:-2.5s">☁️</span>
         <span aria-hidden="true" class="absolute left-8 top-20 animate-pulse text-xl">✨</span>
         <div aria-hidden="true" class="absolute inset-x-0 bottom-0 h-10 rounded-b-2xl bg-gradient-to-b from-green-400 to-green-600"></div>
-        <div role="img" aria-label="${pet.sick ? 'Tu mascota necesita cuidados' : 'Tu mascota está lista para jugar'}" class="pet-sprite pet-sprite-${motion} relative z-10" style="background-image:url('mascota_jsc_sprite_sheet.svg')"></div>
+        <div class="pet-roamer relative z-10">
+          <div role="img" aria-label="${pet.sick ? 'Tu mascota necesita cuidados' : 'Tu mascota está lista para jugar'}" class="pet-sprite pet-sprite-${motion}" style="background-image:url('mascota_jsc_sprite_sheet.svg')"></div>
+        </div>
       </div>
-      <p class="font-bold" role="status">${message || status}</p>
+      <div class="pet-request-bubble mx-auto flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-3 text-left font-black text-slate-900 shadow-lg" role="status" aria-live="polite">
+        <span data-pet-request-icon aria-hidden="true" class="text-2xl">${message ? '💬' : request.icon}</span>
+        <span data-pet-request>${status}</span>
+      </div>
       <div class="space-y-2 text-left">${meter('🍎 Comida', pet.food)}${meter('💧 Agua', pet.water)}${meter('🎈 Diversión', pet.fun)}</div>
-      <div class="grid grid-cols-2 gap-3"><button onclick="careForPet('food')" class="bg-orange-600 rounded-xl p-3 font-black">🍎 Alimentar</button><button onclick="careForPet('water')" class="bg-sky-600 rounded-xl p-3 font-black">💧 Dar agua</button><button onclick="careForPet('fun')" class="bg-purple-600 rounded-xl p-3 font-black">🎈 Jugar</button><button onclick="careForPet('heal')" class="bg-emerald-700 rounded-xl p-3 font-black">🩹 Cuidar</button></div>
+      <div class="grid grid-cols-2 gap-3"><button onclick="careForPet('food')" class="min-h-14 rounded-2xl border-b-4 border-orange-900 bg-orange-600 p-3 font-black shadow active:scale-95">🍎 Dar comida</button><button onclick="careForPet('water')" class="min-h-14 rounded-2xl border-b-4 border-sky-900 bg-sky-600 p-3 font-black shadow active:scale-95">💧 Dar agua</button><button onclick="careForPet('fun')" class="min-h-14 rounded-2xl border-b-4 border-purple-900 bg-purple-600 p-3 font-black shadow active:scale-95">🎈 Jugar</button><button onclick="careForPet('heal')" class="min-h-14 rounded-2xl border-b-4 border-emerald-950 bg-emerald-700 p-3 font-black shadow active:scale-95">🩹 Cuidar</button></div>
       <button onclick="closeGameOverlay()" class="underline text-slate-300 p-2">Volver a los desafíos</button>
     </section>`);
 }
