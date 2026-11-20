@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 380" role="img" aria-labelledby="title description">
+  <title id="title">Lunita, mascota del infinito</title>
+  <desc id="description">Personaje sonriente con un símbolo de infinito multicolor, brazos abiertos y zapatillas rojas.</desc>
+  <defs>
+    <linearGradient id="infinity" x1="0" x2="1">
+      <stop offset="0" stop-color="#f43f5e"/>
+      <stop offset=".35" stop-color="#facc15"/>
+      <stop offset=".68" stop-color="#22c55e"/>
+      <stop offset="1" stop-color="#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="shirt" x1="0" x2="0" y1="0" y2="1">
+      <stop stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#1e40af"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="150" cy="359" rx="91" ry="12" fill="#cbd5e1"/>
+  <path d="M92 274c-8 20-9 47-5 72l18 3 12-65zm112 0c8 20 9 47 5 72l-18 3-12-65z" fill="url(#shirt)" stroke="#17388c" stroke-width="5"/>
+  <path d="M94 331c-15 0-27 8-29 19-2 12 8 19 24 20l39 1c10 0 15-7 11-15l-16-20zM206 331c15 0 27 8 29 19 2 12-8 19-24 20l-39 1c-10 0-15-7-11-15l16-20z" fill="#ef4444" stroke="#b91c1c" stroke-width="5"/>
+  <path d="M101 341h33m65 0h-33" stroke="#facc15" stroke-width="8" stroke-linecap="round"/>
+  <path d="M108 244h84v53h-84z" fill="url(#shirt)" stroke="#17388c" stroke-width="5"/>
+  <path d="M112 256c-20 8-29 1-39-15l-19-28 15-11 30 24 19-8zm76 0c20 8 29 1 39-15l19-28-15-11-30 24-19-8z" fill="#fff" stroke="#cbd5e1" stroke-width="5" stroke-linejoin="round"/>
+  <circle cx="49" cy="198" r="13" fill="#fff" stroke="#cbd5e1" stroke-width="4"/>
+  <circle cx="251" cy="198" r="13" fill="#fff" stroke="#cbd5e1" stroke-width="4"/>
+  <circle cx="150" cy="145" r="112" fill="#fff" stroke="#1746ad" stroke-width="12"/>
+  <path d="M73 135c0-30 37-41 58-19l19 20 19-20c21-22 58-11 58 19s-37 41-58 19l-19-20-19 20c-21 22-58 11-58-19z" fill="none" stroke="url(#infinity)" stroke-width="19" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="112" cy="176" r="8" fill="#f472b6"/>
+  <circle cx="188" cy="176" r="8" fill="#f472b6"/>
+  <ellipse cx="127" cy="165" rx="9" ry="12" fill="#0f172a"/>
+  <ellipse cx="173" cy="165" rx="9" ry="12" fill="#0f172a"/>
+  <circle cx="130" cy="161" r="3" fill="#fff"/>
+  <circle cx="176" cy="161" r="3" fill="#fff"/>
+  <path d="M132 190q18 23 36 0" fill="#fb7185" stroke="#0f172a" stroke-width="5" stroke-linecap="round"/>
+</svg>

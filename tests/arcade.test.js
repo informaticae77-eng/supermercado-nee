@@ -123,6 +123,26 @@ test('boss uses its starting catalog even if the live catalog changes', () => {
     assert.equal(writes[0].data.stages.length, 5);
 });
 
+test('finishing the final boss unlocks and saves the interactive pet for the student', () => {
+    const { context, elements, stored } = createArcade();
+    stored.set('nee_arcade_progress_v36', JSON.stringify({
+        currentLevel: 5,
+        unlockedLevels: [1, 2, 3, 4, 5],
+        completedGames: { level5: ['mj1', 'mj2', 'mj3', 'mj4', 'mj5'] }
+    }));
+    context.openMinigamesArcade();
+    context.startBossExam(5);
+    for (let i = 0; i < 5; i++) context.answerBossStage(true);
+
+    const petKey = 'nee_virtual_pet_v1_student-1';
+    assert.equal(JSON.parse(stored.get(petKey)).unlocked, true);
+    assert.match(elements.get('appContainer').innerHTML, /Jugar con Lunita/);
+    context.openVirtualPet();
+    context.careForVirtualPet('feed');
+    assert.match(elements.get('appContainer').innerHTML, /¡Qué rico!/);
+    assert.equal(JSON.parse(stored.get(petKey)).food, 100);
+});
+
 test('app rerenders preserve the arcade and the teacher can inspect metrics', () => {
     const container = { innerHTML: '' };
     const context = vm.createContext({
