@@ -161,7 +161,7 @@ const DEFAULT_SETTINGS = {
     schoolLogo: "",
     mascotUrl: "",
     corporeoUrl: "",
-    activeTheme: "halloween",
+    activeTheme: "standard",
     directorName: "Equipo Multidisciplinario",
     rewardPointsThreshold: 250,
     rewardMessage: "¡Excelente trabajo! Muestra esta pantalla a tu profesor para recibir tu premio físico."
@@ -257,6 +257,7 @@ const APP_STATE = {
     customCurrencies: {},
     settings: { ...DEFAULT_SETTINGS },
     aiConfig: { ...DEFAULT_AI_CONFIG },
+    mascotMood: 'happy',
     telemetry: { voiceHelpCount: 0 },
     missionStartTime: null,
 
@@ -285,6 +286,18 @@ const APP_STATE = {
 };
 
 let isPhotoProcessing = false;
+let backgroundMusicEnabled = false;
+let backgroundMusicContext = null;
+let backgroundMusicTimer = null;
+let backgroundMusicNoteIndex = 0;
+
+const MASCOT_MOODS = {
+    happy: { face: '😄', label: 'Feliz', message: '¡Estoy feliz! ¿Vamos a comprar con alegría?', motion: 'mascot-motion-happy' },
+    hungry: { face: '🤤', label: 'Con hambre', message: '¡Uy, tengo hambre! ¿Buscamos algo rico en la lista?', motion: 'mascot-motion-hungry' },
+    sick: { face: '🤒', label: 'Enfermo', message: 'No me siento muy bien. ¡Descansemos un poquito!', motion: 'mascot-motion-sick' },
+    sad: { face: '😢', label: 'Triste', message: 'Estoy un poquito triste. ¿Me acompañas?', motion: 'mascot-motion-sad' },
+    angry: { face: '😠', label: 'Enojado', message: '¡Oye, estoy molesto! Respiremos y revisemos juntos.', motion: 'mascot-motion-angry' }
+};
 
 // ==========================================
 // RENDERIZADO DE PERSONAJES ANIMADOS Y AVATAR
@@ -325,6 +338,137 @@ function getAvatarHtml(type = 'mascot', customSpeechText = '') {
             </div>
         </div>
     `;
+}
+
+function renderMascotCompanion() {
+    const mood = MASCOT_MOODS[APP_STATE.mascotMood] || MASCOT_MOODS.happy;
+    const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+
+    return `
+        <section data-mascot-companion class="w-full rounded-3xl border-4 border-amber-200 bg-gradient-to-br from-yellow-50 via-white to-sky-50 p-4 text-slate-800 shadow-xl" aria-label="Mi compañero de compras">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+                <div data-mascot-character role="img" aria-label="Mascota con cara ${mood.label.toLowerCase()}" class="mascot-face ${mood.motion} relative mx-auto flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-full border-4 border-white bg-gradient-to-br from-amber-200 to-pink-200 text-6xl shadow-lg sm:mx-0">
+                    <span aria-hidden="true">🛒</span>
+                    <span data-mascot-face aria-hidden="true" class="absolute -right-2 -top-2 text-4xl drop-shadow">${mood.face}</span>
+                </div>
+                <div class="min-w-0 flex-1 text-center sm:text-left">
+                    <h3 class="text-lg font-black text-indigo-950">¡Hola! Soy Súper Amigo 🌟</h3>
+                    <p data-mascot-message aria-live="polite" class="mt-1 rounded-2xl bg-white/90 p-3 text-sm font-bold shadow-sm">${mood.message}</p>
+                </div>
+            </div>
+            <div class="mt-4 flex flex-wrap justify-center gap-2 sm:justify-start" role="group" aria-label="Elige cómo se siente Súper Amigo">
+                ${Object.entries(MASCOT_MOODS).map(([moodKey, option]) => `
+                    <button type="button" onclick="setMascotMood('${moodKey}')" aria-pressed="${APP_STATE.mascotMood === moodKey}" aria-label="Súper Amigo se siente ${option.label.toLowerCase()}" class="min-h-11 rounded-2xl border-2 px-3 py-2 text-sm font-black shadow-sm transition active:scale-95 ${APP_STATE.mascotMood === moodKey ? 'border-indigo-500 bg-indigo-100 text-indigo-950 ring-2 ring-indigo-200' : 'border-slate-200 bg-white text-slate-700 hover:bg-amber-50'}">
+                        <span aria-hidden="true">${option.face}</span> ${option.label}
+                    </button>
+                `).join('')}
+            </div>
+            <div class="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-between">
+                <p class="text-xs font-bold text-slate-600">Toca una carita para cambiar su expresión.</p>
+                <button type="button" onclick="toggleBackgroundMusic()" aria-pressed="${backgroundMusicEnabled}" ${AudioContextConstructor ? '' : 'disabled'} class="rounded-2xl border-2 border-purple-200 bg-purple-100 px-4 py-2.5 text-sm font-black text-purple-950 shadow-sm transition hover:bg-purple-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60">
+                    <span data-music-icon aria-hidden="true">${backgroundMusicEnabled ? '🎵' : '🔇'}</span>
+                    <span data-music-label>${AudioContextConstructor ? (backgroundMusicEnabled ? 'Pausar música' : 'Activar música') : 'Música no disponible'}</span>
+                </button>
+            </div>
+        </section>
+    `;
+}
+
+function setMascotMood(moodKey) {
+    const mood = MASCOT_MOODS[moodKey];
+    if (!mood) return;
+
+    APP_STATE.mascotMood = moodKey;
+    document.querySelectorAll('[data-mascot-companion]').forEach(companion => {
+        const character = companion.querySelector('[data-mascot-character]');
+        const face = companion.querySelector('[data-mascot-face]');
+        const message = companion.querySelector('[data-mascot-message]');
+
+        if (character) {
+            character.className = `mascot-face ${mood.motion} relative mx-auto flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-full border-4 border-white bg-gradient-to-br from-amber-200 to-pink-200 text-6xl shadow-lg sm:mx-0`;
+            character.setAttribute('aria-label', `Mascota con cara ${mood.label.toLowerCase()}`);
+        }
+        if (face) face.textContent = mood.face;
+        if (message) message.textContent = mood.message;
+
+        companion.querySelectorAll('button[onclick^="setMascotMood"]').forEach(button => {
+            const selected = button.getAttribute('onclick') === `setMascotMood('${moodKey}')`;
+            button.setAttribute('aria-pressed', String(selected));
+            button.className = `min-h-11 rounded-2xl border-2 px-3 py-2 text-sm font-black shadow-sm transition active:scale-95 ${selected ? 'border-indigo-500 bg-indigo-100 text-indigo-950 ring-2 ring-indigo-200' : 'border-slate-200 bg-white text-slate-700 hover:bg-amber-50'}`;
+        });
+    });
+}
+
+function updateBackgroundMusicButtons() {
+    document.querySelectorAll('[data-music-icon]').forEach(icon => {
+        icon.textContent = backgroundMusicEnabled ? '🎵' : '🔇';
+    });
+    document.querySelectorAll('[data-music-label]').forEach(label => {
+        label.textContent = backgroundMusicEnabled ? 'Pausar música' : 'Activar música';
+    });
+    document.querySelectorAll('[data-music-label]').forEach(label => {
+        const button = label.closest('button');
+        if (button) button.setAttribute('aria-pressed', String(backgroundMusicEnabled));
+    });
+}
+
+function playBackgroundMusicNote() {
+    if (!backgroundMusicEnabled || !backgroundMusicContext || backgroundMusicContext.state !== 'running') return;
+
+    const melody = [523.25, 659.25, 783.99, 659.25, 587.33, 698.46, 783.99, 698.46];
+    const now = backgroundMusicContext.currentTime;
+    const oscillator = backgroundMusicContext.createOscillator();
+    const volume = backgroundMusicContext.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(melody[backgroundMusicNoteIndex % melody.length], now);
+    volume.gain.setValueAtTime(0.0001, now);
+    volume.gain.exponentialRampToValueAtTime(0.035, now + 0.04);
+    volume.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+    oscillator.connect(volume);
+    volume.connect(backgroundMusicContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.43);
+    backgroundMusicNoteIndex++;
+}
+
+async function toggleBackgroundMusic() {
+    if (backgroundMusicEnabled) {
+        stopBackgroundMusic();
+        return;
+    }
+
+    const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextConstructor) return;
+
+    try {
+        if (!backgroundMusicContext || backgroundMusicContext.state === 'closed') {
+            backgroundMusicContext = new AudioContextConstructor();
+        }
+        await backgroundMusicContext.resume();
+        backgroundMusicEnabled = true;
+        playBackgroundMusicNote();
+        backgroundMusicTimer = setInterval(playBackgroundMusicNote, 650);
+        updateBackgroundMusicButtons();
+    } catch (error) {
+        backgroundMusicEnabled = false;
+        console.warn('No se pudo iniciar la música de fondo:', error);
+        updateBackgroundMusicButtons();
+    }
+}
+
+function stopBackgroundMusic() {
+    backgroundMusicEnabled = false;
+    if (backgroundMusicTimer) {
+        clearInterval(backgroundMusicTimer);
+        backgroundMusicTimer = null;
+    }
+    if (backgroundMusicContext && backgroundMusicContext.state === 'running') {
+        backgroundMusicContext.suspend().catch(error => {
+            console.warn('No se pudo pausar la música de fondo:', error);
+        });
+    }
+    updateBackgroundMusicButtons();
 }
 
 // ==========================================
@@ -745,7 +889,7 @@ function renderApp() {
 
     renderThemeOverlay();
 
-    const activeThemeKey = (APP_STATE.settings && APP_STATE.settings.activeTheme) || 'halloween';
+    const activeThemeKey = (APP_STATE.settings && APP_STATE.settings.activeTheme) || 'standard';
     const theme = SEASONAL_THEMES[activeThemeKey] || SEASONAL_THEMES.standard;
 
     if (appHeaderBar) appHeaderBar.className = `${theme.headerBg} text-white shadow-lg border-b-4 sticky top-0 z-30 transition-colors duration-500`;
@@ -857,6 +1001,7 @@ function handleLogin() {
 }
 
 function logout() {
+    stopBackgroundMusic();
     APP_STATE.arcadeActive = false;
     APP_STATE.currentUser = null;
     APP_STATE.selectedSupermarketId = null;
@@ -882,7 +1027,7 @@ function goHome() {
 // VISTA HOME ESTUDIANTE CON PERSONAJES ANIMADOS
 // ==========================================
 function renderHomeView(container) {
-    const activeThemeKey = APP_STATE.settings.activeTheme || 'halloween';
+    const activeThemeKey = APP_STATE.settings.activeTheme || 'standard';
     const theme = SEASONAL_THEMES[activeThemeKey] || SEASONAL_THEMES.standard;
     const teamLabel = (APP_STATE.settings && APP_STATE.settings.teamName) ? APP_STATE.settings.teamName : 'Equipo Multidisciplinario';
 
@@ -946,7 +1091,7 @@ function renderHomeView(container) {
                     <h2 class="text-2xl sm:text-4xl font-black ${theme.bannerText}">${theme.titleMsg}</h2>
                     <p class="text-sm font-bold text-white/90">${theme.greetingMsg}</p>
 
-                    ${getAvatarHtml('mascot', `¡Hola <b>${APP_STATE.currentUser?.name || ''}</b>! Selecciona una tienda para comenzar tu misión.`)}
+                    ${renderMascotCompanion()}
                 </div>
 
                 <div class="z-10 hidden sm:flex flex-col items-center">
@@ -1234,6 +1379,7 @@ function renderSupermarketView(container, supId) {
 
     container.innerHTML = `
         <div class="space-y-6">
+            ${renderMascotCompanion()}
             ${classroomValidationBanner}
 
             <div class="flex items-center justify-between bg-white p-4 rounded-3xl border-4 border-slate-300 shadow-md">
@@ -1242,7 +1388,6 @@ function renderSupermarketView(container, supId) {
                     ${supIconHtml}
                     <h2 class="text-2xl sm:text-3xl font-black text-slate-800">${sup ? sup.name : 'Supermercado'}</h2>
                 </div>
-                <div>${getAvatarHtml('mascot')}</div>
             </div>
 
             <div class="space-y-2">
@@ -2127,7 +2272,7 @@ function renderTeacherSettingsTab() {
 
                 <select id="settingActiveTheme" class="w-full px-4 py-3 rounded-2xl border-2 border-indigo-300 font-black text-sm bg-white text-indigo-950">
                     ${Object.keys(SEASONAL_THEMES).map(key => `
-                        <option value="${key}" ${(st.activeTheme || 'halloween') === key ? 'selected' : ''}>${SEASONAL_THEMES[key].name}</option>
+                        <option value="${key}" ${(st.activeTheme || 'standard') === key ? 'selected' : ''}>${SEASONAL_THEMES[key].name}</option>
                     `).join('')}
                 </select>
             </div>
