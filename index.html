@@ -29,6 +29,27 @@
         .transform-style-3d { transform-style: preserve-3d; }
         .backface-hidden { backface-visibility: hidden; }
 
+        .pet-sprite {
+            width: 200px;
+            height: 200px;
+            background: url('mascota_jsc_sprite_sheet.svg') no-repeat 0% 0% / 400% 200%;
+            animation: pet-idle 4s steps(1, end) infinite;
+        }
+        .pet-sprite--sad { background-position: 0% 100%; animation: pet-breathe 3s ease-in-out infinite; }
+        .pet-sprite--sleeping { background-position: 33.333% 0%; animation: pet-breathe 4s ease-in-out infinite; }
+        .pet-sprite--happy { background-position: 100% 0%; animation: pet-bounce .6s ease-in-out 2, pet-idle 4s steps(1, end) 1.2s infinite; }
+        .pet-sprite--eat { background-position: 100% 100%; animation: pet-bounce .6s ease-in-out 2, pet-idle 4s steps(1, end) 1.2s infinite; }
+        .pet-sprite--play { background-position: 66.667% 0%; animation: pet-bounce .6s ease-in-out 2, pet-idle 4s steps(1, end) 1.2s infinite; }
+        @keyframes pet-idle {
+            0%, 45%, 52%, 100% { background-position: 0% 0%; }
+            46%, 51% { background-position: 33.333% 0%; }
+        }
+        @keyframes pet-breathe { 50% { transform: scale(1.03); } }
+        @keyframes pet-bounce { 50% { transform: translateY(-12px); } }
+        @media (prefers-reduced-motion: reduce) {
+            .pet-sprite { animation: none; }
+        }
+
         /* =================================================== */
         /* ANIMACIONES AVANZADAS: HALLOWEEN, NIEVE Y PERSONAJES */
         /* =================================================== */

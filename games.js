@@ -390,7 +390,9 @@ function loadPet() {
         if (!saved) return null;
         const pet = JSON.parse(saved);
         if (!pet || pet.unlocked !== true || !['food', 'water', 'fun', 'updatedAt'].every(name => Number.isFinite(pet[name]))
-            || typeof pet.sick !== 'boolean') throw new Error('Datos de mascota inválidos');
+            || typeof pet.sick !== 'boolean'
+            || ['hygiene', 'energy'].some(name => name in pet && !Number.isFinite(pet[name]))
+            || ('sleeping' in pet && typeof pet.sleeping !== 'boolean')) throw new Error('Datos de mascota inválidos');
         return pet;
     } catch (error) {
         console.error('No se pudo cargar la mascota:', error);
@@ -418,13 +420,21 @@ function savePet(pet) {
 function unlockPet() {
     const existing = loadPet();
     if (existing === undefined) return false;
-    return existing ? true : savePet({ unlocked: true, food: 100, water: 100, fun: 100, sick: false, updatedAt: Date.now() });
+    return existing ? true : savePet({
+        unlocked: true, food: 100, water: 100, fun: 100, hygiene: 100, energy: 100,
+        sick: false, sleeping: false, updatedAt: Date.now()
+    });
 }
 
 function updatePetNeeds(pet) {
     const now = Date.now();
     const hours = Math.max(0, now - pet.updatedAt) / 3600000;
     for (const name of ['food', 'water', 'fun']) pet[name] = Math.max(0, Math.min(100, pet[name] - hours * 5));
+    if (pet.hygiene === undefined) pet.hygiene = 100;
+    else pet.hygiene = Math.max(0, Math.min(100, pet.hygiene - hours * 3));
+    if (pet.energy === undefined) pet.energy = 100;
+    else pet.energy = Math.max(0, Math.min(100, pet.energy + hours * (pet.sleeping ? 20 : -4)));
+    if (pet.sleeping === undefined) pet.sleeping = false;
     pet.updatedAt = Math.max(now, pet.updatedAt);
     if (pet.food <= 25 || pet.water <= 25) pet.sick = true;
 }
@@ -453,19 +463,31 @@ function openPetGame() {
             renderPetGame(current);
         }, 60000);
     }
-    if (typeof speakText === 'function') speakText('Este es tu premio. Cuida a tu mascota: dale comida y agua, juega con ella y ayúdala si se enferma.');
+    if (typeof speakText === 'function') speakText('Este es tu premio. Cuida a tu mascota: dale comida y agua, límpiala, déjala descansar y juega con ella.');
 }
 
-function renderPetGame(pet, message = '') {
-    const frame = pet.sick ? '0% 100%' : pet.fun < 25 ? '0% 100%' : '100% 0%';
-    const status = pet.sick ? '🤒 Está enferma. Dale comida y agua, y luego cuídala.' : pet.fun < 25 ? '😢 Quiere jugar contigo.' : '😊 ¡Está contenta de verte!';
+function renderPetGame(pet, message = '', reaction = '') {
+    const spriteState = pet.sleeping ? 'sleeping' : reaction || (pet.sick || pet.fun < 25 || pet.energy < 25 ? 'sad' : '');
+    const status = pet.sleeping ? '💤 Está descansando. Puedes despertarla cuando quieras.'
+        : pet.sick ? '🤒 Está enferma. Dale comida y agua, y luego cuídala.'
+        : pet.energy < 25 ? '😴 Tiene sueño y necesita descansar.'
+        : pet.hygiene < 25 ? '🧼 Necesita una limpieza.'
+        : pet.fun < 25 ? '😢 Quiere jugar contigo.' : '😊 ¡Está contenta de verte!';
     const meter = (label, value) => `<div><div class="flex justify-between font-bold"><span>${label}</span><span>${Math.round(value)}%</span></div><div class="h-3 bg-slate-700 rounded-full overflow-hidden"><div class="h-full bg-pink-400" style="width:${Math.max(0, Math.min(100, value))}%"></div></div></div>`;
+    const disabled = pet.sleeping ? 'disabled' : '';
     renderGameOverlay(`<section class="max-w-xl w-full bg-slate-900 text-white rounded-3xl p-5 sm:p-8 border-2 border-pink-400 space-y-4 text-center my-auto">
       <h2 class="text-2xl font-black">🎁 Mi mascota</h2><p class="text-sm text-slate-300">Premio del desafío final del nivel 1. Sus necesidades bajan con el tiempo, incluso al cerrar el juego.</p>
-      <div role="img" aria-label="Tu mascota" class="mx-auto w-[200px] h-[200px] bg-no-repeat" style="background-image:url('mascota_jsc_sprite_sheet.svg');background-size:400% 200%;background-position:${frame}"></div>
+      <div role="img" aria-label="${pet.sleeping ? 'Tu mascota descansando' : 'Tu mascota'}" class="pet-sprite ${spriteState ? `pet-sprite--${spriteState}` : ''} mx-auto"></div>
       <p class="font-bold" role="status">${message || status}</p>
-      <div class="space-y-2 text-left">${meter('🍎 Comida', pet.food)}${meter('💧 Agua', pet.water)}${meter('🎈 Diversión', pet.fun)}</div>
-      <div class="grid grid-cols-2 gap-3"><button onclick="careForPet('food')" class="bg-orange-600 rounded-xl p-3 font-black">🍎 Alimentar</button><button onclick="careForPet('water')" class="bg-sky-600 rounded-xl p-3 font-black">💧 Dar agua</button><button onclick="careForPet('fun')" class="bg-purple-600 rounded-xl p-3 font-black">🎈 Jugar</button><button onclick="careForPet('heal')" class="bg-emerald-700 rounded-xl p-3 font-black">🩹 Cuidar</button></div>
+      <div class="space-y-2 text-left">${meter('🍎 Comida', pet.food)}${meter('💧 Agua', pet.water)}${meter('🎈 Diversión', pet.fun)}${meter('🧼 Limpieza', pet.hygiene)}${meter('⚡ Energía', pet.energy)}</div>
+      <div class="grid grid-cols-2 gap-3">
+        <button ${disabled} onclick="careForPet('food')" class="bg-orange-600 rounded-xl p-3 font-black disabled:opacity-50">🍎 Alimentar</button>
+        <button ${disabled} onclick="careForPet('water')" class="bg-sky-600 rounded-xl p-3 font-black disabled:opacity-50">💧 Dar agua</button>
+        <button ${disabled} onclick="careForPet('clean')" class="bg-cyan-700 rounded-xl p-3 font-black disabled:opacity-50">🧼 Limpiar</button>
+        <button onclick="careForPet('sleep')" class="bg-indigo-600 rounded-xl p-3 font-black">${pet.sleeping ? '☀️ Despertar' : '💤 Descansar'}</button>
+        <button ${disabled} onclick="careForPet('fun')" class="bg-purple-600 rounded-xl p-3 font-black disabled:opacity-50">🎈 Jugar</button>
+        <button ${disabled} onclick="careForPet('heal')" class="bg-emerald-700 rounded-xl p-3 font-black disabled:opacity-50">🩹 Cuidar</button>
+      </div>
       <button onclick="closeGameOverlay()" class="underline text-slate-300 p-2">Volver a los desafíos</button>
     </section>`);
 }
@@ -475,9 +497,20 @@ function careForPet(action) {
     if (!pet) return;
     updatePetNeeds(pet);
     let message;
-    if (['food', 'water', 'fun'].includes(action)) {
+    let reaction = '';
+    if (action === 'sleep') {
+        pet.sleeping = !pet.sleeping;
+        message = pet.sleeping ? '💤 Que descanses. Su energía se recupera con el tiempo.' : '☀️ ¡Buenos días!';
+    } else if (pet.sleeping) {
+        message = 'Primero despierta a tu mascota.';
+    } else if (action === 'clean') {
+        pet.hygiene = Math.min(100, pet.hygiene + 30);
+        message = '¡Qué limpia está tu mascota!';
+        reaction = 'happy';
+    } else if (['food', 'water', 'fun'].includes(action)) {
         pet[action] = Math.min(100, pet[action] + 30);
         message = { food: '¡Qué rica comida!', water: '¡Gracias por el agua!', fun: '¡Qué divertido jugar contigo!' }[action];
+        reaction = { food: 'eat', water: 'happy', fun: 'play' }[action];
     } else if (action === 'heal') {
         if (!pet.sick) message = 'Tu mascota está sana. ¡Sigue cuidándola!';
         else if (pet.food < 40 || pet.water < 40) message = 'Primero dale comida y agua para ayudarla a recuperarse.';
@@ -487,7 +520,7 @@ function careForPet(action) {
         }
     } else return;
     if (!savePet(pet)) return;
-    renderPetGame(pet, message);
+    renderPetGame(pet, message, reaction);
     if (typeof speakText === 'function') speakText(message);
 }
 

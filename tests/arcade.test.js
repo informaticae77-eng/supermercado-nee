@@ -177,6 +177,62 @@ test('pet needs decay while away, sickness requires care, and actions persist', 
     assert.match(elements.get('nee-game-modal-overlay').innerHTML, /se ha recuperado/);
 });
 
+test('existing pets gain new care needs without losing their previous state', () => {
+    const { context, elements, stored } = createArcade();
+    const key = 'nee_pet_level1_v1_student_student-1';
+    stored.set(key, JSON.stringify({
+        unlocked: true, food: 80, water: 70, fun: 60, sick: false,
+        updatedAt: Date.now() - 2 * 3600000
+    }));
+
+    context.openPetGame();
+    const pet = JSON.parse(stored.get(key));
+    assert.ok(pet.food <= 70 && pet.food > 69);
+    assert.equal(pet.hygiene, 100);
+    assert.equal(pet.energy, 100);
+    assert.equal(pet.sleeping, false);
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /Limpieza/);
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /Energía/);
+});
+
+test('cleaning and resting persist, recover over time, and sleeping blocks other care', () => {
+    const { context, elements, stored } = createArcade();
+    const key = 'nee_pet_level1_v1_student_student-1';
+    stored.set(key, JSON.stringify({
+        unlocked: true, food: 60, water: 80, fun: 80, hygiene: 30, energy: 20,
+        sick: false, sleeping: false, updatedAt: Date.now()
+    }));
+    context.openPetGame();
+    context.careForPet('clean');
+    let pet = JSON.parse(stored.get(key));
+    assert.ok(pet.hygiene >= 59 && pet.hygiene <= 60);
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /pet-sprite--happy/);
+
+    context.careForPet('sleep');
+    pet = JSON.parse(stored.get(key));
+    assert.equal(pet.sleeping, true);
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /pet-sprite--sleeping/);
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /Despertar/);
+    context.careForPet('food');
+    assert.ok(JSON.parse(stored.get(key)).food <= 60);
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /Primero despierta/);
+
+    pet = JSON.parse(stored.get(key));
+    pet.updatedAt -= 2 * 3600000;
+    stored.set(key, JSON.stringify(pet));
+    context.closeGameOverlay();
+    context.openPetGame();
+    pet = JSON.parse(stored.get(key));
+    assert.equal(pet.sleeping, true);
+    assert.ok(pet.energy >= 59 && pet.energy <= 61);
+    assert.ok(pet.hygiene >= 53 && pet.hygiene <= 54);
+    context.careForPet('sleep');
+    assert.equal(JSON.parse(stored.get(key)).sleeping, false);
+    context.careForPet('food');
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /pet-sprite--eat/);
+    assert.ok(JSON.parse(stored.get(key)).food > 79);
+});
+
 test('other levels and teacher preview do not unlock a student pet', () => {
     const { context, stored, app } = createArcade();
     stored.set(studentProgressKey, JSON.stringify({
