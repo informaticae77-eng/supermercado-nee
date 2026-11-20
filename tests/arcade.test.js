@@ -28,7 +28,7 @@ function createArcade() {
         querySelector: () => null
     };
     const context = vm.createContext({
-        window: { speechSynthesis: { cancel() {} } },
+        window: { speechSynthesis: { cancel() {} }, setInterval() { return 1; }, clearInterval() {} },
         document, APP_STATE: app, console,
         localStorage: { getItem: key => stored.get(key) || null, setItem: (key, value) => stored.set(key, value) },
         CLP_CURRENCY_ITEMS: [
@@ -121,6 +121,75 @@ test('boss uses its starting catalog even if the live catalog changes', () => {
     for (let i = 0; i < 5; i++) context.answerBossStage(true);
     assert.equal(writes.length, 1);
     assert.equal(writes[0].data.stages.length, 5);
+});
+
+test('level 1 reward unlocks only after the boss and remains available to that student', () => {
+    const { context, elements, stored, app, alerts } = createArcade();
+    context.openMinigamesArcade();
+    context.openPetGame();
+    assert.ok(alerts.some(message => message.includes('completa el desafío final')));
+    assert.equal(stored.has('nee_pet_level1_v1_student_student-1'), false);
+
+    context.startBossExam(1);
+    for (let i = 0; i < 5; i++) context.answerBossStage(true);
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /Mi mascota/);
+    assert.ok(stored.has('nee_pet_level1_v1_student_student-1'));
+    context.closeGameOverlay();
+    context.switchLevel(1);
+    assert.match(elements.get('appContainer').innerHTML, /Abrir premio del nivel 1/);
+    context.openPetGame();
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /Mi mascota/);
+
+    context.closeGameOverlay();
+    app.currentUser.id = 'student-2';
+    context.openPetGame();
+    assert.equal(elements.get('nee-game-modal-overlay').style.display, 'none');
+});
+
+test('pet needs decay while away, sickness requires care, and actions persist', () => {
+    const { context, elements, stored } = createArcade();
+    context.openMinigamesArcade();
+    context.startBossExam(1);
+    for (let i = 0; i < 5; i++) context.answerBossStage(true);
+    context.closeGameOverlay();
+    const key = 'nee_pet_level1_v1_student_student-1';
+    const pet = JSON.parse(stored.get(key));
+    pet.updatedAt -= 20 * 3600000;
+    stored.set(key, JSON.stringify(pet));
+
+    context.openPetGame();
+    assert.equal(JSON.parse(stored.get(key)).sick, true);
+    context.careForPet('heal');
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /Primero dale comida y agua/);
+    context.careForPet('food');
+    context.careForPet('food');
+    context.careForPet('water');
+    context.careForPet('water');
+    context.careForPet('fun');
+    context.careForPet('heal');
+    const recovered = JSON.parse(stored.get(key));
+    assert.equal(recovered.sick, false);
+    assert.ok(recovered.food >= 40 && recovered.water >= 40 && recovered.fun > 0);
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /se ha recuperado/);
+});
+
+test('other levels and teacher preview do not unlock a student pet', () => {
+    const { context, stored, app } = createArcade();
+    stored.set('nee_arcade_progress_v36', JSON.stringify({
+        currentLevel: 2, unlockedLevels: [1, 2], completedGames: { level2: ['mj1', 'mj2', 'mj3', 'mj4', 'mj5'] }
+    }));
+    context.openMinigamesArcade();
+    context.startBossExam(2);
+    for (let i = 0; i < 5; i++) context.answerBossStage(true);
+    assert.equal(stored.has('nee_pet_level1_v1_student_student-1'), false);
+    stored.set('nee_arcade_progress_v36', JSON.stringify({
+        currentLevel: 1, unlockedLevels: [1, 2], completedGames: { level1: ['mj1', 'mj2', 'mj3', 'mj4', 'mj5'] }
+    }));
+    app.teacherPreviewMode = true;
+    context.startBossExam(1);
+    for (let i = 0; i < 5; i++) context.answerBossStage(true);
+    assert.equal(stored.has('nee_pet_level1_v1_student_student-1'), false);
+    assert.ok(stored.has('nee_pet_level1_v1_preview_student-1'));
 });
 
 test('app rerenders preserve the arcade and the teacher can inspect metrics', () => {

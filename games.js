@@ -143,6 +143,10 @@ function renderGameOverlay(content) {
 }
 
 function closeGameOverlay() {
+    if (petRefreshTimer !== null) {
+        window.clearInterval(petRefreshTimer);
+        petRefreshTimer = null;
+    }
     const overlay = document.getElementById('nee-game-modal-overlay');
     if (overlay) {
         overlay.style.display = 'none';
@@ -184,6 +188,7 @@ function renderMinigamesArcadeView() {
           ${renderGameCard(4, '🧮 Calculadora del Canasto', 'Suma los precios de dos productos.', 'startMinigame4', 'mj4', completed)}
           ${renderGameCard(5, '📋 La Lista de Compras', 'Encuentra el producto usando su imagen.', 'startMinigame5', 'mj5', completed)}
           <div class="bg-slate-900 p-5 rounded-3xl border border-amber-500"><h3 class="font-black text-amber-300">👑 Desafío final: el jefe del supermercado</h3><p class="my-3 text-sm">Completa los cinco minijuegos y enfrenta cinco etapas para desbloquear el siguiente nivel.</p><button ${completed.length >= 5 ? `onclick="startBossExam(${level})"` : 'disabled'} class="w-full bg-amber-500 text-slate-950 p-3 rounded-xl font-black">${completed.length >= 5 ? 'Enfrentar desafío' : '🔒 Completa los 5 minijuegos'}</button></div>
+          ${level === 1 ? `<article class="bg-slate-900 p-5 rounded-3xl border border-pink-500"><h3 class="font-black text-pink-300">🎁 Premio: cuida a tu mascota</h3><p class="my-3 text-sm">Alimenta, da agua y juega con tu mascota. Se guarda en este dispositivo.</p><button onclick="openPetGame()" class="w-full bg-pink-600 p-3 rounded-xl font-black">🐾 Abrir premio del nivel 1</button><p class="mt-2 text-xs text-slate-300">Se desbloquea al completar el desafío final del nivel 1.</p></article>` : ''}
         </main>
       </section>`;
 }
@@ -196,6 +201,7 @@ function renderGameCard(number, title, description, functionName, key, completed
 
 let gameState = { startTime: null, errors: 0, currentQuestion: 0, questions: [], key: '' };
 let bossState = null;
+let petRefreshTimer = null;
 const BOSS_SKILLS = [
     { key: 'mj1', label: 'Categorías' },
     { key: 'mj2', label: 'Billetes y monedas' },
@@ -347,6 +353,122 @@ function switchLevel(level) {
     renderMinigamesArcadeView();
 }
 
+function petStorageKey() {
+    const user = typeof APP_STATE !== 'undefined' ? APP_STATE.currentUser : null;
+    if (!user || !user.id) return null;
+    const mode = APP_STATE.teacherPreviewMode ? 'preview' : 'student';
+    return `nee_pet_level1_v1_${mode}_${encodeURIComponent(String(user.id))}`;
+}
+
+function loadPet() {
+    const key = petStorageKey();
+    if (!key) return null;
+    try {
+        const saved = localStorage.getItem(key);
+        if (!saved) return null;
+        const pet = JSON.parse(saved);
+        if (!pet || pet.unlocked !== true || !['food', 'water', 'fun', 'updatedAt'].every(name => Number.isFinite(pet[name]))
+            || typeof pet.sick !== 'boolean') throw new Error('Datos de mascota inválidos');
+        return pet;
+    } catch (error) {
+        console.error('No se pudo cargar la mascota:', error);
+        alert('No se pudo cargar el premio de la mascota en este dispositivo.');
+        return undefined;
+    }
+}
+
+function savePet(pet) {
+    const key = petStorageKey();
+    if (!key) {
+        alert('Inicia sesión para guardar el premio de la mascota.');
+        return false;
+    }
+    try {
+        localStorage.setItem(key, JSON.stringify(pet));
+        return true;
+    } catch (error) {
+        console.error('No se pudo guardar la mascota:', error);
+        alert('No se pudo guardar la mascota en este dispositivo.');
+        return false;
+    }
+}
+
+function unlockPet() {
+    const existing = loadPet();
+    if (existing === undefined) return false;
+    return existing ? true : savePet({ unlocked: true, food: 100, water: 100, fun: 100, sick: false, updatedAt: Date.now() });
+}
+
+function updatePetNeeds(pet) {
+    const now = Date.now();
+    const hours = Math.max(0, now - pet.updatedAt) / 3600000;
+    for (const name of ['food', 'water', 'fun']) pet[name] = Math.max(0, Math.min(100, pet[name] - hours * 5));
+    pet.updatedAt = Math.max(now, pet.updatedAt);
+    if (pet.food <= 25 || pet.water <= 25) pet.sick = true;
+}
+
+function openPetGame() {
+    const pet = loadPet();
+    if (!pet) {
+        if (pet === null) alert('Para abrir este premio, completa el desafío final del nivel 1 con tu cuenta en este dispositivo.');
+        return;
+    }
+    updatePetNeeds(pet);
+    if (!savePet(pet)) return;
+    renderPetGame(pet);
+    if (petRefreshTimer === null) {
+        petRefreshTimer = window.setInterval(() => {
+            const current = loadPet();
+            if (!current) {
+                closeGameOverlay();
+                return;
+            }
+            updatePetNeeds(current);
+            if (!savePet(current)) {
+                closeGameOverlay();
+                return;
+            }
+            renderPetGame(current);
+        }, 60000);
+    }
+    if (typeof speakText === 'function') speakText('Este es tu premio. Cuida a tu mascota: dale comida y agua, juega con ella y ayúdala si se enferma.');
+}
+
+function renderPetGame(pet, message = '') {
+    const frame = pet.sick ? '0% 100%' : pet.fun < 25 ? '0% 100%' : '100% 0%';
+    const status = pet.sick ? '🤒 Está enferma. Dale comida y agua, y luego cuídala.' : pet.fun < 25 ? '😢 Quiere jugar contigo.' : '😊 ¡Está contenta de verte!';
+    const meter = (label, value) => `<div><div class="flex justify-between font-bold"><span>${label}</span><span>${Math.round(value)}%</span></div><div class="h-3 bg-slate-700 rounded-full overflow-hidden"><div class="h-full bg-pink-400" style="width:${Math.max(0, Math.min(100, value))}%"></div></div></div>`;
+    renderGameOverlay(`<section class="max-w-xl w-full bg-slate-900 text-white rounded-3xl p-5 sm:p-8 border-2 border-pink-400 space-y-4 text-center my-auto">
+      <h2 class="text-2xl font-black">🎁 Mi mascota</h2><p class="text-sm text-slate-300">Premio del desafío final del nivel 1. Sus necesidades bajan con el tiempo, incluso al cerrar el juego.</p>
+      <div role="img" aria-label="Tu mascota" class="mx-auto w-[200px] h-[200px] bg-no-repeat" style="background-image:url('mascota_jsc_sprite_sheet.svg');background-size:400% 200%;background-position:${frame}"></div>
+      <p class="font-bold" role="status">${message || status}</p>
+      <div class="space-y-2 text-left">${meter('🍎 Comida', pet.food)}${meter('💧 Agua', pet.water)}${meter('🎈 Diversión', pet.fun)}</div>
+      <div class="grid grid-cols-2 gap-3"><button onclick="careForPet('food')" class="bg-orange-600 rounded-xl p-3 font-black">🍎 Alimentar</button><button onclick="careForPet('water')" class="bg-sky-600 rounded-xl p-3 font-black">💧 Dar agua</button><button onclick="careForPet('fun')" class="bg-purple-600 rounded-xl p-3 font-black">🎈 Jugar</button><button onclick="careForPet('heal')" class="bg-emerald-700 rounded-xl p-3 font-black">🩹 Cuidar</button></div>
+      <button onclick="closeGameOverlay()" class="underline text-slate-300 p-2">Volver a los desafíos</button>
+    </section>`);
+}
+
+function careForPet(action) {
+    const pet = loadPet();
+    if (!pet) return;
+    updatePetNeeds(pet);
+    let message;
+    if (['food', 'water', 'fun'].includes(action)) {
+        pet[action] = Math.min(100, pet[action] + 30);
+        message = { food: '¡Qué rica comida!', water: '¡Gracias por el agua!', fun: '¡Qué divertido jugar contigo!' }[action];
+    } else if (action === 'heal') {
+        if (!pet.sick) message = 'Tu mascota está sana. ¡Sigue cuidándola!';
+        else if (pet.food < 40 || pet.water < 40) message = 'Primero dale comida y agua para ayudarla a recuperarse.';
+        else {
+            pet.sick = false;
+            message = '¡Tu mascota se ha recuperado!';
+        }
+    } else return;
+    if (!savePet(pet)) return;
+    renderPetGame(pet, message);
+    if (typeof speakText === 'function') speakText(message);
+}
+
 function startBossExam(level) {
     loadMinigamesProgress();
     if (level !== studentMinigamesProgress.currentLevel || !studentMinigamesProgress.unlockedLevels.includes(level)) return;
@@ -436,6 +558,7 @@ function finishBossExam() {
     }
     alert(`🏆 ¡Venciste al jefe!\nAciertos al primer intento: ${firstAttemptCorrect} de 5.\nErrores: ${errors}.\n${result.level < 5 ? `¡Nivel ${next} desbloqueado!` : '¡Completaste todos los niveles!'}`);
     renderMinigamesArcadeView();
+    if (result.level === 1 && unlockPet()) openPetGame();
 }
 
 window.renderMinigamesArcadeView = renderMinigamesArcadeView;
