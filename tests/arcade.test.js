@@ -4,8 +4,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
+const studentProgressKey = 'nee_arcade_progress_v37_student_student-1';
+const previewProgressKey = 'nee_arcade_progress_v37_preview_student-1';
+
 function createArcade() {
-    const stored = new Map([['nee_arcade_progress_v36', JSON.stringify({
+    const stored = new Map([[studentProgressKey, JSON.stringify({
         currentLevel: 1, unlockedLevels: [1], completedGames: { level1: ['mj1', 'mj2', 'mj3', 'mj4', 'mj5'] }
     })]]);
     const elements = new Map([['appContainer', { innerHTML: '' }], ['bossFeedback', { textContent: '' }]]);
@@ -83,7 +86,7 @@ test('boss measures five skills, allows retries and saves results', () => {
     assert.equal(result.stages[0].errors, 1);
     assert.equal(result.stages[0].firstAttemptCorrect, false);
     assert.equal(result.stages[0].repeatedHelp, 1);
-    assert.ok(JSON.parse(stored.get('nee_arcade_progress_v36')).unlockedLevels.includes(2));
+    assert.ok(JSON.parse(stored.get(studentProgressKey)).unlockedLevels.includes(2));
     assert.match(elements.get('appContainer').innerHTML, /CENTRO DE DESAFÍOS/);
 });
 
@@ -94,8 +97,9 @@ test('abandoning a boss and teacher preview do not create student evaluations', 
     context.answerBossStage(true);
     context.exitGameQuestion();
     assert.equal(writes.length, 0);
-    assert.deepEqual(JSON.parse(stored.get('nee_arcade_progress_v36')).unlockedLevels, [1]);
+    assert.deepEqual(JSON.parse(stored.get(studentProgressKey)).unlockedLevels, [1]);
     app.teacherPreviewMode = true;
+    stored.set(previewProgressKey, stored.get(studentProgressKey));
     context.startBossExam(1);
     for (let i = 0; i < 5; i++) context.answerBossStage(true);
     assert.equal(writes.length, 0);
@@ -175,14 +179,14 @@ test('pet needs decay while away, sickness requires care, and actions persist', 
 
 test('other levels and teacher preview do not unlock a student pet', () => {
     const { context, stored, app } = createArcade();
-    stored.set('nee_arcade_progress_v36', JSON.stringify({
+    stored.set(studentProgressKey, JSON.stringify({
         currentLevel: 2, unlockedLevels: [1, 2], completedGames: { level2: ['mj1', 'mj2', 'mj3', 'mj4', 'mj5'] }
     }));
     context.openMinigamesArcade();
     context.startBossExam(2);
     for (let i = 0; i < 5; i++) context.answerBossStage(true);
     assert.equal(stored.has('nee_pet_level1_v1_student_student-1'), false);
-    stored.set('nee_arcade_progress_v36', JSON.stringify({
+    stored.set(previewProgressKey, JSON.stringify({
         currentLevel: 1, unlockedLevels: [1, 2], completedGames: { level1: ['mj1', 'mj2', 'mj3', 'mj4', 'mj5'] }
     }));
     app.teacherPreviewMode = true;
@@ -190,6 +194,29 @@ test('other levels and teacher preview do not unlock a student pet', () => {
     for (let i = 0; i < 5; i++) context.answerBossStage(true);
     assert.equal(stored.has('nee_pet_level1_v1_student_student-1'), false);
     assert.ok(stored.has('nee_pet_level1_v1_preview_student-1'));
+});
+
+test('arcade progress is isolated per user and preview without assigning legacy data', () => {
+    const { context, stored, app, elements, alerts } = createArcade();
+    const legacy = JSON.stringify({ currentLevel: 5, unlockedLevels: [1, 2, 3, 4, 5], completedGames: {} });
+    stored.set('nee_arcade_progress_v36', legacy);
+    context.openMinigamesArcade();
+    assert.match(elements.get('appContainer').innerHTML, /5 \/ 5/);
+
+    app.currentUser = { id: 'student-2', name: 'Otro alumno', role: 'student' };
+    context.openMinigamesArcade();
+    assert.match(elements.get('appContainer').innerHTML, /0 \/ 5/);
+    context.startBossExam(1);
+    assert.ok(alerts.some(message => message.includes('Completa los cinco minijuegos')));
+
+    app.currentUser = { id: 'student-1', name: 'Alumno', role: 'student' };
+    app.teacherPreviewMode = true;
+    context.openMinigamesArcade();
+    assert.match(elements.get('appContainer').innerHTML, /0 \/ 5/);
+    app.teacherPreviewMode = false;
+    context.openMinigamesArcade();
+    assert.match(elements.get('appContainer').innerHTML, /5 \/ 5/);
+    assert.equal(stored.get('nee_arcade_progress_v36'), legacy);
 });
 
 test('app rerenders preserve the arcade and the teacher can inspect metrics', () => {

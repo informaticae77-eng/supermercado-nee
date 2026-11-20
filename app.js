@@ -2705,9 +2705,7 @@ function closeAIReportModal() {
 }
 
 function sendReportByEmail() {
-    const email = prompt("Ingresa el correo electrónico para enviar este informe:");
-    if (!email || !email.includes('@')) return alert("Por favor ingresa un correo electrónico válido.");
-    alert(`📧 Informe psicopedagógico enviado exitosamente a ${email}`);
+    alert("El envío por correo no está configurado. Puedes imprimir el informe o guardarlo como PDF.");
 }
 
 function printCurrentReport() {
@@ -3329,8 +3327,13 @@ function saveUserFromModal() {
     }
 
     const id = userId || ('u-' + Date.now());
-    const pin = rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
-    const userPayload = { id, role, name, rut, username: rut, email, pin, points: 0, level: 0, xp: 0 };
+    const userPayload = { id, role, name, rut, username: rut, email };
+    if (!userId) {
+        userPayload.pin = rut.replace(/[^0-9]/g, '').substring(0, 4) || '1234';
+        userPayload.points = 0;
+        userPayload.level = 0;
+        userPayload.xp = 0;
+    }
     if (role === 'student') userPayload.courseId = courseId;
 
     const idx = APP_STATE.users.findIndex(u => String(u.id) === String(id));

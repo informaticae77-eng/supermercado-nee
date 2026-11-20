@@ -4,8 +4,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-function createUserManagement() {
+function createUserManagement(firebase) {
     const elements = new Map();
+    const alerts = [];
     const makeClassList = () => ({
         toggle() {},
         add() {},
@@ -39,12 +40,13 @@ function createUserManagement() {
             createElement: () => ({})
         },
         localStorage: { getItem() { return null; } },
+        firebase,
         console,
-        alert() {}
+        alert(message) { alerts.push(message); }
     });
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../app.js'), 'utf8'), context);
     context.renderApp = () => {};
-    return { context, elements, courseSelect };
+    return { context, elements, courseSelect, alerts };
 }
 
 test('student form offers courses and saves the selected course', () => {
@@ -88,4 +90,49 @@ test('student list can be filtered by course and shows unassigned students', () 
     assert.match(unassignedList, /Beto/);
     assert.match(unassignedList, /Sin curso asignado/);
     assert.doesNotMatch(unassignedList, /Ana|Docente/);
+});
+
+test('editing a student preserves their PIN and progress locally and in Firestore', () => {
+    const writes = [];
+    const firebase = {
+        apps: [{}],
+        firestore: () => ({
+            collection: name => ({
+                doc: id => ({
+                    set: (data, options) => writes.push({ name, id, data, options })
+                })
+            })
+        })
+    };
+    const { context, elements, courseSelect } = createUserManagement(firebase);
+    context.courses = [{ id: 'course-a', name: 'Primero A' }];
+    context.users = [{
+        id: 'student-a', role: 'student', name: 'Ana', rut: '12345678-9',
+        courseId: 'course-a', pin: '4321', points: 240, xp: 220, level: 2
+    }];
+    vm.runInContext('APP_STATE.courses = courses; APP_STATE.users = users', context);
+
+    context.openEditUserModal('student-a');
+    elements.get('modalName').value = 'Ana Pérez';
+    courseSelect.value = 'course-a';
+    context.saveUserFromModal();
+
+    assert.equal(context.users[0].name, 'Ana Pérez');
+    assert.equal(context.users[0].pin, '4321');
+    assert.equal(context.users[0].points, 240);
+    assert.equal(context.users[0].xp, 220);
+    assert.equal(context.users[0].level, 2);
+    assert.equal(writes[0].name, 'users');
+    assert.equal(writes[0].id, 'student-a');
+    assert.equal(writes[0].options.merge, true);
+    for (const field of ['pin', 'points', 'xp', 'level']) {
+        assert.equal(Object.hasOwn(writes[0].data, field), false);
+    }
+});
+
+test('email report does not claim delivery when sending is unavailable', () => {
+    const { context, alerts } = createUserManagement();
+    context.sendReportByEmail();
+    assert.match(alerts[0], /no está configurado/i);
+    assert.doesNotMatch(alerts[0], /enviado exitosamente/i);
 });

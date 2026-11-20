@@ -10,9 +10,15 @@ let studentMinigamesProgress = {
 };
 
 function loadMinigamesProgress() {
+    const key = minigamesProgressStorageKey();
+    if (!key) {
+        alert('Inicia sesión para guardar el progreso de los minijuegos.');
+        return false;
+    }
     try {
-        const saved = localStorage.getItem('nee_arcade_progress_v36');
-        if (!saved) return;
+        const saved = localStorage.getItem(key);
+        studentMinigamesProgress = { currentLevel: 1, completedGames: {}, unlockedLevels: [1] };
+        if (!saved) return true;
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed === 'object') {
             studentMinigamesProgress = {
@@ -21,16 +27,32 @@ function loadMinigamesProgress() {
                 unlockedLevels: Array.isArray(parsed.unlockedLevels) ? parsed.unlockedLevels : [1]
             };
         }
+        return true;
     } catch (error) {
-        console.warn('No se pudo cargar el progreso de minijuegos:', error);
+        console.error('No se pudo cargar el progreso de minijuegos:', error);
+        alert('No se pudo cargar el progreso de minijuegos en este dispositivo.');
+        return false;
     }
 }
 
+function minigamesProgressStorageKey() {
+    const user = typeof APP_STATE !== 'undefined' ? APP_STATE.currentUser : null;
+    if (!user || !user.id) return null;
+    const mode = APP_STATE.teacherPreviewMode ? 'preview' : 'student';
+    return `nee_arcade_progress_v37_${mode}_${encodeURIComponent(String(user.id))}`;
+}
+
 function saveMinigamesProgress() {
+    const key = minigamesProgressStorageKey();
+    if (!key) {
+        alert('Inicia sesión para guardar el progreso de los minijuegos.');
+        return;
+    }
     try {
-        localStorage.setItem('nee_arcade_progress_v36', JSON.stringify(studentMinigamesProgress));
+        localStorage.setItem(key, JSON.stringify(studentMinigamesProgress));
     } catch (error) {
-        console.warn('No se pudo guardar el progreso de minijuegos:', error);
+        console.error('No se pudo guardar el progreso de minijuegos:', error);
+        alert('No se pudo guardar el progreso de minijuegos en este dispositivo.');
     }
 }
 
@@ -164,7 +186,7 @@ function openMinigamesArcade() {
 }
 
 function renderMinigamesArcadeView() {
-    loadMinigamesProgress();
+    if (!loadMinigamesProgress()) return;
     const container = document.getElementById('appContainer') || document.querySelector('main') || document.body;
     if (!container) return;
 
@@ -470,7 +492,7 @@ function careForPet(action) {
 }
 
 function startBossExam(level) {
-    loadMinigamesProgress();
+    if (!loadMinigamesProgress()) return;
     if (level !== studentMinigamesProgress.currentLevel || !studentMinigamesProgress.unlockedLevels.includes(level)) return;
     const completed = studentMinigamesProgress.completedGames[`level${level}`] || [];
     if (completed.length < 5) return alert('Completa los cinco minijuegos antes del desafío final.');
