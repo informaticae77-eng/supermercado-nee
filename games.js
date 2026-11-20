@@ -434,13 +434,21 @@ function openPetGame() {
     if (typeof speakText === 'function') speakText('Este es tu premio. Cuida a tu mascota: dale comida y agua, juega con ella y ayúdala si se enferma.');
 }
 
-function renderPetGame(pet, message = '') {
-    const frame = pet.sick ? '0% 100%' : pet.fun < 25 ? '0% 100%' : '100% 0%';
+function renderPetGame(pet, message = '', action = '') {
+    const actionMotion = { food: 'eat', water: 'water', fun: 'play', heal: 'heal' }[action];
+    const motion = actionMotion || (pet.sick || pet.fun < 25 ? 'sad' : 'idle');
     const status = pet.sick ? '🤒 Está enferma. Dale comida y agua, y luego cuídala.' : pet.fun < 25 ? '😢 Quiere jugar contigo.' : '😊 ¡Está contenta de verte!';
     const meter = (label, value) => `<div><div class="flex justify-between font-bold"><span>${label}</span><span>${Math.round(value)}%</span></div><div class="h-3 bg-slate-700 rounded-full overflow-hidden"><div class="h-full bg-pink-400" style="width:${Math.max(0, Math.min(100, value))}%"></div></div></div>`;
     renderGameOverlay(`<section class="max-w-xl w-full bg-slate-900 text-white rounded-3xl p-5 sm:p-8 border-2 border-pink-400 space-y-4 text-center my-auto">
       <h2 class="text-2xl font-black">🎁 Mi mascota</h2><p class="text-sm text-slate-300">Premio del desafío final del nivel 1. Sus necesidades bajan con el tiempo, incluso al cerrar el juego.</p>
-      <div role="img" aria-label="Tu mascota" class="mx-auto w-[200px] h-[200px] bg-no-repeat" style="background-image:url('mascota_jsc_sprite_sheet.svg');background-size:400% 200%;background-position:${frame}"></div>
+      <div class="pet-game-stage relative mx-auto flex h-[240px] w-full max-w-[320px] items-end justify-center overflow-hidden rounded-3xl border-4 border-sky-300 bg-gradient-to-b from-sky-400 via-sky-200 to-emerald-200 shadow-inner">
+        <span aria-hidden="true" class="absolute right-7 top-5 text-4xl">☀️</span>
+        <span aria-hidden="true" class="pet-cloud absolute left-5 top-8 text-3xl">☁️</span>
+        <span aria-hidden="true" class="pet-cloud absolute right-16 top-14 text-2xl" style="animation-delay:-2.5s">☁️</span>
+        <span aria-hidden="true" class="absolute left-8 top-20 animate-pulse text-xl">✨</span>
+        <div aria-hidden="true" class="absolute inset-x-0 bottom-0 h-10 rounded-b-2xl bg-gradient-to-b from-green-400 to-green-600"></div>
+        <div role="img" aria-label="${pet.sick ? 'Tu mascota necesita cuidados' : 'Tu mascota está lista para jugar'}" class="pet-sprite pet-sprite-${motion} relative z-10" style="background-image:url('mascota_jsc_sprite_sheet.svg')"></div>
+      </div>
       <p class="font-bold" role="status">${message || status}</p>
       <div class="space-y-2 text-left">${meter('🍎 Comida', pet.food)}${meter('💧 Agua', pet.water)}${meter('🎈 Diversión', pet.fun)}</div>
       <div class="grid grid-cols-2 gap-3"><button onclick="careForPet('food')" class="bg-orange-600 rounded-xl p-3 font-black">🍎 Alimentar</button><button onclick="careForPet('water')" class="bg-sky-600 rounded-xl p-3 font-black">💧 Dar agua</button><button onclick="careForPet('fun')" class="bg-purple-600 rounded-xl p-3 font-black">🎈 Jugar</button><button onclick="careForPet('heal')" class="bg-emerald-700 rounded-xl p-3 font-black">🩹 Cuidar</button></div>
@@ -465,7 +473,7 @@ function careForPet(action) {
         }
     } else return;
     if (!savePet(pet)) return;
-    renderPetGame(pet, message);
+    renderPetGame(pet, message, action);
     if (typeof speakText === 'function') speakText(message);
 }
 

@@ -108,6 +108,54 @@
         }
         .animate-wave { animation: waveHand 1.8s ease-in-out infinite; transform-origin: bottom center; }
 
+        @keyframes petIdle {
+            0%, 78%, 100% { background-position: 0% 0%; transform: translateY(0); }
+            84%, 92% { background-position: 33.333% 0%; transform: translateY(0); }
+        }
+        @keyframes petEat {
+            0%, 100% { background-position: 0% 0%; transform: translateY(0) scale(1); }
+            18%, 42%, 66% { background-position: 100% 100%; transform: translateY(3px) scale(1.03); }
+            30%, 54%, 78% { background-position: 0% 0%; transform: translateY(0) scale(1); }
+        }
+        @keyframes petWater {
+            0%, 100% { background-position: 0% 0%; transform: translateY(0); }
+            25%, 75% { background-position: 100% 0%; transform: translateY(-10px); }
+            50% { background-position: 66.667% 0%; transform: translateY(0); }
+        }
+        @keyframes petPlay {
+            0%, 100% { background-position: 0% 0%; transform: translateX(0) translateY(0); }
+            20% { background-position: 33.333% 100%; transform: translateX(-22px) translateY(0); }
+            40% { background-position: 66.667% 100%; transform: translateX(20px) translateY(-12px); }
+            60% { background-position: 66.667% 0%; transform: translateX(-12px) translateY(-22px); }
+            80% { background-position: 100% 0%; transform: translateX(0) translateY(-8px); }
+        }
+        @keyframes petSad {
+            0%, 100% { background-position: 0% 100%; transform: translateY(0); }
+            50% { background-position: 0% 100%; transform: translateY(6px); }
+        }
+        @keyframes petCloudDrift {
+            0%, 100% { transform: translateX(-5px); }
+            50% { transform: translateX(8px); }
+        }
+        .pet-sprite {
+            width: 200px;
+            height: 200px;
+            flex-shrink: 0;
+            background-repeat: no-repeat;
+            background-size: 400% 200%;
+            image-rendering: auto;
+        }
+        .pet-sprite-idle { animation: petIdle 3s steps(1, end) infinite; }
+        .pet-sprite-eat { animation: petEat 1.8s steps(1, end) 1; }
+        .pet-sprite-water { animation: petWater 1.6s steps(1, end) 1; }
+        .pet-sprite-play { animation: petPlay 2.2s steps(1, end) 1; }
+        .pet-sprite-heal { animation: petWater 1.8s steps(1, end) 1; filter: drop-shadow(0 0 12px rgba(74, 222, 128, 0.8)); }
+        .pet-sprite-sad { animation: petSad 1.8s ease-in-out infinite; }
+        .pet-cloud { animation: petCloudDrift 5s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) {
+            .pet-sprite, .pet-cloud { animation: none !important; }
+        }
+
     </style>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen text-slate-900 pb-16 relative overflow-x-hidden">

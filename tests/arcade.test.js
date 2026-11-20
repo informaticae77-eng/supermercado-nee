@@ -159,14 +159,19 @@ test('pet needs decay while away, sickness requires care, and actions persist', 
 
     context.openPetGame();
     assert.equal(JSON.parse(stored.get(key)).sick, true);
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /pet-sprite-sad/);
     context.careForPet('heal');
     assert.match(elements.get('nee-game-modal-overlay').innerHTML, /Primero dale comida y agua/);
     context.careForPet('food');
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /pet-sprite-eat/);
     context.careForPet('food');
     context.careForPet('water');
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /pet-sprite-water/);
     context.careForPet('water');
     context.careForPet('fun');
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /pet-sprite-play/);
     context.careForPet('heal');
+    assert.match(elements.get('nee-game-modal-overlay').innerHTML, /pet-sprite-heal/);
     const recovered = JSON.parse(stored.get(key));
     assert.equal(recovered.sick, false);
     assert.ok(recovered.food >= 40 && recovered.water >= 40 && recovered.fun > 0);
