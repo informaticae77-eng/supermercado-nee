@@ -159,6 +159,130 @@ function openMinigamesArcade() {
     }
 }
 
+function getVirtualPetStorageKey() {
+    const app = typeof APP_STATE !== 'undefined' ? APP_STATE : null;
+    const student = app && app.currentUser;
+    if (!student || student.role !== 'student' || app.teacherPreviewMode || !student.id) return null;
+    return `nee_virtual_pet_v1_${encodeURIComponent(String(student.id))}`;
+}
+
+function loadVirtualPetState() {
+    const key = getVirtualPetStorageKey();
+    if (!key) return null;
+
+    try {
+        const saved = localStorage.getItem(key);
+        const parsed = saved ? JSON.parse(saved) : null;
+        if (!parsed || parsed.unlocked !== true) return null;
+        const clamp = value => Math.max(0, Math.min(100, Number(value) || 0));
+        return {
+            unlocked: true,
+            food: clamp(parsed.food),
+            cleanliness: clamp(parsed.cleanliness),
+            happiness: clamp(parsed.happiness),
+            message: String(parsed.message || '¡Hola! Me alegra que estés aquí.')
+        };
+    } catch (error) {
+        console.warn('No se pudo cargar el progreso de la mascota:', error);
+        return null;
+    }
+}
+
+function saveVirtualPetState(state) {
+    const key = getVirtualPetStorageKey();
+    if (!key) return;
+    try {
+        localStorage.setItem(key, JSON.stringify(state));
+    } catch (error) {
+        console.warn('No se pudo guardar el progreso de la mascota:', error);
+    }
+}
+
+function unlockVirtualPet() {
+    if (loadVirtualPetState()) return true;
+    if (!getVirtualPetStorageKey()) return false;
+    saveVirtualPetState({
+        unlocked: true,
+        food: 75,
+        cleanliness: 75,
+        happiness: 75,
+        message: '¡Lo lograste! Ahora podemos jugar juntos.'
+    });
+    return Boolean(loadVirtualPetState());
+}
+
+function escapeVirtualPetText(text) {
+    return String(text).replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[character]);
+}
+
+function openVirtualPet() {
+    const pet = loadVirtualPetState();
+    if (!pet) return renderMinigamesArcadeView();
+    const container = document.getElementById('appContainer') || document.querySelector('main') || document.body;
+    if (!container) return;
+
+    const renderMeter = (label, value, color) => `
+        <div>
+            <div class="flex justify-between text-sm font-black"><span>${label}</span><span>${value}%</span></div>
+            <div class="h-4 rounded-full bg-slate-200 overflow-hidden" role="meter" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${value}">
+                <div class="h-full ${color} rounded-full transition-all" style="width:${value}%"></div>
+            </div>
+        </div>`;
+
+    container.innerHTML = `
+      <section class="min-h-[70vh] bg-gradient-to-br from-sky-100 via-indigo-100 to-pink-100 p-4 sm:p-8 rounded-3xl text-slate-900">
+        <div class="max-w-4xl mx-auto">
+          <button onclick="returnToArcadeFromPet()" class="bg-white px-5 py-3 rounded-2xl font-black shadow mb-5">⬅ Volver al arcade</button>
+          <div class="bg-white rounded-3xl p-5 sm:p-8 shadow-xl border-4 border-indigo-300 text-center">
+            <p class="text-indigo-700 text-sm font-black uppercase tracking-wide">🎁 Tu regalo de entretenimiento</p>
+            <h1 class="text-3xl sm:text-4xl font-black mt-1">¡Cuida a Lunita!</h1>
+            <p class="text-slate-600 mt-2">Aliméntala, báñala y juega con ella. ¡Tu mascota siempre estará aquí para acompañarte!</p>
+            <img src="assets/mascota-infinita.svg" alt="Lunita, una mascota sonriente con un símbolo de infinito de colores" class="animate-avatar-float w-56 h-64 object-contain mx-auto my-4" />
+            <p id="virtualPetMessage" class="bg-indigo-50 text-indigo-900 font-bold rounded-2xl p-4 mb-5" role="status" aria-live="polite">${escapeVirtualPetText(pet.message)}</p>
+            <div class="max-w-xl mx-auto grid gap-4 text-left">
+              ${renderMeter('🍎 Alimentación', pet.food, 'bg-emerald-500')}
+              ${renderMeter('🛁 Aseo', pet.cleanliness, 'bg-sky-500')}
+              ${renderMeter('🎉 Diversión', pet.happiness, 'bg-pink-500')}
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-xl mx-auto mt-6">
+              <button onclick="careForVirtualPet('feed')" class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl p-4 font-black text-lg shadow">🍎 Dar comida</button>
+              <button onclick="careForVirtualPet('bathe')" class="bg-sky-600 hover:bg-sky-700 text-white rounded-2xl p-4 font-black text-lg shadow">🛁 Bañar</button>
+              <button onclick="careForVirtualPet('play')" class="bg-pink-600 hover:bg-pink-700 text-white rounded-2xl p-4 font-black text-lg shadow">🧸 Jugar</button>
+            </div>
+          </div>
+        </div>
+      </section>`;
+}
+
+function careForVirtualPet(action) {
+    const pet = loadVirtualPetState();
+    if (!pet) return renderMinigamesArcadeView();
+    const clamp = value => Math.max(0, Math.min(100, value));
+    const actions = {
+        feed: { food: 25, cleanliness: -3, happiness: 5, message: '¡Qué rico! Gracias por alimentarme. 🍎' },
+        bathe: { food: -3, cleanliness: 30, happiness: 5, message: '¡Ahora estoy limpia y brillante! 🫧' },
+        play: { food: -8, cleanliness: -5, happiness: 25, message: '¡Me encanta jugar contigo! 🧸' }
+    };
+    const care = actions[action];
+    if (!care) return;
+    pet.food = clamp(pet.food + care.food);
+    pet.cleanliness = clamp(pet.cleanliness + care.cleanliness);
+    pet.happiness = clamp(pet.happiness + care.happiness);
+    pet.message = care.message;
+    saveVirtualPetState(pet);
+    openVirtualPet();
+}
+
+function returnToArcadeFromPet() {
+    renderMinigamesArcadeView();
+}
+
 function renderMinigamesArcadeView() {
     loadMinigamesProgress();
     const container = document.getElementById('appContainer') || document.querySelector('main') || document.body;
@@ -168,6 +292,7 @@ function renderMinigamesArcadeView() {
     studentMinigamesProgress.currentLevel = level;
     const completed = studentMinigamesProgress.completedGames[`level${level}`] || [];
     const levels = ['Comprador Principiante', 'Explorador de Góndolas', 'As del Vuelto y Cajas', 'Planificador Experto', 'Maestro del Supermercado'];
+    const pet = loadVirtualPetState();
 
     container.innerHTML = `
       <section class="min-h-[70vh] bg-slate-950 text-slate-100 p-4 sm:p-7 rounded-3xl">
@@ -184,6 +309,7 @@ function renderMinigamesArcadeView() {
           ${renderGameCard(4, '🧮 Calculadora del Canasto', 'Suma los precios de dos productos.', 'startMinigame4', 'mj4', completed)}
           ${renderGameCard(5, '📋 La Lista de Compras', 'Encuentra el producto usando su imagen.', 'startMinigame5', 'mj5', completed)}
           <div class="bg-slate-900 p-5 rounded-3xl border border-amber-500"><h3 class="font-black text-amber-300">👑 Desafío final: el jefe del supermercado</h3><p class="my-3 text-sm">Completa los cinco minijuegos y enfrenta cinco etapas para desbloquear el siguiente nivel.</p><button ${completed.length >= 5 ? `onclick="startBossExam(${level})"` : 'disabled'} class="w-full bg-amber-500 text-slate-950 p-3 rounded-xl font-black">${completed.length >= 5 ? 'Enfrentar desafío' : '🔒 Completa los 5 minijuegos'}</button></div>
+          ${level === 5 ? `<div class="bg-gradient-to-br from-indigo-900 to-pink-900 p-5 rounded-3xl border border-pink-400"><h3 class="font-black text-pink-200">🎁 Una sorpresa te espera</h3><p class="my-3 text-sm">${pet ? '¡Ya desbloqueaste a Lunita! Entra cuando quieras para jugar y cuidarla.' : 'Completa el desafío final del nivel 5 para recibir una mascota interactiva.'}</p>${pet ? '<button onclick="openVirtualPet()" class="w-full bg-pink-500 hover:bg-pink-400 text-white p-3 rounded-xl font-black">🐾 Jugar con Lunita</button>' : '<p class="text-xs text-pink-100">Es un regalo de entretenimiento, sin actividades educativas.</p>'}</div>` : ''}
         </main>
       </section>`;
 }
@@ -411,6 +537,9 @@ function finishBossExam() {
     const errors = result.results.reduce((total, stage) => total + stage.errors, 0);
     const repeatedHelp = result.results.reduce((total, stage) => total + stage.repeatedHelp, 0);
     const student = typeof APP_STATE !== 'undefined' ? APP_STATE.currentUser : null;
+    const petUnlocked = result.level === 5 && student && student.role === 'student' && !APP_STATE.teacherPreviewMode
+        ? unlockVirtualPet()
+        : false;
     if (student && student.role === 'student' && !APP_STATE.teacherPreviewMode) {
         const evaluation = {
             type: 'boss',
@@ -434,7 +563,7 @@ function finishBossExam() {
             alert('La evaluación no se guardó para el educador porque la base de datos no está disponible.');
         }
     }
-    alert(`🏆 ¡Venciste al jefe!\nAciertos al primer intento: ${firstAttemptCorrect} de 5.\nErrores: ${errors}.\n${result.level < 5 ? `¡Nivel ${next} desbloqueado!` : '¡Completaste todos los niveles!'}`);
+    alert(`🏆 ¡Venciste al jefe!\nAciertos al primer intento: ${firstAttemptCorrect} de 5.\nErrores: ${errors}.\n${result.level < 5 ? `¡Nivel ${next} desbloqueado!` : `¡Completaste todos los niveles!${petUnlocked ? ' ¡También desbloqueaste a Lunita, tu mascota interactiva!' : ''}`}`);
     renderMinigamesArcadeView();
 }
 
